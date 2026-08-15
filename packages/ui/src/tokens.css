@@ -1,0 +1,110 @@
+/*
+ * Design tokens — derived from packages/ui/DESIGN.md.
+ * Tailwind v4 CSS-first config. Every colour and type decision traces to that file;
+ * if you need a value that is not here, change DESIGN.md first.
+ */
+
+@theme {
+  /* ---- Palette: dark (default) ---------------------------------------- */
+  --color-ink: #0e141b;        /* ground — cold, blue-cast, deliberately not black */
+  --color-surface: #151d26;    /* cards, code blocks, sidebar */
+  --color-raised: #1e2833;     /* code block body, popovers */
+  --color-graphite: #2b3745;   /* hairlines, dividers, inactive rail ticks */
+
+  --color-muted: #7c8b9c;      /* metadata, captions */
+  --color-body: #b9c5d2;       /* prose */
+  --color-display: #e7edf4;    /* headings */
+
+  /* The accent. Provenance and current position ONLY. Never a general-purpose
+     button colour, never a large fill. See DESIGN.md "the discipline on signal". */
+  --color-signal: #e4a548;
+  --color-signal-soft: #f2c782;
+  --color-signal-dim: #6b5228;
+
+  --color-verified: #63b98c;   /* gate-passed states only */
+  --color-stale: #d2705f;      /* drift markers, legacy code annotations only */
+
+  /* ---- Type ------------------------------------------------------------ */
+  --font-display: 'Archivo Variable', 'Archivo', system-ui, sans-serif;
+  --font-body: 'Public Sans Variable', 'Public Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
+
+  /* 1.200 minor third from 17px */
+  --text-2xs: 0.6875rem;  /* 11 — rail ordinals */
+  --text-xs: 0.8125rem;   /* 13 — mono metadata */
+  --text-sm: 0.875rem;    /* 14 — captions, sidebar */
+  --text-base: 1.0625rem; /* 17 — prose */
+  --text-lg: 1.25rem;     /* 20 — lead paragraph */
+  --text-xl: 1.5rem;      /* 24 — h3 */
+  --text-2xl: 1.8125rem;  /* 29 — h2 */
+  --text-3xl: 2.1875rem;  /* 35 — h1 */
+  --text-4xl: 2.625rem;   /* 42 — landing display */
+
+  --tracking-meta: 0.08em; /* uppercase mono chrome */
+  --leading-prose: 1.65;
+
+  /* ---- Layout ---------------------------------------------------------- */
+  --measure-prose: 68ch;
+  --width-sidebar: 17.5rem;
+  --width-rail: 3rem;
+  --radius-sm: 3px;
+  --radius-md: 6px;
+
+  /* ---- Motion ---------------------------------------------------------- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 120ms;
+  --duration-graph: 900ms;
+}
+
+/* ---- Palette: light -------------------------------------------------- */
+/* Cool paper, not cream. Cream + serif + terracotta is a generic default and
+   would undo the point of the dark direction. */
+:root[data-theme='light'] {
+  --color-ink: #f4f6f9;
+  --color-surface: #ffffff;
+  --color-raised: #eef1f6;
+  --color-graphite: #d3dae3;
+
+  --color-muted: #5b6875;
+  --color-body: #263140;
+  --color-display: #0e141b;
+
+  --color-signal: #a1671a;      /* darkened for 4.5:1 on paper */
+  --color-signal-soft: #7d4f12;
+  --color-signal-dim: #f0dcb8;
+
+  --color-verified: #2f7d55;
+  --color-stale: #a83f2e;
+}
+
+/* ---- Quality floor, unannounced -------------------------------------- */
+
+:where(a, button, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---- Structural mono -------------------------------------------------- */
+/* The one aesthetic risk: metadata is mono, uppercase, tracked. In this corpus
+   the baseline version IS the claim's validity, so it is promoted typographically
+   rather than buried in the same neutral sans as the prose. DESIGN.md explains
+   the fallback if this hurts scanning at 360px. */
+.meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}

@@ -1,0 +1,141 @@
+---
+description: Session start/end protocol. Read first, obey always.
+alwaysApply: true
+---
+
+# Session protocol — corpus-web
+
+## FIRST ACTION — before anything else
+
+Do NOT explore the repo. Do NOT run commands. Do NOT read source files.
+Open and read these exact files, in this order:
+
+1. `.agents/summary.md`
+2. `.agents/SESSION-LOG.md`
+3. `CHANGELOG.md`
+4. `roadmap.md`
+5. `progress.md`
+
+Then respond using only what those files contain.
+If any file is missing, say so and stop.
+
+If the prompt names a session file (`prompts/session-N.md`), read that sixth and treat it
+as the authoritative task list. Anything not in it is out of scope.
+
+---
+
+## Division of labour
+
+- **Claude** authors prose, session prompts, schemas, architectural decisions, and content.
+- **Cursor** executes file operations, runs builds and gates, opens PRs.
+- Cursor does not invent content. If a task requires writing reader-facing prose or a
+  technical claim, stop and report that the session prompt is underspecified.
+
+---
+
+## Invented decisions — mandatory disclosure
+
+Any decision inferred rather than instructed MUST be stated explicitly in the session
+output and in the SESSION-LOG entry under a heading `**Invented decisions:**`.
+
+A silent assumption is a failed session even when the assumption was correct.
+
+---
+
+## After EVERY session — mandatory steps
+
+Complete all four. Do not skip even if the session was small.
+Do not commit until all four are done.
+
+### 1. Append to `.agents/SESSION-LOG.md`
+
+Exact format. List every file specifically — never summarise as "various files".
+
+~~~
+## Session [N] — [topic] — [YYYY-MM-DD]
+
+**Branch:** [current git branch]
+
+**Files changed:**
+- `path/to/file` — one-line reason
+
+**Why:** [1-2 paragraphs on the architectural decision or problem solved]
+
+**Invented decisions:** [bulleted, or "none"]
+
+**Known issues / next steps:** [anything deferred or incomplete]
+
+---
+~~~
+
+### 2. Append to `CHANGELOG.md` under `## [Unreleased]`
+
+~~~
+### [YYYY-MM-DD] — [branch name] — [short topic title]
+
+**Added**
+- bullet per addition
+
+**Changed**
+- bullet per change
+
+**Fixed**
+- bullet per fix
+
+**Architecture decisions**
+- one-liner per decision made
+~~~
+
+If `## [Unreleased]` does not exist, create it directly below the `# Changelog` heading.
+
+### 3. Update `.agents/summary.md` — targeted edits only
+
+Update only if one of these changed: new apps/packages/routes, new dependencies,
+deployment or DNS config, content submodule pointers, architecture decisions affecting
+future sessions, or a completed item under "Planned next steps".
+
+Do NOT rewrite `.agents/summary.md` wholesale. Edit the specific sections that changed.
+
+### 4. Update `progress.md`
+
+Status vocabulary, suite-wide: WHITE=queued, YELLOW=in progress, GREEN=drafted,
+CHECK=complete, X=dropped. Use the emoji forms already present in the file.
+
+`roadmap.md` is a stable planning document. It is NOT a progress tracker and is not
+updated per session — only on an approved scope change.
+
+---
+
+## Agent-doc portability
+
+Rules are authored in `.cursor/rules/*.mdc` and are the single source of truth.
+`AGENTS.md` and `CLAUDE.md` are GENERATED. Never hand-edit them.
+
+After changing any rule file, run:
+
+```
+pnpm agents:build
+```
+
+CI runs `pnpm agents:check` and fails on drift. This is what lets the project move
+between Cursor, Claude Code, Codex, or any other agent without rewriting context.
+
+---
+
+## Skills
+
+Skills live in `.claude/skills/`, one directory per skill, each with a `SKILL.md`.
+`AGENTS.md` carries a generated index of them for agents without native skill support.
+
+**Rules are boundaries; skills are procedures.** These rule files say what must never
+happen. A skill says how to do the thing once you are doing it. A skill must never restate
+a rule — it references it. If a constraint belongs in both, it belongs in the rule.
+
+The index of available skills and their triggers is in `60-skills.mdc`, which is
+generated — never maintain a skill list by hand in this file.
+
+**Never run raw `git commit`.** Use `corpus-commit`.
+
+Adding a skill: create `.claude/skills/<name>/SKILL.md` with `name` matching the directory
+and a `description` stating its trigger, then run `pnpm agents:build`. The generator
+validates both and fails on drift.

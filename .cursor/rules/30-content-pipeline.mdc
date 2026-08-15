@@ -1,0 +1,93 @@
+---
+description: Content sync, frontmatter adapters, catalog, sidecars. Applies to content and pipeline code.
+globs: ["content/**", "curation/**", "scripts/**", "packages/content-schema/**"]
+alwaysApply: false
+---
+
+# Content pipeline
+
+## Direction of flow — one way only
+
+```
+7 mounted corpus repos (canonical)  [+1 planned: dsa, no remote]
+  -> git submodule, pinned to tag
+    -> scripts/sync-content.mjs
+      -> packages/content-schema adapters (normalise, do NOT rewrite)
+        -> scripts/build-catalog.mjs -> catalog.json
+          -> apps/web routes + sidebar   (render)
+          -> POST api/catalog/sync       (FK targets for progress)
+```
+
+Nothing flows back. There is no path by which this repo modifies a corpus repo.
+
+## Frontmatter
+
+The seven mounted repos have compatible-but-not-identical frontmatter. Do NOT unify them by
+rewriting the corpora. Unify with per-repo **adapters** in `packages/content-schema`
+that normalise into one internal `Article` shape.
+
+Four of the seven share a documented schema. `auth`, `authz`, and `websec` have no
+recorded convention — treat their adapter specs as hypotheses to be tested, not facts.
+
+Normalised shape:
+
+```ts
+type Article = {
+  id: string;          // `${repo}/${article_id}` — globally unique, stable forever
+  repo: RepoId;
+  kind: 'concept' | 'recipe';
+  folder: string;
+  title: string;
+  description: string; // the dek — REQUIRED, doubles as meta description
+  wave: number | null;
+  difficulty: 'foundational' | 'intermediate' | 'advanced' | null;
+  baseline: { framework: string; version: string };
+  status: 'draft' | 'complete';
+  related: ArticleRef[];
+  sourcePath: string;  // drives the "Edit on GitHub" link
+  contentHash: string; // sha256 of body — drives the DB upsert
+};
+```
+
+When a corpus changes its frontmatter, **one adapter changes** — never 120+ files.
+
+`article_id` / `recipe_id` is always the filename slug, never a sequence number.
+
+## Draft gating
+
+`status: 'draft'` renders only when `NEXT_PUBLIC_SHOW_DRAFTS=1`. Production ships
+completed work only. A path may not reference a draft article — `verify-catalog` fails.
+
+## Cross-repo links
+
+The corpus repos WARN on cross-repo links because they cannot resolve standalone.
+Here they CAN resolve, so here they are a **hard failure**. `verify-links` in this repo
+is strictly stronger than the per-repo gate.
+
+**One exception: refs to a PLANNED corpus warn, never fail.** `dsa` has no remote yet, so
+a link to `dsa/binary-search` points at work that exists but is unpublished. Failing the
+build over it would push authors toward deleting correct cross-references, which is the
+wrong incentive. Those land in `LinkReport.plannedTargets`.
+
+## content_hash
+
+The pivot for catalog sync. Unchanged hash means no-op. A changed hash flags affected
+`lesson_progress` rows for **optional** invalidation — never automatic. A typo fix must
+not wipe a reader's completion streak.
+
+## Sidecars vs overrides
+
+The rule: **if it is a claim, it lives in the corpus. If it is a rendering, it lives here.**
+
+1. **Sidecars — committed to the corpus repo**, next to the article:
+   `js-patterns-react.quiz.yaml`, `js-patterns-react.deck.yaml`.
+   Quizzes and flashcards are content and stay under the corpus's verified-claims
+   discipline and its own CI.
+2. **Overrides — `curation/overrides/*.yaml` in this repo**:
+   a map of `article_id -> [{ afterHeading, component, props }]`.
+   This is how a rich interactive widget lands in an article without touching it.
+
+## Submodule promotion
+
+Corpus repo tags a release -> `repository_dispatch` fires at this repo -> Action bumps the
+submodule pointer, runs all gates, opens a PR. **Never auto-merges.**

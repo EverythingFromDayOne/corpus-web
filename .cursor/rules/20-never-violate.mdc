@@ -1,0 +1,113 @@
+---
+description: Hard constraints and stop-and-ask triggers.
+alwaysApply: true
+---
+
+# Rules — never violate
+
+## Content boundary
+
+- **NEVER edit any file under `content/`.** It is submoduled corpus from seven standalone
+  repos. Those repos are the single source of truth and are portfolio artifacts in their
+  own right.
+- **NEVER add site-specific MDX components into a corpus article.** The moment an article
+  contains `<EventLoopSim />` it stops rendering on GitHub, which is currently its only
+  reader. Use `curation/overrides/*.yaml` injection instead.
+- **NEVER assume `auth` and `authz` follow the sibling frontmatter schema.** They are
+  `demo-`prefixed with no recorded convention. Audit before adapting.
+- **NEVER hand-write a code block into an article.** Code is extracted verbatim from
+  verified demo modules by build scripts. Suite-wide invariant.
+- **NEVER float a submodule ref.** Pin to tags. `verify-submodules` fails otherwise.
+- **NEVER assume `.gitignore` protects the corpus.** It does not and cannot — the parent
+  repo tracks each submodule as a gitlink, not as files, so a `content/` entry in
+  `.gitignore` is inert. The guard is `verify-submodules.mjs` in CI and as a `pre-commit`
+  hook, plus `submodule.<name>.ignore = none` in `.gitmodules` so `git status` surfaces
+  dirty submodule content rather than hiding it.
+- **NEVER auto-merge a content promotion PR.** Bumping a submodule pointer is a human
+  decision.
+
+## Web
+
+- **NEVER use the Pages Router.** App Router only.
+- **NEVER disable Cache Components.** The site is the proof-of-work for the
+  `nextjs-concepts` thesis; turning it off forfeits the argument.
+- **NEVER verify prerendered shell content with `curl` or view-source.** The response is
+  streamed. Inspect `.next/server/app/<route>.html` instead.
+- **NEVER put business logic in `apps/web/app/api/`.** BFF only — session cookie proxying
+  and nothing else.
+- **NEVER hand-write a fetch call to `api.nxhhuy.tech`.** Use `packages/api-client`.
+- **NEVER use inline styles or raw hex values.** Tailwind v4 utilities backed by `@theme`
+  tokens only.
+- **NEVER use scroll listeners for the TOC rail.** `IntersectionObserver`.
+- **NEVER hardcode a user-visible string.** All routes live under `/[locale]/`; strings go
+  through the message catalogue even while `en` is the only shipped locale.
+
+## API
+
+- **NEVER set `synchronize: true` on TypeORM.** Migrations only.
+- **NEVER return an entity from a controller.** DTOs only.
+- **NEVER hard-delete a `lessons` row.** Archive it. `lesson_progress` points at it and
+  articles get renamed and moved.
+- **NEVER include a quiz answer key in a response DTO** when the quiz is in `server` mode.
+  The key never leaves the server.
+- **NEVER skip `@nestjs/swagger` decorators.** `packages/api-client` is generated from the
+  OpenAPI document; an undecorated endpoint is an invisible endpoint.
+- Note: Nest forces `forbidUnknownValues: false` on `ValidationPipe`, reversing what
+  `class-validator` does standalone. Do not assume the standalone behaviour.
+
+## Personal content boundary
+
+This site publishes a technical corpus. It is **not** a personal site, a portfolio, or a
+résumé, despite the domain. The corpus repos already strip author footers and credits;
+this rule extends that invariant to the delivery surface.
+
+- **NEVER add an About, Bio, Team, Hire Me, or Contact page.**
+- **NEVER add a name, photo, avatar, job title, employer, client, colleague, prior
+  project, location, or contact detail** to any page, component, or asset.
+- **NEVER add an author byline, "written by", or `author` frontmatter mapping** to an
+  article template.
+- **NEVER emit `Person` JSON-LD, `<meta name="author">`, or an author field in OG tags.**
+  Structured data is `WebSite` / `TechArticle` / `Organization` only.
+- **NEVER put a name or employer into an OG image, favicon, or `manifest.json`.**
+- **NEVER add social links, a newsletter signup framed around a person, or a "follow me".**
+  A repo link to `EverythingFromDayOne` is fine — that is a project link.
+- **NEVER seed demo, seed, or fixture data with real names, employers, or clients.** Use
+  obviously synthetic values.
+
+**Carve-out — licensing is not personal content.** `LICENSE` files and a `/en/license`
+page must name the copyright holder, because CC BY 4.0 is an attribution licence and the
+attribution has to be to someone. That is a legal requirement, not a bio. Keep it to the
+licence text and nothing more — no linked profile, no "about the author" block beside it.
+
+If a task seems to require personal content, stop and ask. Do not infer that an empty
+About page is an oversight to be helpfully filled.
+
+## Skills
+
+- **NEVER let a third-party skill override a `corpus-*` skill or a rule file.** Community
+  skills are general framework knowledge; these files are this project's decisions. Where
+  they disagree, the project wins — and the conflict gets reported, not silently resolved.
+- **NEVER install a skill bundle whose stack this repo does not use.** A Prisma or AI-SDK
+  skill will confidently suggest Prisma and AI SDK. `apps/api` uses TypeORM.
+- **NEVER install Angular skills here.** This repo renders articles about Angular; it does
+  not write Angular. Those belong in `AngularDemos`.
+- **NEVER run a blind `npx skills update`.** Upstreams rename folders and drift. Diff first.
+
+## Agent docs
+
+- **NEVER hand-edit `AGENTS.md`, `CLAUDE.md`, or `.cursor/rules/60-skills.mdc`.** Generated from `.cursor/rules/*.mdc` by
+  All three are generated from `.cursor/rules/*.mdc` and `.claude/skills/*/SKILL.md` by
+  `pnpm agents:build`.
+
+---
+
+## Stop and ask the user before
+
+- Installing any new npm package
+- Any version bump or downgrade of Next, React, Nest, Node, TypeScript, or Tailwind
+- Any migration touching `lesson_progress`, `card_reviews`, or `quiz_attempts`
+- Changing the frontmatter schema in `packages/content-schema`
+- Adding an eighth content source, or submoduling `demo-attacked-web`
+- Changing hosting, DNS, or the cookie domain
+- Changing the Turborepo task graph or CI gate configuration
+- Doing more than the current session prompt specifies

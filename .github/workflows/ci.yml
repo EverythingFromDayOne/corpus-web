@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PNPM_VERSION: 10.33.0
+
+jobs:
+  # Cheap gates that need no dependency install. Fail fast, before anything expensive.
+  guards:
+    name: Repo guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+
+      # AGENTS.md / CLAUDE.md must match .cursor/rules/*.mdc.
+      # This is what keeps the project portable across coding agents without
+      # maintaining three copies of the same rules.
+      # Also validates .claude/skills/*/SKILL.md frontmatter: name matches its
+      # directory, is lowercase-hyphenated and under 64 chars, and the description
+      # is under 1024 chars and states a trigger. A skill whose description does
+      # not say when to use it will never be selected.
+      - name: Agent docs and skills in sync
+        run: node scripts/build-agent-docs.mjs --check
+        # Covers AGENTS.md, CLAUDE.md, and .cursor/rules/60-skills.mdc — the last is
+        # how Cursor reaches .claude/skills, which it does not load natively.
+
+      # Every content submodule pinned to a tag, none with a dirty working tree.
+      # A dirty submodule means something edited the corpus from this repo, which
+      # is the one boundary the whole architecture rests on.
+      - name: Submodules pinned and clean
+        run: node scripts/verify-submodules.mjs
+
+  content:
+    name: Content gates
+    runs-on: ubuntu-latest
+    needs: guards
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+      - uses: pnpm/action-setup@v4
+        with: { version: '${{ env.PNPM_VERSION }}' }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+
+      - name: Frontmatter
+        run: pnpm verify:frontmatter
+
+      # Cross-repo links WARN in the corpus repos because they cannot resolve
+      # standalone. Here they CAN, so here they are fatal.
+      - name: Links
+        run: pnpm verify:links
+
+      - name: Catalog
+        run: pnpm verify:catalog
+
+      - name: Sidecars
+        run: pnpm verify:sidecars
+
+      - name: Code block drift
+        run: pnpm verify:code-blocks
+
+  build:
+    name: Lint, typecheck, build
+    runs-on: ubuntu-latest
+    needs: guards
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+      - uses: pnpm/action-setup@v4
+        with: { version: '${{ env.PNPM_VERSION }}' }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+      # The prerendered shell cannot be verified with curl or view-source — the
+      # response is streamed and both under-report. Inspect the build output.
+      - name: Prerender assertions
+        run: pnpm verify:prerender
+
+  quality:
+    name: Accessibility and performance
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+      - uses: pnpm/action-setup@v4
+        with: { version: '${{ env.PNPM_VERSION }}' }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - name: Axe on sampled routes
+        run: pnpm verify:a11y
+
+      # Not vanity. A site whose thesis is "everyone gets Next.js caching wrong"
+      # loses the argument if it ships slow.
+      - name: Lighthouse budgets
+        run: pnpm verify:lighthouse

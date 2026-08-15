@@ -1,0 +1,71 @@
+---
+description: NestJS 11 conventions — modules, DTOs, TypeORM, auth, OpenAPI.
+globs: ["apps/api/**"]
+alwaysApply: false
+---
+
+# apps/api — NestJS 11
+
+## What this service is for
+
+State, not content. Postgres never sits in the read path for an article body.
+
+Module inventory:
+
+| Module | Owns |
+|---|---|
+| `auth` | registration, login, sessions, refresh rotation, OAuth |
+| `users` | profile, preferences (theme, sidebar, locale) |
+| `catalog` | ingests `catalog.json`; owns `lessons`, `lesson_sections`, `paths` |
+| `progress` | lesson + section completion, streaks |
+| `quiz` | question bank, attempt scoring, **answer key custody** |
+| `srs` | flashcard scheduling (FSRS), due queues |
+| `notes` | highlights, bookmarks, per-article notes |
+| `entitlements` | free vs paid access |
+| `analytics` | event ingest -> BullMQ -> aggregates |
+| `admin` | catalog inspection, attempt review |
+
+The test for any new endpoint: **if the API were down, would reading break?** If yes, it
+is in the wrong service.
+
+## Structure
+
+- One module per domain, `src/modules/<domain>/`.
+- Controller -> Service -> Repository. Controllers contain no business logic.
+- Named exports. Co-located `*.spec.ts`.
+
+## Validation
+
+- Every request body has a DTO with `class-validator` decorators.
+- `ValidationPipe` with `whitelist: true`, `transform: true`.
+- **Nest forces `forbidUnknownValues: false`**, which reverses `class-validator`'s
+  standalone default. Do not write tests that assume the standalone behaviour.
+
+## Persistence
+
+- TypeORM migrations only. `synchronize: true` is forbidden in every environment.
+- Never return an entity from a controller — map to a DTO.
+- `lessons` rows are archived, never deleted. Add a `lesson_aliases` row on every rename;
+  that table also feeds the Next `redirects()` config so old URLs keep working.
+
+## Auth
+
+- Nest is the identity provider. Session cookie: `httpOnly`, `Secure`, `SameSite=Lax`,
+  `Domain=.nxhhuy.tech`.
+- Short-lived access token + rotating refresh token. Refresh reuse detection revokes the
+  whole family.
+- The client uses single-flight refresh, implemented per the `reactjs-concepts`
+  `refresh-storm` recipe.
+- `@nestjs/throttler` + Redis on login, register, and refresh.
+
+## Quiz answer keys
+
+`quiz_options.is_correct` is never serialized to a client in `server` mode. The response
+carries the verdict and the explanation, never the key. Add a serialization test that
+asserts this — it is the kind of leak that survives review.
+
+## OpenAPI
+
+`@nestjs/swagger` decorators are mandatory on every endpoint and DTO.
+`packages/api-client` is generated from the emitted document in CI. An undecorated
+endpoint is an invisible endpoint.

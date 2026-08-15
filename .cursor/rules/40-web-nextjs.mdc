@@ -1,0 +1,75 @@
+---
+description: Next.js 16.3 conventions — caching, RSC boundaries, styling, i18n, MDX.
+globs: ["apps/web/**", "packages/ui/**", "packages/mdx-components/**"]
+alwaysApply: false
+---
+
+# apps/web — Next.js 16.3
+
+## Caching strategy (Cache Components ON)
+
+| Surface | Strategy |
+|---|---|
+| Article body | `'use cache'` + `cacheLife('max')`, keyed on `contentHash` |
+| Sidebar tree | `'use cache'`, module level |
+| Search index | static asset, not a server route |
+| Progress ticks (TOC rail) | Suspense boundary, uncached, per-user |
+| Quiz results / SRS due count | Suspense, uncached |
+
+`'use cache: private'` provides **zero server-side caching** — it is per-session request
+memoization only. Do not expect it to reduce API load.
+
+**Degradation contract:** an API outage degrades the site to a read-only corpus, never to
+a blank page. The article shell must prerender independently of `api.nxhhuy.tech`.
+
+**Verification:** inspect `.next/server/app/<route>.html` after `next build`. Do not use
+`curl` or view-source — the response is streamed and both under-report. Note also that
+`next dev` under-reports severity: some prerender failures present as HTTP 200 in dev and
+are fatal at build.
+
+## Server / client boundaries
+
+- RSC by default. `'use client'` only at interaction leaves, never on a layout or page.
+- Never pass a class instance across the client boundary — on a prerendered route this is
+  a hard build failure, not silent degradation.
+- Sync IO inside a `'use cache'` scope is legal and freezes at entry creation. Do not
+  read env or clock inside one and expect freshness.
+
+## Styling
+
+- Tailwind v4 only. Tokens declared in `@theme` blocks in `packages/ui`.
+- No inline styles. No raw hex. No arbitrary values that bypass a token.
+- Dark is the default theme and gets the design attention.
+- Theme and sidebar-collapse state live in cookies, not `localStorage`, so SSR renders
+  the correct state without a flash.
+
+## MDX
+
+- Every MDX component is registered in `packages/mdx-components` and exported through one
+  map. Never define a component inline in a route file.
+- Code blocks are highlighted at build time by Shiki via `rehype-pretty-code`. No
+  client-side highlighter ships.
+- Playground tiers: **Tier 1** is a Web Worker eval with a `console` shim and a hard
+  timeout — this is the default and covers every plain-JS snippet. **Tier 2** is Sandpack,
+  lazy-loaded behind an explicit "Open interactive editor" click, used only where JSX must
+  actually render. Sandpack must never be in a default page load.
+
+## Layout
+
+- TOC rail uses `IntersectionObserver`. Never scroll listeners.
+- Mobile layout is Phase 1 work, not deferred polish. Sidebar-first layouts degrade badly
+  when mobile is an afterthought.
+
+## i18n
+
+- All routes live under `/[locale]/`. `en` is the only shipped locale.
+- Every user-visible string goes through the message catalogue from day one, including
+  while there is one locale. Retrofitting locale into a live URL structure is genuinely
+  painful; this is cheap insurance.
+- `vi` is a future phase. Do not add `vi` message files or translated content without an
+  approved scope change.
+
+## API access
+
+`packages/api-client` is generated from the Nest OpenAPI document in CI. Never hand-write
+a fetch call to the API. `apps/web/app/api/` is a BFF for session cookie proxying only.

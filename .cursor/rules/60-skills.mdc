@@ -1,0 +1,66 @@
+---
+description: Index of task-triggered skills. Read the matching SKILL.md before acting.
+alwaysApply: true
+---
+
+# Skills
+
+> Generated from `.claude/skills/*/SKILL.md` by `pnpm agents:build`. Do not edit.
+
+Rules are always-on boundaries. Skills are task-triggered procedures. When a task
+matches a trigger below, **open and read that `SKILL.md` in full before acting**.
+A skill never restates a rule — it references one.
+
+## `corpus-adapter`
+
+How to write and correct per-corpus frontmatter adapters in packages/content-schema. Use when a frontmatter validation error appears, when auditing a corpus against its adapter spec, when adding a corpus, or when normalising a new frontmatter field. Explains why adapters throw instead of defaulting, and the confidence tiers across the seven corpora.
+
+Read: `.claude/skills/corpus-adapter/SKILL.md`
+
+## `corpus-commit`
+
+Commit and push procedure for corpus-web. Use before any git commit or push, and whenever a session is being closed. Covers the four mandatory documentation updates that gate every commit, the gate suite that must pass, branch naming, and the Conventional Commits format including the invented-decisions block.
+
+Read: `.claude/skills/corpus-commit/SKILL.md`
+
+## `corpus-content-boundary`
+
+Rules for anything touching content/, the seven submoduled corpus repos. Use when a gate fails on a corpus file, when adding quiz or flashcard sidecars, when injecting an interactive component into an article, when bumping a submodule to a new tag, or whenever a task would be solved by editing a file under content/. Explains why editing the corpus from this repo is never the fix.
+
+Read: `.claude/skills/corpus-content-boundary/SKILL.md`
+
+## `corpus-mdx-component`
+
+How to build interactive components for the article reading experience — quizzes, flashcard decks, runnable code playgrounds, stepped simulators, and code blocks. Use when adding or editing anything in packages/mdx-components or packages/ui, or when a task asks for an interactive explainer inside an article. Covers the two playground tiers, component registration, and the design token discipline.
+
+Read: `.claude/skills/corpus-mdx-component/SKILL.md`
+
+## `corpus-nest-module`
+
+Conventions for apps/api, the NestJS 11 service. Use when adding or editing a module, controller, service, DTO, guard, entity, or TypeORM migration, and when deciding whether a piece of functionality belongs in the API at all. Covers answer-key custody, the forbidUnknownValues reversal, and why lessons rows are archived rather than deleted.
+
+Read: `.claude/skills/corpus-nest-module/SKILL.md`
+
+## `corpus-next-caching`
+
+Caching, rendering and verification rules for Next.js 16.3 with Cache Components enabled. Use when adding or editing any route, page, layout, loading boundary, Suspense boundary, server component, or data fetch in apps/web, and when verifying prerender output. Covers 'use cache', cacheLife, the client boundary, and why curl and next dev both under-report failures.
+
+Read: `.claude/skills/corpus-next-caching/SKILL.md`
+
+## `corpus-promote-content`
+
+Procedure for bumping a content submodule to a newer corpus tag. Use whenever content needs updating from one of the seven corpus repos, when a corpus cuts a new release, or when a repository_dispatch promotion PR needs handling. Covers tag pinning, catalog diff review, and the cosmetic-versus-substantive content_hash decision that the user must make.
+
+Read: `.claude/skills/corpus-promote-content/SKILL.md`
+
+## `corpus-session`
+
+Opening and closing a work session in corpus-web from a committed prompt file. Use at the start of any session invoked as "follow prompts/session-N.md", and when closing a session. Covers the mandatory read order, scope restatement, the invented-decisions disclosure requirement, and authoring the next session prompt.
+
+Read: `.claude/skills/corpus-session/SKILL.md`
+
+## Third-party skills
+
+Community skills may be installed alongside these. **Project skills win.** Where a
+third-party skill contradicts a `corpus-*` skill or a rule file, the project one is
+authoritative — report the conflict rather than silently picking one.
