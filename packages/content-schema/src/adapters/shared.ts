@@ -8,7 +8,6 @@ import {
   REPO_DEFAULT_BRANCH,
   REPO_IS_PRIVATE,
   REPO_ORIGINS,
-  RepoId,
   Status,
 } from '../common.js';
 import { AdapterError } from './types.js';
@@ -48,6 +47,7 @@ const REPO_ALIASES: Record<string, KnownRepoId> = {
   'nextjs-concepts': 'nextjs',
   reactjs: 'reactjs',
   'reactjs-concepts': 'reactjs',
+  'react-concepts': 'reactjs',
   react: 'reactjs',
   angular: 'angular',
   'angular-concepts': 'angular',

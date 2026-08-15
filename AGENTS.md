@@ -167,7 +167,8 @@ Read `package.json` before asserting any version. If a version here disagrees wi
 | React | 19.2 | Matches `reactjs-concepts` baseline |
 | TypeScript | 5.9+ | strict, suite-wide |
 | Tailwind CSS | v4 | CSS-first `@theme` config |
-| fumadocs-core / fumadocs-mdx | 16.x line | `fumadocs-ui` is NOT used |
+| fumadocs-core | 16.x | `fumadocs-ui` is NOT used |
+| fumadocs-mdx | 15.x | versions independently of core; peer on fumadocs-core ^16.7 |
 | Shiki | v3+ via `rehype-pretty-code` | build-time only |
 | NestJS | 11.1.x | Matches `nestjs-concepts` baseline |
 | Node | **22 LTS** on web, **24 LTS** on api | deliberate divergence, per corpus baselines |
@@ -186,7 +187,7 @@ Read `package.json` before asserting any version. If a version here disagrees wi
   | Mount | Repo | Confidence in its frontmatter schema |
   |---|---|---|
   | `content/nextjs` | `nextjs-concepts` | documented |
-  | `content/reactjs` | `reactjs-concepts` | documented |
+  | `content/reactjs` | `react-concepts` | documented. GitHub name is `react-concepts`, not `reactjs-concepts` |
   | `content/angular` | `angular-concepts` | documented |
   | `content/nestjs` | `nestjs-concepts` | documented |
   | `content/auth` | `demo-auth-concepts` | **unknown — audit first** |
@@ -198,8 +199,8 @@ Read `package.json` before asserting any version. If a version here disagrees wi
   articles. A `related` ref pointing at it WARNS; it must never hard-fail. Tracked in
   `progress.md` under Debt.
 
-  Default branches are NOT uniform. `auth`, `authz`, and `websec` are confirmed
-  `master`; the five framework corpora are assumed `main` and unverified.
+  Default branches are NOT uniform (observed 2026-08-15). `main`: `nextjs`,
+  `nestjs`. `master`: `reactjs`, `angular`, `auth`, `authz`, `websec`.
 
   Seven mounted corpora, confirmed 2026-08-15.
 - **`AngularDemos`** — separate repo, separate deploy, NOT a submodule here

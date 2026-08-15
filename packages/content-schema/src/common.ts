@@ -42,7 +42,7 @@ export function isMounted(repo: KnownRepoId): repo is RepoId {
 /** Maps a mount point to the GitHub repo it is a submodule of. */
 export const REPO_ORIGINS: Record<KnownRepoId, string> = {
   nextjs: 'EverythingFromDayOne/nextjs-concepts',
-  reactjs: 'EverythingFromDayOne/reactjs-concepts',
+  reactjs: 'EverythingFromDayOne/react-concepts',
   angular: 'EverythingFromDayOne/angular-concepts',
   nestjs: 'EverythingFromDayOne/nestjs-concepts',
   auth: 'EverythingFromDayOne/demo-auth-concepts',
@@ -79,15 +79,14 @@ export const REPO_IS_PRIVATE: Record<KnownRepoId, boolean> = {
  * and the sibling `AngularDemos` repo uses `development`, so assuming `main`
  * everywhere silently 404s every "View source" link from the affected corpora.
  *
- * ⚠ `auth` and `authz` are CONFIRMED `master` (observed on their releases pages,
- * 2026-08-15). The five framework corpora are ASSUMED `main` and unverified —
- * both repos checked so far were `master`, so the assumption is now actively
- * suspect. Session 1 must report the real default branch of every submodule.
+ * Observed 2026-08-15 via `gh repo view` (session 1). Only `nextjs` and
+ * `nestjs` use `main`. The rest, including `react-concepts` and
+ * `angular-concepts`, are `master`.
  */
 export const REPO_DEFAULT_BRANCH: Record<KnownRepoId, string> = {
   nextjs: 'main',
-  reactjs: 'main',
-  angular: 'main',
+  reactjs: 'master',
+  angular: 'master',
   nestjs: 'main',
   auth: 'master',
   authz: 'master',

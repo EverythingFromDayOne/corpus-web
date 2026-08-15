@@ -1,0 +1,28 @@
+[submodule "content/nextjs"]
+	path = content/nextjs
+	url = https://github.com/EverythingFromDayOne/nextjs-concepts.git
+	ignore = none
+[submodule "content/reactjs"]
+	path = content/reactjs
+	url = https://github.com/EverythingFromDayOne/react-concepts.git
+	ignore = none
+[submodule "content/angular"]
+	path = content/angular
+	url = https://github.com/EverythingFromDayOne/angular-concepts.git
+	ignore = none
+[submodule "content/nestjs"]
+	path = content/nestjs
+	url = https://github.com/EverythingFromDayOne/nestjs-concepts.git
+	ignore = none
+[submodule "content/auth"]
+	path = content/auth
+	url = https://github.com/EverythingFromDayOne/demo-auth-concepts.git
+	ignore = none
+[submodule "content/authz"]
+	path = content/authz
+	url = https://github.com/EverythingFromDayOne/demo-authz-concepts.git
+	ignore = none
+[submodule "content/websec"]
+	path = content/websec
+	url = https://github.com/EverythingFromDayOne/demo-attacked-web.git
+	ignore = none

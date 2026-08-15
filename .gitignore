@@ -1,2 +1,19 @@
 .DS_Store
 node_modules/
+dist/
+.next/
+.turbo/
+out/
+.source/
+coverage/
+*.tsbuildinfo
+.eslintcache
+.env
+.env.*
+!.env.example
+*.log
+catalog.json
+
+# Do NOT ignore content/. Submodules are gitlinks tracked by this repo;
+# a content/ ignore would be inert and would read as protection while
+# providing none. See scripts/verify-submodules.mjs.
