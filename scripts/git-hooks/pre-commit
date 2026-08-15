@@ -1,0 +1,6 @@
+#!/bin/sh
+# Fails the commit if any content submodule is dirty or unpinned.
+# Installed by scripts/install-git-hooks.mjs (postinstall).
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX
+cd "$(dirname "$0")/../.." || exit 1
+exec node scripts/verify-submodules.mjs

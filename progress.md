@@ -15,14 +15,14 @@ snapshot and `roadmap.md` for the planning rationale.
 
 ---
 
-## Phase 0 — Spike & skeleton (🟡 in progress)
+## Phase 0 — Spike & skeleton (🟢 drafted)
 
 | # | Item | Status | Notes |
 |---|---|---|---|
 | 0 | Agent rules + generator + drift gate | ✅ | Session 0 |
-| 1 | Monorepo scaffold (pnpm + Turborepo) | ⚪ | |
-| 2 | **fumadocs × Next 16.3 × Cache Components spike** | ⚪ | **Blocking.** 1 day timebox. Fallback: hand-rolled remark/rehype pipeline |
-| 3 | Content submodules + `sync-content.mjs` + `verify-submodules` | ⚪ | **Seven** mounted repos, pinned to tags. `dsa` excluded — see Debt |
+| 1 | Monorepo scaffold (pnpm + Turborepo) | ✅ | Session 1 |
+| 2 | **fumadocs × Next 16.3 × Cache Components spike** | ✅ | Session 1. All four exit criteria passed on `cache-components-model` |
+| 3 | Content submodules + `sync-content.mjs` + `verify-submodules` | ✅ | Seven mounts, pinned to tags. Gate proven dirty→fail |
 | 4 | Design tokens in `packages/ui` | 🟢 | `DESIGN.md` + `tokens.css` authored; unapplied |
 | 5 | DNS cutover `nxhhuy.tech` → Vercel | ⚪ | |
 
@@ -66,9 +66,9 @@ Known, deliberate, and tracked. Not blockers unless marked.
 | # | Item | Impact if unresolved | Blocks |
 |---|---|---|---|
 | D1 | **`dsa-concepts` has no GitHub remote** — 13 verified articles, 118/118 code blocks, 121/121 links, 539/539 tests, all sitting in a local repo only. Registered as `PlannedRepoId`; no adapter; produces no articles. Cross-corpus refs to it warn rather than fail. | The suite's only fully-verified corpus is absent from the site. Its benchmark methodology — median of 11 trials after 10 warmup calls, adversarial inputs alongside random — is the strongest single claim in the whole body of work and currently has no reader. | Nothing. Resolve by creating the remote, pushing, tagging `v1.0.0`, then moving `dsa` from `PlannedRepoId` to `RepoId`, adding its adapter spec, and submoduling it. |
-| D2 | **`websec` role unestablished** — `demo-attacked-web` may be a corpus, a vulnerable target app whose code the auth/authz articles extract, or both. Its adapter is a placeholder. | Either a corpus renders wrong, or `verify-code-blocks` fails for lack of a demo source. | Session 2 task 1 |
-| D3 | **`auth` / `authz` frontmatter convention unknown** — no recorded schema; adapter specs are guesses. | Adapters fail on real files. | Session 2 task 1 |
-| D4 | **Default branches unverified** for the four framework corpora. Confirmed: `nextjs` and `nestjs` are `main`; `auth`, `authz`, `websec` are `master`. | Silently 404ing "View source" links across a whole corpus. | Session 1 task 4 |
+| D2 | **`websec` is a demo-lab tree, not a markdown corpus** — session 1: no `docs/`, no root `package.json`/`src`/`index.html`, 34 prompt markdown files, per-attack folders (xss, csrf, sqli, idor, …). auth/authz treat `demo-attacked/` as a structural sibling. | Either a corpus renders wrong, or `verify-code-blocks` fails for lack of a demo source. | Session 2 task 1 |
+| D3 | **`auth` / `authz` are demo labs, not markdown corpora** — session 1: no `docs/`, no frontmatter, Cursor prompts + Express servers per concept folder. | Adapters fail on real files. | Session 2 task 1 |
+| D4 | **Default branches verified** (session 1). `main`: nextjs, nestjs. `master`: reactjs, angular, auth, authz, websec. GitHub name for React is `react-concepts`. | Silently 404ing "View source" links if `REPO_DEFAULT_BRANCH` / `REPO_ORIGINS` drift. | — |
 | D5 | **`description` frontmatter absent everywhere** — required field, no fallback. | Build fails on every article until the pass runs. | Phase 1 item 16 |
 | D6 | **`nestjs-concepts` article 16** — headline claim invalidated by article 17 (`forbidUnknownValues: false` is forced by Nest). Correction not yet applied upstream. | A known-false claim is pinned in `v0.2.0` and would render. | Fix in the corpus repo, then re-tag |
 | D7 | **`reactjs-concepts` anchor slugs unverified** for articles 27–36 and recipes 5–10. | Broken in-page cross-references. | Session 2 task 3 |
@@ -78,6 +78,10 @@ Known, deliberate, and tracked. Not blockers unless marked.
 
 ## Session log
 
+- **Session 1 (2026-08-15):** pnpm/Turborepo scaffold, seven content submodules
+  pinned to tags, `verify-submodules` gate (proven), fumadocs × Next 16.3 × Cache
+  Components spike **passed** on `cache-components-model`. `auth`/`authz`/`websec`
+  observed as demo labs, not markdown corpora.
 - **Session 0g (2026-08-15):** generated `.cursor/rules/60-skills.mdc` so Cursor reaches
   the skills; third-party skill precedence rules added.
 - **Session 0f (2026-08-15):** eight agent skills authored in `.claude/skills/`, indexed

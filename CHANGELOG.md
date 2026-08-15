@@ -5,6 +5,31 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-15] — cursor/session-1-scaffold-e487 — Monorepo scaffold and fumadocs spike
+
+**Added**
+- pnpm workspaces + Turborepo (`pnpm-workspace.yaml`, `turbo.json`, root `package.json`)
+- Shared `tooling/tsconfig` (base/next/nest, all strict) and `tooling/eslint` flat config
+- Workspace stubs: `apps/web`, `apps/api`, `packages/mdx-components`, `packages/api-client`
+- Seven content submodules pinned to tags, `submodule.<name>.ignore = none`
+- `scripts/verify-submodules.mjs` (CI + pre-commit), `scripts/sync-content.mjs`,
+  `scripts/build-catalog.mjs` (refuses an empty article list), git-hook installer
+- Next.js 16.3 app with Cache Components ON, fumadocs-core + fumadocs-mdx (no fumadocs-ui)
+- Spike route `/en/concepts/nextjs/concepts/caching/cache-components-model`
+
+**Changed**
+- `REPO_DEFAULT_BRANCH` corrected from observed remotes
+- `REPO_ORIGINS.reactjs` -> `EverythingFromDayOne/react-concepts`
+- fumadocs-mdx recorded as 15.x (core remains 16.x)
+
+**Fixed**
+- Unused `RepoId` import in `packages/content-schema/src/adapters/shared.ts` (lint)
+
+**Architecture decisions**
+- Keep fumadocs; spike passed all four exit criteria
+- `agentRules: false` so Next 16.3 does not clobber repo-generated AGENTS.md
+- Fumadocs default `title` frontmatter is optional here — corpus titles are H1s
+
 ### [2026-08-15] — main — Cursor skill reachability and third-party skill policy
 
 **Added**

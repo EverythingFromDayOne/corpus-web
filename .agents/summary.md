@@ -3,7 +3,7 @@
 > Living document. Read this first, every session. Update it with **targeted edits only**
 > when something in it becomes false. Never rewrite wholesale.
 >
-> Last updated: 2026-08-15 (Session 0f — agent skills)
+> Last updated: 2026-08-15 (Session 1 — monorepo scaffold and fumadocs spike)
 
 ---
 
@@ -44,7 +44,7 @@ Do not duplicate the version table here.
 
 ## Current state
 
-**Phase 0 — Spike & skeleton. Session 0 complete (scaffold only).**
+**Phase 0 — Spike & skeleton. Session 1 complete (scaffold + spike passed).**
 
 - [x] Agent rules, generator, and CI drift gate
 - [x] Eight agent skills in `.claude/skills/`, indexed into `AGENTS.md`, frontmatter
@@ -52,26 +52,36 @@ Do not duplicate the version table here.
 - [x] `roadmap.md` approved
 - [x] `packages/content-schema` authored — typechecks clean against zod 4.4.3, adapters
       smoke-tested, extended to seven corpora. **Field names still unverified; `auth` and
-      `authz` have no recorded convention at all.**
+      `authz` are not markdown corpora (session 1).**
 - [x] `packages/ui/DESIGN.md` + `tokens.css` — the "Instrument" direction
 - [x] `.github/workflows/ci.yml`
 - [x] `docs/adr/0001` — Angular demos integration (proposed, pending Q7)
 - [x] `prompts/session-2.md`, `prompts/corpus-description-pass.md`
-- [ ] Monorepo scaffold (pnpm workspaces + Turborepo)
-- [ ] **BLOCKING SPIKE:** fumadocs-mdx x Next 16.3 x Cache Components
-- [ ] Content submodules wired
-- [ ] Design tokens
+- [x] Monorepo scaffold (pnpm workspaces + Turborepo)
+- [x] **fumadocs-mdx × Next 16.3 × Cache Components spike** — all four exit criteria passed
+      against `cache-components-model`
+- [x] Content submodules wired, seven mounts, pinned to tags
+- [ ] Design tokens applied
 - [ ] `nxhhuy.tech` DNS cutover
 
-No application code exists yet.
+Application code now exists: `apps/web` renders one real nextjs-concepts article;
+`apps/api` is an empty Nest bootstrap.
 
 ---
 
 ## Key facts that are easy to get wrong
 
-- There are **seven** corpora, not five. `content/auth` -> `demo-auth-concepts` and
-  `content/authz` -> `demo-authz-concepts` joined late. Their frontmatter convention is
-  UNKNOWN — assume nothing. `demo-attacked-web` is not a corpus and is not submoduled.
+- There are **seven** mounted submodules, not five. `content/auth` ->
+  `demo-auth-concepts`, `content/authz` -> `demo-authz-concepts`, `content/websec` ->
+  `demo-attacked-web`. Session 1 cloned them: **none of the three is a markdown
+  corpus.** They are demo-lab trees (per-concept folders + `prompts/*.md` with no
+  frontmatter, no `docs/`). `websec` stays mounted as a code-extraction / structural
+  sibling; it should produce no articles. Session 2 decides adapter deletion.
+- The React GitHub repo is `EverythingFromDayOne/react-concepts`, not
+  `reactjs-concepts`. Mount point stays `content/reactjs`.
+- Default branches are not uniform. `main`: nextjs, nestjs. `master`: reactjs,
+  angular, auth, authz, websec.
+- `fumadocs-core` is 16.x; `fumadocs-mdx` is 15.x. They version independently.
 - `content/` holds **submodules (gitlinks)**. `.gitignore` does NOT and cannot protect
   them — the parent tracks a commit SHA, not files. The guard is `verify-submodules.mjs`
   in CI and as a `pre-commit` hook, plus `submodule.<name>.ignore = none` in `.gitmodules`.
@@ -97,9 +107,8 @@ No application code exists yet.
 
 ## Open decisions (blocking)
 
-1. **fumadocs spike result.** Everything in Phase 0/1 is downstream of it. Fallback is a
-   hand-rolled `gray-matter` + remark/rehype + `next-mdx-remote-client` pipeline, roughly
-   two extra days.
+1. **fumadocs spike — PASSED (session 1).** Keep fumadocs-core + fumadocs-mdx. Fallback
+   pipeline is not needed.
 2. **AngularDemos integration.** Does `nxhhuy.tech` link out to `ng21.`/`ng15.`, iframe
    them under a `/demos/*` route, or load Angular 21 as a cross-framework federated
    remote? Not decided. Default assumption until decided: **link out**.
@@ -110,11 +119,7 @@ No application code exists yet.
 
 ## Planned next steps
 
-1. Monorepo scaffold — pnpm workspaces, Turborepo, shared eslint/tsconfig/prettier.
-2. **fumadocs spike.** Exit criterion: one real article from `content/nextjs/` renders at
-   `/en/concepts/nextjs/<slug>` with working TOC and Shiki, `next build` clean, no Cache
-   Components errors.
-3. Submodule wiring for all seven corpora + `sync-content.mjs` + `verify-submodules`.
-4. Design tokens in `packages/ui` — colour scales, type scale, spacing, dark/light
-   `@theme` blocks.
-5. DNS cutover: `nxhhuy.tech` -> Vercel.
+1. Session 2 — reality-check adapters against the seven mounts. `auth` / `authz` /
+   `websec` are demo labs; decide whether to delete those adapters.
+2. Design tokens applied in `packages/ui`.
+3. DNS cutover: `nxhhuy.tech` -> Vercel.

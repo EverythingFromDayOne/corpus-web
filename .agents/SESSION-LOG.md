@@ -335,3 +335,117 @@ reads `.claude/skills/` natively in some version is untested — the generated r
 question moot either way.
 
 ---
+
+## Session 1 — monorepo scaffold and fumadocs spike — 2026-08-15
+
+**Branch:** `cursor/session-1-scaffold-e487`
+
+**Files changed:**
+- `pnpm-workspace.yaml` — apps/*, packages/*, tooling/*
+- `package.json` — root scripts, packageManager pnpm@10.33.0, turbo/eslint/typescript
+- `pnpm-lock.yaml` — lockfile for the workspace
+- `turbo.json` — build, lint, typecheck, test, verify:submodules
+- `.nvmrc` — 22
+- `.npmrc` — shamefully-hoist=false, strict-peer-dependencies=false
+- `.gitignore` — build output, node_modules, .env, .source; not content/
+- `.gitmodules` — seven submodules, ignore=none
+- `content/nextjs` — gitlink, nextjs-concepts@v0.2.0
+- `content/reactjs` — gitlink, react-concepts@v0.4.0
+- `content/angular` — gitlink, angular-concepts@v0.2.0
+- `content/nestjs` — gitlink, nestjs-concepts@v0.2.0
+- `content/auth` — gitlink, demo-auth-concepts@v0.1.0
+- `content/authz` — gitlink, demo-authz-concepts@v0.1.0
+- `content/websec` — gitlink, demo-attacked-web@v0.1.0
+- `tooling/tsconfig/package.json` — @corpus/tsconfig
+- `tooling/tsconfig/base.json` — strict NodeNext base
+- `tooling/tsconfig/next.json` — Next/Bundler tsconfig
+- `tooling/tsconfig/nest.json` — Nest decorator emit
+- `tooling/eslint/package.json` — @corpus/eslint-config
+- `tooling/eslint/base.mjs` — shared flat config
+- `apps/web/package.json` — Next 16.3.1, fumadocs, React 19.2.8
+- `apps/web/tsconfig.json` — extends next.json
+- `apps/web/next.config.mjs` — cacheComponents, createMDX, agentRules:false
+- `apps/web/next-env.d.ts` — Next-generated refs
+- `apps/web/source.config.ts` — fumadocs defineConfig
+- `apps/web/eslint.config.mjs` — re-export shared config
+- `apps/web/lib/source.ts` — fumadocs loader on content/nextjs/docs
+- `apps/web/app/layout.tsx` — html/body shell
+- `apps/web/app/[locale]/layout.tsx` — locale passthrough
+- `apps/web/app/[locale]/concepts/[repo]/[...slug]/page.tsx` — spike article + TOC
+- `apps/api/package.json` — Nest 11.1.29 stub
+- `apps/api/tsconfig.json` — nest emit
+- `apps/api/eslint.config.mjs` — re-export shared config
+- `apps/api/src/app.module.ts` — empty AppModule
+- `apps/api/src/main.ts` — Nest bootstrap
+- `packages/content-schema/package.json` — lint script, pinned typescript
+- `packages/content-schema/tsconfig.json` — extends shared base
+- `packages/content-schema/eslint.config.mjs` — re-export shared config
+- `packages/content-schema/src/common.ts` — REPO_ORIGINS + REPO_DEFAULT_BRANCH
+- `packages/content-schema/src/adapters/shared.ts` — react-concepts alias; unused import
+- `packages/ui/package.json` — workspace manifest
+- `packages/ui/tsconfig.json` — extends shared base
+- `packages/ui/eslint.config.mjs` — re-export shared config
+- `packages/ui/src/index.ts` — empty token-package export
+- `packages/mdx-components/package.json` — spike MDX map
+- `packages/mdx-components/tsconfig.json`
+- `packages/mdx-components/eslint.config.mjs`
+- `packages/mdx-components/src/index.ts` — getMDXComponents identity merge
+- `packages/api-client/package.json` — placeholder
+- `packages/api-client/README.md` — generated, never hand-edit
+- `scripts/verify-submodules.mjs` — dirty / missing / unpinned fail
+- `scripts/sync-content.mjs` — git submodule update --init --recursive
+- `scripts/build-catalog.mjs` — counts markdown, refuses empty catalog.json
+- `scripts/install-git-hooks.mjs` — copies pre-commit hook
+- `scripts/git-hooks/pre-commit` — runs verify-submodules; unsets GIT_DIR so submodule git works from a hook
+- `.cursor/rules/10-stack-and-topology.mdc` — branches, react-concepts, fumadocs-mdx 15.x
+- `AGENTS.md` — regenerated
+- `prompts/session-2.md` — session 1 findings prepended
+- `.agents/summary.md` — spike passed, mounts, next steps
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this session
+- `progress.md` — Phase 0 items 1–3 and D4
+
+**Why:** Phase 0 could not proceed without a real workspace, pinned content, and an
+answer on whether fumadocs-mdx builds under Next 16.3 with Cache Components. The
+spike rendered `cache-components-model` at
+`/en/concepts/nextjs/concepts/caching/cache-components-model`. All four exit
+criteria passed: next dev 200 with article body; `next build` clean with Cache
+Components enabled; article body present in
+`apps/web/.next/server/app/en/concepts/nextjs/concepts/caching/cache-components-model.html`;
+TOC headings extracted and matching the article (H1 plus What it is / Why the
+default was inverted / The four answers / How it works under the hood / …).
+
+`verify-submodules` was proven: appending a line under `content/nextjs` made the
+script exit 1 (`M docs/evolution-ledger.md`); `git -C content/nextjs checkout --`
+restored a clean pass.
+
+**Invented decisions:**
+- GitHub repo for the React corpus is `react-concepts`, not the session-1 prompt's
+  `reactjs-concepts`. Mount stays `content/reactjs`.
+- Fumadocs default schema requires `title`; corpus titles are H1s. Schema loosened
+  to optional title + passthrough. Collection `files` restricted to the one spike
+  article so templates/ledgers are not compiled.
+- `fumadocs-mdx` 15.2.3 with `fumadocs-core` 16.14.4 — they version independently.
+- TypeScript 5.9.3 (not 7), Nest 11.1.29 (not 11.2), ESLint 9.39.5 (not 10).
+- Git hooks copied by a small installer rather than husky (no extra package).
+- `build-catalog.mjs` records sources and markdown counts then exits 1 rather than
+  emitting an empty `catalog.json`. Article adaptation is session 2.
+- `agentRules: false` in next.config so Next 16.3 does not write apps/web/AGENTS.md
+  over the repo-generated agent docs.
+- Existing `packages/content-schema` and `packages/ui` kept; not replaced with empty stubs.
+- No Prettier package; session 1 listed eslint + tsconfig only.
+- Cloud agent branch `cursor/session-1-scaffold-e487` rather than `feat/…`.
+
+**Known issues / next steps:**
+- `auth`, `authz`, and `websec` are demo labs, not markdown corpora. Session 2 must
+  decide adapter deletion. Report captured in `prompts/session-2.md`.
+- Spike URL has an extra `concepts/` segment because the loader dir is
+  `content/nextjs/docs/` (as specified). Roadmap URLs omit that extra segment.
+- Shiki emits inline CSS variables on `<pre>` — styling is out of scope; tokens are
+  not applied.
+- CI `content` / `quality` jobs still call verify scripts that do not exist.
+  Correct failure until session 2.
+- Design tokens authored but unapplied. DNS cutover not done.
+
+---
+

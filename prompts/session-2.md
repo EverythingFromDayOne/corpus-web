@@ -1,27 +1,61 @@
 # Session 2 — Content schema against reality
 
-**Run only if Session 1 task 5 (the fumadocs spike) PASSED.** If it failed, stop and say
-so — the fallback pipeline is a decision for the user, not a task in this file.
+**Run only if Session 1 task 5 (the fumadocs spike) PASSED.** It did. Session 1
+rendered `cache-components-model` at
+`/en/concepts/nextjs/concepts/caching/cache-components-model` with Cache Components
+on, `next build` clean, article body in
+`.next/server/app/en/concepts/nextjs/concepts/caching/cache-components-model.html`,
+and TOC headings matching the article.
 
 **Prerequisite:** FIRST ACTION in `.cursor/rules/00-session-protocol.mdc`, then read
 `.cursor/rules/30-content-pipeline.mdc` in full.
+
+## Session 1 findings — read before touching adapters
+
+These are observations from cloning the seven mounts. They are the input this
+session needs most. Do not re-guess them.
+
+**Visibility:** all seven GitHub remotes are PUBLIC.
+
+**Default branches** (`git submodule foreach` + `origin/HEAD`):
+
+| Mount | GitHub repo | Branch | Tag |
+|---|---|---|---|
+| `content/nextjs` | `nextjs-concepts` | `main` | v0.2.0 |
+| `content/reactjs` | **`react-concepts`** (not `reactjs-concepts`) | `master` | v0.4.0 |
+| `content/angular` | `angular-concepts` | `master` | v0.2.0 |
+| `content/nestjs` | `nestjs-concepts` | `main` | v0.2.0 |
+| `content/auth` | `demo-auth-concepts` | `master` | v0.1.0 |
+| `content/authz` | `demo-authz-concepts` | `master` | v0.1.0 |
+| `content/websec` | `demo-attacked-web` | `master` | v0.1.0 |
+
+**`auth` — not a markdown corpus.** No `docs/`. 24 `.md` files. Top-level is
+per-concept folders (`jwt-bearer`, `oauth2-oidc`, `session`, …) plus `prompts/`
+and a README. Sample `prompts/07-oauth2-oidc.md` has **no frontmatter**; it is a
+Cursor prompt to build three Express servers.
+
+**`authz` — not a markdown corpus.** Same shape. 21 `.md` files. Prompts cite
+`demo-attacked/idor/` as the structural pattern. README: "`demo-attacked/` is used
+here only as a structural reference."
+
+**`websec` — demo-lab tree, not a corpus.** No `docs/`, no root `package.json`,
+no `src/`, no root `index.html`. 34 `.md` files, almost all under `prompts/`.
+Top-level folders are attacks: `xss`, `csrf`, `sql-injection`, `idor`,
+`jwt-attacks`, … Auth/authz articles reference paths like `demo-attacked/idor/`
+and `demo-attacked/jwt-attacks/` as sibling demo source. It stays submoduled
+because those references exist; it should produce **no articles**.
+
+If any of the three turns out not to be a markdown corpus, **stop and report
+before writing adapter code for it.** Session 1 already observed that they are
+not. The remaining decision is: delete the three adapters and register `websec`
+as a code-extraction source.
 
 This session's job is to find out where `packages/content-schema` is **wrong**. It was
 authored from each corpus repo's `roadmap.md` and `progress.md` conventions, not from the
 article files. Expect mismatches. Finding them is the deliverable.
 
 **Audit `websec`, `auth`, and `authz` FIRST**, in that order, before the four framework
-corpora. None of the three has a recorded frontmatter convention, so their adapter specs
-are guesses rather than informed ones.
-
-`websec` (`demo-attacked-web`) is the priority because its **role** is unestablished, not
-just its schema. It may be a corpus, a deliberately vulnerable target application whose
-code the auth/authz articles extract, or both. If it is a demo source rather than a corpus,
-**delete its adapter** and register it as a code-extraction source instead — it would still
-need submoduling for `verify-code-blocks`, but it would produce no articles.
-
-If any of the three turns out not to be a markdown corpus, stop and report before writing
-adapter code for it.
+corpora — confirm the session 1 observation against the adapters, then act.
 
 ---
 

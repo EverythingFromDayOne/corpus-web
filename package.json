@@ -1,0 +1,29 @@
+{
+  "name": "corpus-web",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "dev": "turbo run dev --filter=@corpus/web",
+    "agents:build": "node scripts/build-agent-docs.mjs",
+    "agents:check": "node scripts/build-agent-docs.mjs --check",
+    "sync:content": "node scripts/sync-content.mjs",
+    "build:catalog": "node scripts/build-catalog.mjs",
+    "verify:submodules": "node scripts/verify-submodules.mjs",
+    "postinstall": "git submodule update --init --recursive && node scripts/install-git-hooks.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "eslint": "9.39.5",
+    "globals": "17.11.0",
+    "turbo": "2.10.10",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.67.0"
+  }
+}

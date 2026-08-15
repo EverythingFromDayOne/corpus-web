@@ -1,5 +1,5 @@
 {
-  "name": "@corpus/content-schema",
+  "name": "@corpus/mdx-components",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -8,10 +8,12 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
   },
-  "dependencies": {
-    "zod": "^4.0.0"
+  "peerDependencies": {
+    "react": "^19.2.0"
   },
   "devDependencies": {
+    "@types/mdx": "^2.0.13",
+    "@types/react": "^19.2.0",
     "typescript": "5.9.3"
   }
 }
