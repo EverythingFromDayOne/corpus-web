@@ -941,5 +941,51 @@ correction, not a corpus edit.
 - D11 still needs a corpus-side PR in `react-concepts` adding an H1 to each of the 15,
   then a re-tag. The derive-title tests that assert those files have no title will fail
   by design on that promotion
+## Promote-content — angular v0.3.0 — 2026-08-16
+
+**Branch:** `cursor/content-angular-v0.3.0-55e8`
+
+**Files changed:**
+- `content/angular` — gitlink `v0.2.0` (`01a0c3d`) → `v0.3.0` (`278f76a`)
+- `docs/audit/frontmatter-2026-08-16.md` — regenerated against the new pin
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this promotion
+- `.agents/summary.md` — angular pin, D5 remainder, planned next steps
+- `progress.md` — item 16 / Debt D5 status after the angular pass
+
+**Why:** `angular-concepts` tagged `v0.3.0` for the Q1 `description` frontmatter pass
+(PR #2: "docs: add description frontmatter to all articles"). Promotion is a pointer
+bump only — no file under `content/` was edited from this repo. The tag adds one
+`description:` line to 93 selected articles and a corpus-side `prompts/description-pass.md`;
+article bodies, `article_id` / `recipe_id` values, and `contentHash` (sha256 of the
+gray-matter body) are unchanged across every selected file.
+
+After the pin, 93 of 94 selected angular articles adapt. The leftover is
+`docs/recipes/elements/widget-deployment.md`, which still has no `description`. That
+is a corpus miss, not an adapter bug, and is not patched here. Catalog build remains
+blocked on Debt D5 in `nextjs` / `react` / `nestjs` plus this one angular file.
+
+**Invented decisions:**
+- Branch named `cursor/content-angular-v0.3.0-55e8` rather than the skill's
+  `content/angular-v0.3.0`, to satisfy the cloud-agent branch template while keeping
+  the promotion identity in the slug.
+- `verify:code-blocks` was not run — the script is not in `package.json` yet.
+- `docs/audit/frontmatter-2026-08-16.md` regenerated in place so the committed audit
+  matches the new pin, same as session 2's "evidence, not a diary" rule.
+- No `prompts/session-N+1.md` was authored — this was a `/promote-content` skill
+  invocation, not a numbered session from `prompts/session-N.md`.
+- Content gates (`verify:frontmatter`, `build:catalog`, `verify:links`,
+  `verify:catalog`) still fail for pre-existing D5 on the other three corpora plus
+  the one leftover angular recipe. The promotion is committed anyway; those failures
+  are not caused by this pin and cannot be fixed in this repo.
+
+**Known issues / next steps:**
+- `docs/recipes/elements/widget-deployment.md` still lacks `description`. Its H1 is
+  `Input Coercion: built-in transforms and CDK utilities`, which does not match the
+  filename. Fix in `angular-concepts`, cut a new tag, then promote again.
+- Debt D5 remains blocking for `nextjs` (10), `react` (58 missing description + 15
+  D11), and `nestjs` (19). `catalog.json` still cannot be written.
+- Content-hash invalidation: **no hashes changed.** The user still owns that call;
+  there is nothing to invalidate.
 
 ---

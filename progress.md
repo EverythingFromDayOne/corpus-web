@@ -50,6 +50,7 @@ snapshot and `roadmap.md` for the planning rationale.
 | 15 | Cache Components strategy, verified via `.next/server/app/**.html` | ⚪ | |
 | 16 | `description` frontmatter pass, four framework corpora (~196 files) | 🟡 | **Blocking (Debt D5).** `nextjs-concepts@v0.3.0` done (10/10). Remaining: react 73, angular 94, nestjs 19. Prompt written; those three must tag before item 7 can build |
 | 16 | `description` frontmatter pass, four framework corpora (~196 files) | 🟡 | **Blocking (Debt D5).** `react-concepts@v0.5.0` landed descriptions on 58 titled articles. Remaining: nextjs (10), angular (94), nestjs (19), plus 15 untitled react articles skipped as D11 |
+| 16 | `description` frontmatter pass, four framework corpora (~196 files) | 🟡 | **Blocking (Debt D5).** `angular` @ v0.3.0: 93/94 selected articles now have `description`; leftover is `docs/recipes/elements/widget-deployment.md`. Still needed in `nextjs` / `react` / `nestjs` before item 7 can build |
 
 **Gate:** a complete, shippable, useful site with zero backend.
 
@@ -76,6 +77,7 @@ Known, deliberate, and tracked. Not blockers unless marked.
 | D4 | **Default branches verified** (session 1). `main`: nextjs, nestjs. `master`: reactjs, angular, auth, authz, websec. GitHub name for React is `react-concepts`. | Silently 404ing "View source" links if `REPO_DEFAULT_BRANCH` / `REPO_ORIGINS` drift. | — |
 | D5 | **`description` frontmatter still absent on three corpora** — required field, no fallback. Closed for `nextjs-concepts@v0.3.0` (10/10). Remaining: `react` 73, `angular` 94, `nestjs` 19 (171 missing `description` + 15 also D11). | Catalog still cannot build until the other three tag. | Phase 1 item 16 |
 | D5 | **`description` frontmatter absent on three corpora** — required field, no fallback. `react-concepts@v0.5.0` closed it for the 58 titled articles. Remaining: nextjs 10, angular 94, nestjs 19. The 15 untitled react articles (D11) were skipped in that pass. | Build fails until the remaining three corpora cut a description tag and D11 is fixed. | Phase 1 item 16 |
+| D5 | **`description` frontmatter still missing on 88 selected articles** — required field, no fallback. `angular` @ v0.3.0 closed 93 of 94; leftover `docs/recipes/elements/widget-deployment.md`. Remaining: nextjs 10, react 58, nestjs 19, angular 1. | Catalog build still fails until the other three corpora run the pass and angular tags a follow-up. | Phase 1 item 16 |
 | D6 | **`nestjs-concepts` article 16** — headline claim invalidated by article 17 (`forbidUnknownValues: false` is forced by Nest). Correction not yet applied upstream. | A known-false claim is pinned in `v0.2.0` and would render. | Fix in the corpus repo, then re-tag |
 | D7 | **`reactjs-concepts` anchor slugs unverified** for articles 27–36 and recipes 5–10. Session 2 added `extractSections()` with a GitHub-slug algorithm verified against real anchors in `error-boundaries.md`, but the specific numbered articles/recipes named here have not been individually diffed against it. | Broken in-page cross-references. | A pass running `extractSections()` against every `react` article and diffing anchors used in `related`/inline links |
 | D8 | **`angular-concepts`** — 6 of 23 Phase 2 articles outstanding; `attribute-directives` is a stub. | Six articles absent from the site. | Angular Phase 2 |
@@ -96,6 +98,12 @@ Known, deliberate, and tracked. Not blockers unless marked.
   `content_hash`) are unchanged. React adapter excludes `prompts/` so the new
   `prompts/description-pass.md` is not selected as an article. Debt D11 still 15
   articles; D5 remains on nextjs/angular/nestjs.
+- **Promote-content angular v0.3.0 (2026-08-16):** pinned `content/angular` from
+  `v0.2.0` to `v0.3.0` (description frontmatter pass). 93 of 94 selected angular
+  articles now adapt; `docs/recipes/elements/widget-deployment.md` is the leftover
+  miss and was not patched here. No `article_id` / `recipe_id` changes; no
+  `contentHash` changes (bodies identical). Catalog still cannot build (D5 on the
+  other three corpora plus that one recipe).
 - **Session 2 follow-up b (2026-08-16):** `packages/content-schema` now typechecks its
   own tests — `tsconfig.json` includes `test/`, with `@types/node` `^22.19.0` as a
   devDependency. The major is deliberate: the package is consumed by `apps/web` on Node

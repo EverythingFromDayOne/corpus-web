@@ -5,6 +5,7 @@
 >
 > Last updated: 2026-08-16 (promote-content — nextjs v0.3.0)
 > Last updated: 2026-08-16 (promote-content — `react-concepts@v0.5.0`)
+> Last updated: 2026-08-16 (promote-content — `content/angular` @ v0.3.0)
 
 ---
 
@@ -69,6 +70,10 @@ Do not duplicate the version table here.
       articles adapt (descriptions landed). 15 still fail on missing title (Debt D11).
       `nextjs` (10), `angular` (94), and `nestjs` (19) still fail on missing
       `description` (Debt D5)
+      passing build.** Debt D5: `angular` @ v0.3.0 now adapts 93/94 selected articles
+      (`widget-deployment.md` still missing `description`); `nextjs` 10, `react` 58, and
+      `nestjs` 19 still fail on missing `description`. 15 `react-concepts` articles are
+      also missing a title entirely (Debt D11)
 - [x] `packages/ui/DESIGN.md` + `tokens.css` — the "Instrument" direction
 - [x] `.github/workflows/ci.yml`
 - [x] `docs/adr/0001` — Angular demos integration (proposed, pending Q7)
@@ -80,6 +85,8 @@ Do not duplicate the version table here.
       `react` `v0.4.0`; `angular` / `nestjs` `v0.2.0`)
 - [x] Content submodules wired, four mounts, pinned to tags. `react` is at
       `v0.5.0`; `nextjs` / `angular` / `nestjs` remain on `v0.2.0`
+- [x] Content submodules wired, four mounts, pinned to tags (`angular` @ `v0.3.0`;
+      `nextjs` / `react` / `nestjs` still at their session-1 pins)
 - [ ] Design tokens applied
 - [ ] `nxhhuy.tech` DNS cutover
 
@@ -155,6 +162,12 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
   `nextjs` + 94 `angular` + 19 `nestjs` (Debt D5, missing `description`).
   `verify-frontmatter`, `build-catalog`, and `verify-links` still fail until the other
   three corpora cut a description tag and D11 is fixed upstream.
+- Debt D5 is no longer universal. `angular` @ `v0.3.0` adapts 93 of 94 selected
+  articles; the leftover is `docs/recipes/elements/widget-deployment.md`. `nextjs`
+  (10), `react` (58 missing `description` + 15 D11), and `nestjs` (19) still fail.
+  `verify-frontmatter`, `build-catalog`, and `verify-links` remain expected to fail
+  until the Q1 pass lands in those three repos and angular tags a follow-up for the
+  leftover recipe.
 
 ---
 
@@ -184,6 +197,12 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
    `prompts/corpus-description-pass.md`. A corpus-side fix for Debt D11 (15
    `react-concepts` articles missing any title) is still required before that
    corpus can adapt completely.
+1. The Q1 `description` frontmatter pass (Debt D5) has landed in `angular-concepts`
+   `@v0.3.0` except `docs/recipes/elements/widget-deployment.md`. It still must run in
+   `nextjs`, `react`, and `nestjs` before `build-catalog`/`verify-frontmatter`/
+   `verify-links` can pass; see `prompts/corpus-description-pass.md`. A corpus-side
+   fix for Debt D11 (15 `react-concepts` articles missing any title) is a prerequisite
+   for that corpus. Angular needs a follow-up tag for the leftover recipe.
 2. Wire `apps/web` routes + sidebar to `catalog.json` once it can build (Phase 1 items 7–8).
 3. Design tokens applied in `packages/ui`.
 4. DNS cutover: `nxhhuy.tech` -> Vercel.

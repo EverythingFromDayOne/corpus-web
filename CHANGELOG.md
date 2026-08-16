@@ -46,6 +46,27 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Root-scan corpora exclude `prompts/` when that directory appears — same rule
   `nestjs` already had; `react` joined it at `v0.5.0`
 
+### [2026-08-16] — cursor/content-angular-v0.3.0-55e8 — Promote `content/angular` to v0.3.0
+
+**Added**
+- Nothing in this repo. The upstream tag adds `description` frontmatter to 93 of 94
+  selected angular articles and a corpus-side `prompts/description-pass.md`.
+
+**Changed**
+- `content/angular` gitlink `v0.2.0` → `v0.3.0`
+- `docs/audit/frontmatter-2026-08-16.md` — angular now 93 adapted / 1 failed
+  (`docs/recipes/elements/widget-deployment.md` still missing `description`)
+
+**Fixed**
+- Nothing in this repo. Angular Debt D5 shrinks from 94 selected misses to 1; the
+  leftover is a corpus miss and is not patched here.
+
+**Architecture decisions**
+- One submodule per promotion PR. Catalog still cannot build until the other three
+  corpora run their description pass and angular tags a follow-up for
+  `widget-deployment.md`.
+- `contentHash` is the gray-matter body. This tag did not change any body, so no
+  hash changed and there is no completion-invalidation question to answer.
 
 ### [2026-08-16] — cursor/fix-derive-title-mdast-15ee — `packages/content-schema` typechecks its tests
 
