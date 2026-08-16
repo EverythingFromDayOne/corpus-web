@@ -3,11 +3,13 @@ import {
   ArticleKind,
   ArticleRef,
   Difficulty,
+  isDemoSource,
   isMounted,
   KnownRepoId,
   REPO_DEFAULT_BRANCH,
   REPO_IS_PRIVATE,
   REPO_ORIGINS,
+  RepoId,
   Status,
 } from '../common.js';
 import { AdapterError } from './types.js';
@@ -21,16 +23,12 @@ import { AdapterError } from './types.js';
  * these against all seven submodules and reports every mismatch. Treat a parse
  * failure as evidence about this file, not about the article.
  *
- * Confidence is NOT uniform. The five framework corpora share a documented
- * schema. `auth`, `authz`, and `websec` are `demo-`prefixed, report HTML as
- * their primary language, and have no recorded frontmatter convention at all —
- * assume nothing about them until the audit runs.
+ * Session 1 audited all seven candidate repos. Four are markdown corpora and share
+ * this shape. Three — `auth`, `authz`, `websec` — are runnable demo apps with no
+ * `docs/` folder and no frontmatter, and have no adapter at all.
  *
- * `websec` (`demo-attacked-web`) is the least understood of the three. It may be
- * a corpus, a deliberately vulnerable target application the auth/authz articles
- * attack, or both. It carries 7 security alerts where the others carry 1, which
- * is what an intentionally vulnerable app looks like. Its adapter spec is a
- * placeholder, not a claim.
+ * These field names are still UNVERIFIED against the four real corpora; session 2
+ * runs them and reports every mismatch.
  */
 export const BaseFrontmatter = z.object({
   title: z.string().min(1),
@@ -45,10 +43,10 @@ export const BaseFrontmatter = z.object({
 const REPO_ALIASES: Record<string, KnownRepoId> = {
   nextjs: 'nextjs',
   'nextjs-concepts': 'nextjs',
-  reactjs: 'reactjs',
-  'reactjs-concepts': 'reactjs',
-  'react-concepts': 'reactjs',
-  react: 'reactjs',
+  react: 'react',
+  'react-concepts': 'react',
+  reactjs: 'react',
+  'reactjs-concepts': 'react',
   angular: 'angular',
   'angular-concepts': 'angular',
   nestjs: 'nestjs',
@@ -145,7 +143,8 @@ export function parseRelated(
     else if (segment === 'recipes' || segment === 'recipe') kind = 'recipe';
   }
 
-  return { repo, articleId, kind, planned: !isMounted(repo), raw };
+  const resolution = isMounted(repo) ? 'article' : isDemoSource(repo) ? 'demo' : 'planned';
+  return { repo, articleId, kind, resolution, raw };
 }
 
 /** Returns null for private corpora — see REPO_IS_PRIVATE. */

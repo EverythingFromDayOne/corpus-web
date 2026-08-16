@@ -19,7 +19,16 @@
 | Q6 | Portfolio location | The existing `nxhhuy.tech` is discarded; this project takes the apex. |
 | Q8 | Résumé / personal content | **None.** No About, bio, photo, employer, client, or contact content anywhere. `/en` is a corpus landing page, not a personal one. Enforced as a hard rule in `.cursor/rules/20-never-violate.mdc`. Licensing attribution is the sole carve-out. |
 
-**2026-08-15 — corpus count corrected to seven.** `demo-auth-concepts` and
+**2026-08-15 — session 1 audit: FOUR corpora, not seven.** `demo-auth-concepts`,
+`demo-authz-concepts`, and `demo-attacked-web` have no `docs/` folder and no frontmatter.
+They are runnable demo apps, registered as `DemoSourceId` so refs to them resolve and warn,
+with no adapters and no submodules — see `docs/adr/0002-demo-labs.md`. The React repo is
+`react-concepts`, mounted at `content/react`. Default branches confirmed: `main` for
+`nextjs` and `nestjs`, `master` for `react` and `angular`; Debt D4 closed. The fumadocs ×
+Next 16.3 × Cache Components spike **passed all four criteria** — §6.1 is settled and the
+fallback pipeline is not needed.
+
+**Superseded — 2026-08-15 — corpus count corrected to seven.** `demo-auth-concepts` and
 `demo-authz-concepts` join the five framework corpora, mounted at `content/auth` and
 `content/authz`. `demo-attacked-web` is **not** a corpus — it appears to be the target
 application the auth/authz demos attack, and is not submoduled. Neither new repo has a
@@ -37,7 +46,7 @@ attach to it is **Q7 — open**.
 
 ## 0. Verdict up front
 
-You have ~120+ articles of verified reference prose sitting in seven repos with no reader. The site is not a new content project — it is a **rendering and retention layer** over content that already exists. Every architectural decision below is subordinate to one constraint: **the seven concept repos stay canonical. The site never becomes a place where content is authored.**
+You have ~120+ articles of verified reference prose sitting in four repos with no reader. The site is not a new content project — it is a **rendering and retention layer** over content that already exists. Every architectural decision below is subordinate to one constraint: **the four corpus repos stay canonical. The site never becomes a place where content is authored.**
 
 Three decisions carry the whole plan:
 
@@ -60,8 +69,8 @@ This gives Sydexa's lesson-by-lesson UX (sidebar order, prev/next, progress, com
 **URL shape:**
 
 ```
-/en                                corpus landing — thesis, seven corpora, entry points
-/en/concepts                       corpus index — all seven repos
+/en                                corpus landing — thesis, four corpora, entry points
+/en/concepts                       corpus index — all four repos
 /en/concepts/nextjs                repo index
 /en/concepts/nextjs/caching/...    article (canonical URL, stable forever)
 /en/paths                          curated tracks index
@@ -84,7 +93,7 @@ Canonical URL is always the article. Path positions redirect. One page, one URL,
 | `ng21.nxhhuy.tech` | Angular 21 demos | `AngularDemos` | separate deploy |
 | `ng15.nxhhuy.tech` | Angular 15 demos | `AngularDemos` | separate deploy |
 
-Single Next app owns the apex. **Do not use Next.js Multi-Zones here** — you have one team and one deploy; zones buy nothing and cost you a shared-layout headache. (You already have the Multi-Zones material in `reactjs-concepts` article 37 — write about it, don't adopt it.)
+Single Next app owns the apex. **Do not use Next.js Multi-Zones here** — you have one team and one deploy; zones buy nothing and cost you a shared-layout headache. (You already have the Multi-Zones material in `react-concepts` article 37 — write about it, don't adopt it.)
 
 `AngularDemos` stays a separate repo with its own deploys. It is **not** a submodule of this one — it is an application, not content, and merging it would drag Nx 22 and two Angular toolchains into a build that has no use for either.
 
@@ -97,7 +106,7 @@ Single Next app owns the apex. **Do not use Next.js Multi-Zones here** — you h
 | What | Version | Why this one |
 |---|---|---|
 | **Next.js** | **16.3**, Cache Components ON | Same baseline as `nextjs-concepts`. The site becomes the proof-of-work for your own corpus. |
-| React | 19.2 | Matches `reactjs-concepts` baseline. |
+| React | 19.2 | Matches `react-concepts` baseline. |
 | TypeScript | 5.9+ strict | Suite-wide. |
 | Tailwind | v4 | CSS-first config; `@theme` tokens map cleanly to the light/dark toggle. |
 | Fumadocs | `fumadocs-core` + `fumadocs-mdx` (latest 16.x line) | **Spike-gated** — see §6.1. |
@@ -123,7 +132,7 @@ The instinct is right that the rest of the suite is standalone repos. It doesn't
 
 Two contracts are shared, and both are load-bearing:
 
-- **`packages/content-schema`** — the same zod schemas validate frontmatter at build time in `web` and at ingest time in `api`. Seven corpora make this heavier, not lighter: seven adapters in one package, or seven publish cycles across two repos. Split the repos and every schema change becomes: bump, publish, install, verify, in that order, twice. For a solo developer in the exploratory phase this is the tax that quietly kills the schema discipline.
+- **`packages/content-schema`** — the same zod schemas validate frontmatter at build time in `web` and at ingest time in `api`. Four corpora make this heavier, not lighter: four adapters in one package, or four publish cycles across two repos. Split the repos and every schema change becomes: bump, publish, install, verify, in that order, twice. For a solo developer in the exploratory phase this is the tax that quietly kills the schema discipline.
 - **`packages/api-client`** — generated from the Nest OpenAPI document and consumed by `web`. Cross-repo, the frontend is permanently chasing a stale published client, and "regenerate the client" becomes a step people forget under deadline.
 
 Three further reasons:
@@ -160,13 +169,13 @@ corpus-web/
 │   ├── mdx-components/         ← the interactive layer (§7)
 │   └── api-client/             generated from Nest OpenAPI, consumed by web
 ├── content/                    SUBMODULES (gitlinks), NEVER EDITED (§5)
-│   ├── nextjs/ reactjs/ angular/ nestjs/ dsa/ auth/ authz/
+│   ├── nextjs/ react/ angular/ nestjs/
 ├── curation/                   HAND-AUTHORED, COMMITTED
 │   ├── paths/*.yaml            ordered article-id lists + editorial framing
 │   └── overrides/*.yaml        per-article widget injection (§7.3)
 ├── tooling/                    eslint, tsconfig, prettier configs
 └── scripts/
-    ├── sync-content.mjs        pull from the seven repos
+    ├── sync-content.mjs        pull from the four repos
     ├── build-catalog.mjs       frontmatter → catalog.json
     ├── push-catalog.mjs        catalog.json → POST api/catalog/sync
     └── verify-*.mjs            site-level CI gates (§13)
@@ -174,7 +183,7 @@ corpus-web/
 
 **Correction (2026-08-15):** an earlier draft of this section said `content/` is gitignored. That is wrong, and worth stating rather than quietly fixing. A parent repo tracks a submodule as a **gitlink** — a single commit SHA — not as files. There is nothing under `content/` for the parent's `.gitignore` to act on, so a `content/` entry there is inert. It would have read as protection while providing none.
 
-The real guard is three cheap mechanisms, and they are load-bearing because the corpus's single-source-of-truth property is what keeps seven repos standalone:
+The real guard is three cheap mechanisms, and they are load-bearing because the corpus's single-source-of-truth property is what keeps four repos standalone:
 
 1. **`verify-submodules.mjs`**, in CI on every push: fails if any submodule working tree is dirty, or if `HEAD` is not exactly a tag.
 2. **The same script as a `pre-commit` hook**, so the failure arrives before the commit rather than after the push.
@@ -186,7 +195,7 @@ An agent editing a corpus file still cannot get it into this repo by accident: r
 
 ## 5. Content pipeline
 
-The part everyone underestimates. Seven repos → one site, with the corpus staying canonical.
+The part everyone underestimates. Four repos → one site, with the corpus staying canonical.
 
 ### 5.1 Sync mechanism — **git submodules, pinned to tags**
 
@@ -203,7 +212,7 @@ The known submodule ergonomics complaint (people forget `--recursive`) is fully 
 
 ### 5.2 Frontmatter unification
 
-The seven repos have compatible-but-not-identical frontmatter (`article_id` / `recipe_id`, `concept_folder`, `wave`, `related`, `<fw>_baseline`, `status`, `difficulty`). Do **not** rewrite the corpora to unify them.
+The four repos have compatible-but-not-identical frontmatter (`article_id` / `recipe_id`, `concept_folder`, `wave`, `related`, `<fw>_baseline`, `status`, `difficulty`). Do **not** rewrite the corpora to unify them.
 
 Instead: `packages/content-schema` holds one zod union with **per-repo adapters** that normalize into a single internal `Article` shape:
 
@@ -235,9 +244,9 @@ The adapter layer is the compatibility shim. When a corpus's frontmatter changes
 
 ### 5.4 Cross-repo links — the thing that only works once everything is in one place
 
-Your `verify-links.mjs` currently warns on cross-repo links because they can't resolve. On this site they **can**. `nextjs-concepts` linking to `reactjs-concepts/rendering/how-react-renders` becomes a live link.
+Your `verify-links.mjs` currently warns on cross-repo links because they can't resolve. On this site they **can**. `nextjs-concepts` linking to `react-concepts/rendering/how-react-renders` becomes a live link.
 
-This is genuinely the strongest argument for building the site at all, and it should be a headline feature, not a side effect: a **concept graph view** showing the seven corpora as one interconnected body of work. That is a thing no course platform has, and it is a direct visual argument for the depth of the corpus.
+This is genuinely the strongest argument for building the site at all, and it should be a headline feature, not a side effect: a **concept graph view** showing the four corpora as one interconnected body of work. That is a thing no course platform has, and it is a direct visual argument for the depth of the corpus.
 
 Consequence: the site-level `verify-links` gate is **stricter** than the per-repo one. Cross-repo links that warn in the corpus repos become **hard failures** here.
 
@@ -398,7 +407,7 @@ events                id, user_id?, name, props jsonb, occurred_at    -- partiti
 
 **`content_hash` is the pivot.** Catalog sync compares hashes; unchanged articles are no-ops. A changed hash flags `lesson_progress` rows for optional invalidation — you decide per-change whether an edit is significant enough to reset completion. Do not auto-reset; a typo fix should not wipe a reader's streak.
 
-**Never hard-delete a `lesson`.** Articles get renamed and moved (you have already done a `git mv` in `reactjs-concepts`). Archive and add a `lesson_aliases` table mapping old `article_id` → new. That table also feeds the Next `redirects()` config, so old URLs keep working — which matters once anything is indexed.
+**Never hard-delete a `lesson`.** Articles get renamed and moved (you have already done a `git mv` in `react-concepts`). Archive and add a `lesson_aliases` table mapping old `article_id` → new. That table also feeds the Next `redirects()` config, so old URLs keep working — which matters once anything is indexed.
 
 ---
 
@@ -408,7 +417,7 @@ events                id, user_id?, name, props jsonb, occurred_at    -- partiti
 
 - Session cookie: `httpOnly`, `Secure`, `SameSite=Lax`, `Domain=.nxhhuy.tech`. Works across apex and `api.` with no CORS credential dance.
 - Short-lived access token + rotating refresh token, refresh reuse detection → revoke family.
-- **Single-flight refresh** on the client. You have this documented in `reactjs-concepts` (`refresh-storm` recipe) — implement it exactly as written. The site becoming a live implementation of your own recipes is worth more than any of the individual features.
+- **Single-flight refresh** on the client. You have this documented in `react-concepts` (`refresh-storm` recipe) — implement it exactly as written. The site becoming a live implementation of your own recipes is worth more than any of the individual features.
 - OAuth: GitHub first (your audience has accounts), Google second.
 - Rate limiting: `@nestjs/throttler` + Redis, on login/register/refresh.
 - Password reset and email verification via BullMQ + Resend.
@@ -489,14 +498,14 @@ Their genuinely good ideas, worth taking as ideas: the tick-mark progress rail, 
 ### Phase 0 — Spike & skeleton *(target: 1 week)*
 1. Monorepo scaffold: pnpm workspaces + Turborepo + shared tooling configs.
 2. **Blocking spike:** fumadocs-mdx × Next 16.3 × Cache Components (§6.1). Exit criterion is one real article rendering.
-3. Submodule wiring for all seven corpora + `sync-content.mjs` + `verify-submodules`.
+3. Submodule wiring for all four corpora + `sync-content.mjs` + `verify-submodules`.
 4. Design tokens: color scales, type scale, spacing, dark/light `@theme` blocks in Tailwind v4.
 5. `nxhhuy.tech` DNS → Vercel; deploy the skeleton.
 
 **Gate:** the one-article render works and is live at a real URL.
 
 ### Phase 1 — Read-only corpus *(target: 3 weeks)*
-6. Frontmatter adapters + zod union for all seven repos.
+6. Frontmatter adapters + zod union for all four repos.
 7. `build-catalog.mjs`; catalog drives routes and the sidebar tree.
 8. Full route tree; every completed article renders.
 9. Chrome: sidebar, breadcrumb, TOC rail with `IntersectionObserver` scroll-spy, prev/next.
@@ -514,7 +523,7 @@ Their genuinely good ideas, worth taking as ideas: the tick-mark progress rail, 
 The landing page argues for the corpus, not for a person:
 
 1. **The thesis.** One paragraph on what makes this corpus different from the tutorial layer it competes with — claims traced to official docs, framework source, or measurement; code extracted verbatim from running demos rather than hand-written; CI gates that fail on drift. That is a genuinely uncommon claim and it is the whole pitch.
-2. **Seven corpus cards.** Name, one-line scope, article count, framework baseline, completion state. Links into each repo index. Auth and authz are a natural pair and should read as one security track split in two, not as two unrelated corpora.
+2. **Four corpus cards.** Name, one-line scope, article count, framework baseline, completion state. Links into each repo index. The three demo labs get a separate row — they are applications to run, not reading.
 3. **Concept graph teaser.** A cropped view of the cross-corpus link graph (§5.4) with a link to the full view. This is the single most visually distinctive thing the site will have.
 4. **Entry points.** "New to React" / "Debugging a specific problem" / "Browse everything" — three doors into the same material, matching the reference-first IA in §1.
 5. **How to read this.** Concept vs. recipe, the difficulty vocabulary, the baseline-version convention.
@@ -543,7 +552,7 @@ Explicitly absent: name, photo, bio, work history, employers, clients, testimoni
 
 ### Phase 4 — Depth *(target: ongoing)*
 28. Stepped diagrams and simulators (event loop, reconciliation, prototype chain, Next.js cache lifecycle — the last one is uniquely *yours*, nobody else has it).
-29. **Concept graph view** across all seven corpora (§5.4) — the headline differentiator.
+29. **Concept graph view** across all four corpora (§5.4) — the headline differentiator.
 30. Paths layer with editorial framing.
 31. Tier-2 Sandpack playgrounds where JSX genuinely needs rendering.
 32. Analytics + admin.
@@ -574,7 +583,7 @@ Explicitly absent: name, photo, bio, work history, employers, clients, testimoni
 | **iframe under `/en/demos/angular-21`** | ~1 day | Consistent chrome; honest about the boundary. Matches how `AngularDemos` already embeds v15 in v21 |
 | **Cross-framework Native Federation** — Next hosts Angular 21 as a remote | High, and fragile | Genuinely impressive if it works |
 
-Two things argue against option 3, and they are worth taking seriously because they are your own findings. First, `AngularDemos` currently has Angular 21 as the **NF host** with an empty manifest; making Next the host inverts that relationship and means rebuilding the federation setup on both sides. Second, `reactjs-concepts` article 37 concluded that micro-frontends are an organizational solution with a ~4+ FE-team threshold, and that most teams regret early adoption. Shipping a fragile cross-framework MF setup on a solo project contradicts the article — and a reviewer who reads both will notice.
+Two things argue against option 3, and they are worth taking seriously because they are your own findings. First, `AngularDemos` currently has Angular 21 as the **NF host** with an empty manifest; making Next the host inverts that relationship and means rebuilding the federation setup on both sides. Second, `react-concepts` article 37 concluded that micro-frontends are an organizational solution with a ~4+ FE-team threshold, and that most teams regret early adoption. Shipping a fragile cross-framework MF setup on a solo project contradicts the article — and a reviewer who reads both will notice.
 
 **Recommend: option 2, plus an ADR.** iframe embed under a `/en/demos/*` route with shared chrome, and a written architecture decision record explaining why cross-framework MF was rejected here and what the threshold would be. Module Federation is your strongest differentiator (Athena, `@eduloginc`, three-country teams) — but the way to demonstrate seniority with it is a defensible decision not to use it, not a brittle demo that proves you can.
 

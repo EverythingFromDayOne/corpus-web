@@ -7,14 +7,15 @@ alwaysApply: true
 
 ## Content boundary
 
-- **NEVER edit any file under `content/`.** It is submoduled corpus from seven standalone
+- **NEVER edit any file under `content/`.** It is submoduled corpus from four standalone
   repos. Those repos are the single source of truth and are portfolio artifacts in their
   own right.
 - **NEVER add site-specific MDX components into a corpus article.** The moment an article
   contains `<EventLoopSim />` it stops rendering on GitHub, which is currently its only
   reader. Use `curation/overrides/*.yaml` injection instead.
-- **NEVER assume `auth` and `authz` follow the sibling frontmatter schema.** They are
-  `demo-`prefixed with no recorded convention. Audit before adapting.
+- **NEVER treat `auth`, `authz`, or `websec` as corpora.** The session 1 audit confirmed
+  they are runnable demo apps with no `docs/` and no frontmatter. They have no adapters and
+  are not submodules of this repo.
 - **NEVER hand-write a code block into an article.** Code is extracted verbatim from
   verified demo modules by build scripts. Suite-wide invariant.
 - **NEVER float a submodule ref.** Pin to tags. `verify-submodules` fails otherwise.
@@ -107,7 +108,7 @@ About page is an oversight to be helpfully filled.
 - Any version bump or downgrade of Next, React, Nest, Node, TypeScript, or Tailwind
 - Any migration touching `lesson_progress`, `card_reviews`, or `quiz_attempts`
 - Changing the frontmatter schema in `packages/content-schema`
-- Adding an eighth content source, or submoduling `demo-attacked-web`
+- Adding a fifth content source, or submoduling any demo lab
 - Changing hosting, DNS, or the cookie domain
 - Changing the Turborepo task graph or CI gate configuration
 - Doing more than the current session prompt specifies

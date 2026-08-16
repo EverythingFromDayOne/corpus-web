@@ -1,48 +1,63 @@
 import { z } from 'zod';
 
 /**
- * Corpus repos that are MOUNTED — a GitHub repo exists and is submoduled under
- * `content/`. Seven, confirmed 2026-08-15.
+ * Corpus repos that are MOUNTED — a GitHub repo of markdown articles, submoduled
+ * under `content/`. Four, confirmed by the session 1 audit.
+ *
+ * `auth`, `authz`, and `websec` were registered here on the assumption that they
+ * were corpora. They are not — see `DemoSourceId`. Assuming a repo is a corpus
+ * because its name ends in `-concepts` was the error; the audit was designed to
+ * catch exactly this and did.
  */
-export const RepoId = z.enum([
-  'nextjs',
-  'reactjs',
-  'angular',
-  'nestjs',
-  'auth',
-  'authz',
-  'websec',
-]);
+export const RepoId = z.enum(['nextjs', 'react', 'angular', 'nestjs']);
 export type RepoId = z.infer<typeof RepoId>;
 
 /**
  * Corpora that EXIST but are not mounted — no GitHub remote yet, so they cannot
  * be submoduled and produce no articles.
  *
- * `dsa-concepts` is local-only as of 2026-08-15: 13 verified articles, 118/118
- * code blocks, 539/539 tests, and no remote. Tracked in `progress.md` under Debt.
+ * `dsa-concepts` is local-only: 13 verified articles, 118/118 code blocks,
+ * 539/539 tests, and no remote. Tracked in `progress.md` under Debt D1.
  *
- * This distinction exists for one reason: a `related` ref in another corpus that
- * points at a planned corpus must WARN, not fail. Deleting `dsa` outright would
- * make every such link an unresolved ref, and `verify-links` hard-fails on those
- * here. Warning on a link to known-but-unpublished work is correct; failing the
- * build over it is not.
+ * A `related` ref pointing here WARNS rather than failing. Deleting `dsa` outright
+ * would make every such link an unresolved ref, and `verify-links` hard-fails on
+ * those — which would push authors toward deleting correct cross-references.
  */
 export const PlannedRepoId = z.enum(['dsa']);
 export type PlannedRepoId = z.infer<typeof PlannedRepoId>;
 
-/** Any corpus the system recognises, mounted or not. */
-export const KnownRepoId = z.union([RepoId, PlannedRepoId]);
+/**
+ * Runnable demo applications, NOT article corpora. No `docs/`, no frontmatter,
+ * no adapters, and they produce zero articles.
+ *
+ *   auth   -> demo-auth-concepts
+ *   authz  -> demo-authz-concepts
+ *   websec -> demo-attacked-web
+ *
+ * Their role on the site is undecided — see `docs/adr/0002-demo-labs.md`. They are
+ * registered here for one reason only: a `related` ref pointing at one must resolve
+ * to something recognisable and WARN, rather than hard-failing the build as an
+ * unknown repo.
+ */
+export const DemoSourceId = z.enum(['auth', 'authz', 'websec']);
+export type DemoSourceId = z.infer<typeof DemoSourceId>;
+
+/** Anything the system recognises: mounted corpora, planned corpora, demo apps. */
+export const KnownRepoId = z.union([RepoId, PlannedRepoId, DemoSourceId]);
 export type KnownRepoId = z.infer<typeof KnownRepoId>;
 
 export function isMounted(repo: KnownRepoId): repo is RepoId {
   return RepoId.safeParse(repo).success;
 }
 
+export function isDemoSource(repo: KnownRepoId): repo is DemoSourceId {
+  return DemoSourceId.safeParse(repo).success;
+}
+
 /** Maps a mount point to the GitHub repo it is a submodule of. */
 export const REPO_ORIGINS: Record<KnownRepoId, string> = {
   nextjs: 'EverythingFromDayOne/nextjs-concepts',
-  reactjs: 'EverythingFromDayOne/react-concepts',
+  react: 'EverythingFromDayOne/react-concepts',
   angular: 'EverythingFromDayOne/angular-concepts',
   nestjs: 'EverythingFromDayOne/nestjs-concepts',
   auth: 'EverythingFromDayOne/demo-auth-concepts',
@@ -65,7 +80,7 @@ export const REPO_ORIGINS: Record<KnownRepoId, string> = {
  */
 export const REPO_IS_PRIVATE: Record<KnownRepoId, boolean> = {
   nextjs: false,
-  reactjs: false,
+  react: false,
   angular: false,
   nestjs: false,
   auth: false,
@@ -79,13 +94,14 @@ export const REPO_IS_PRIVATE: Record<KnownRepoId, boolean> = {
  * and the sibling `AngularDemos` repo uses `development`, so assuming `main`
  * everywhere silently 404s every "View source" link from the affected corpora.
  *
- * Observed 2026-08-15 via `gh repo view` (session 1). Only `nextjs` and
- * `nestjs` use `main`. The rest, including `react-concepts` and
- * `angular-concepts`, are `master`.
+ * All CONFIRMED by the session 1 audit: `main` for `nextjs` and `nestjs`,
+ * `master` for everything else. The earlier blanket assumption of `main` was
+ * wrong for three of the four corpora — every wrong entry is a silently 404ing
+ * "View source" link across an entire corpus. Debt D4 is closed.
  */
 export const REPO_DEFAULT_BRANCH: Record<KnownRepoId, string> = {
   nextjs: 'main',
-  reactjs: 'master',
+  react: 'master',
   angular: 'master',
   nestjs: 'main',
   auth: 'master',
@@ -105,7 +121,7 @@ export const REPO_DEFAULT_BRANCH: Record<KnownRepoId, string> = {
  */
 export const REPO_LABELS: Record<KnownRepoId, string> = {
   nextjs: 'Next.js',
-  reactjs: 'React',
+  react: 'React',
   angular: 'Angular',
   nestjs: 'NestJS',
   auth: 'Authentication',
@@ -157,7 +173,7 @@ export const FolderPath = z
 export const ArticleUid = z
   .string()
   .regex(
-    /^(nextjs|reactjs|angular|nestjs|auth|authz|websec|dsa)\/[a-z0-9-]+$/,
+    /^(nextjs|react|angular|nestjs|dsa|auth|authz|websec)\/[a-z0-9-]+$/,
     'must be `<repo>/<slug>`',
   );
 export type ArticleUid = z.infer<typeof ArticleUid>;
@@ -177,8 +193,13 @@ export function articleUid(repo: KnownRepoId, articleId: string): ArticleUid {
  */
 export const ArticleRef = z.object({
   repo: KnownRepoId,
-  /** True when the target corpus has no remote yet — resolution WARNS, never fails. */
-  planned: z.boolean(),
+  /**
+   * How this ref must be treated at resolution time:
+   *   article — mounted corpus, must resolve to a real article or FAIL
+   *   planned — corpus exists but has no remote yet, WARN
+   *   demo    — points at a runnable demo app, not an article, WARN
+   */
+  resolution: z.enum(['article', 'planned', 'demo']),
   articleId: Slug,
   kind: ArticleKind,
   /** Exactly as written in the source, for error messages that point at real text. */

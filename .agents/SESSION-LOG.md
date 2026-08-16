@@ -449,3 +449,54 @@ restored a clean pass.
 
 ---
 
+## Session 1 follow-up — schema corrected against the audit — 2026-08-16
+
+**Branch:** `main`
+
+**Files changed:**
+- `packages/content-schema/src/common.ts` — `RepoId` cut to four; new `DemoSourceId`; `react-concepts` remote; confirmed default branches; `isDemoSource`
+- `packages/content-schema/src/adapters/index.ts` — `auth`/`authz`/`websec` adapters deleted; `reactjs` -> `react`
+- `packages/content-schema/src/adapters/shared.ts` — alias table, three-way `resolution` on refs
+- `packages/content-schema/src/catalog.ts` — `demoTargets` in the link report
+- `docs/adr/0002-demo-labs.md` — **new**, proposed
+- `prompts/session-2.md` — rewritten for four corpora
+- `prompts/session-1.md` — annotated as executed, with its two errors named
+- `.cursor/rules/10/20/30`, `corpus-content-boundary`, `corpus-adapter` skills, `roadmap.md`, `.agents/summary.md`, `progress.md`, `AGENTS.md`
+
+**Why:** The session 1 audit invalidated three assumptions at once. The React remote is
+`react-concepts`, not `reactjs-concepts` — mount renamed to `react`, with the old spellings
+kept as inbound aliases so existing cross-repo refs still resolve. Default branches are not
+uniform and are now confirmed rather than assumed; D4 closed.
+
+The significant one: `auth`, `authz`, and `websec` are runnable demo apps, not corpora. The
+error was inferring content from a name — `-concepts` in the repo name, plus proximity to
+the suite. Two signals pointed the other way and were under-weighted: the `demo-` prefix
+describes what the repo *is*, and `demo-attacked-web` carries seven security alerts against
+every sibling's one. The audit existed to catch this and did, which is the system working.
+
+They are not simply deleted. A `related` ref pointing at one must resolve to something
+recognisable and warn, or `verify-links` hard-fails on an unknown repo — so `DemoSourceId`
+joins `PlannedRepoId`, and `ArticleRef` now carries a three-way `resolution` discriminator:
+`article` fails when unresolved, `planned` and `demo` warn.
+
+**Invented decisions:**
+- Mount point `react` rather than keeping `reactjs`. It matches the remote, and changing it
+  now is free because nothing is built. Aliases accept all four spellings.
+- `DemoSourceId` as a distinct category rather than folding demo apps into `PlannedRepoId` —
+  they are not unpublished corpora, they are a different kind of thing, and conflating them
+  would misreport in the link gate.
+- `ArticleRef.planned: boolean` replaced by `resolution: 'article' | 'planned' | 'demo'`. A
+  boolean could not express three states, and a second boolean would allow an illegal
+  combination.
+- ADR-0002's recommendation: deploy the demo labs and iframe them under `/en/demos/*`,
+  matching ADR-0001, and **remove them as submodules**.
+- ADR-0002's security precondition — `demo-attacked-web` is deliberately vulnerable and must
+  not share the `.nxhhuy.tech` cookie domain. Logged as D10.
+- Session 2 task 1 corrects PR #1 before merge rather than landing seven submodules and
+  removing three afterwards.
+
+**Known issues / next steps:** PR #1 still carries three submodules that should not exist.
+The four adapter specs remain unverified against real files — session 2 task 2 is the audit
+that settles them. ADR-0002 is `proposed` and needs a decision before Phase 1 item 13.
+
+---

@@ -13,7 +13,7 @@ A skill never restates a rule — it references one.
 
 ## `corpus-adapter`
 
-How to write and correct per-corpus frontmatter adapters in packages/content-schema. Use when a frontmatter validation error appears, when auditing a corpus against its adapter spec, when adding a corpus, or when normalising a new frontmatter field. Explains why adapters throw instead of defaulting, and the confidence tiers across the seven corpora.
+How to write and correct per-corpus frontmatter adapters in packages/content-schema. Use when a frontmatter validation error appears, when auditing a corpus against its adapter spec, when adding a corpus, or when normalising a new frontmatter field. Explains why adapters throw instead of defaulting, and why three sibling repos have no adapter at all.
 
 Read: `.claude/skills/corpus-adapter/SKILL.md`
 

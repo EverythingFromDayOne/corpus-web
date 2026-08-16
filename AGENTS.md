@@ -164,11 +164,10 @@ Read `package.json` before asserting any version. If a version here disagrees wi
 | What | Version | Note |
 |---|---|---|
 | Next.js | 16.3 | App Router, **Cache Components ON** |
-| React | 19.2 | Matches `reactjs-concepts` baseline |
+| React | 19.2 | Matches `react-concepts` baseline |
 | TypeScript | 5.9+ | strict, suite-wide |
 | Tailwind CSS | v4 | CSS-first `@theme` config |
-| fumadocs-core | 16.x | `fumadocs-ui` is NOT used |
-| fumadocs-mdx | 15.x | versions independently of core; peer on fumadocs-core ^16.7 |
+| fumadocs-core / fumadocs-mdx | 16.x line | `fumadocs-ui` is NOT used |
 | Shiki | v3+ via `rehype-pretty-code` | build-time only |
 | NestJS | 11.1.x | Matches `nestjs-concepts` baseline |
 | Node | **22 LTS** on web, **24 LTS** on api | deliberate divergence, per corpus baselines |
@@ -182,28 +181,24 @@ Read `package.json` before asserting any version. If a version here disagrees wi
 
 - **`corpus-web`** (this repo) — monorepo: `apps/web` + `apps/api` + `packages/*`
 - **Content submodules** under `content/`, pinned to tags, never edited from here.
-  Seven corpora, mount point -> repo:
+  **Four corpora**, confirmed by the session 1 audit:
 
-  | Mount | Repo | Confidence in its frontmatter schema |
+  | Mount | Repo | Default branch |
   |---|---|---|
-  | `content/nextjs` | `nextjs-concepts` | documented |
-  | `content/reactjs` | `react-concepts` | documented. GitHub name is `react-concepts`, not `reactjs-concepts` |
-  | `content/angular` | `angular-concepts` | documented |
-  | `content/nestjs` | `nestjs-concepts` | documented |
-  | `content/auth` | `demo-auth-concepts` | **unknown — audit first** |
-  | `content/authz` | `demo-authz-concepts` | **unknown — audit first** |
-  | `content/websec` | `demo-attacked-web` | **role itself unknown — audit first** |
+  | `content/nextjs` | `nextjs-concepts` | `main` |
+  | `content/react` | `react-concepts` | `master` |
+  | `content/angular` | `angular-concepts` | `master` |
+  | `content/nestjs` | `nestjs-concepts` | `main` |
 
-  **`dsa-concepts` is PLANNED, not mounted.** It has no GitHub remote — it exists only
-  as a local repo. It is registered in `PlannedRepoId`, has no adapter, and produces no
-  articles. A `related` ref pointing at it WARNS; it must never hard-fail. Tracked in
-  `progress.md` under Debt.
+  All public. Branches are NOT uniform — a wrong entry in `REPO_DEFAULT_BRANCH` silently
+  404s every "View source" link in that corpus.
 
-  Default branches are NOT uniform (observed 2026-08-15). `main`: `nextjs`,
-  `nestjs`. `master`: `reactjs`, `angular`, `auth`, `authz`, `websec`.
+- **`dsa-concepts` is PLANNED, not mounted.** No GitHub remote; it exists only locally.
+  Registered in `PlannedRepoId`, no adapter, produces no articles. Refs to it WARN.
 
-  Seven mounted corpora, confirmed 2026-08-15.
-- **`AngularDemos`** — separate repo, separate deploy, NOT a submodule here
+- **`demo-auth-concepts`, `demo-authz-concepts`, `demo-attacked-web` are runnable demo
+  apps, NOT corpora.** No `docs/`, no frontmatter. Registered in `DemoSourceId` so refs
+  resolve and warn rather than failing. **Not submodules** — see `docs/adr/0002-demo-labs.md`.
 
 All under the `EverythingFromDayOne` GitHub org.
 
@@ -229,7 +224,7 @@ packages/content-schema   zod schemas: frontmatter, quiz, deck, path
 packages/ui               design tokens + owned primitives
 packages/mdx-components   the interactive layer
 packages/api-client       GENERATED from Nest OpenAPI — never hand-edited
-content/                  SUBMODULES (gitlinks) — never edited from this repo
+content/                  FOUR SUBMODULES (gitlinks) — never edited from this repo
 curation/                 hand-authored: paths/*.yaml, overrides/*.yaml
 scripts/                  sync, catalog, verify gates, agent-doc generation
 prompts/                  session prompts, committed
@@ -243,14 +238,15 @@ prompts/                  session prompts, committed
 
 ## Content boundary
 
-- **NEVER edit any file under `content/`.** It is submoduled corpus from seven standalone
+- **NEVER edit any file under `content/`.** It is submoduled corpus from four standalone
   repos. Those repos are the single source of truth and are portfolio artifacts in their
   own right.
 - **NEVER add site-specific MDX components into a corpus article.** The moment an article
   contains `<EventLoopSim />` it stops rendering on GitHub, which is currently its only
   reader. Use `curation/overrides/*.yaml` injection instead.
-- **NEVER assume `auth` and `authz` follow the sibling frontmatter schema.** They are
-  `demo-`prefixed with no recorded convention. Audit before adapting.
+- **NEVER treat `auth`, `authz`, or `websec` as corpora.** The session 1 audit confirmed
+  they are runnable demo apps with no `docs/` and no frontmatter. They have no adapters and
+  are not submodules of this repo.
 - **NEVER hand-write a code block into an article.** Code is extracted verbatim from
   verified demo modules by build scripts. Suite-wide invariant.
 - **NEVER float a submodule ref.** Pin to tags. `verify-submodules` fails otherwise.
@@ -343,7 +339,7 @@ About page is an oversight to be helpfully filled.
 - Any version bump or downgrade of Next, React, Nest, Node, TypeScript, or Tailwind
 - Any migration touching `lesson_progress`, `card_reviews`, or `quiz_attempts`
 - Changing the frontmatter schema in `packages/content-schema`
-- Adding an eighth content source, or submoduling `demo-attacked-web`
+- Adding a fifth content source, or submoduling any demo lab
 - Changing hosting, DNS, or the cookie domain
 - Changing the Turborepo task graph or CI gate configuration
 - Doing more than the current session prompt specifies
@@ -363,7 +359,7 @@ Load the rule whose globs match the files you are editing.
 ## Direction of flow — one way only
 
 ```
-7 mounted corpus repos (canonical)  [+1 planned: dsa, no remote]
+4 mounted corpus repos (canonical)  [+1 planned: dsa · 3 demo apps: not corpora]
   -> git submodule, pinned to tag
     -> scripts/sync-content.mjs
       -> packages/content-schema adapters (normalise, do NOT rewrite)
@@ -376,12 +372,12 @@ Nothing flows back. There is no path by which this repo modifies a corpus repo.
 
 ## Frontmatter
 
-The seven mounted repos have compatible-but-not-identical frontmatter. Do NOT unify them by
+The four mounted repos have compatible-but-not-identical frontmatter. Do NOT unify them by
 rewriting the corpora. Unify with per-repo **adapters** in `packages/content-schema`
 that normalise into one internal `Article` shape.
 
-Four of the seven share a documented schema. `auth`, `authz`, and `websec` have no
-recorded convention — treat their adapter specs as hypotheses to be tested, not facts.
+All four share a documented schema, so the specs are informed guesses rather than
+hypotheses — but still guesses. Session 2 runs them against the real files.
 
 Normalised shape:
 
@@ -418,10 +414,11 @@ The corpus repos WARN on cross-repo links because they cannot resolve standalone
 Here they CAN resolve, so here they are a **hard failure**. `verify-links` in this repo
 is strictly stronger than the per-repo gate.
 
-**One exception: refs to a PLANNED corpus warn, never fail.** `dsa` has no remote yet, so
-a link to `dsa/binary-search` points at work that exists but is unpublished. Failing the
-build over it would push authors toward deleting correct cross-references, which is the
-wrong incentive. Those land in `LinkReport.plannedTargets`.
+**Two exceptions, both warn rather than fail.** A ref to a PLANNED corpus (`dsa`, no remote
+yet) points at work that exists but is unpublished — failing over it would push authors
+toward deleting correct cross-references. A ref to a DEMO app (`auth`, `authz`, `websec`)
+points at a runnable application rather than an article, which is legitimate. They land in
+`LinkReport.plannedTargets` and `demoTargets` respectively.
 
 ## content_hash
 
@@ -578,7 +575,7 @@ is in the wrong service.
   `Domain=.nxhhuy.tech`.
 - Short-lived access token + rotating refresh token. Refresh reuse detection revokes the
   whole family.
-- The client uses single-flight refresh, implemented per the `reactjs-concepts`
+- The client uses single-flight refresh, implemented per the `react-concepts`
   `refresh-storm` recipe.
 - `@nestjs/throttler` + Redis on login, register, and refresh.
 
@@ -602,7 +599,7 @@ Task-triggered procedures in `.claude/skills/`. Rules above are always-on
 constraints; skills are how-to, loaded when the task matches. Read the full
 `SKILL.md` before acting on the matching task.
 
-- **`corpus-adapter`** — How to write and correct per-corpus frontmatter adapters in packages/content-schema. Use when a frontmatter validation error appears, when auditing a corpus against its adapter spec, when adding a corpus, or when normalising a new frontmatter field. Explains why adapters throw instead of defaulting, and the confidence tiers across the seven corpora.
+- **`corpus-adapter`** — How to write and correct per-corpus frontmatter adapters in packages/content-schema. Use when a frontmatter validation error appears, when auditing a corpus against its adapter spec, when adding a corpus, or when normalising a new frontmatter field. Explains why adapters throw instead of defaulting, and why three sibling repos have no adapter at all.
   → `.claude/skills/corpus-adapter/SKILL.md`
 
 - **`corpus-commit`** — Commit and push procedure for corpus-web. Use before any git commit or push, and whenever a session is being closed. Covers the four mandatory documentation updates that gate every commit, the gate suite that must pass, branch naming, and the Conventional Commits format including the invented-decisions block.

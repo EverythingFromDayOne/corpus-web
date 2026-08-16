@@ -48,5 +48,13 @@ export const LinkReport = z.object({
   plannedTargets: z.array(
     z.object({ from: ArticleUid, raw: z.string(), repo: z.string() }),
   ),
+  /**
+   * Points at a runnable demo app rather than an article — `auth`, `authz`,
+   * `websec`. WARNS. These are legitimate references; they just resolve to a
+   * demo rather than to a page in the corpus.
+   */
+  demoTargets: z.array(
+    z.object({ from: ArticleUid, raw: z.string(), repo: z.string() }),
+  ),
 });
 export type LinkReport = z.infer<typeof LinkReport>;

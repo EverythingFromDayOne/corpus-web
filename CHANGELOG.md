@@ -5,6 +5,34 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-16] — main — Schema corrected against the session 1 audit
+
+**Added**
+- `DemoSourceId` for `auth`, `authz`, `websec` — runnable demo apps, not corpora
+- `ArticleRef.resolution` — `article` fails when unresolved, `planned` and `demo` warn
+- `LinkReport.demoTargets`
+- `docs/adr/0002-demo-labs.md` — proposed: deploy and iframe, do not submodule
+- Debt D9 (demo labs have no home) and D10 (deliberately vulnerable app must not share the
+  cookie domain)
+
+**Changed**
+- `RepoId` reduced from seven to **four**: `nextjs`, `react`, `angular`, `nestjs`
+- React remote corrected to `react-concepts`; mount renamed `reactjs` -> `react`
+- Default branches confirmed: `main` for `nextjs`/`nestjs`, `master` for `react`/`angular`
+- `prompts/session-2.md` rewritten; `prompts/session-1.md` annotated as executed
+
+**Removed**
+- Adapters for `auth`, `authz`, `websec`
+- `ArticleRef.planned` (superseded by `resolution`)
+
+**Fixed**
+- Debt D2, D3, D4 closed by the audit
+
+**Architecture decisions**
+- The fumadocs × Next 16.3 × Cache Components spike passed all four criteria; roadmap §6.1
+  is settled and the fallback pipeline is not needed
+- A repo whose name ends in `-concepts` is not evidence that it contains a corpus
+
 ### [2026-08-15] — cursor/session-1-scaffold-e487 — Monorepo scaffold and fumadocs spike
 
 **Added**

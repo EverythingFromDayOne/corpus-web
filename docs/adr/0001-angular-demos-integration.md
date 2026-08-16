@@ -23,7 +23,7 @@ Two facts constrain it:
    relationship and means rebuilding the federation setup on both sides, in a repo whose
    rules already flag `tsconfig.federation.json` as fragile — modifying it "breaks the
    entire build and causes blank page 404 errors on all Angular chunks."
-2. **`reactjs-concepts` article 37 concluded** that micro-frontends are an organisational
+2. **`react-concepts` article 37 concluded** that micro-frontends are an organisational
    solution with a rough four-front-end-team threshold, and that most teams regret early
    adoption. It also recorded that on Vite 8 / Rolldown, Module Federation is not native
    yet, and that cross-framework composition is the hardest variant.

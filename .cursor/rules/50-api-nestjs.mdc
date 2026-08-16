@@ -54,7 +54,7 @@ is in the wrong service.
   `Domain=.nxhhuy.tech`.
 - Short-lived access token + rotating refresh token. Refresh reuse detection revokes the
   whole family.
-- The client uses single-flight refresh, implemented per the `reactjs-concepts`
+- The client uses single-flight refresh, implemented per the `react-concepts`
   `refresh-storm` recipe.
 - `@nestjs/throttler` + Redis on login, register, and refresh.
 

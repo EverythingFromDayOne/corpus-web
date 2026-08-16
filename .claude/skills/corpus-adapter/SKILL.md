@@ -1,13 +1,13 @@
 ---
 name: corpus-adapter
-description: "How to write and correct per-corpus frontmatter adapters in packages/content-schema. Use when a frontmatter validation error appears, when auditing a corpus against its adapter spec, when adding a corpus, or when normalising a new frontmatter field. Explains why adapters throw instead of defaulting, and the confidence tiers across the seven corpora."
+description: "How to write and correct per-corpus frontmatter adapters in packages/content-schema. Use when a frontmatter validation error appears, when auditing a corpus against its adapter spec, when adding a corpus, or when normalising a new frontmatter field. Explains why adapters throw instead of defaulting, and why three sibling repos have no adapter at all."
 ---
 
 # Writing corpus adapters
 
-Seven corpora with different frontmatter field *names* normalise into one `Article` shape.
+Four corpora with different frontmatter field *names* normalise into one `Article` shape.
 They differ in naming, not meaning — which is why adapters are built from specs by a
-factory rather than hand-written seven times.
+factory rather than hand-written four times.
 
 ## The one rule
 
@@ -42,16 +42,13 @@ Never add it to individual corpus files first. The schema follows the corpus.
 
 ## Confidence tiers — do not treat these as equal
 
-| Corpora | Basis for the spec |
-|---|---|
-| `nextjs` `reactjs` `angular` `nestjs` | documented sibling schema — informed guess |
-| `auth` `authz` | no recorded convention — hypothesis |
-| `websec` | role itself unestablished — placeholder |
+All four share a documented sibling schema, so the specs are informed guesses — but still
+guesses, unverified against the real files until the session 2 audit runs.
 
-`websec` may not be a corpus at all. If the audit shows it is a vulnerable target app whose
-code the auth/authz articles extract, **delete its adapter** and register it as a
-code-extraction source instead: still submoduled for `verify-code-blocks`, producing no
-articles.
+Three repos have **no adapter and never will**: `auth`, `authz`, and `websec` are runnable
+demo apps with no `docs/` and no frontmatter. `dsa` has none either — it is a planned corpus
+with no remote. Registering a repo in `DemoSourceId` or `PlannedRepoId` exists so a `related`
+ref pointing at it resolves and warns, rather than hard-failing as an unknown repo.
 
 ## Avoid
 
@@ -60,4 +57,5 @@ articles.
 - Never edit a corpus file to satisfy an adapter
 - Never remove the filename/id equality check — the id is always the filename slug
 - Never delete a `⚠ UNVERIFIED` notice for a claim the audit did not actually verify
+- Never write an adapter for a repo that has no `docs/` folder — check before assuming
 - Never make `description` optional or derive it from the first paragraph

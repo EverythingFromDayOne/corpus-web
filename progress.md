@@ -73,6 +73,8 @@ Known, deliberate, and tracked. Not blockers unless marked.
 | D6 | **`nestjs-concepts` article 16** — headline claim invalidated by article 17 (`forbidUnknownValues: false` is forced by Nest). Correction not yet applied upstream. | A known-false claim is pinned in `v0.2.0` and would render. | Fix in the corpus repo, then re-tag |
 | D7 | **`reactjs-concepts` anchor slugs unverified** for articles 27–36 and recipes 5–10. | Broken in-page cross-references. | Session 2 task 3 |
 | D8 | **`angular-concepts`** — 6 of 23 Phase 2 articles outstanding; `attribute-directives` is a stub. | Six articles absent from the site. | Angular Phase 2 |
+| D9 | **Demo labs have no home** — `auth`, `authz`, `websec` are working demos with nowhere to appear. ADR-0002 proposes deploy + iframe under `/en/demos/*`. | The one subject area with no article coverage stays invisible. | ADR-0002 decision |
+| D10 | **`demo-attacked-web` is deliberately vulnerable.** If deployed on a subdomain sharing the `.nxhhuy.tech` cookie domain, an XSS demo could read the main site's session cookie. | A demo becomes a real vulnerability. | Before any deploy of that app |
 
 ---
 

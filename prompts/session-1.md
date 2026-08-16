@@ -49,6 +49,11 @@ gate that always passes is worse than a missing gate.
 
 ## 4. Content submodules
 
+> **Executed 2026-08-16. Retained as a record; do not re-run.** Two things in this task
+> were wrong and the audit caught both: the React remote is `react-concepts`, and
+> `auth` / `authz` / `websec` are runnable demo apps rather than corpora, so they should
+> never have been submoduled. `prompts/session-2.md` task 1 removes them.
+
 Add all seven, pinned to their current latest tag.
 
 **`dsa-concepts` is NOT in this list.** It has no GitHub remote — it exists only as a
@@ -59,7 +64,7 @@ be submoduled. Do not create the remote as part of this session.
 
 ```
 content/nextjs   -> EverythingFromDayOne/nextjs-concepts
-content/reactjs  -> EverythingFromDayOne/reactjs-concepts
+content/reactjs  -> EverythingFromDayOne/reactjs-concepts   # WRONG — see note below
 content/angular  -> EverythingFromDayOne/angular-concepts
 content/nestjs   -> EverythingFromDayOne/nestjs-concepts
 content/auth     -> EverythingFromDayOne/demo-auth-concepts

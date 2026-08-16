@@ -5,7 +5,7 @@ description: "Rules for anything touching content/, the seven submoduled corpus 
 
 # The content boundary
 
-`content/` holds seven git submodules. Those repos are the single source of truth and are
+`content/` holds four git submodules. Those repos are the single source of truth and are
 standalone artifacts in their own right. **This repo never writes to them.**
 
 `.gitignore` does not and cannot protect them — a parent repo tracks a submodule as a
@@ -39,9 +39,9 @@ content/nextjs/docs/concepts/caching/cache-components.deck.yaml
 Where an event-loop simulator gets injected is presentation, and belongs here:
 
 ```yaml
-# curation/overrides/reactjs-how-react-renders.yaml
+# curation/overrides/react-how-react-renders.yaml
 schema: 1
-article: reactjs/how-react-renders
+article: react/how-react-renders
 inject:
   - afterSection: render-phase
     component: FiberWalkthrough
@@ -64,6 +64,7 @@ Corpus repo tags a release → `repository_dispatch` → PR here bumping the poi
 - Never auto-merge a promotion PR
 - Never widen a schema to make a corpus file pass
 - Never bump two submodules in one PR
-- Never assume `auth`, `authz`, or `websec` follow the sibling frontmatter schema
+- Never treat `auth`, `authz`, or `websec` as corpora — they are runnable demo apps with
+  no `docs/` and no frontmatter, confirmed by the session 1 audit
 - Never submodule `dsa-concepts` — it has no remote; it is a planned corpus and refs to it
   warn rather than fail

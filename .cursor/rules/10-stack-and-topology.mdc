@@ -13,11 +13,10 @@ Read `package.json` before asserting any version. If a version here disagrees wi
 | What | Version | Note |
 |---|---|---|
 | Next.js | 16.3 | App Router, **Cache Components ON** |
-| React | 19.2 | Matches `reactjs-concepts` baseline |
+| React | 19.2 | Matches `react-concepts` baseline |
 | TypeScript | 5.9+ | strict, suite-wide |
 | Tailwind CSS | v4 | CSS-first `@theme` config |
-| fumadocs-core | 16.x | `fumadocs-ui` is NOT used |
-| fumadocs-mdx | 15.x | versions independently of core; peer on fumadocs-core ^16.7 |
+| fumadocs-core / fumadocs-mdx | 16.x line | `fumadocs-ui` is NOT used |
 | Shiki | v3+ via `rehype-pretty-code` | build-time only |
 | NestJS | 11.1.x | Matches `nestjs-concepts` baseline |
 | Node | **22 LTS** on web, **24 LTS** on api | deliberate divergence, per corpus baselines |
@@ -31,28 +30,24 @@ Read `package.json` before asserting any version. If a version here disagrees wi
 
 - **`corpus-web`** (this repo) — monorepo: `apps/web` + `apps/api` + `packages/*`
 - **Content submodules** under `content/`, pinned to tags, never edited from here.
-  Seven corpora, mount point -> repo:
+  **Four corpora**, confirmed by the session 1 audit:
 
-  | Mount | Repo | Confidence in its frontmatter schema |
+  | Mount | Repo | Default branch |
   |---|---|---|
-  | `content/nextjs` | `nextjs-concepts` | documented |
-  | `content/reactjs` | `react-concepts` | documented. GitHub name is `react-concepts`, not `reactjs-concepts` |
-  | `content/angular` | `angular-concepts` | documented |
-  | `content/nestjs` | `nestjs-concepts` | documented |
-  | `content/auth` | `demo-auth-concepts` | **unknown — audit first** |
-  | `content/authz` | `demo-authz-concepts` | **unknown — audit first** |
-  | `content/websec` | `demo-attacked-web` | **role itself unknown — audit first** |
+  | `content/nextjs` | `nextjs-concepts` | `main` |
+  | `content/react` | `react-concepts` | `master` |
+  | `content/angular` | `angular-concepts` | `master` |
+  | `content/nestjs` | `nestjs-concepts` | `main` |
 
-  **`dsa-concepts` is PLANNED, not mounted.** It has no GitHub remote — it exists only
-  as a local repo. It is registered in `PlannedRepoId`, has no adapter, and produces no
-  articles. A `related` ref pointing at it WARNS; it must never hard-fail. Tracked in
-  `progress.md` under Debt.
+  All public. Branches are NOT uniform — a wrong entry in `REPO_DEFAULT_BRANCH` silently
+  404s every "View source" link in that corpus.
 
-  Default branches are NOT uniform (observed 2026-08-15). `main`: `nextjs`,
-  `nestjs`. `master`: `reactjs`, `angular`, `auth`, `authz`, `websec`.
+- **`dsa-concepts` is PLANNED, not mounted.** No GitHub remote; it exists only locally.
+  Registered in `PlannedRepoId`, no adapter, produces no articles. Refs to it WARN.
 
-  Seven mounted corpora, confirmed 2026-08-15.
-- **`AngularDemos`** — separate repo, separate deploy, NOT a submodule here
+- **`demo-auth-concepts`, `demo-authz-concepts`, `demo-attacked-web` are runnable demo
+  apps, NOT corpora.** No `docs/`, no frontmatter. Registered in `DemoSourceId` so refs
+  resolve and warn rather than failing. **Not submodules** — see `docs/adr/0002-demo-labs.md`.
 
 All under the `EverythingFromDayOne` GitHub org.
 
@@ -78,7 +73,7 @@ packages/content-schema   zod schemas: frontmatter, quiz, deck, path
 packages/ui               design tokens + owned primitives
 packages/mdx-components   the interactive layer
 packages/api-client       GENERATED from Nest OpenAPI — never hand-edited
-content/                  SUBMODULES (gitlinks) — never edited from this repo
+content/                  FOUR SUBMODULES (gitlinks) — never edited from this repo
 curation/                 hand-authored: paths/*.yaml, overrides/*.yaml
 scripts/                  sync, catalog, verify gates, agent-doc generation
 prompts/                  session prompts, committed

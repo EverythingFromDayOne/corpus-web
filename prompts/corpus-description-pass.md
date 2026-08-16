@@ -3,14 +3,13 @@
 **This prompt runs in a CORPUS repo, not in `corpus-web`.** Run it once per repo, on a
 branch, one PR each. Do not batch repos.
 
-Applies to: `nextjs-concepts`, `reactjs-concepts`, `angular-concepts`, `nestjs-concepts`.
+Applies to: `nextjs-concepts`, `react-concepts`, `angular-concepts`, `nestjs-concepts`.
 
 `dsa-concepts` also needs this pass, but it has no GitHub remote yet — run it locally
 whenever the repo is published, before its first tag.
 
-**Do not run this on `demo-auth-concepts` or `demo-authz-concepts` yet.** Their frontmatter
-convention is unknown; session 2's audit establishes it first. Running a frontmatter pass
-against a schema you have not confirmed is how a mechanical change becomes a cleanup job.
+Does **not** apply to `demo-auth-concepts`, `demo-authz-concepts`, or `demo-attacked-web`.
+They are runnable demo apps with no articles.
 
 ---
 

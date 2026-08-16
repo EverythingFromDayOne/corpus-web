@@ -9,7 +9,7 @@ alwaysApply: false
 ## Direction of flow — one way only
 
 ```
-7 mounted corpus repos (canonical)  [+1 planned: dsa, no remote]
+4 mounted corpus repos (canonical)  [+1 planned: dsa · 3 demo apps: not corpora]
   -> git submodule, pinned to tag
     -> scripts/sync-content.mjs
       -> packages/content-schema adapters (normalise, do NOT rewrite)
@@ -22,12 +22,12 @@ Nothing flows back. There is no path by which this repo modifies a corpus repo.
 
 ## Frontmatter
 
-The seven mounted repos have compatible-but-not-identical frontmatter. Do NOT unify them by
+The four mounted repos have compatible-but-not-identical frontmatter. Do NOT unify them by
 rewriting the corpora. Unify with per-repo **adapters** in `packages/content-schema`
 that normalise into one internal `Article` shape.
 
-Four of the seven share a documented schema. `auth`, `authz`, and `websec` have no
-recorded convention — treat their adapter specs as hypotheses to be tested, not facts.
+All four share a documented schema, so the specs are informed guesses rather than
+hypotheses — but still guesses. Session 2 runs them against the real files.
 
 Normalised shape:
 
@@ -64,10 +64,11 @@ The corpus repos WARN on cross-repo links because they cannot resolve standalone
 Here they CAN resolve, so here they are a **hard failure**. `verify-links` in this repo
 is strictly stronger than the per-repo gate.
 
-**One exception: refs to a PLANNED corpus warn, never fail.** `dsa` has no remote yet, so
-a link to `dsa/binary-search` points at work that exists but is unpublished. Failing the
-build over it would push authors toward deleting correct cross-references, which is the
-wrong incentive. Those land in `LinkReport.plannedTargets`.
+**Two exceptions, both warn rather than fail.** A ref to a PLANNED corpus (`dsa`, no remote
+yet) points at work that exists but is unpublished — failing over it would push authors
+toward deleting correct cross-references. A ref to a DEMO app (`auth`, `authz`, `websec`)
+points at a runnable application rather than an article, which is legitimate. They land in
+`LinkReport.plannedTargets` and `demoTargets` respectively.
 
 ## content_hash
 

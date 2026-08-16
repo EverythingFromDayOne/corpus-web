@@ -70,6 +70,11 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
 ---
 
 ## Key facts that are easy to get wrong
+- There are **four** corpora: `nextjs`, `react`, `angular`, `nestjs`. The React repo is
+  `react-concepts`, mounted at `content/react`.
+- `auth`, `authz`, `websec` are **runnable demo apps, not corpora** — no `docs/`, no
+  frontmatter, no adapters, not submodules. Session 1 audit. See ADR-0002.
+- Default branches: `main` for `nextjs` and `nestjs`, `master` for `react` and `angular`.
 
 - There are **seven** mounted submodules, not five. `content/auth` ->
   `demo-auth-concepts`, `content/authz` -> `demo-authz-concepts`, `content/websec` ->

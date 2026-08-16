@@ -13,14 +13,12 @@ export { createAdapter } from './factory.js';
  * Session 2 task 1 runs every adapter against its submodule and reports each
  * mismatch. Correct THIS FILE when they disagree — never the corpus.
  *
- * Confidence tiers:
- *   nextjs, reactjs, angular, nestjs — documented sibling schema, moderate
- *   auth, authz                     — no recorded convention, LOW
- *   websec                          — role itself unestablished, PLACEHOLDER
+ * All four share a documented sibling schema, so these specs are informed guesses
+ * rather than hypotheses — but still guesses. Session 2 runs them for real.
  *
- * `dsa` has NO adapter. It is a planned corpus with no GitHub remote, so it is
- * never mounted and never produces articles. When the remote is created, add its
- * spec here and move it from `PlannedRepoId` to `RepoId`.
+ * NO adapter exists for:
+ *   dsa                  — planned corpus, no remote yet
+ *   auth, authz, websec  — runnable demo apps, not corpora (session 1 audit)
  */
 export const ADAPTERS: Record<RepoId, RepoAdapter> = {
   nextjs: createAdapter({
@@ -34,8 +32,8 @@ export const ADAPTERS: Record<RepoId, RepoAdapter> = {
     extend: { next_baseline: z.string().optional() },
   }),
 
-  reactjs: createAdapter({
-    repo: 'reactjs',
+  react: createAdapter({
+    repo: 'react',
     include: ['docs/concepts/**/*.md', 'docs/recipes/**/*.md'],
     conceptIdKey: 'article_id',
     recipeIdKey: 'recipe_id',
@@ -70,68 +68,6 @@ export const ADAPTERS: Record<RepoId, RepoAdapter> = {
     extend: { nest_baseline: z.string().optional() },
   }),
 
-  /**
-   * ⚠⚠ LOWEST CONFIDENCE IN THE FILE. `demo-auth-concepts` and
-   * `demo-authz-concepts` carry a `demo-` prefix, report HTML as their primary
-   * language, and have no frontmatter convention on record. The specs below are
-   * a guess that they follow the sibling schema.
-   *
-   * They may not be markdown corpora at all — they may be demo applications with
-   * docs attached, in which case they need a different `include` and possibly a
-   * hand-written adapter rather than a factory spec. `demo-attacked-web` sitting
-   * beside them suggests a target app plus two doc sets, which would be a
-   * different shape from every other corpus.
-   *
-   * Session 2 task 1 audits these FIRST, before the four known-good ones.
-   */
-  auth: createAdapter({
-    repo: 'auth',
-    include: ['docs/**/*.md'],
-    conceptIdKey: 'article_id',
-    recipeIdKey: 'recipe_id',
-    folderKey: 'concept_folder',
-    baselineKey: 'stack_baseline',
-    framework: 'Authentication',
-    extend: { stack_baseline: z.string().optional() },
-  }),
-
-  authz: createAdapter({
-    repo: 'authz',
-    include: ['docs/**/*.md'],
-    conceptIdKey: 'article_id',
-    recipeIdKey: 'recipe_id',
-    folderKey: 'concept_folder',
-    baselineKey: 'stack_baseline',
-    framework: 'Authorization',
-    extend: { stack_baseline: z.string().optional() },
-  }),
-
-  /**
-   * ⚠⚠⚠ PLACEHOLDER. `demo-attacked-web` was confirmed by the user as part of the
-   * set, but its ROLE is not established. Three possibilities, all live:
-   *
-   *   1. a corpus of its own (articles about web attack surfaces)
-   *   2. a deliberately vulnerable target app the auth/authz articles attack, whose
-   *      code is EXTRACTED into those articles — in which case it is a demo source,
-   *      not a corpus, and needs submoduling for `verify-code-blocks` but no adapter
-   *   3. both — an app with an articles folder beside it
-   *
-   * It reports 7 security alerts where every sibling reports 1, which is what an
-   * intentionally vulnerable application looks like. If (2) turns out to be true,
-   * DELETE this adapter and register the repo as a demo source instead.
-   *
-   * Session 2 audits this one before anything else.
-   */
-  websec: createAdapter({
-    repo: 'websec',
-    include: ['docs/**/*.md'],
-    conceptIdKey: 'article_id',
-    recipeIdKey: 'recipe_id',
-    folderKey: 'concept_folder',
-    baselineKey: 'stack_baseline',
-    framework: 'Web Security',
-    extend: { stack_baseline: z.string().optional() },
-  }),
 };
 
 export function adapterFor(repo: RepoId): RepoAdapter {
