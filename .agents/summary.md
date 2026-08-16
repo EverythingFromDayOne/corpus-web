@@ -100,6 +100,9 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
 - Cross-repo links WARN in the corpus repos and **hard-fail** here, because here they
   can actually resolve.
 - Node 22 on `apps/web`, Node 24 on `apps/api`. Deliberate. Follows each corpus baseline.
+  A package shared by both therefore types against the **lower** one:
+  `packages/content-schema` pins `@types/node` to `^22`, so anything that typechecks there
+  runs on either runtime. `^24` would let a Node-24-only API pass and fail on web.
 - `'use cache: private'` gives zero server-side caching — request memoization only.
 - Prerendered shell content cannot be verified with `curl` or view-source. Inspect
   `.next/server/app/<route>.html`.

@@ -34,7 +34,7 @@ snapshot and `roadmap.md` for the planning rationale.
 
 | # | Item | Status | Notes |
 |---|---|---|---|
-| 6 | Frontmatter adapters + zod union, four mounted repos | ✅ | Session 2: run for real against every file in all four corpora and corrected (`docs/audit/frontmatter-2026-08-16.md`). Directory-shape, `title`, and `status` mismatches fixed. Session 2 follow-up: `deriveTitle` rewritten as an mdast walk — the regex was matching inside code fences — with tests in `packages/content-schema/test/` |
+| 6 | Frontmatter adapters + zod union, four mounted repos | ✅ | Session 2: run for real against every file in all four corpora and corrected (`docs/audit/frontmatter-2026-08-16.md`). Directory-shape, `title`, and `status` mismatches fixed. Session 2 follow-up: `deriveTitle` rewritten as an mdast walk — the regex was matching inside code fences — with tests in `packages/content-schema/test/`, typechecked as of the `@types/node` (`^22`, the lowest consumer) addition |
 | 6b | Section extraction (`extractSections()`) | ✅ | Session 2: mdast-based, GitHub-slug anchors verified against real `react-concepts` cross-references. Session 2 follow-up: accepts a pre-parsed tree so title derivation and section extraction share one parse per file |
 | 7 | `build-catalog.mjs` → routes + sidebar tree | 🟡 | Session 2: real implementation, all logic proven (incl. via synthetic fixtures for `verify-catalog`) — **cannot currently produce a passing build**, blocked on item 16 (Debt D5) and Debt D11 |
 | 7b | `verify-frontmatter.mjs` / `verify-links.mjs` / `verify-catalog.mjs` gates | ✅ | Session 2. All three correctly fail against current content (Debt D5); `verify-catalog`'s four checks (dup uid, missing/draft path target, `root`-folder sentinel) proven against synthetic fixtures |
@@ -83,6 +83,12 @@ Known, deliberate, and tracked. Not blockers unless marked.
 
 ## Session log
 
+- **Session 2 follow-up b (2026-08-16):** `packages/content-schema` now typechecks its
+  own tests — `tsconfig.json` includes `test/`, with `@types/node` `^22.19.0` as a
+  devDependency. The major is deliberate: the package is consumed by `apps/web` on Node
+  22 and `apps/api` on Node 24, so typing against the lower consumer keeps the type set a
+  subset of both and anything that typechecks runs on either. `^24` would let a
+  Node-24-only API pass here and fail at run time on web.
 - **Session 2 follow-up (2026-08-16):** fixed `deriveTitle()`, which matched `/^#\s+(.+)$/m` against
   the raw body and so read `# ` lines out of fenced code blocks. It had been titling
   `react/rendering/react-compiler-deep-dive.md` from a shell comment inside an

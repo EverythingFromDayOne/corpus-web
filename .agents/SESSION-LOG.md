@@ -793,3 +793,63 @@ hidden behind a false positive.
   is a one-line change gated on the dependency stop-and-ask.
 
 ---
+
+## Session 2 follow-up b — the tests are typechecked — 2026-08-16
+
+**Branch:** `cursor/fix-derive-title-mdast-15ee`
+
+**Files changed:**
+- `packages/content-schema/package.json` — `@types/node` `^22.19.0` added as a
+  devDependency
+- `packages/content-schema/tsconfig.json` — `include` extended to `test/**/*.ts`;
+  `types: ["node"]` so the Node globals the tests use are declared rather than picked up
+  by whatever `@types` package happens to be in scope
+- `packages/content-schema/README.md` — new "Tests and typechecking" section recording
+  why the `@types/node` major is 22 and not 24
+- `pnpm-lock.yaml` — the new devDependency; resolves to `22.20.1`, the copy `apps/web`
+  already pulls in
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this session
+- `.agents/summary.md` — new key fact on the `@types/node` major
+- `progress.md` — Phase 1 item 6 note; session log entry
+
+**Why:** The previous entry closed with the tests running but not type-verified: `tsx`
+strips types at run time, so `test/derive-title.test.ts` could have referenced a function
+that no longer exists, or passed the wrong argument shape, and still have been reported as
+passing until the assertion itself failed. `tsconfig.json` now includes `test/`, which
+needs `@types/node` because the tests read the corpus off disk (`node:fs`, `node:path`,
+`node:url`, `node:test`).
+
+The major is the whole decision. `@types/node` describes a runtime, and this package has
+two: `apps/web` runs Node 22 and `apps/api` runs Node 24 — a deliberate divergence
+following each corpus's own baseline. Typing a shared package against the **lower** of its
+consumers is the only direction that is safe, because the type set is then a subset of
+what both runtimes provide, and anything that typechecks here runs on both. Typing against
+24 inverts that: a Node-24-only API would typecheck cleanly and then fail at run time on
+web, which is the failure this gate exists to catch. Verified rather than assumed — the
+global `URLPattern` (stable in Node 24) compiles against `@types/node` 24.13.3 and fails
+with `TS2304: Cannot find name 'URLPattern'` against 22.20.1.
+
+**Invented decisions:**
+- **The spec is `^22.19.0`, not a bare `^22`.** It matches `apps/web`'s existing spec
+  exactly, so pnpm resolves one `22.20.1` rather than risking two entries in the lockfile
+  that drift apart. Still within the `^22` the task specified.
+- **`types: ["node"]` was added alongside the `include` change.** Without an explicit
+  `types` array TypeScript auto-includes every `@types` package it can reach, so the
+  program's global scope would depend on hoisting rather than on this package's own
+  manifest. `@types/mdast` is unaffected — it is imported by module name, which the
+  `types` array does not govern.
+- **The reasoning is recorded in `README.md` as well as here.** `package.json` cannot
+  carry a comment, and "why 22 and not 24" is exactly the constraint a later dependency
+  bump would otherwise erase without noticing.
+
+**Known issues / next steps:**
+- Nothing in `src/` needs Node types today; only the tests do. If that stays true, a
+  separate `tsconfig.test.json` would keep Node globals out of `src`'s scope entirely.
+  One tsconfig was kept because two configs for a package with one source directory and
+  one test file is the more expensive mistake.
+- Debt D5 and Debt D11 are untouched. `verify:frontmatter` still fails on 183 articles
+  missing `description` and the 15 with no derivable title.
+- When `apps/web` moves off Node 22, this pin moves with it — not before.
+
+---

@@ -5,6 +5,29 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-16] — cursor/fix-derive-title-mdast-15ee — `packages/content-schema` typechecks its tests
+
+**Added**
+- `@types/node` `^22.19.0` as a devDependency of `packages/content-schema`, resolving to
+  the `22.20.1` copy `apps/web` already pulls in
+- `packages/content-schema/README.md` — "Tests and typechecking", recording why the
+  `@types/node` major is 22
+
+**Changed**
+- `packages/content-schema/tsconfig.json` — `include` covers `test/**/*.ts`, and
+  `types: ["node"]` declares the test files' Node globals instead of relying on whatever
+  `@types` package is reachable by hoisting. `pnpm typecheck` now type-verifies the tests
+  that `tsx` had only been type-stripping
+
+**Fixed**
+- Nothing.
+
+**Architecture decisions**
+- A package shared by two runtimes types against the **lowest** of its consumers. `web` is
+  Node 22 and `api` is Node 24, so `^22` keeps the type set a subset of both; `^24` would
+  let a Node-24-only API pass typecheck here and fail at run time on web. Confirmed
+  against the global `URLPattern`, which compiles on `@types/node` 24 and does not on 22
+
 ### [2026-08-16] — cursor/fix-derive-title-mdast-15ee — Session 2 follow-up: `deriveTitle` reads headings, not lines
 
 **Added**
