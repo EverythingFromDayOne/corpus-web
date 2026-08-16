@@ -14,15 +14,24 @@
     "agents:build": "node scripts/build-agent-docs.mjs",
     "agents:check": "node scripts/build-agent-docs.mjs --check",
     "sync:content": "node scripts/sync-content.mjs",
-    "build:catalog": "node scripts/build-catalog.mjs",
+    "build:catalog": "tsx scripts/build-catalog.mjs",
     "verify:submodules": "node scripts/verify-submodules.mjs",
-    "postinstall": "git submodule update --init --recursive && node scripts/install-git-hooks.mjs"
+    "postinstall": "git submodule update --init --recursive && node scripts/install-git-hooks.mjs",
+    "audit:frontmatter": "tsx scripts/audit-frontmatter.mjs",
+    "verify:frontmatter": "tsx scripts/verify-frontmatter.mjs",
+    "verify:links": "tsx scripts/verify-links.mjs",
+    "verify:catalog": "tsx scripts/verify-catalog.mjs"
+  },
+  "dependencies": {
+    "gray-matter": "4.0.3",
+    "yaml": "2.9.0"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
     "eslint": "9.39.5",
     "globals": "17.11.0",
     "turbo": "2.10.10",
+    "tsx": "4.23.12",
     "typescript": "5.9.3",
     "typescript-eslint": "8.67.0"
   }

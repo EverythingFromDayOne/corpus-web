@@ -4,6 +4,7 @@ import { articleUid, type RepoId } from '../common.js';
 import {
   BaseFrontmatter,
   buildSourceUrl,
+  deriveTitle,
   normaliseDifficulty,
   normaliseStatus,
   normaliseWave,
@@ -14,7 +15,12 @@ import { AdapterError, type AdapterInput, type RepoAdapter } from './types.js';
 
 interface AdapterSpec {
   repo: RepoId;
-  include: string[];
+  /** See `RepoAdapter.conceptsRoot`. */
+  conceptsRoot: string | null;
+  /** See `RepoAdapter.recipesRoot`. */
+  recipesRoot: string;
+  /** See `RepoAdapter.excludeDirs`. */
+  excludeDirs?: string[];
   /** Frontmatter key holding the concept article id, e.g. `article_id`. */
   conceptIdKey: string;
   /** Frontmatter key holding the recipe article id, e.g. `recipe_id`. */
@@ -43,7 +49,9 @@ export function createAdapter(spec: AdapterSpec): RepoAdapter {
 
   return {
     repo: spec.repo,
-    include: spec.include,
+    conceptsRoot: spec.conceptsRoot,
+    recipesRoot: spec.recipesRoot,
+    excludeDirs: spec.excludeDirs ?? [],
     schema,
 
     toArticle(input: AdapterInput): Article {
@@ -101,7 +109,7 @@ export function createAdapter(spec: AdapterSpec): RepoAdapter {
         articleId,
         kind: recipeId ? 'recipe' : 'concept',
         folder,
-        title: String(fm.title),
+        title: deriveTitle(asOptionalString(fm.title), input.body, spec.repo, sourcePath),
         description: requireDescription(asOptionalString(fm.description), spec.repo, sourcePath),
         wave: normaliseWave(fm.wave as number | string | undefined, spec.repo, sourcePath),
         difficulty: normaliseDifficulty(
@@ -110,7 +118,7 @@ export function createAdapter(spec: AdapterSpec): RepoAdapter {
           sourcePath,
         ),
         baseline: { framework: spec.framework, version: baselineVersion },
-        status: normaliseStatus(asOptionalString(fm.status)),
+        status: normaliseStatus(fm.status as string | Record<string, unknown> | undefined),
         related: (Array.isArray(fm.related) ? (fm.related as string[]) : []).map((r) =>
           parseRelated(r, spec.repo, sourcePath),
         ),

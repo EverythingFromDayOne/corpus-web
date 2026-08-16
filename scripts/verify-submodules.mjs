@@ -6,6 +6,12 @@
  * rather than an exact tag. Also fails if .gitmodules lists nothing — a gate
  * that returns 0 on an empty input set is broken.
  *
+ * Session 2: also fails unless there are EXACTLY four — `nextjs`, `react`,
+ * `angular`, `nestjs`. The session 1 audit found `auth`, `authz`, and
+ * `websec` were mounted as submodules despite being demo apps with no
+ * frontmatter (docs/adr/0002-demo-labs.md); this check is what stops that
+ * mistake from landing again, silently or otherwise.
+ *
  * Complements submodule.<name>.ignore = none, which makes `git status` surface
  * dirty submodule content instead of hiding it.
  */
@@ -39,7 +45,23 @@ if (modules.length === 0) {
   process.exit(1);
 }
 
+/**
+ * Kept as a plain literal, not imported from `packages/content-schema`'s
+ * `RepoId`: this script runs from the pre-commit hook via plain `node`, with
+ * no TypeScript loader, so it must stay dependency-free. `RepoId` is the
+ * canonical source of truth for meaning; keep the two in sync by hand.
+ */
+const EXPECTED_MOUNTS = ['content/nextjs', 'content/react', 'content/angular', 'content/nestjs'];
+
 const errors = [];
+
+const mountPaths = modules.map((m) => m.path).sort();
+const expectedSorted = [...EXPECTED_MOUNTS].sort();
+if (JSON.stringify(mountPaths) !== JSON.stringify(expectedSorted)) {
+  errors.push(
+    `expected exactly these submodules: ${expectedSorted.join(', ')} — got: ${mountPaths.join(', ') || '(none)'}`,
+  );
+}
 
 for (const mod of modules) {
   if (mod.ignore !== 'none') {

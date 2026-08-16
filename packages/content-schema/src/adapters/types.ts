@@ -26,8 +26,19 @@ export interface AdapterInput {
  */
 export interface RepoAdapter {
   repo: RepoId;
-  /** Globs, relative to `content/<repo>/`, that select article files. */
-  include: string[];
+  /**
+   * Root-relative directory holding concept articles, searched recursively —
+   * e.g. `docs/concepts`. `null` means "scan the repo root's own top-level
+   * directories", for corpora with no `docs/` wrapper (session 2 audit:
+   * `react`, `nestjs`). In that mode every top-level directory is a concept
+   * category EXCEPT `recipesRoot` and `excludeDirs` — new categories are
+   * picked up automatically rather than silently dropped.
+   */
+  conceptsRoot: string | null;
+  /** Root-relative directory holding recipe articles, searched recursively — e.g. `docs/recipes` or `recipes`. */
+  recipesRoot: string;
+  /** Top-level directory names to skip when `conceptsRoot` is `null` (non-content: demo apps, prompts, scripts). */
+  excludeDirs: string[];
   /** Raw frontmatter schema for this corpus, before normalisation. */
   schema: z.ZodTypeAny;
   /** Normalise one file into the internal shape. */
