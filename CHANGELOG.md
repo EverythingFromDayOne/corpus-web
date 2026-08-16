@@ -67,6 +67,28 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `widget-deployment.md`.
 - `contentHash` is the gray-matter body. This tag did not change any body, so no
   hash changed and there is no completion-invalidation question to answer.
+### [2026-08-16] — cursor/promote-nestjs-v030-6ac3 — pin nestjs-concepts to v0.3.0
+
+**Added**
+- Nothing in this repo. `nestjs-concepts@v0.3.0` adds a `description` dek to all 19
+  selected articles
+
+**Changed**
+- `content/nestjs` gitlink `v0.2.0` → `v0.3.0` (`1493917` → `a9b2c8b`)
+- `docs/audit/frontmatter-2026-08-16.md` regenerated: nestjs 19 selected, 19 adapted,
+  0 failures
+- Debt D5 no longer covers nestjs; 162 missing-`description` failures remain in
+  nextjs/react/angular
+
+**Fixed**
+- Nestjs articles now adapt. Catalog still cannot build (D5/D11 in the other three
+  corpora)
+
+**Architecture decisions**
+- `content_hash` is the article body, not the raw file, so a frontmatter-only dek
+  pass does not change hashes and must not flag `lesson_progress` for invalidation
+- Promotion PRs stay one submodule; remaining gate failures on other corpora are
+  pre-existing and not a reason to bump those pins in the same PR
 
 ### [2026-08-16] — cursor/fix-derive-title-mdast-15ee — `packages/content-schema` typechecks its tests
 
