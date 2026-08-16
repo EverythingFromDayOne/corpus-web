@@ -36,8 +36,8 @@ snapshot and `roadmap.md` for the planning rationale.
 |---|---|---|---|
 | 6 | Frontmatter adapters + zod union, four mounted repos | ✅ | Session 2: run for real against every file in all four corpora and corrected (`docs/audit/frontmatter-2026-08-16.md`). Directory-shape, `title`, and `status` mismatches fixed. Session 2 follow-up: `deriveTitle` rewritten as an mdast walk — the regex was matching inside code fences — with tests in `packages/content-schema/test/`, typechecked as of the `@types/node` (`^22`, the lowest consumer) addition |
 | 6b | Section extraction (`extractSections()`) | ✅ | Session 2: mdast-based, GitHub-slug anchors verified against real `react-concepts` cross-references. Session 2 follow-up: accepts a pre-parsed tree so title derivation and section extraction share one parse per file |
-| 7 | `build-catalog.mjs` → routes + sidebar tree | 🟡 | Session 2: real implementation, all logic proven (incl. via synthetic fixtures for `verify-catalog`) — **cannot currently produce a passing build**, blocked on item 16 (Debt D5) and Debt D11 |
-| 7b | `verify-frontmatter.mjs` / `verify-links.mjs` / `verify-catalog.mjs` gates | ✅ | Session 2. All three correctly fail against current content (Debt D5); `verify-catalog`'s four checks (dup uid, missing/draft path target, `root`-folder sentinel) proven against synthetic fixtures |
+| 7 | `build-catalog.mjs` → routes + sidebar tree | 🟡 | Session 2: real implementation, all logic proven (incl. via synthetic fixtures for `verify-catalog`) — **cannot currently produce a passing build**, blocked on item 16 (Debt D5 on react/angular/nestjs) and Debt D11. `nextjs@v0.3.0` now adapts (10/10) |
+| 7b | `verify-frontmatter.mjs` / `verify-links.mjs` / `verify-catalog.mjs` gates | ✅ | Session 2. All three still correctly fail against remaining D5/D11 content; `verify-catalog`'s four checks proven against synthetic fixtures. After `nextjs@v0.3.0`, zero nextjs adaptation failures |
 | 8 | Full route tree, every completed article renders | ⚪ | Blocked on item 7 |
 | 9 | Chrome: sidebar, breadcrumb, TOC rail, prev/next | ⚪ | |
 | 10 | Shiki code blocks (copy / download / expand) | ⚪ | |
@@ -46,7 +46,7 @@ snapshot and `roadmap.md` for the planning rationale.
 | 13 | Corpus landing at `/en` + `/en/license` (roadmap §15.1) | ⚪ | |
 | 14 | SEO baseline: metadata, OG, sitemap, JSON-LD | ⚪ | |
 | 15 | Cache Components strategy, verified via `.next/server/app/**.html` | ⚪ | |
-| 16 | `description` frontmatter pass, four framework corpora (~196 files) | ⚪ | **Blocking (Debt D5).** Prompt written; must run in each corpus repo before item 7 can build |
+| 16 | `description` frontmatter pass, four framework corpora (~196 files) | 🟡 | **Blocking (Debt D5).** `nextjs-concepts@v0.3.0` done (10/10). Remaining: react 73, angular 94, nestjs 19. Prompt written; those three must tag before item 7 can build |
 
 **Gate:** a complete, shippable, useful site with zero backend.
 
@@ -71,7 +71,7 @@ Known, deliberate, and tracked. Not blockers unless marked.
 | D2 | ✅ **Closed (session 2).** `websec` is a demo-lab tree, not a markdown corpus — no adapter, never submoduled (removed from PR #1 before merge, session 1 follow-up). | — | — |
 | D3 | ✅ **Closed (session 2).** `auth` / `authz` are demo labs, not markdown corpora — no adapters, never submoduled (removed from PR #1 before merge, session 1 follow-up). | — | — |
 | D4 | **Default branches verified** (session 1). `main`: nextjs, nestjs. `master`: reactjs, angular, auth, authz, websec. GitHub name for React is `react-concepts`. | Silently 404ing "View source" links if `REPO_DEFAULT_BRANCH` / `REPO_ORIGINS` drift. | — |
-| D5 | **`description` frontmatter absent everywhere** — required field, no fallback. | Build fails on every article until the pass runs. | Phase 1 item 16 |
+| D5 | **`description` frontmatter still absent on three corpora** — required field, no fallback. Closed for `nextjs-concepts@v0.3.0` (10/10). Remaining: `react` 73, `angular` 94, `nestjs` 19 (171 missing `description` + 15 also D11). | Catalog still cannot build until the other three tag. | Phase 1 item 16 |
 | D6 | **`nestjs-concepts` article 16** — headline claim invalidated by article 17 (`forbidUnknownValues: false` is forced by Nest). Correction not yet applied upstream. | A known-false claim is pinned in `v0.2.0` and would render. | Fix in the corpus repo, then re-tag |
 | D7 | **`reactjs-concepts` anchor slugs unverified** for articles 27–36 and recipes 5–10. Session 2 added `extractSections()` with a GitHub-slug algorithm verified against real anchors in `error-boundaries.md`, but the specific numbered articles/recipes named here have not been individually diffed against it. | Broken in-page cross-references. | A pass running `extractSections()` against every `react` article and diffing anchors used in `related`/inline links |
 | D8 | **`angular-concepts`** — 6 of 23 Phase 2 articles outstanding; `attribute-directives` is a stub. | Six articles absent from the site. | Angular Phase 2 |
@@ -83,6 +83,10 @@ Known, deliberate, and tracked. Not blockers unless marked.
 
 ## Session log
 
+- **promote-content nextjs v0.3.0 (2026-08-16):** bumped `content/nextjs` from
+  `v0.2.0` to `v0.3.0`. All ten nextjs articles now carry `description` and adapt
+  cleanly. Body `content_hash` unchanged (dek-only frontmatter). Catalog still
+  blocked on D5 in react/angular/nestjs and D11 in react. Do not auto-merge.
 - **Session 2 follow-up b (2026-08-16):** `packages/content-schema` now typechecks its
   own tests — `tsconfig.json` includes `test/`, with `@types/node` `^22.19.0` as a
   devDependency. The major is deliberate: the package is consumed by `apps/web` on Node
