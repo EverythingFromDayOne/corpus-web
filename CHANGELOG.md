@@ -5,6 +5,68 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-16] — cursor/fix-derive-title-mdast-15ee — `packages/content-schema` typechecks its tests
+
+**Added**
+- `@types/node` `^22.19.0` as a devDependency of `packages/content-schema`, resolving to
+  the `22.20.1` copy `apps/web` already pulls in
+- `packages/content-schema/README.md` — "Tests and typechecking", recording why the
+  `@types/node` major is 22
+
+**Changed**
+- `packages/content-schema/tsconfig.json` — `include` covers `test/**/*.ts`, and
+  `types: ["node"]` declares the test files' Node globals instead of relying on whatever
+  `@types` package is reachable by hoisting. `pnpm typecheck` now type-verifies the tests
+  that `tsx` had only been type-stripping
+
+**Fixed**
+- Nothing.
+
+**Architecture decisions**
+- A package shared by two runtimes types against the **lowest** of its consumers. `web` is
+  Node 22 and `api` is Node 24, so `^22` keeps the type set a subset of both; `^24` would
+  let a Node-24-only API pass typecheck here and fail at run time on web. Confirmed
+  against the global `URLPattern`, which compiles on `@types/node` 24 and does not on 22
+
+### [2026-08-16] — cursor/fix-derive-title-mdast-15ee — Session 2 follow-up: `deriveTitle` reads headings, not lines
+
+**Added**
+- `parseArticleBody()` and `findTitleHeading()` in
+  `packages/content-schema/src/sections.ts` — the single body parse, and the top-level
+  depth-1 heading lookup that replaces the regex
+- `packages/content-schema/test/derive-title.test.ts` — the repo's first tests, run on
+  `node:test` through `tsx` (no new dependency; CI already runs `pnpm test`). Assertions
+  are against real corpus files wherever the corpus has an instance of the case
+- `AdapterInput.tree` — the caller's already-parsed body, so a catalog build parses each
+  file once rather than once for sections and again for the title
+
+**Changed**
+- `deriveTitle()` locates the H1 by walking the parsed body instead of matching
+  `/^#\s+(.+)$/m` against the raw text. Setext H1 (`Title` over `===`) now derives
+  correctly; a `# ` line inside a fenced or indented code block, or inside a blockquote,
+  no longer does
+- Derived titles are the heading's plain-text rendering, so six titles carrying inline
+  code lose their backticks (`` `mutateAsync` crashes the page `` -> `mutateAsync
+  crashes the page`). `Article.title` is a plain string consumed by `<title>`, OG tags,
+  and the sidebar; markdown syntax in it was a leak, not a feature
+- `scripts/lib/adapt-all.mjs` parses once and hands the same tree to `extractSections`
+  and the adapter
+- `docs/audit/frontmatter-2026-08-16.md` — regenerated
+- Debt **D11** corrected from 14 articles to **15**
+
+**Fixed**
+- `react/rendering/react-compiler-deep-dive.md` was being titled `TypeScript projects
+  also need the Babel core types:` — a comment line inside an `npm i -D` fence. The
+  article has no H1 at all and now fails loudly, as the other fourteen already did
+
+**Architecture decisions**
+- Only the tree's top-level children are candidates for the title. A heading nested in a
+  blockquote or a list item is a quotation, not this document's title
+- `extractSections()` keeps descending the whole tree, because GitHub does emit anchors
+  for nested headings — the two walks are deliberately asymmetric
+- `AdapterInput.tree` is optional: a caller that extracts no sections has no second parse
+  to share, so requiring it would only force a parse that nothing else needs
+
 ### [2026-08-16] — cursor/session-2-adapters-catalog-c932 — Adapters against reality, catalog builder, gates
 
 **Added**

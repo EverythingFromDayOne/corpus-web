@@ -109,7 +109,12 @@ export function createAdapter(spec: AdapterSpec): RepoAdapter {
         articleId,
         kind: recipeId ? 'recipe' : 'concept',
         folder,
-        title: deriveTitle(asOptionalString(fm.title), input.body, spec.repo, sourcePath),
+        title: deriveTitle(
+          asOptionalString(fm.title),
+          input.tree ?? input.body,
+          spec.repo,
+          sourcePath,
+        ),
         description: requireDescription(asOptionalString(fm.description), spec.repo, sourcePath),
         wave: normaliseWave(fm.wave as number | string | undefined, spec.repo, sourcePath),
         difficulty: normaliseDifficulty(

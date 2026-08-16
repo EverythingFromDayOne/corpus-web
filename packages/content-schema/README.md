@@ -59,6 +59,18 @@ include globs, the `status` value set, and whether `concept_folder` is present o
 | `curation.ts` | Paths and component-injection overrides — these live in the **site** repo |
 | `catalog.ts` | `catalog.json`, the only content artifact the API sees |
 
+## Tests and typechecking
+
+`pnpm test` runs `test/*.test.ts` on `node:test` through `tsx`. `tsconfig.json` covers
+`test/` alongside `src/`, so `pnpm typecheck` type-verifies the tests rather than leaving
+them to `tsx`'s type-stripping.
+
+`@types/node` is pinned to the **22** line deliberately. This package is consumed by
+`apps/web` on Node 22 and `apps/api` on Node 24, so typing against the lower of the two
+means anything that typechecks here runs on both. Typing against 24 would let a
+Node-24-only API — the global `URLPattern`, for one — pass typecheck here and fail at
+run time on web. Bump it only when `apps/web` moves.
+
 ## The claim / rendering split
 
 > If it is a claim, it lives in the corpus. If it is a rendering, it lives here.

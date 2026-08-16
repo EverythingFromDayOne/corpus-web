@@ -14,6 +14,7 @@ import {
   AdapterError,
   extractSections,
   isIndexFile,
+  parseArticleBody,
   RepoId,
 } from '../../packages/content-schema/src/index.ts';
 
@@ -57,7 +58,10 @@ export function adaptAllArticles() {
       const raw = readFileSync(join(repoDir, relPath), 'utf8');
       const parsed = matter(raw);
       const contentHash = sha256(parsed.content);
-      const sections = extractSections(parsed.content);
+      // One parse per file. Section anchors and the H1 title are two questions
+      // about the same tree, and the adapter takes it rather than re-parsing.
+      const tree = parseArticleBody(parsed.content);
+      const sections = extractSections(tree);
 
       let article;
       try {
@@ -65,6 +69,7 @@ export function adaptAllArticles() {
           frontmatter: parsed.data ?? {},
           sourcePath: relPath,
           body: parsed.content,
+          tree,
           contentHash,
           sections,
         });

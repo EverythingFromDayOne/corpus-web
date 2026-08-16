@@ -3,7 +3,7 @@
 > Living document. Read this first, every session. Update it with **targeted edits only**
 > when something in it becomes false. Never rewrite wholesale.
 >
-> Last updated: 2026-08-16 (Session 2 — adapters against reality, catalog builder, gates)
+> Last updated: 2026-08-16 (Session 2 follow-up — deriveTitle reads headings, not lines)
 
 ---
 
@@ -56,10 +56,13 @@ Do not duplicate the version table here.
       (session 1); no adapter exists for either.
 - [x] Section extraction (`extractSections()`) — mdast-based, GitHub-slug anchors verified
       against real `react-concepts` cross-references (session 2)
+- [x] Title derivation is mdast-based too (session 2 follow-up) — the session-2 regex was
+      matching `# ` lines inside code fences. `packages/content-schema/test/` holds the
+      repo's first tests, on `node:test` via `tsx`, run against real corpus files
 - [x] `scripts/build-catalog.mjs` real implementation + `verify-frontmatter` /
       `verify-links` / `verify-catalog` gates (session 2) — **cannot currently produce a
-      passing build: every article is missing `description` (Debt D5), 14 `react-concepts`
-      articles are also missing a title entirely (Debt D11, new this session)**
+      passing build: every article is missing `description` (Debt D5), 15 `react-concepts`
+      articles are also missing a title entirely (Debt D11)**
 - [x] `packages/ui/DESIGN.md` + `tokens.css` — the "Instrument" direction
 - [x] `.github/workflows/ci.yml`
 - [x] `docs/adr/0001` — Angular demos integration (proposed, pending Q7)
@@ -97,6 +100,9 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
 - Cross-repo links WARN in the corpus repos and **hard-fail** here, because here they
   can actually resolve.
 - Node 22 on `apps/web`, Node 24 on `apps/api`. Deliberate. Follows each corpus baseline.
+  A package shared by both therefore types against the **lower** one:
+  `packages/content-schema` pins `@types/node` to `^22`, so anything that typechecks there
+  runs on either runtime. `^24` would let a Node-24-only API pass and fail on web.
 - `'use cache: private'` gives zero server-side caching — request memoization only.
 - Prerendered shell content cannot be verified with `curl` or view-source. Inspect
   `.next/server/app/<route>.html`.
@@ -116,8 +122,15 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
   null` (`null` = scan the repo root) rather than a fixed glob, so a new category directory
   is picked up automatically (session 2 audit).
 - **No article in any of the four corpora carries a `title` frontmatter key.** Every one
-  relies on the body's H1 — `deriveTitle()` falls back to it. 14 `react-concepts` articles
+  relies on the body's H1 — `deriveTitle()` falls back to it. 15 `react-concepts` articles
   have neither (Debt D11); that is a genuine corpus gap, not an adapter bug.
+- **Never locate a heading with a regex over raw markdown.** A `# ` line inside a fenced
+  or indented code block, or inside a blockquote, is not a heading. The corpus contains
+  the fenced case in real articles; the other two only under `prompts/`, which no adapter
+  selects. Both `deriveTitle()` and `extractSections()` walk an mdast tree, and
+  `parseArticleBody()` produces the one tree they share per file (session 2 follow-up).
+  Title derivation takes only the tree's top-level depth-1 heading; section extraction
+  descends the whole tree, because GitHub anchors nested headings. Do not unify them.
 - **`status` is a plain string in `nextjs`/`angular` but an object in `react`/`nestjs` and
   some `angular` recipes** (`{ drafted, reviewed }` / `{ upgraded, reviewed }`).
   `normaliseStatus()` collapses any object shape to `draft` unconditionally — it does not
@@ -143,9 +156,9 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
 
 ## Planned next steps
 
-1. Session 3 — the Q1 `description` frontmatter pass (Debt D5) must run in each of the
-   four corpus repos before `build-catalog`/`verify-frontmatter`/`verify-links` can pass;
-   see `prompts/corpus-description-pass.md`. A corpus-side fix for Debt D11 (14
+1. The Q1 `description` frontmatter pass (Debt D5) must run in each of the four corpus
+   repos before `build-catalog`/`verify-frontmatter`/`verify-links` can pass; see
+   `prompts/corpus-description-pass.md`. A corpus-side fix for Debt D11 (15
    `react-concepts` articles missing any title) is a prerequisite for that corpus.
 2. Wire `apps/web` routes + sidebar to `catalog.json` once it can build (Phase 1 items 7–8).
 3. Design tokens applied in `packages/ui`.

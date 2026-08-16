@@ -33,9 +33,12 @@ Established by the session 2 audit, against real files. Do not assume otherwise.
   reformat it. A careless edit to surrounding indentation corrupts it silently.
 - **`react-concepts` and `nestjs-concepts` have no `docs/` wrapper.** Articles sit at a
   different depth than in the other two. Walk the tree; do not assume a path shape.
-- **14 `react-concepts` articles have no title at all** — no frontmatter H1, no body H1.
-  These are tracked as Debt D11 in `corpus-web`. **Skip them.** Naming an untitled article
-  is authoring, not a mechanical pass.
+- **15 `react-concepts` articles have no title at all** — no frontmatter `title`, no body
+  H1. These are tracked as Debt D11 in `corpus-web`. **Skip them.** Naming an untitled
+  article is authoring, not a mechanical pass. Note that
+  `rendering/react-compiler-deep-dive.md` is one of the 15 despite appearing to have an
+  H1: the only `# ` line in it is a shell comment inside a fenced `npm i -D` block, which
+  is not a heading.
 
 ## Scope — read this twice
 

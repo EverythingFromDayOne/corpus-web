@@ -144,9 +144,9 @@ _(none)_
 
 **Adaptation failures, grouped by reason:**
 
-- **59×** missing `description` — run the corpus description pass (prompts/corpus-description-pass.md)
+- **58×** missing `description` — run the corpus description pass (prompts/corpus-description-pass.md)
   - examples: `architecture/micro-frontends.md`, `architecture/module-federation.md`, `ecosystem/accessibility-in-react.md`, `ecosystem/performance-profiling.md`, `ecosystem/tanstack-router.md`, `effects/custom-hooks.md`
-- **14×** no `title` in frontmatter and no `# ` H1 heading in the body to derive one from
+- **15×** no `title` in frontmatter and no H1 in the body to derive one from — a `# ` line inside a code fence, an indented code block, or a blockquote is not a heading
   - examples: `concurrent/actions.md`, `concurrent/concurrent-rendering.md`, `concurrent/suspense.md`, `concurrent/use-and-promises.md`, `ecosystem/data-fetching-tanstack-query.md`, `ecosystem/routing-react-router.md`
 
 
