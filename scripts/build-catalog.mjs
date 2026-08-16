@@ -8,13 +8,19 @@
  * `catalog.json` at the repo root (gitignored; a build artifact, POSTed to
  * `api/catalog/sync` on deploy, per `packages/content-schema/src/catalog.ts`).
  *
- * Refuses to write a partial or empty catalog. If any file fails to adapt, or
- * any `related` ref is genuinely unresolved, or (outside `SHOW_DRAFTS`) any
- * ref targets a draft, this exits 1 with a full report and writes nothing —
- * matching the adapter rule that a required-field gap is reported, never
- * hidden. As of this session every article fails on missing `description`
- * (Debt D5, tracked in `progress.md`) — that is correct and expected until
- * the Q1 frontmatter pass runs in each corpus repo, not a bug in this script.
+ * **Emit with exclusions, not all-or-nothing.** A file that cannot adapt is
+ * left out of `articles` and recorded in `catalog.failures` with its repo,
+ * source path, and reason. This is the same treatment a draft already gets —
+ * excluded from what ships, without taking the rest of the corpus down with
+ * it — so a handful of authoring gaps cannot stop every finished article from
+ * rendering. Nothing is hidden: the failures travel inside the artifact,
+ * `verify-catalog` exits 1 while that array is non-empty, and
+ * `verify-frontmatter` still fails on the source content unconditionally.
+ *
+ * Still fatal here, because none of them are per-article exclusions: zero
+ * articles adapting, a genuinely unresolved `related` ref, a ref to a draft
+ * outside `SHOW_DRAFTS`, and a path item pointing at a missing or draft
+ * article.
  */
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -37,8 +43,7 @@ try {
 }
 
 if (failures.length > 0) {
-  printGroupedFailures('build-catalog: adaptation failures', failures);
-  process.exit(1);
+  printGroupedFailures('build-catalog: WARN — excluded from catalog.json', failures);
 }
 
 if (articlesByUid.size === 0) {
@@ -108,6 +113,7 @@ const catalog = Catalog.parse({
   builtAt: new Date().toISOString(),
   sources,
   articles: [...articlesByUid.values()],
+  failures,
   paths,
   edges: linkReport.resolved,
   aliases: [],
@@ -115,5 +121,6 @@ const catalog = Catalog.parse({
 
 writeFileSync(join(ROOT, 'catalog.json'), `${JSON.stringify(catalog, null, 2)}\n`, 'utf8');
 console.log(
-  `build-catalog: wrote catalog.json — ${catalog.articles.length} article(s), ${catalog.edges.length} edge(s), ${catalog.paths.length} path(s)`,
+  `build-catalog: wrote catalog.json — ${catalog.articles.length} article(s), ${catalog.edges.length} edge(s), ` +
+    `${catalog.paths.length} path(s), ${catalog.failures.length} excluded`,
 );

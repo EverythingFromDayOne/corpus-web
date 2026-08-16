@@ -38,7 +38,10 @@ wasted work if the catalog is about to change shape.
    the `corpus-promote-content` skill: bump the submodule pointer, one repo per PR, run
    the gates, never auto-merge.
 4. Once all four are promoted, run `pnpm build:catalog` for real. It should now:
-   - adapt every selected file with zero failures
+   - adapt every selected file with zero failures — note that since the
+     emit-with-exclusions change, a file that does not adapt no longer stops the build;
+     it lands in `catalog.failures` and `verify-catalog` fails on it in step 5. Read the
+     `excluded` count in the build's own summary line, not its exit code
    - resolve every `related` ref with zero unresolved and zero unexpected draft targets
    - emit a real `catalog.json`
    If it does not, treat that as a new finding — do not force it green by touching the

@@ -4,12 +4,35 @@ import { ArticleUid, RepoId } from './common.js';
 import { PathDefinition } from './curation.js';
 
 /**
+ * A file the adapter selected as an article and could not adapt, so it is
+ * absent from `Catalog.articles`.
+ *
+ * There is no `uid` here on purpose: adaptation is what produces one, and every
+ * failure is a file that did not get that far. `sourcePath` is the only stable
+ * identity a failed file has.
+ */
+export const CatalogFailure = z.object({
+  repo: RepoId,
+  /** Repo-relative, e.g. `docs/concepts/caching/tags-and-invalidation.md`. */
+  sourcePath: z.string().min(1),
+  /** The `AdapterError` message, with its per-file prefix stripped so identical reasons group. */
+  reason: z.string().min(1),
+});
+export type CatalogFailure = z.infer<typeof CatalogFailure>;
+
+/**
  * `catalog.json` — the only artifact the API knows about content.
  *
  * Produced by scripts/build-catalog.mjs at build time, POSTed to
  * `api/catalog/sync` on deploy. The API upserts `lessons` keyed on
  * (repo, article_id) and marks vanished rows archived — never deleted, because
  * `lesson_progress` points at them and articles get renamed and moved.
+ *
+ * The catalog is emit-with-exclusions, not all-or-nothing: an article that
+ * cannot adapt is left out of `articles` and recorded in `failures`, the same
+ * way a draft is left out of a production render without failing the build.
+ * `verify-catalog` then fails on a non-empty `failures`, so the gate keeps its
+ * teeth while the artifact stops being hostage to the worst file in the corpus.
  */
 export const Catalog = z.object({
   schema: z.literal(1),
@@ -18,6 +41,8 @@ export const Catalog = z.object({
   /** Submodule tag per corpus, so a catalog is traceable to exact content. */
   sources: z.record(RepoId, z.object({ tag: z.string(), commit: z.string() })),
   articles: z.array(ArticleWithSections),
+  /** Selected files that did not adapt and are therefore absent from `articles`. */
+  failures: z.array(CatalogFailure),
   paths: z.array(PathDefinition),
   /** Resolved cross-article graph. Every edge here is guaranteed to resolve. */
   edges: z.array(z.object({ from: ArticleUid, to: ArticleUid })),

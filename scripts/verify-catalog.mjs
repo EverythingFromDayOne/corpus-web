@@ -8,6 +8,10 @@
  * content. This gate checks the BUILT artifact:
  *
  *   - schema-valid against `Catalog` in `packages/content-schema/src/catalog.ts`
+ *   - an empty `failures` array — `build-catalog` emits with exclusions rather
+ *     than refusing to write, so this is where an unadaptable article stops
+ *     being a warning and becomes a build failure. The artifact ships every
+ *     finished article; the gate still refuses to call the corpus clean
  *   - no duplicate article `uid`
  *   - no path item pointing at a missing or (outside `SHOW_DRAFTS`) draft article
  *   - no article landed in the `dirnamePath()` fallback's `root` sentinel —
@@ -21,7 +25,7 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ROOT } from './lib/corpus-fs.mjs';
+import { printGroupedFailures, ROOT } from './lib/corpus-fs.mjs';
 import { Catalog } from '../packages/content-schema/src/index.ts';
 
 const SHOW_DRAFTS = process.env.SHOW_DRAFTS === '1' || process.env.NEXT_PUBLIC_SHOW_DRAFTS === '1';
@@ -53,6 +57,14 @@ const catalog = parsed.data;
 if (catalog.articles.length === 0) {
   console.error('verify-catalog: FAIL — catalog has zero articles. A gate that passes on nothing is broken.');
   process.exit(1);
+}
+
+// Every file the build excluded. Reported grouped by reason rather than folded
+// into `errors`, because exclusions arrive in the tens and one flat line each
+// would bury the single-instance problems below.
+const excluded = catalog.failures;
+if (excluded.length > 0) {
+  printGroupedFailures('verify-catalog: FAIL — article(s) excluded from the catalog', excluded);
 }
 
 const errors = [];
@@ -95,6 +107,9 @@ for (const article of catalog.articles) {
 if (errors.length > 0) {
   console.error(`verify-catalog: FAIL (${errors.length})`);
   for (const error of errors) console.error(`- ${error}`);
+}
+
+if (excluded.length > 0 || errors.length > 0) {
   process.exit(1);
 }
 

@@ -89,6 +89,41 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   pass does not change hashes and must not flag `lesson_progress` for invalidation
 - Promotion PRs stay one submodule; remaining gate failures on other corpora are
   pre-existing and not a reason to bump those pins in the same PR
+### [2026-08-16] — cursor/catalog-emit-with-exclusions-e8aa — The catalog emits with exclusions
+
+**Added**
+- `CatalogFailure` in `packages/content-schema/src/catalog.ts` — `repo`, `sourcePath`,
+  `reason` — and a required `failures` array on `Catalog`, so the files a build left out
+  travel inside the artifact rather than only in a build log
+- `verify-catalog` check: a non-empty `catalog.failures` exits 1, printed grouped by
+  reason
+
+**Changed**
+- `scripts/build-catalog.mjs` no longer refuses to write when a file fails to adapt. The
+  file is excluded from `articles`, recorded in `failures`, and the build continues —
+  the same treatment a draft already gets. Zero articles adapting, an unresolved
+  `related` ref, a draft target outside `SHOW_DRAFTS`, and a path item pointing at a
+  missing or draft article all remain fatal
+- `build-catalog`'s summary line reports the excluded count alongside articles, edges,
+  and paths
+- `prompts/session-3.md` — Track A step 4 no longer implies `build:catalog`'s exit code
+  is the adaptation verdict
+
+**Fixed**
+- Nothing. `verify-frontmatter` is untouched and still fails on all 196 selected files
+
+**Architecture decisions**
+- A failed article is not categorically different from a draft one: both are articles
+  that are not ready, and the pipeline already excludes drafts without failing. Sixteen
+  authoring gaps do not get to hold ~180 finished articles hostage
+- The gate moves rather than disappearing. `verify-frontmatter` fails on the source
+  content; `verify-catalog` fails on the artifact's `failures`. CI is exactly as red as
+  before, and the artifact now exists to build routes against
+- `schema` stays at `1`: no catalog of that shape has ever been produced, since
+  `build-catalog` has never successfully written the file. Bump it when a real consumer
+  exists
+- `failures` is required rather than optional, so "no failures" can never mean "old
+  builder"
 
 ### [2026-08-16] — cursor/fix-derive-title-mdast-15ee — `packages/content-schema` typechecks its tests
 

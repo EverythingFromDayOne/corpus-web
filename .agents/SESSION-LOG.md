@@ -1031,5 +1031,96 @@ adapt. The other three corpora are unchanged, so `build-catalog` still cannot wr
 
 ---
 
+## Session 2 follow-up c — the catalog emits with exclusions — 2026-08-16
+
+**Branch:** `cursor/catalog-emit-with-exclusions-e8aa`
+
+**Files changed:**
+- `packages/content-schema/src/catalog.ts` — new `CatalogFailure` schema (`repo`,
+  `sourcePath`, `reason`) and a required `failures` array on `Catalog`; the doc comment
+  states the emit-with-exclusions contract and where the gate now lives
+- `scripts/build-catalog.mjs` — an adaptation failure is a warning and an exclusion, not
+  an abort; the failure list travels into `catalog.failures`; the summary line reports
+  the excluded count
+- `scripts/verify-catalog.mjs` — new check: a non-empty `catalog.failures` exits 1,
+  printed grouped by reason
+- `prompts/session-3.md` — Track A step 4 no longer implies `build:catalog`'s exit code
+  is the adaptation verdict
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this session
+- `.agents/summary.md` — the catalog's new emit-with-exclusions behaviour as a key fact
+- `progress.md` — Phase 1 items 7 and 7b annotated; session log entry
+
+**Why:** `build-catalog.mjs` was all-or-nothing: one unadaptable file and it wrote
+nothing. That coupling is wrong in both directions. It makes a small number of authoring
+gaps — 16, against ~180 finished articles — hold the entire artifact hostage, and it
+does so on a distinction the pipeline does not otherwise make. A `draft` article is
+already excluded from what ships without failing anything; an article that cannot adapt
+is the same kind of thing, an article that is not ready, and it now gets the same
+treatment.
+
+Nothing is hidden by the change, which is the part that matters. The exclusions travel
+inside the artifact rather than only in a build log, so anything reading `catalog.json`
+can see exactly which files are missing and why. `verify-catalog` exits 1 while that
+array is non-empty, and `verify-frontmatter` still fails on the source content
+unconditionally, so CI is exactly as red as it was before. What changed is that a
+partial catalog now exists to develop routes and chrome against, instead of nothing.
+
+Proven end-to-end against a synthetic four-corpus fixture (not committed — no real
+catalog can build until Debt D5 lands, and the two failure modes needed to be exercised
+in isolation): seven articles, two deliberately broken (one missing `description`, one
+with its only `# ` line inside a code fence). `build-catalog` exited 0, wrote five
+articles and the two exclusions; `verify-catalog` exited 1 and named both; deleting the
+two broken files and rebuilding gave five articles, zero exclusions, and a clean
+`verify-catalog`.
+
+**A finding that outlives this change.** With a synthetic `description` injected to
+simulate the post-Q1-pass corpus, 181 of 196 articles adapt and 15 fail — but
+`build-catalog` still would not write, because the link report is separately fatal: 128
+`related` refs are unresolved and 278 point at draft articles. 79 of the unresolved refs
+point at the 15 excluded articles; the other 49 point at articles that exist in no
+corpus at all (`nestjs/nest-cant-resolve-dependencies`, `nestjs/dynamic-modules`,
+`nextjs/use-cache-directive`, and 20 more targets). So this change is necessary for the
+16-blocks-180 problem and not sufficient on its own. Extending the same
+emit-with-exclusions treatment to unresolved and draft-target refs was deliberately NOT
+done here — it is a semantic change to `verify-links` and `.cursor/rules/30`'s
+"cross-repo links hard-fail here" rule, and that is a decision to take explicitly rather
+than fold into this one.
+
+**Invented decisions:**
+- **`schema` stays at `1` rather than bumping to `2`.** Adding a required field is a
+  shape change, and the literal exists precisely to mark those. It was left alone because
+  no catalog of shape v1 has ever been produced — `build-catalog` has never successfully
+  written the file, and the artifact is gitignored and rebuilt from scratch on every
+  build, so there is no v1 reader or v1 copy anywhere for the number to distinguish
+  against. Bump it the first time a real consumer exists.
+- **`failures` is required, not optional.** An optional array would let a consumer read
+  a catalog and not know whether "no failures" meant a clean corpus or an old builder.
+- **`CatalogFailure` carries no `uid`.** Adaptation is what produces a uid, and every
+  entry is a file that did not get that far; `sourcePath` is its only stable identity.
+  It would be derivable from the filename slug in most cases, and inventing one for a
+  file whose frontmatter never validated is exactly the plausible-wrong-value failure
+  the adapters throw to avoid.
+- **`build-catalog` exits 0 when it excludes.** Otherwise the exit code carries the same
+  all-or-nothing meaning the change was made to remove, and a non-zero exit alongside a
+  successfully written artifact is the more confusing signal of the two.
+- **The zero-articles refusal is kept.** Emitting a catalog with no articles is not a
+  partial build, it is a broken one.
+- **The exclusion report prints to stderr and is grouped by reason**, reusing
+  `printGroupedFailures`. Sixteen flat lines would bury the single-instance problems.
+- **`prompts/session-3.md` Track A step 4 was corrected** rather than left to mislead —
+  it told a future session to read `build:catalog`'s exit code as the adaptation verdict,
+  which is now false. Factual correction only; no prose was invented.
+
+**Known issues / next steps:**
+- The link report is the remaining blocker on a real `catalog.json` — see the finding
+  above. Needs an explicit decision before Track A of session 3 can produce an artifact.
+- `verify-catalog` runs in CI (`.github/workflows/ci.yml`, `content` job) with no
+  `build:catalog` step before it, so it currently fails on a missing `catalog.json`
+  rather than on the catalog's contents. Wiring that is a CI gate configuration change
+  and is a stop-and-ask item; flagged, not done.
+- Debt D5 and Debt D11 are untouched. Against the real corpus `pnpm build:catalog` still
+  exits 1 — now on the zero-articles refusal rather than on the failure list, since all
+  196 selected files fail.
 
 ---

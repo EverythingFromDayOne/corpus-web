@@ -7,6 +7,7 @@
 > Last updated: 2026-08-16 (promote-content — `react-concepts@v0.5.0`)
 > Last updated: 2026-08-16 (promote-content — `content/angular` @ v0.3.0)
 > Last updated: 2026-08-16 (promote nestjs-concepts to v0.3.0)
+> Last updated: 2026-08-16 (Session 2 follow-up c — the catalog emits with exclusions)
 
 ---
 
@@ -78,6 +79,10 @@ Do not duplicate the version table here.
       passing build: 162 articles across nextjs/react/angular are missing `description`
       (Debt D5), 15 `react-concepts` articles are also missing a title entirely (Debt D11).
       `content/nestjs` is now at `v0.3.0` and all 19 selected articles adapt**
+      passing build: every article is missing `description` (Debt D5), 15 `react-concepts`
+      articles are also missing a title entirely (Debt D11)**. Since follow-up c the
+      catalog emits with exclusions rather than all-or-nothing, so once D5 lands a
+      residual gap no longer blocks the artifact
 - [x] `packages/ui/DESIGN.md` + `tokens.css` — the "Instrument" direction
 - [x] `.github/workflows/ci.yml`
 - [x] `docs/adr/0001` — Angular demos integration (proposed, pending Q7)
@@ -180,6 +185,22 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
   `content/nestjs` is pinned to `v0.3.0` and all 19 selected articles carry `description`
   and adapt cleanly. `verify-frontmatter`, `build-catalog`, and `verify-links` remain
   expected to fail until the Q1 pass lands in the other three corpora.
+- Every one of the ~196 currently-selectable articles fails to adapt on missing
+  `description` (Debt D5) — `verify-frontmatter`, `build-catalog`, and `verify-links` are
+  all expected to fail until the Q1 description pass runs in each corpus repo. This is
+  tracked, pre-existing, and out of scope for the session that discovers it.
+- **`catalog.json` is emit-with-exclusions, not all-or-nothing.** A file that cannot
+  adapt is left out of `articles` and recorded in `catalog.failures` with its repo,
+  source path, and reason — the same treatment a draft gets. `build-catalog` exits 0 and
+  writes; `verify-catalog` exits 1 while `failures` is non-empty; `verify-frontmatter`
+  still fails on the source content. Read the build's `excluded` count, not its exit
+  code, to know whether every file adapted.
+- **A partial catalog is still blocked by the link report, which is separately fatal.**
+  Simulated against a post-description-pass corpus: 181 of 196 adapt, but 128 `related`
+  refs are unresolved (79 pointing at the 15 excluded articles, 49 at articles in no
+  corpus) and 278 point at drafts. Extending emit-with-exclusions to refs would change
+  `verify-links` and rule 30's "cross-repo links hard-fail here" — an open decision, not
+  an oversight.
 
 ---
 
