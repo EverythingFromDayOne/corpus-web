@@ -853,3 +853,48 @@ with `TS2304: Cannot find name 'URLPattern'` against 22.20.1.
 - When `apps/web` moves off Node 22, this pin moves with it — not before.
 
 ---
+
+## Session promote-content — nextjs v0.3.0 — 2026-08-16
+
+**Branch:** `cursor/promote-nextjs-v0.3.0-6413`
+
+**Files changed:**
+- `content/nextjs` — gitlink bumped from `v0.2.0` (`d9ae31d`) to `v0.3.0` (`ad28950`)
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this promotion
+- `.agents/summary.md` — D5 no longer universal; nextjs pin recorded
+- `progress.md` — item 16 / Debt D5 scoped to the three remaining corpora
+
+**Why:** `nextjs-concepts` tagged `v0.3.0` after adding the required `description`
+frontmatter key to all ten articles (9 concepts + 1 recipe). That is the Q1 dek pass
+tracked as Debt D5, run in the corpus repo rather than invented here. Bumping the
+gitlink is how this site consumes it. No article body changed, so `content_hash`
+(sha256 of the body after frontmatter) is unchanged on every nextjs article. No
+articles were added, removed, or renamed, and no `article_id` moved.
+
+`verify-frontmatter` / `build-catalog` / `verify-links` still fail, correctly, on the
+other three corpora: 73 `react` + 94 `angular` + 19 `nestjs` = 186 remaining
+adaptation failures (171 missing `description`, 15 also Debt D11 untitled). The
+catalog still cannot be written. That is expected until those repos cut equivalent
+tags.
+
+**Invented decisions:**
+- Branched `cursor/promote-nextjs-v0.3.0-6413` rather than the skill's
+  `content/nextjs-v0.3.0`, because the cloud-agent branch policy requires
+  `cursor/<slug>-6413`.
+- Did not regenerate `docs/audit/frontmatter-2026-08-16.md` — it is session-2
+  evidence dated that day, not a live dashboard.
+- Did not run `pnpm verify:code-blocks` — that script is not in `package.json`.
+- Logged this as `Session promote-content` rather than inventing a session number;
+  it is a skill invocation, not a `prompts/session-N.md` run.
+
+**Known issues / next steps:**
+- Hash-invalidation for the ten nextjs articles is the user's call. Body hashes are
+  unchanged; the only edit is one added frontmatter line per article.
+- Debt D5 remains open on `react-concepts`, `angular-concepts`, and
+  `nestjs-concepts`. Promote those separately, one submodule per PR.
+- All ten nextjs articles still adapt as `status: draft` (pre-existing). They will
+  not ship in production until the corpus marks them complete.
+- Do not auto-merge this PR.
+
+---

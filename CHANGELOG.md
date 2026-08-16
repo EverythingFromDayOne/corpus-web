@@ -5,6 +5,26 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-16] — cursor/promote-nextjs-v0.3.0-6413 — Promote `content/nextjs` to v0.3.0
+
+**Added**
+- Nothing in this repo. The ten `description` deks live in `nextjs-concepts@v0.3.0`.
+
+**Changed**
+- `content/nextjs` gitlink `v0.2.0` (`d9ae31d`) → `v0.3.0` (`ad28950`)
+- Debt D5 is closed for `nextjs-concepts` (10/10 selected articles now adapt). It
+  remains open on `react` (73), `angular` (94), and `nestjs` (19)
+
+**Fixed**
+- `verify-frontmatter` no longer fails on any `content/nextjs` article. The other
+  three corpora still fail, as expected, until they cut equivalent tags
+
+**Architecture decisions**
+- One submodule per promotion PR, even when the remaining D5 work is the same pass
+  in the other three repos
+- `content_hash` is sha256 of the body after frontmatter, so a dek-only tag does
+  not change hashes; invalidation stays a human decision either way
+
 ### [2026-08-16] — cursor/fix-derive-title-mdast-15ee — `packages/content-schema` typechecks its tests
 
 **Added**
