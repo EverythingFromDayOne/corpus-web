@@ -17,10 +17,15 @@
  * `verify-catalog` exits 1 while that array is non-empty, and
  * `verify-frontmatter` still fails on the source content unconditionally.
  *
+ * The same principle governs the link report, which is classified four ways
+ * (`packages/content-schema/src/catalog.ts`). A ref to an excluded article, or
+ * to a draft, warns and travels in the artifact so the renderer can emit plain
+ * text instead of a dead link. A ref to an article that exists in no corpus is
+ * fatal — nothing else reports it, and no author is coming for it by accident.
+ *
  * Still fatal here, because none of them are per-article exclusions: zero
- * articles adapting, a genuinely unresolved `related` ref, a ref to a draft
- * outside `SHOW_DRAFTS`, and a path item pointing at a missing or draft
- * article.
+ * articles adapting, a `related` ref pointing at an article that exists in no
+ * corpus, and a path item pointing at a missing or draft article.
  */
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -54,25 +59,38 @@ if (articlesByUid.size === 0) {
 // ---------------------------------------------------------------------------
 // Resolve every `related` ref against the full article set.
 
-const linkReport = buildLinkReport(articlesByUid, { showDrafts: SHOW_DRAFTS });
+const linkReport = buildLinkReport(articlesByUid, { showDrafts: SHOW_DRAFTS, failures });
 
-if (linkReport.unresolved.length > 0) {
-  console.error(`build-catalog: FAIL — ${linkReport.unresolved.length} unresolved \`related\` ref(s)`);
-  for (const u of linkReport.unresolved) {
+if (linkReport.unresolvedTargets.length > 0) {
+  console.error(
+    `build-catalog: FAIL — ${linkReport.unresolvedTargets.length} \`related\` ref(s) pointing at an article ` +
+      'that exists in no corpus',
+  );
+  for (const u of linkReport.unresolvedTargets) {
     console.error(`    [${u.from}] "${u.raw}" — ${u.reason}`);
   }
   process.exit(1);
 }
 
-if (!SHOW_DRAFTS && linkReport.draftTargets.length > 0) {
-  console.error(
-    `build-catalog: FAIL — ${linkReport.draftTargets.length} ref(s) to a draft article in a production build ` +
-      '(set SHOW_DRAFTS=1 to allow)',
+// Both of the buckets below are refs to a real, correctly-named article that
+// this build has no route for. They travel in the catalog so the renderer emits
+// plain text instead of a dead link, and they warn rather than fail: the
+// excluded targets are the same handful of files already named in `failures`,
+// and a draft target is a correct ref that goes live when the article does.
+if (linkReport.excludedTargets.length > 0) {
+  console.warn(
+    `build-catalog: WARN — ${linkReport.excludedTargets.length} ref(s) to an excluded article ` +
+      `(${countDistinct(linkReport.excludedTargets, (t) => t.to)} distinct target(s), all in catalog.failures)`,
   );
-  for (const d of linkReport.draftTargets) {
-    console.error(`    [${d.from}] -> ${d.to}`);
-  }
-  process.exit(1);
+  for (const t of linkReport.excludedTargets) console.warn(`    [${t.from}] -> ${t.to} (${t.sourcePath})`);
+}
+
+if (linkReport.draftTargets.length > 0) {
+  console.warn(
+    `build-catalog: WARN — ${linkReport.draftTargets.length} ref(s) to a draft article ` +
+      '(set SHOW_DRAFTS=1 to render them as links)',
+  );
+  for (const d of linkReport.draftTargets) console.warn(`    [${d.from}] -> ${d.to}`);
 }
 
 if (linkReport.plannedTargets.length > 0) {
@@ -115,12 +133,24 @@ const catalog = Catalog.parse({
   articles: [...articlesByUid.values()],
   failures,
   paths,
-  edges: linkReport.resolved,
+  edges: linkReport.edges,
+  excludedTargets: linkReport.excludedTargets,
+  draftTargets: linkReport.draftTargets,
   aliases: [],
 });
 
 writeFileSync(join(ROOT, 'catalog.json'), `${JSON.stringify(catalog, null, 2)}\n`, 'utf8');
 console.log(
   `build-catalog: wrote catalog.json — ${catalog.articles.length} article(s), ${catalog.edges.length} edge(s), ` +
-    `${catalog.paths.length} path(s), ${catalog.failures.length} excluded`,
+    `${catalog.paths.length} path(s), ${catalog.failures.length} excluded, ` +
+    `${catalog.excludedTargets.length} ref(s) to an excluded article, ${catalog.draftTargets.length} to a draft`,
 );
+
+/**
+ * @template T
+ * @param {T[]} items
+ * @param {(item: T) => string} key
+ */
+function countDistinct(items, key) {
+  return new Set(items.map(key)).size;
+}

@@ -18,6 +18,16 @@
  *     that value only appears when a corpus file has no explicit folder key
  *     AND lives outside `docs/`, which means folder inference silently guessed
  *     wrong rather than the corpus genuinely wanting a root-level article
+ *   - every `edges` entry points at an article the catalog actually contains,
+ *     and every `excludedTargets` entry names a file the catalog actually lists
+ *     in `failures`. Both are the builder's own claims about the link report's
+ *     four-way classification, and a renderer trusts `edges` enough to emit a
+ *     link without checking. Only a builder bug can fail these; no corpus
+ *     content can
+ *
+ * `excludedTargets` and `draftTargets` are NOT failures here. They are refs to a
+ * real article this build has no route for, and their root cause is reported
+ * once each — in `failures` above, and by the corpus's own draft status.
  *
  * Does not build the catalog itself — run `pnpm build:catalog` first. A
  * missing `catalog.json` is a failure, not a skip: a gate that passes when
@@ -94,6 +104,23 @@ for (const path of catalog.paths) {
   }
 }
 
+// The link report's classification must hold inside the artifact: a live edge
+// resolves, and an excluded target names one of the excluded files.
+for (const edge of catalog.edges) {
+  if (!articlesByUid.has(edge.to)) {
+    errors.push(`edge \`${edge.from}\` -> \`${edge.to}\` points at an article the catalog does not contain`);
+  }
+}
+const excludedPaths = new Set(catalog.failures.map((f) => f.sourcePath));
+for (const target of catalog.excludedTargets) {
+  if (!excludedPaths.has(target.sourcePath)) {
+    errors.push(
+      `excluded target \`${target.from}\` -> \`${target.to}\` names \`${target.sourcePath}\`, ` +
+        'which is not in catalog.failures',
+    );
+  }
+}
+
 // No article silently fell into the folder-inference fallback sentinel.
 for (const article of catalog.articles) {
   if (article.folder === 'root') {
@@ -111,6 +138,13 @@ if (errors.length > 0) {
 
 if (excluded.length > 0 || errors.length > 0) {
   process.exit(1);
+}
+
+if (catalog.excludedTargets.length > 0 || catalog.draftTargets.length > 0) {
+  console.warn(
+    `verify-catalog: WARN — ${catalog.excludedTargets.length} ref(s) to an excluded article and ` +
+      `${catalog.draftTargets.length} to a draft; a renderer must emit these as plain text, not links`,
+  );
 }
 
 console.log(

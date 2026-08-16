@@ -20,6 +20,25 @@ export const CatalogFailure = z.object({
 });
 export type CatalogFailure = z.infer<typeof CatalogFailure>;
 
+/** One `related` ref, as a graph edge between two article uids. */
+export const LinkEdge = z.object({ from: ArticleUid, to: ArticleUid });
+export type LinkEdge = z.infer<typeof LinkEdge>;
+
+/**
+ * A ref whose target is a real file that did not adapt.
+ *
+ * `to` is the uid the ref names, which no article in this catalog carries.
+ * `sourcePath` is the excluded file itself, so an entry here joins directly to
+ * the `CatalogFailure` that explains it rather than leaving a reader to guess
+ * which of the excluded files this was.
+ */
+export const ExcludedTarget = z.object({
+  from: ArticleUid,
+  to: ArticleUid,
+  sourcePath: z.string().min(1),
+});
+export type ExcludedTarget = z.infer<typeof ExcludedTarget>;
+
 /**
  * `catalog.json` — the only artifact the API knows about content.
  *
@@ -33,6 +52,11 @@ export type CatalogFailure = z.infer<typeof CatalogFailure>;
  * way a draft is left out of a production render without failing the build.
  * `verify-catalog` then fails on a non-empty `failures`, so the gate keeps its
  * teeth while the artifact stops being hostage to the worst file in the corpus.
+ *
+ * Exclusion has a second cost the artifact has to carry: every `related` ref
+ * pointing at an excluded or draft article is now a ref to a page with no route.
+ * Those refs travel in `excludedTargets` and `draftTargets` so a renderer can
+ * emit plain text rather than a link that 404s — see `LinkReport`.
  */
 export const Catalog = z.object({
   schema: z.literal(1),
@@ -44,26 +68,64 @@ export const Catalog = z.object({
   /** Selected files that did not adapt and are therefore absent from `articles`. */
   failures: z.array(CatalogFailure),
   paths: z.array(PathDefinition),
-  /** Resolved cross-article graph. Every edge here is guaranteed to resolve. */
-  edges: z.array(z.object({ from: ArticleUid, to: ArticleUid })),
+  /** Live cross-article graph. Every edge points at an article present in `articles`. */
+  edges: z.array(LinkEdge),
+  /**
+   * Refs whose target is a real corpus file that this catalog does not contain —
+   * every one of them is a file in `failures`. A renderer must emit these as
+   * plain text, never as a link: the target has no route.
+   */
+  excludedTargets: z.array(ExcludedTarget),
+  /**
+   * Refs whose target adapted but is `draft`, in a build that is not showing
+   * drafts. Same rendering rule as `excludedTargets` — plain text, no link.
+   */
+  draftTargets: z.array(LinkEdge),
   /** Old id -> new id, from renames. Feeds `lesson_aliases` and Next `redirects()`. */
-  aliases: z.array(z.object({ from: ArticleUid, to: ArticleUid })),
+  aliases: z.array(LinkEdge),
 });
 export type Catalog = z.infer<typeof Catalog>;
 
-/** Result of resolving `related` blocks. Unresolved refs are a hard failure here. */
+/**
+ * Result of resolving `related` blocks, classified by WHY a ref does or does not
+ * land on a page. The four buckets for an `article`-resolution ref are `edges`,
+ * `excludedTargets`, `draftTargets`, and `unresolvedTargets`, and only the last
+ * is fatal.
+ *
+ * The split exists so the build fails once on a root cause and never again on
+ * its symptoms. One article that cannot adapt is one failure in
+ * `Catalog.failures`; the refs pointing at it are that same failure seen from
+ * the other end, and reporting them as unresolved buries the breakage that has
+ * no other report anywhere.
+ */
 export const LinkReport = z.object({
-  resolved: z.array(z.object({ from: ArticleUid, to: ArticleUid })),
+  /** Target adapted and is renderable. The only bucket that becomes a live link. */
+  edges: z.array(LinkEdge),
   /**
-   * Cross-repo links WARN in the corpus repos because they cannot resolve
-   * standalone. Here they CAN, so here they are fatal. This gate is deliberately
-   * stronger than the per-repo one.
+   * Target is a real corpus file that failed to adapt, so it is in
+   * `Catalog.failures` and absent from `Catalog.articles`. WARNS. The root cause
+   * is already reported once, by path and reason, in `failures` and by
+   * `verify-frontmatter`; failing here too would restate it once per inbound
+   * ref and bury the refs that point at nothing at all.
    */
-  unresolved: z.array(
+  excludedTargets: z.array(ExcludedTarget),
+  /**
+   * Target adapted but is `draft`, and this build is not showing drafts. WARNS,
+   * and is recorded so a renderer can degrade the ref to plain text. A link to
+   * a page that 404s is a rendering bug; the ref itself is correct and becomes
+   * live the day the article is marked complete.
+   */
+  draftTargets: z.array(LinkEdge),
+  /**
+   * Target exists in no corpus at all — no article, and no excluded file
+   * either. FATAL. Cross-repo links WARN in the corpus repos because they
+   * cannot resolve standalone; here they CAN, so this gate is deliberately
+   * stronger than the per-repo one. This is the only unresolved-ref case that
+   * has no other report and no route to becoming live without an author.
+   */
+  unresolvedTargets: z.array(
     z.object({ from: ArticleUid, raw: z.string(), reason: z.string() }),
   ),
-  /** Resolves, but the target is a draft. Fatal in production builds. */
-  draftTargets: z.array(z.object({ from: ArticleUid, to: ArticleUid })),
   /**
    * Points at a known corpus that has no remote yet — currently `dsa`.
    * WARNS, never fails. The work exists; it just is not published. Failing the

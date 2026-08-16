@@ -124,8 +124,9 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
   in CI and as a `pre-commit` hook, plus `submodule.<name>.ignore = none` in `.gitmodules`.
 - `article_id` is the filename slug, never a sequence number. Renumbering never touches
   article files.
-- Cross-repo links WARN in the corpus repos and **hard-fail** here, because here they
-  can actually resolve.
+- Cross-repo links WARN in the corpus repos and **hard-fail** here when they resolve to
+  nothing, because here they can actually resolve. A ref to a real-but-excluded or draft
+  article warns instead — see the four-way classification below.
 - Node 22 on `apps/web`, Node 24 on `apps/api`. Deliberate. Follows each corpus baseline.
   A package shared by both therefore types against the **lower** one:
   `packages/content-schema` pins `@types/node` to `^22`, so anything that typechecks there
@@ -195,12 +196,20 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
   writes; `verify-catalog` exits 1 while `failures` is non-empty; `verify-frontmatter`
   still fails on the source content. Read the build's `excluded` count, not its exit
   code, to know whether every file adapted.
-- **A partial catalog is still blocked by the link report, which is separately fatal.**
-  Simulated against a post-description-pass corpus: 181 of 196 adapt, but 128 `related`
-  refs are unresolved (79 pointing at the 15 excluded articles, 49 at articles in no
-  corpus) and 278 point at drafts. Extending emit-with-exclusions to refs would change
-  `verify-links` and rule 30's "cross-repo links hard-fail here" — an open decision, not
-  an oversight.
+- **The link report is classified four ways, and only one is fatal.** `edges` (target
+  adapts and is complete) render as links; `excludedTargets` (target is a real file in
+  `catalog.failures`) and `draftTargets` (target adapts but is `draft`) **warn** and travel
+  in `catalog.json` so the renderer emits plain text instead of a dead link;
+  `unresolvedTargets` (target exists in no corpus at all) is **fatal**. The principle is
+  fail once on the root cause, never on its symptoms — 15 unadaptable articles were
+  producing 79 inbound "unresolved" failures and burying the 49 that point at nothing.
+  Refs to a planned corpus or a demo app still warn separately. `verify-links` therefore no
+  longer fails on adaptation failures; `verify-frontmatter` owns those.
+- **A real catalog is still blocked, now only by the 49.** Simulated against a
+  post-description-pass corpus: 181 of 196 adapt, 79 refs hit an excluded article (warn),
+  278 hit a draft (warn), and **49 refs across 34 distinct targets** resolve to nothing and
+  fail. All 49 are itemised in `docs/audit/unresolved-refs-2026-08-16.md` and every fix is
+  corpus-side — see Debt D13.
 
 ---
 
