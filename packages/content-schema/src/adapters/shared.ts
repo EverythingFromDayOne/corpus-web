@@ -1,3 +1,4 @@
+import type { Root } from 'mdast';
 import { z } from 'zod';
 import {
   ArticleKind,
@@ -11,6 +12,7 @@ import {
   REPO_ORIGINS,
   Status,
 } from '../common.js';
+import { findTitleHeading } from '../sections.js';
 import { AdapterError } from './types.js';
 
 /**
@@ -33,8 +35,8 @@ export const BaseFrontmatter = z.object({
   /**
    * Session 2 audit: no article in any of the four corpora carries a `title`
    * key. Titles live as the body's H1, matching the fumadocs finding from
-   * session 1. Optional here; `deriveTitle()` falls back to the H1 and throws
-   * if neither exists. The one corpus file that DOES set `title` in
+   * session 1. Optional here; `deriveTitle()` falls back to the body's own H1
+   * and throws if neither exists. The one corpus file that DOES set `title` in
    * frontmatter (`nextjs/docs/recipes/index.md`) is a listing page excluded
    * from article discovery entirely — see `isIndexFile`.
    */
@@ -176,25 +178,36 @@ export function parseRelated(
  * Session 2 audit: zero articles across all four corpora carry a `title` key —
  * every one relies on the body's H1, which is also why fumadocs' schema was
  * loosened in session 1. `deriveTitle` prefers an explicit frontmatter title
- * (so a corpus can opt back in later) and falls back to the first `# ` heading
- * in the body. Neither present is a real failure, not a default.
+ * (so a corpus can opt back in later) and falls back to the body's own H1.
+ * Neither present is a real failure, not a default.
+ *
+ * The H1 is located by walking the parsed body — see `findTitleHeading`. The
+ * first implementation matched `/^#\s+(.+)$/m` against the raw text, which is
+ * a line scanner and cannot tell a heading from a line of shell that happens
+ * to start with `# `. It read `# TypeScript projects also need the Babel core
+ * types:` out of a fenced block in `react/rendering/react-compiler-deep-dive.md`
+ * and accepted it as that article's title, silently, which is worse than the
+ * loud failure the article had earned: it has no H1 at all.
+ *
+ * Pass the `Root` rather than the string wherever the caller has already
+ * parsed the body for `extractSections`, so each file is parsed once.
  */
 export function deriveTitle(
   raw: string | undefined,
-  body: string,
+  body: string | Root,
   repo: KnownRepoId,
   sourcePath: string,
 ): string {
   const explicit = raw?.trim();
   if (explicit) return explicit;
 
-  const match = /^#\s+(.+)$/m.exec(body);
-  const heading = match?.[1]?.trim();
+  const heading = findTitleHeading(body);
   if (!heading) {
     throw new AdapterError(
       repo,
       sourcePath,
-      'no `title` in frontmatter and no `# ` H1 heading in the body to derive one from',
+      'no `title` in frontmatter and no H1 in the body to derive one from — ' +
+        'a `# ` line inside a code fence, an indented code block, or a blockquote is not a heading',
     );
   }
   return heading;

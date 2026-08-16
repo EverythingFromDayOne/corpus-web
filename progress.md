@@ -34,8 +34,8 @@ snapshot and `roadmap.md` for the planning rationale.
 
 | # | Item | Status | Notes |
 |---|---|---|---|
-| 6 | Frontmatter adapters + zod union, four mounted repos | ✅ | Session 2: run for real against every file in all four corpora and corrected (`docs/audit/frontmatter-2026-08-16.md`). Directory-shape, `title`, and `status` mismatches fixed |
-| 6b | Section extraction (`extractSections()`) | ✅ | Session 2: mdast-based, GitHub-slug anchors verified against real `react-concepts` cross-references |
+| 6 | Frontmatter adapters + zod union, four mounted repos | ✅ | Session 2: run for real against every file in all four corpora and corrected (`docs/audit/frontmatter-2026-08-16.md`). Directory-shape, `title`, and `status` mismatches fixed. Session 2 follow-up: `deriveTitle` rewritten as an mdast walk — the regex was matching inside code fences — with tests in `packages/content-schema/test/` |
+| 6b | Section extraction (`extractSections()`) | ✅ | Session 2: mdast-based, GitHub-slug anchors verified against real `react-concepts` cross-references. Session 2 follow-up: accepts a pre-parsed tree so title derivation and section extraction share one parse per file |
 | 7 | `build-catalog.mjs` → routes + sidebar tree | 🟡 | Session 2: real implementation, all logic proven (incl. via synthetic fixtures for `verify-catalog`) — **cannot currently produce a passing build**, blocked on item 16 (Debt D5) and Debt D11 |
 | 7b | `verify-frontmatter.mjs` / `verify-links.mjs` / `verify-catalog.mjs` gates | ✅ | Session 2. All three correctly fail against current content (Debt D5); `verify-catalog`'s four checks (dup uid, missing/draft path target, `root`-folder sentinel) proven against synthetic fixtures |
 | 8 | Full route tree, every completed article renders | ⚪ | Blocked on item 7 |
@@ -77,12 +77,20 @@ Known, deliberate, and tracked. Not blockers unless marked.
 | D8 | **`angular-concepts`** — 6 of 23 Phase 2 articles outstanding; `attribute-directives` is a stub. | Six articles absent from the site. | Angular Phase 2 |
 | D9 | **Demo labs have no home** — `auth`, `authz`, `websec` are working demos with nowhere to appear. ADR-0002 proposes deploy + iframe under `/en/demos/*`. | The one subject area with no article coverage stays invisible. | ADR-0002 decision |
 | D10 | **`demo-attacked-web` is deliberately vulnerable.** If deployed on a subdomain sharing the `.nxhhuy.tech` cookie domain, an XSS demo could read the main site's session cookie. | A demo becomes a real vulnerability. | Before any deploy of that app |
-| D11 | **14 `react-concepts` articles have no title at all** — neither a frontmatter `title` key nor a `# ` H1 heading in the body. Session 2 audit: `concurrent/actions.md`, `concurrent/concurrent-rendering.md`, `concurrent/suspense.md`, `concurrent/use-and-promises.md`, `ecosystem/data-fetching-tanstack-query.md`, `ecosystem/routing-react-router.md`, `ecosystem/state-management-landscape.md`, `ecosystem/styling-approaches.md`, `ecosystem/testing.md`, `forms/forms-at-scale.md`, `server/server-components.md`, `server/ssr-and-hydration.md`, `recipes/data-fetching/strictmode-double-mount.md`, `recipes/data-fetching/request-waterfall.md`. | These 14 articles cannot adapt even after the description pass (item 16) lands. | Corpus-side PR adding an H1 to each, then re-tag `react-concepts` |
+| D11 | **15 `react-concepts` articles have no title at all** — neither a frontmatter `title` key nor an H1 in the body. Session 2 audit found 14; the session 2 follow-up found the 15th, `rendering/react-compiler-deep-dive.md`, which the old regex-based `deriveTitle` had been silently titling `TypeScript projects also need the Babel core types:` from a line inside a fenced code block. Full list: `concurrent/actions.md`, `concurrent/concurrent-rendering.md`, `concurrent/suspense.md`, `concurrent/use-and-promises.md`, `ecosystem/data-fetching-tanstack-query.md`, `ecosystem/routing-react-router.md`, `ecosystem/state-management-landscape.md`, `ecosystem/styling-approaches.md`, `ecosystem/testing.md`, `forms/forms-at-scale.md`, `rendering/react-compiler-deep-dive.md`, `server/server-components.md`, `server/ssr-and-hydration.md`, `recipes/data-fetching/strictmode-double-mount.md`, `recipes/data-fetching/request-waterfall.md`. | These 15 articles cannot adapt even after the description pass (item 16) lands. | Corpus-side PR adding an H1 to each, then re-tag `react-concepts` |
 
 ---
 
 ## Session log
 
+- **Session 2 follow-up (2026-08-16):** fixed `deriveTitle()`, which matched `/^#\s+(.+)$/m` against
+  the raw body and so read `# ` lines out of fenced code blocks. It had been titling
+  `react/rendering/react-compiler-deep-dive.md` from a shell comment inside an
+  `npm i -D` fence. Replaced with an mdast walk over the tree's top-level children,
+  sharing one parse per file with `extractSections()`; setext H1 comes free. Added the
+  first test suite in the repo (`packages/content-schema/test/derive-title.test.ts`,
+  `node:test` via `tsx`), run against real corpus files. Re-ran the audit: Debt D11 is
+  **15** articles, not 14.
 - **Session 2 (2026-08-16):** ran the four adapters for real against all four mounted
   corpora (`docs/audit/frontmatter-2026-08-16.md`); corrected directory-shape (`react`/
   `nestjs` have no `docs/` wrapper), `title` (derived from H1 — no article has a `title`

@@ -684,3 +684,112 @@ never invented here.
 - `verify-sidecars.mjs` remains deferred per the session prompt — no sidecar files exist.
 
 ---
+
+## Session 2 follow-up — deriveTitle reads headings, not lines — 2026-08-16
+
+**Branch:** `cursor/fix-derive-title-mdast-15ee`
+
+**Files changed:**
+- `packages/content-schema/src/sections.ts` — new `parseArticleBody()` (the shared parse)
+  and `findTitleHeading()` (first depth-1 heading among the tree's top-level children);
+  `extractSections()` now accepts `string | Root`
+- `packages/content-schema/src/adapters/shared.ts` — `deriveTitle()` takes `string | Root`
+  and delegates to `findTitleHeading()`; the regex is gone; error message names the three
+  shapes that are not headings
+- `packages/content-schema/src/adapters/types.ts` — `AdapterInput.tree?: Root`
+- `packages/content-schema/src/adapters/factory.ts` — passes `input.tree ?? input.body`
+- `packages/content-schema/test/derive-title.test.ts` — new; eleven tests
+- `packages/content-schema/package.json` — `test` script; `gray-matter` and `tsx` declared
+  as devDependencies (both already in the lockfile at these versions)
+- `pnpm-lock.yaml` — the two devDependency declarations
+- `scripts/lib/adapt-all.mjs` — parses each body once, passes the tree to both
+  `extractSections()` and `adapter.toArticle()`
+- `docs/audit/frontmatter-2026-08-16.md` — regenerated
+- `prompts/corpus-description-pass.md` — the skip list is 15 articles, not 14, and names
+  why `rendering/react-compiler-deep-dive.md` looks like it has an H1 and does not
+- `prompts/session-3.md` — Track A step 2's D11 count corrected to 15
+- `progress.md` — Debt D11 corrected to 15 with the new file named; Phase 1 items 6 and 6b
+  annotated; session log entry
+- `CHANGELOG.md` — this session
+- `.agents/summary.md` — the D11 count and the title-derivation key fact
+- `.agents/SESSION-LOG.md` — this entry
+
+**Why:** `deriveTitle()` matched `/^#\s+(.+)$/m` against the raw article body. That is a
+line scanner, and markdown is not a line-oriented format: a fenced code block, an indented
+code block, and a blockquote can all contain a line that begins `# ` without any of them
+being a heading. The confirmed case is `react/rendering/react-compiler-deep-dive.md`,
+which has no H1 anywhere and was being titled `TypeScript projects also need the Babel
+core types:` — a shell comment inside an `npm i -D @rolldown/plugin-babel` fence. The
+failure mode is the one the adapter discipline exists to prevent: a missing required field
+silently satisfied by a plausible-looking wrong value, rather than thrown.
+
+The irony is that the fix already existed twenty lines away. `extractSections()` was
+written in session 2 against exactly this hazard, with a doc comment naming fenced `# `
+comment lines as the reason it walks an mdast tree instead of scanning lines. Title
+derivation simply never got the same treatment. It does now, and it shares
+`extractSections()`'s parse rather than adding a second one: `adapt-all.mjs` calls
+`parseArticleBody()` once per file and hands the tree to both.
+
+`findTitleHeading()` considers only the tree's **top-level** children, which is a stronger
+rule than "not inside a code node" and is what excludes the blockquote case — a `heading`
+node nested in a blockquote or a list item is reachable from a full `visit`, and quoting
+someone else's H1 does not retitle this article. `extractSections()` deliberately keeps
+its full-tree walk, because GitHub does emit an anchor for a nested `##` and those anchors
+are real link targets; the asymmetry is commented in both places so a later pass does not
+"unify" them.
+
+Re-running the audit moved Debt D11 from 14 articles to 15. The 15th is the file above:
+it was never a fourteen-article problem, it was a fifteen-article problem with one article
+hidden behind a false positive.
+
+**Invented decisions:**
+- **Top-level-children-only, rather than a full `visit` that skips `code` nodes.** The
+  session prompt named the blockquote case but not the mechanism. Filtering `code` alone
+  would not have excluded a blockquote heading; restricting to the document's own top
+  level excludes fenced code, indented code, blockquotes, list items, and footnote
+  definitions in one rule with no exclusion list to maintain.
+- **Derived titles are now plain text, not raw markdown.** `mdastToString` strips inline
+  markup, so six real titles lose backticks they previously carried — e.g.
+  `` `mutateAsync` crashes the page — or nested `onSuccess` hell blocks a multi-step
+  signup `` becomes `mutateAsync crashes the page — or nested onSuccess hell blocks a
+  multi-step signup`. `Article.title` is a plain string feeding `<title>`, OG tags, and
+  the sidebar, so markdown syntax in it was a leak. If the article `<h1>` should render
+  the code formatting, that wants a separate field rather than raw syntax in this one.
+  Full diff of the change: 189 titles identical, 6 text-only changes, 1 title lost (the
+  bug), 0 gained.
+- **`AdapterInput.tree` is optional.** Making it required would force
+  `audit-frontmatter.mjs`, which extracts no sections, to parse solely to satisfy the
+  type — there is no second parse there to share.
+- **Two of the five required test cases use synthetic fixtures**, marked `SYNTHETIC:` in
+  the test names and explained in a comment. A search across all four mounted corpora
+  found no article containing an indented-code `# ` line or a `> #` blockquote heading;
+  the only matches anywhere under `content/` are `nestjs/prompts/scaffold-repo.md` and
+  `nextjs/prompts/session15-corrections.md`, neither of which any adapter selects. Both
+  cases are still reachable markdown the old scanner would have misread, so they are
+  covered rather than dropped — but they are not corpus coverage and are not labelled as
+  such. Setext H1 is synthetic for the same reason: no corpus file uses the form.
+- **`node:test` + `tsx` as the test runner**, rather than adding Vitest or Jest. Both are
+  already installed, CI already runs `pnpm test`, and installing a test framework is a
+  stop-and-ask item. `gray-matter` and `tsx` are now declared in
+  `packages/content-schema`'s devDependencies rather than resolved from the root by
+  hoisting; both are the same versions already in the lockfile.
+- **Tests are not typechecked.** `tsconfig.json` still includes `src/**/*.ts` only, since
+  compiling `test/` needs `@types/node`, which this package does not depend on and which
+  would be a new dependency plus a Node-major choice (22 vs 24 are both in the store).
+  `tsx` strips types at run time, so the tests run but are not type-verified.
+
+**Known issues / next steps:**
+- Debt D5 is untouched and still blocking: 58 `react` articles and 173 more across the
+  other three corpora fail on missing `description`. `verify:frontmatter`,
+  `build-catalog`, and `verify:links` still correctly fail.
+- Debt D11 is now 15 articles and still needs a corpus-side PR in `react-concepts` adding
+  an H1 to each, then a re-tag. `rendering/react-compiler-deep-dive.md` is the addition.
+- The corpus assertions in `derive-title.test.ts` are pinned to submodule content. When
+  `react-concepts` lands the D11 fix and this repo bumps the pointer, the two "no title"
+  tests will fail by design — that promotion PR should update them rather than delete
+  them, and `angular/docs/concepts/reactivity/signals.md` and
+  `nextjs/docs/recipes/index.md` carry the same exposure for the positive cases.
+- Adding `@types/node` to `packages/content-schema` would let the tests be typechecked. It
+  is a one-line change gated on the dependency stop-and-ask.
+
+---

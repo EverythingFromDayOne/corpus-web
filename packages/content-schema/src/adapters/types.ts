@@ -1,3 +1,4 @@
+import type { Root } from 'mdast';
 import type { z } from 'zod';
 import type { Article, ArticleSection } from '../article.js';
 import type { KnownRepoId, RepoId } from '../common.js';
@@ -10,6 +11,14 @@ export interface AdapterInput {
   sourcePath: string;
   /** Body with frontmatter stripped. Used for the hash and heading extraction. */
   body: string;
+  /**
+   * `body` already parsed to an mdast tree. Supply it whenever the caller has
+   * also called `extractSections`, which needs the identical tree — that is
+   * what keeps a catalog build to one parse per file instead of two. Omitting
+   * it is correct for a caller that extracts no sections; the adapter parses
+   * `body` itself and there was no second parse to share.
+   */
+  tree?: Root;
   /** sha256 of `body`, computed by the caller so hashing stays in one place. */
   contentHash: string;
   /** Headings already extracted by the caller. */

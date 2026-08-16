@@ -8,10 +8,13 @@ Session 2 corrected all four adapters against the real corpus files
 (`docs/audit/frontmatter-2026-08-16.md`), added `extractSections()`, and shipped a real
 `build-catalog.mjs` plus the `verify-frontmatter` / `verify-links` / `verify-catalog`
 gates. Every one of those gates currently **fails**, and that failure is expected: every
-selected article across all four corpora is missing `description` (Debt D5), and 14
+selected article across all four corpora is missing `description` (Debt D5), and 15
 `react-concepts` articles additionally have no title at all — no frontmatter `title`, no
-`# ` H1 (Debt D11). Neither is an adapter bug. Neither is fixable from this repo — both
-are corpus-side content gaps, and this repo never edits `content/`.
+H1 (Debt D11; the session 2 follow-up rewrote `deriveTitle` as an mdast walk and the
+fifteenth article, `rendering/react-compiler-deep-dive.md`, surfaced when the old regex
+stopped reading a `# ` line out of a code fence). Neither is an adapter bug. Neither is
+fixable from this repo — both are corpus-side content gaps, and this repo never edits
+`content/`.
 
 This session has two tracks, run in order. **Do not start Track B until Track A's
 prerequisite is confirmed** — building routes against an empty or partial catalog is
@@ -28,7 +31,7 @@ wasted work if the catalog is about to change shape.
    yourself. This is exactly the "division of labour" boundary in
    `.cursor/rules/00-session-protocol.mdc`: description prose is Claude's job, in the
    corpus repos, not this session's.
-2. For `react-concepts` specifically, also confirm Debt D11 is closed — the 14 articles
+2. For `react-concepts` specifically, also confirm Debt D11 is closed — the 15 articles
    listed in `progress.md` need an added `# ` H1 (or explicit `title` frontmatter) before
    they can adapt, independent of the description pass.
 3. For each corpus repo that has cut a new tag covering both fixes, promote it here per
