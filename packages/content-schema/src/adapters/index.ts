@@ -48,11 +48,17 @@ export const ADAPTERS: Record<RepoId, RepoAdapter> = {
    * for the record, not enforced; `conceptsRoot: null` picks up a new category
    * automatically rather than silently dropping it). Recipes are
    * `recipes/<category>/<slug>.md`.
+   *
+   * `prompts/` is not a concept category — `react-concepts@v0.5.0` added
+   * `prompts/description-pass.md`, a cross-repo authoring prompt. Without this
+   * exclude the root-scan would select it as an article. Same reason `nestjs`
+   * already excludes `prompts/`.
    */
   react: createAdapter({
     repo: 'react',
     conceptsRoot: null,
     recipesRoot: 'recipes',
+    excludeDirs: ['prompts'],
     conceptIdKey: 'article_id',
     recipeIdKey: 'recipe_id',
     folderKey: 'concept_folder',
@@ -79,8 +85,9 @@ export const ADAPTERS: Record<RepoId, RepoAdapter> = {
   /**
    * No `docs/` wrapper, same shape as `react`. `demos/`, `prompts/`, and
    * `scripts/` sit alongside the concept categories at the repo root and are
-   * not content — excluded explicitly, since (unlike `react`) this repo mixes
-   * non-content directories in at the same level as concept categories.
+   * not content — excluded explicitly. `react` now excludes `prompts/` too
+   * (`react-concepts@v0.5.0`); this corpus still also mixes `demos/` and
+   * `scripts/` at that level.
    */
   nestjs: createAdapter({
     repo: 'nestjs',
