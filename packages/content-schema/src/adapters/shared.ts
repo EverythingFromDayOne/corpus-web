@@ -9,7 +9,6 @@ import {
   REPO_DEFAULT_BRANCH,
   REPO_IS_PRIVATE,
   REPO_ORIGINS,
-  RepoId,
   Status,
 } from '../common.js';
 import { AdapterError } from './types.js';
@@ -31,9 +30,23 @@ import { AdapterError } from './types.js';
  * runs them and reports every mismatch.
  */
 export const BaseFrontmatter = z.object({
-  title: z.string().min(1),
+  /**
+   * Session 2 audit: no article in any of the four corpora carries a `title`
+   * key. Titles live as the body's H1, matching the fumadocs finding from
+   * session 1. Optional here; `deriveTitle()` falls back to the H1 and throws
+   * if neither exists. The one corpus file that DOES set `title` in
+   * frontmatter (`nextjs/docs/recipes/index.md`) is a listing page excluded
+   * from article discovery entirely — see `isIndexFile`.
+   */
+  title: z.string().min(1).optional(),
   description: z.string().min(1).optional(),
-  status: z.string().optional(),
+  /**
+   * Session 2 audit: `status` is a plain string in `nextjs`/`angular`
+   * (`draft`, `review`, `needs-upgrade`, ...) but an OBJECT in `react`/`nestjs`
+   * concept files and in some `angular` recipes (`{ drafted, reviewed }` /
+   * `{ upgraded, reviewed }`). `normaliseStatus` accepts both shapes.
+   */
+  status: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
   wave: z.union([z.number(), z.string()]).optional(),
   difficulty: z.string().optional(),
   related: z.array(z.string()).optional(),
@@ -68,9 +81,21 @@ const REPO_ALIASES: Record<string, KnownRepoId> = {
  * Collapse a corpus `status` value onto the two states the site cares about.
  * Anything not explicitly complete is a draft — the safe direction. A draft that
  * renders in production is a worse failure than a finished article that doesn't.
+ *
+ * Session 2 audit found `status` written two ways across the corpora:
+ *   - a plain string (`nextjs`, `angular` concepts): `draft`, `review`, `stub`,
+ *     `needs-upgrade`, ...
+ *   - an object (`react`/`nestjs` concepts, some `angular` recipes):
+ *     `{ drafted: true, reviewed: false }` or `{ upgraded: true, reviewed: false }`
+ *
+ * The object form's subfields are not a documented convention — guessing that
+ * `reviewed: true` means "complete" would be exactly the invented semantics
+ * adapters must not supply. Every object shape collapses to `draft`
+ * unconditionally, same as any unrecognised string.
  */
-export function normaliseStatus(raw: string | undefined): Status {
-  const value = (raw ?? '').trim().toLowerCase();
+export function normaliseStatus(raw: string | Record<string, unknown> | undefined): Status {
+  if (typeof raw !== 'string') return 'draft';
+  const value = raw.trim().toLowerCase();
   return value === 'complete' || value === 'published' || value === 'final'
     ? 'complete'
     : 'draft';
@@ -145,6 +170,45 @@ export function parseRelated(
 
   const resolution = isMounted(repo) ? 'article' : isDemoSource(repo) ? 'demo' : 'planned';
   return { repo, articleId, kind, resolution, raw };
+}
+
+/**
+ * Session 2 audit: zero articles across all four corpora carry a `title` key —
+ * every one relies on the body's H1, which is also why fumadocs' schema was
+ * loosened in session 1. `deriveTitle` prefers an explicit frontmatter title
+ * (so a corpus can opt back in later) and falls back to the first `# ` heading
+ * in the body. Neither present is a real failure, not a default.
+ */
+export function deriveTitle(
+  raw: string | undefined,
+  body: string,
+  repo: KnownRepoId,
+  sourcePath: string,
+): string {
+  const explicit = raw?.trim();
+  if (explicit) return explicit;
+
+  const match = /^#\s+(.+)$/m.exec(body);
+  const heading = match?.[1]?.trim();
+  if (!heading) {
+    throw new AdapterError(
+      repo,
+      sourcePath,
+      'no `title` in frontmatter and no `# ` H1 heading in the body to derive one from',
+    );
+  }
+  return heading;
+}
+
+/**
+ * Session 2 audit: `nextjs/docs/recipes/index.md` is a hand-authored listing
+ * page inside the recipes tree — it has `title` but no `article_id`/`recipe_id`
+ * and would otherwise be mistaken for a malformed article. Filename-based, not
+ * content-based, so it applies uniformly across corpora without guessing at
+ * any one file's intent.
+ */
+export function isIndexFile(sourcePath: string): boolean {
+  return sourcePath.split('/').pop() === 'index.md';
 }
 
 /** Returns null for private corpora — see REPO_IS_PRIVATE. */

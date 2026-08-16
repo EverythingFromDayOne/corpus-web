@@ -500,3 +500,187 @@ The four adapter specs remain unverified against real files — session 2 task 2
 that settles them. ADR-0002 is `proposed` and needs a decision before Phase 1 item 13.
 
 ---
+
+## Session 2 — adapters against reality, section extraction, catalog builder, gates — 2026-08-16
+
+**Branch:** `cursor/session-2-adapters-catalog-c932`
+
+**Files changed:**
+- `docs/audit/frontmatter-2026-08-16.md` — new. The task-2 audit report: per-repo file
+  counts, distinct frontmatter keys, distinct `status`/`difficulty`/`*_baseline` values,
+  and every adaptation failure grouped by reason, for all four mounted corpora
+- `packages/content-schema/src/adapters/types.ts` — `RepoAdapter.include` replaced with
+  `conceptsRoot` / `recipesRoot` / `excludeDirs`
+- `packages/content-schema/src/adapters/factory.ts` — `AdapterSpec` updated to match;
+  `title` now derived via `deriveTitle`; `status` passed through as `string | object`
+- `packages/content-schema/src/adapters/shared.ts` — `deriveTitle()` (H1 fallback),
+  `isIndexFile()`, `normaliseStatus()` widened to accept the object form observed in
+  `react`/`nestjs`/some `angular` recipes; unused `RepoId` import removed
+- `packages/content-schema/src/adapters/index.ts` — all four specs corrected:
+  `nextjs`/`angular` keep `docs/concepts` + `docs/recipes`; `react`/`nestjs` switch to
+  `conceptsRoot: null` (repo-root category scan) + `recipesRoot: 'recipes'`; `nestjs`
+  additionally excludes `demos`/`prompts`/`scripts`
+- `packages/content-schema/src/sections.ts` — new. `extractSections()`: parses the body
+  as an mdast tree (`unified` + `remark-parse` + `remark-gfm`), visits `##`/`###` heading
+  nodes, slugifies with GitHub's own algorithm, dedupes repeated anchors with `-1`/`-2`
+- `packages/content-schema/src/index.ts` — exports `./sections.js`
+- `packages/content-schema/package.json` — added `mdast-util-to-string`, `remark-gfm`,
+  `remark-parse`, `unified`, `unist-util-visit`; `@types/mdast` devDependency
+- `scripts/lib/corpus-fs.mjs` — new. Shared fs helpers: `.gitmodules` parsing, submodule
+  tag/commit lookup, recursive markdown listing, `selectArticleFiles()` (applies
+  `conceptsRoot`/`recipesRoot`/`excludeDirs`/`index.md`-exclusion), `sha256`,
+  `groupByReason` / `printGroupedFailures`
+- `scripts/lib/adapt-all.mjs` — new. The single "walk four submodules, adapt every
+  selected file" loop, shared by `build-catalog.mjs` and `verify-frontmatter.mjs`
+- `scripts/lib/link-report.mjs` — new. `buildLinkReport()`: resolves every `related` ref
+  against the full article set into `LinkReport`'s five buckets; shared by
+  `build-catalog.mjs` and `verify-links.mjs`
+- `scripts/lib/curation.mjs` — new. `loadPathDefinitions()`: reads and validates
+  `curation/paths/*.yaml` against `PathDefinition`
+- `scripts/audit-frontmatter.mjs` — new. Task-2 deliverable; walks every `.md` file,
+  reports selection/adaptation outcomes, writes `docs/audit/frontmatter-<date>.md`
+- `scripts/build-catalog.mjs` — replaced the session-1 stub with a real implementation:
+  adapt -> resolve links -> load paths -> emit `catalog.json`. Refuses to write on any
+  adaptation failure, any unresolved/draft `related` ref, or a path referencing a
+  missing/draft article
+- `scripts/verify-frontmatter.mjs` — new. Every selected file must adapt cleanly
+- `scripts/verify-links.mjs` — new. Zero fatal unresolved refs; zero draft targets
+  outside `SHOW_DRAFTS`; planned/demo targets warn
+- `scripts/verify-catalog.mjs` — new. Validates the built `catalog.json`: schema, no
+  duplicate uid, no path item pointing at a missing/draft article, no article landed in
+  the folder-inference `root` fallback
+- `scripts/verify-submodules.mjs` — now fails unless `.gitmodules` lists exactly the four
+  expected mount paths (`content/nextjs`, `content/react`, `content/angular`,
+  `content/nestjs`), not merely "at least one, all clean"
+- `package.json` — added `gray-matter`, `yaml` (dependencies) and `tsx`
+  (devDependency); new scripts `audit:frontmatter`, `verify:frontmatter`,
+  `verify:links`, `verify:catalog`; `build:catalog` now runs via `tsx`
+- `pnpm-lock.yaml` — lockfile for the new dependencies
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this session
+- `.agents/summary.md` — current-state and key-facts updates
+- `progress.md` — Phase 0/1 item statuses, Debt D2/D3 marked closed, new Debt D11
+- `prompts/session-3.md` — new. Authored to close this session
+
+**Why:** Task 1 (dropping the `auth`/`authz`/`websec` submodules) had already landed on
+`main` in the session-1 follow-up commit, so this session started from task 2: run the
+four adapters, authored from each corpus's own `roadmap.md`/`progress.md` conventions,
+against the real files. The audit found the specs wrong in three independent ways, not
+one:
+
+1. **Directory shape.** `nextjs` and `angular` wrap articles in `docs/concepts` and
+   `docs/recipes`. `react` and `nestjs` do not — concept categories are top-level
+   directories in the repo root, and recipes live at a top-level `recipes/<category>/`.
+   The original `include` globs assumed the `docs/` wrapper everywhere, so `react` and
+   `nestjs` matched **zero** files each, despite carrying 73 and 19 real articles
+   respectively. `RepoAdapter` was redesigned around `conceptsRoot` (nullable — `null`
+   means "scan the repo root's own top-level directories, excluding recipes and a short
+   exclude list") specifically so a *new* concept category added upstream is picked up
+   automatically rather than silently dropped, matching the same
+   loud-failure-over-silent-gap discipline the corpus already holds for required fields.
+2. **`title` does not exist in frontmatter anywhere.** Zero articles across all four
+   corpora carry a `title` key — every one relies on the body's H1, the same finding
+   session 1 made for fumadocs' schema. `deriveTitle()` prefers an explicit frontmatter
+   title (so a corpus can opt back in) and falls back to the first `# ` heading, throwing
+   only when neither exists.
+3. **`status` is not always a string.** `nextjs`/`angular` concepts write a plain string
+   (`draft`, `review`, `needs-upgrade`); `react`/`nestjs` concepts and some `angular`
+   recipes write an object (`{ drafted, reviewed }` or `{ upgraded, reviewed }`). Rather
+   than guess that `reviewed: true` means "complete" — an invented semantic the corpus
+   never documented — every object shape collapses to `draft` unconditionally, the same
+   safe direction the string form already used for unrecognised values.
+
+A genuine corpus gap surfaced during the audit, not an adapter bug: **14 articles in
+`react-concepts`** have neither a frontmatter `title` nor any `# ` H1 in the body at all
+(`concurrent/actions.md`, `concurrent/concurrent-rendering.md`, `concurrent/suspense.md`,
+`concurrent/use-and-promises.md`, `ecosystem/data-fetching-tanstack-query.md`,
+`ecosystem/routing-react-router.md`, `ecosystem/state-management-landscape.md`,
+`ecosystem/styling-approaches.md`, `ecosystem/testing.md`, `forms/forms-at-scale.md`,
+`server/server-components.md`, `server/ssr-and-hydration.md`,
+`recipes/data-fetching/strictmode-double-mount.md`,
+`recipes/data-fetching/request-waterfall.md`). Per the content boundary, this is not
+fixed here — it is reported (new Debt D11) for a corpus-side PR and re-tag.
+
+Section extraction (task 4) parses the body as a real mdast tree rather than scanning
+lines for `^#`, specifically because several articles (confirmed:
+`nextjs/docs/concepts/**`, `react/rendering/rendering-lists-and-keys.md`, and others)
+contain fenced code blocks with shell/Python comment lines that themselves start with
+`# ` — a regex scanner would misread those as headings; `visit(tree, 'heading', ...)`
+never descends into `code` nodes. The GitHub slug algorithm (lowercase, strip everything
+but word characters/hyphen/space, turn each remaining space into a hyphen — critically
+*not* collapsing runs of spaces first) was verified against real anchors already
+authored and depended upon in `react-concepts`: `` `The `try/catch` redirect, paid` ``
+-> `the-trycatch-redirect-paid`, `` `React 19's root-level reporting` `` ->
+`react-19s-root-level-reporting`, and `` `Stage 4 — the stale-chunk case` `` (em dash
+between two spaces) -> `stage-4--the-stale-chunk-case`, matching the corpus's own doubled
+hyphen exactly.
+
+The catalog builder (task 5) and its three verify gates (task 6) are fully implemented
+and share their core logic (`adapt-all.mjs`, `link-report.mjs`) rather than each
+re-walking the corpora independently, so the gates and the artifact they check can never
+silently disagree about what counts as an article or a resolved link. Every gate was
+proven against the real, current repository state: `verify-submodules` passes (4 pinned,
+clean); `verify-frontmatter`, `build-catalog`, and `verify-links` all correctly **fail**,
+because every one of the 196 selected files across the four corpora is missing
+`description` (Debt D5 — the Q1 pass is explicitly out of scope for this session) and 14
+of them are also missing a derivable title (the new D11). `verify-catalog` was proven
+against synthetic fixtures (not committed) covering all four of its checks — duplicate
+uid, a path referencing a missing article, a path referencing a draft article (both with
+and without `SHOW_DRAFTS=1`), and the `root`-folder sentinel — since no real catalog can
+build yet to exercise it against. This is the correct, expected state, not a regression:
+D5 already tracked "build fails on every article until the pass runs" before this session
+started, and the description pass is content authoring that belongs in the corpus repos,
+never invented here.
+
+**Invented decisions:**
+- `RepoAdapter.conceptsRoot: string | null` (root-scan mode) plus `excludeDirs`, replacing
+  the glob-pattern `include: string[]`. No spec dictated this shape; it was chosen so a
+  newly added concept-category directory in `react`/`nestjs` is discovered automatically
+  rather than needing a matching adapter edit, on the theory that a silently-invisible new
+  article is a worse failure mode than none.
+- The universal `index.md` exclusion (`nextjs/docs/recipes/index.md` is a hand-authored
+  listing page, not an article) applied by filename across all four corpora uniformly,
+  rather than as a one-off carve-out for that single file.
+- Object-shaped `status` collapses to `draft` **unconditionally**, with no attempt to read
+  `reviewed: true` as "complete" — deliberately not inferring meaning for an undocumented
+  field shape, even though a `reviewed` key reads suggestively.
+- `deriveTitle()` prefers an explicit frontmatter `title` over the H1 if both exist (no
+  corpus file currently has both, but this keeps a future corpus's opt-in cheap).
+- `gray-matter`, `yaml`, and `tsx` added as new npm dependencies (root); `unified`,
+  `remark-parse`, `remark-gfm`, `unist-util-visit`, `mdast-util-to-string`, and
+  `@types/mdast` added to `packages/content-schema`. All five are explicitly named or
+  strongly implied by `prompts/session-2.md` itself ("parses frontmatter with
+  `gray-matter`", "walks the MDX AST") rather than being independently chosen tooling.
+- `verify-submodules.mjs`'s expected-mount list is a hand-maintained literal, not an
+  import from `RepoId` — it runs from the pre-commit hook via plain `node`, with no
+  TypeScript loader, and must stay dependency-free.
+- `catalog.json`'s `paths` validation lives in `build-catalog.mjs` itself rather than a
+  separate `verify-paths.mjs` — `prompts/session-2.md` scoped path-item validation under
+  `verify-catalog.mjs` ("no path item pointing at a missing or draft article"), and
+  `build-catalog` needs the identical check before it can safely write the artifact, so
+  duplicating it as a fifth script would only invite drift.
+- `docs/audit/frontmatter-2026-08-16.md` is regenerated in place (not append-only) by
+  re-running `pnpm audit:frontmatter` after the task-3 adapter corrections, since the
+  session-2 prompt frames the audit as evidence to correct adapters against, not a diary —
+  the committed file reflects the corrected adapters, with the pre-correction findings
+  (react/nestjs matching zero files) preserved in this log entry and the PR description
+  instead.
+
+**Known issues / next steps:**
+- **Debt D5 (blocking, pre-existing):** every one of the 196 currently-selectable articles
+  fails `verify-frontmatter` / `build-catalog` / `verify-links` on missing `description`.
+  Nothing renders and no catalog exists until `prompts/corpus-description-pass.md` runs in
+  each of the four corpus repos and they cut new tags.
+- **New Debt D11 (blocking a subset):** 14 `react-concepts` articles have no title at all
+  (frontmatter or H1) — listed above. Needs a corpus-side PR adding an H1 to each, then a
+  re-tag; tracked so it does not silently disappear into the D5 noise once descriptions
+  land.
+- `docs/adr/0002-demo-labs.md` remains `proposed`; deploying/embedding the demo labs is
+  still out of scope pending that decision.
+- `curation/paths/` and `curation/overrides/` do not exist yet — `build-catalog.mjs`
+  handles an absent `curation/` directory as zero paths, which is correct for now but
+  untested against a real path definition (no fixture was committed; sanity-tested only
+  via the synthetic, discarded scratch script noted above).
+- `verify-sidecars.mjs` remains deferred per the session prompt — no sidecar files exist.
+
+---

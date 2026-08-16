@@ -3,18 +3,18 @@
 > Living document. Read this first, every session. Update it with **targeted edits only**
 > when something in it becomes false. Never rewrite wholesale.
 >
-> Last updated: 2026-08-15 (Session 1 — monorepo scaffold and fumadocs spike)
+> Last updated: 2026-08-16 (Session 2 — adapters against reality, catalog builder, gates)
 
 ---
 
 ## What this repo is
 
 The delivery surface for the `EverythingFromDayOne` concepts suite. It renders ~120
-verified reference articles from seven standalone corpus repos into one site at
+verified reference articles from four standalone corpus repos into one site at
 `nxhhuy.tech`, and adds the retention layer (progress, quizzes, spaced repetition) that
 standalone markdown cannot provide.
 
-**It is not a place where content is authored.** The seven corpus repos stay canonical.
+**It is not a place where content is authored.** The four corpus repos stay canonical.
 
 **It is not a personal site.** Despite the domain, there is no About page, bio, photo,
 employer, client, or contact content anywhere. `/en` is a corpus landing page. This is a
@@ -50,9 +50,16 @@ Do not duplicate the version table here.
 - [x] Eight agent skills in `.claude/skills/`, indexed into `AGENTS.md`, frontmatter
       validated by the same CI gate
 - [x] `roadmap.md` approved
-- [x] `packages/content-schema` authored — typechecks clean against zod 4.4.3, adapters
-      smoke-tested, extended to seven corpora. **Field names still unverified; `auth` and
-      `authz` are not markdown corpora (session 1).**
+- [x] `packages/content-schema` authored — typechecks clean against zod 4.4.3. **Adapters
+      now run for real against all four mounted corpora (session 2)** — see
+      `docs/audit/frontmatter-2026-08-16.md`. `auth` and `authz` are not markdown corpora
+      (session 1); no adapter exists for either.
+- [x] Section extraction (`extractSections()`) — mdast-based, GitHub-slug anchors verified
+      against real `react-concepts` cross-references (session 2)
+- [x] `scripts/build-catalog.mjs` real implementation + `verify-frontmatter` /
+      `verify-links` / `verify-catalog` gates (session 2) — **cannot currently produce a
+      passing build: every article is missing `description` (Debt D5), 14 `react-concepts`
+      articles are also missing a title entirely (Debt D11, new this session)**
 - [x] `packages/ui/DESIGN.md` + `tokens.css` — the "Instrument" direction
 - [x] `.github/workflows/ci.yml`
 - [x] `docs/adr/0001` — Angular demos integration (proposed, pending Q7)
@@ -60,7 +67,7 @@ Do not duplicate the version table here.
 - [x] Monorepo scaffold (pnpm workspaces + Turborepo)
 - [x] **fumadocs-mdx × Next 16.3 × Cache Components spike** — all four exit criteria passed
       against `cache-components-model`
-- [x] Content submodules wired, seven mounts, pinned to tags
+- [x] Content submodules wired, four mounts, pinned to tags
 - [ ] Design tokens applied
 - [ ] `nxhhuy.tech` DNS cutover
 
@@ -75,17 +82,12 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
 - `auth`, `authz`, `websec` are **runnable demo apps, not corpora** — no `docs/`, no
   frontmatter, no adapters, not submodules. Session 1 audit. See ADR-0002.
 - Default branches: `main` for `nextjs` and `nestjs`, `master` for `react` and `angular`.
-
-- There are **seven** mounted submodules, not five. `content/auth` ->
-  `demo-auth-concepts`, `content/authz` -> `demo-authz-concepts`, `content/websec` ->
-  `demo-attacked-web`. Session 1 cloned them: **none of the three is a markdown
-  corpus.** They are demo-lab trees (per-concept folders + `prompts/*.md` with no
-  frontmatter, no `docs/`). `websec` stays mounted as a code-extraction / structural
-  sibling; it should produce no articles. Session 2 decides adapter deletion.
-- The React GitHub repo is `EverythingFromDayOne/react-concepts`, not
-  `reactjs-concepts`. Mount point stays `content/reactjs`.
-- Default branches are not uniform. `main`: nextjs, nestjs. `master`: reactjs,
-  angular, auth, authz, websec.
+- There are **exactly four** mounted submodules — `nextjs`, `react`, `angular`, `nestjs`.
+  `auth`, `authz`, `websec` were mounted in PR #1 by mistake and removed before merge
+  (session 1 follow-up); `verify-submodules.mjs` now fails if the count or the mount set
+  ever drifts from these four (session 2).
+- The React GitHub repo is `EverythingFromDayOne/react-concepts`, not `reactjs-concepts`.
+  Mount point is `content/react` (not `content/reactjs`).
 - `fumadocs-core` is 16.x; `fumadocs-mdx` is 15.x. They version independently.
 - `content/` holds **submodules (gitlinks)**. `.gitignore` does NOT and cannot protect
   them — the parent tracks a commit SHA, not files. The guard is `verify-submodules.mjs`
@@ -107,6 +109,23 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
 - No personal or identifying content ships. The only carve-out is licence attribution
   (`LICENSE`, `/en/license`), because CC BY 4.0 requires naming a copyright holder.
 - An empty About page is not an oversight. Do not fill it.
+- **`react` and `nestjs` have no `docs/` wrapper.** Concept categories are top-level
+  directories in the repo root (`architecture/`, `foundations/`, ...); recipes live at
+  top-level `recipes/<category>/`. `nextjs` and `angular` do wrap everything in
+  `docs/concepts` and `docs/recipes`. The adapter models this as `conceptsRoot: string |
+  null` (`null` = scan the repo root) rather than a fixed glob, so a new category directory
+  is picked up automatically (session 2 audit).
+- **No article in any of the four corpora carries a `title` frontmatter key.** Every one
+  relies on the body's H1 — `deriveTitle()` falls back to it. 14 `react-concepts` articles
+  have neither (Debt D11); that is a genuine corpus gap, not an adapter bug.
+- **`status` is a plain string in `nextjs`/`angular` but an object in `react`/`nestjs` and
+  some `angular` recipes** (`{ drafted, reviewed }` / `{ upgraded, reviewed }`).
+  `normaliseStatus()` collapses any object shape to `draft` unconditionally — it does not
+  attempt to read `reviewed: true` as "complete".
+- Every one of the ~196 currently-selectable articles fails to adapt on missing
+  `description` (Debt D5) — `verify-frontmatter`, `build-catalog`, and `verify-links` are
+  all expected to fail until the Q1 description pass runs in each corpus repo. This is
+  tracked, pre-existing, and out of scope for the session that discovers it.
 
 ---
 
@@ -124,7 +143,10 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
 
 ## Planned next steps
 
-1. Session 2 — reality-check adapters against the seven mounts. `auth` / `authz` /
-   `websec` are demo labs; decide whether to delete those adapters.
-2. Design tokens applied in `packages/ui`.
-3. DNS cutover: `nxhhuy.tech` -> Vercel.
+1. Session 3 — the Q1 `description` frontmatter pass (Debt D5) must run in each of the
+   four corpus repos before `build-catalog`/`verify-frontmatter`/`verify-links` can pass;
+   see `prompts/corpus-description-pass.md`. A corpus-side fix for Debt D11 (14
+   `react-concepts` articles missing any title) is a prerequisite for that corpus.
+2. Wire `apps/web` routes + sidebar to `catalog.json` once it can build (Phase 1 items 7–8).
+3. Design tokens applied in `packages/ui`.
+4. DNS cutover: `nxhhuy.tech` -> Vercel.

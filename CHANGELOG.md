@@ -5,6 +5,52 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-16] — cursor/session-2-adapters-catalog-c932 — Adapters against reality, catalog builder, gates
+
+**Added**
+- `docs/audit/frontmatter-2026-08-16.md` — the session-2 frontmatter audit, run for real
+  against all four mounted corpora: file selection, distinct frontmatter keys and values,
+  and every adaptation failure grouped by reason
+- `packages/content-schema/src/sections.ts` — `extractSections()`, parsing the article
+  body as an mdast tree and slugifying `##`/`###` headings with GitHub's own algorithm,
+  verified against real anchors already depended upon in `react-concepts`
+  (`error-boundaries.md`)
+- `scripts/audit-frontmatter.mjs`, `scripts/lib/{corpus-fs,adapt-all,link-report,curation}.mjs`
+- `scripts/verify-frontmatter.mjs`, `scripts/verify-links.mjs`, `scripts/verify-catalog.mjs`
+- New Debt **D11**: 14 `react-concepts` articles have neither a frontmatter `title` nor a
+  body `# ` heading — a genuine corpus gap, reported rather than papered over
+
+**Changed**
+- `packages/content-schema` adapters corrected against the real files: `RepoAdapter`
+  replaces the `include` glob array with `conceptsRoot` / `recipesRoot` / `excludeDirs`,
+  since `react` and `nestjs` have no `docs/` wrapper and the old globs matched **zero**
+  files in either; `title` is now derived from the body's H1 when frontmatter omits it
+  (true for every article in all four corpora); `status` accepts the object shape
+  (`{ drafted, reviewed }` / `{ upgraded, reviewed }`) observed in `react`/`nestjs`/some
+  `angular` recipes, collapsing unconditionally to `draft`
+- `scripts/build-catalog.mjs` replaced the session-1 stub with a real implementation:
+  adapt every selected file, resolve every `related` ref, load `curation/paths/*.yaml`,
+  emit `catalog.json`. Refuses to write on any adaptation failure or unresolved/draft ref
+- `scripts/verify-submodules.mjs` now fails unless `.gitmodules` lists exactly the four
+  expected mount paths, not merely "at least one, all clean"
+- `docs/adr/0002` cross-references, `progress.md` Debt table (D2/D3 marked closed)
+
+**Fixed**
+- Nothing new; `verify-frontmatter` / `build-catalog` / `verify-links` correctly continue
+  to fail on the pre-existing Debt D5 (missing `description` everywhere) — expected, not a
+  regression
+
+**Architecture decisions**
+- `conceptsRoot: string | null` (root-scan mode) chosen over hand-enumerating each
+  corpus's category directories, so a new concept category is discovered automatically
+  rather than silently dropped
+- Object-shaped `status` collapses to `draft` unconditionally rather than inferring
+  `reviewed: true` means "complete" — an undocumented field shape is not a value to guess
+  meaning from
+- `index.md` is excluded from article discovery by filename, uniformly across corpora
+- `build-catalog.mjs` and the three verify gates share their adaptation and link-resolution
+  logic (`adapt-all.mjs`, `link-report.mjs`) so the artifact and its gates cannot drift
+
 ### [2026-08-16] — main — Schema corrected against the session 1 audit
 
 **Added**

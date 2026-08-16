@@ -2,121 +2,118 @@
 /**
  * build-catalog.mjs
  *
- * Session 1 cut: verify every mounted submodule is present, count markdown
- * files, record tag + commit. Refuses to emit catalog.json until adapters are
- * reality-checked (session 2) — an empty article list is not a catalog.
+ * Session 2 task 5. Walks the four mounted submodules -> adapts every
+ * selected file -> extracts sections -> resolves every `related` ref against
+ * the full article set -> loads `curation/paths/*.yaml` -> emits
+ * `catalog.json` at the repo root (gitignored; a build artifact, POSTed to
+ * `api/catalog/sync` on deploy, per `packages/content-schema/src/catalog.ts`).
  *
- * A missing or empty content set exits 1. A gate that passes on nothing is
- * broken.
+ * Refuses to write a partial or empty catalog. If any file fails to adapt, or
+ * any `related` ref is genuinely unresolved, or (outside `SHOW_DRAFTS`) any
+ * ref targets a draft, this exits 1 with a full report and writes nothing —
+ * matching the adapter rule that a required-field gap is reported, never
+ * hidden. As of this session every article fails on missing `description`
+ * (Debt D5, tracked in `progress.md`) — that is correct and expected until
+ * the Q1 frontmatter pass runs in each corpus repo, not a bug in this script.
  */
-import { execFileSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { adaptAllArticles } from './lib/adapt-all.mjs';
+import { printGroupedFailures, ROOT } from './lib/corpus-fs.mjs';
+import { loadPathDefinitions } from './lib/curation.mjs';
+import { buildLinkReport } from './lib/link-report.mjs';
+import { Catalog } from '../packages/content-schema/src/index.ts';
 
-const ROOT = resolve(import.meta.dirname, '..');
-const gitmodulesPath = join(ROOT, '.gitmodules');
+const SHOW_DRAFTS = process.env.SHOW_DRAFTS === '1' || process.env.NEXT_PUBLIC_SHOW_DRAFTS === '1';
 
-if (!existsSync(gitmodulesPath)) {
-  console.error('build-catalog: FAIL — .gitmodules is missing');
+let sources;
+let articlesByUid;
+let failures;
+try {
+  ({ sources, articlesByUid, failures } = adaptAllArticles());
+} catch (err) {
+  console.error(`build-catalog: FAIL — ${err.message}`);
   process.exit(1);
 }
 
-const modules = parseGitmodules(readFileSync(gitmodulesPath, 'utf8'));
-if (modules.length === 0) {
-  console.error('build-catalog: FAIL — no submodules configured');
+if (failures.length > 0) {
+  printGroupedFailures('build-catalog: adaptation failures', failures);
   process.exit(1);
 }
 
-/** @type {Record<string, { tag: string, commit: string, markdownFiles: number }>} */
-const sources = {};
-let totalMd = 0;
+if (articlesByUid.size === 0) {
+  console.error('build-catalog: FAIL — zero articles adapted across all four corpora. Refusing to emit an empty catalog.');
+  process.exit(1);
+}
 
-for (const mod of modules) {
-  const abs = join(ROOT, mod.path);
-  if (!existsSync(abs)) {
-    console.error(`build-catalog: FAIL — ${mod.path} is missing`);
-    process.exit(1);
+// ---------------------------------------------------------------------------
+// Resolve every `related` ref against the full article set.
+
+const linkReport = buildLinkReport(articlesByUid, { showDrafts: SHOW_DRAFTS });
+
+if (linkReport.unresolved.length > 0) {
+  console.error(`build-catalog: FAIL — ${linkReport.unresolved.length} unresolved \`related\` ref(s)`);
+  for (const u of linkReport.unresolved) {
+    console.error(`    [${u.from}] "${u.raw}" — ${u.reason}`);
   }
-
-  const commit = git(['rev-parse', 'HEAD'], abs);
-  let tag;
-  try {
-    tag = git(['describe', '--exact-match', '--tags', 'HEAD'], abs);
-  } catch {
-    console.error(`build-catalog: FAIL — ${mod.path} is not pinned to a tag`);
-    process.exit(1);
-  }
-
-  const markdownFiles = countMarkdown(abs);
-  totalMd += markdownFiles;
-  const mount = mod.path.replace(/^content\//, '');
-  sources[mount] = { tag, commit, markdownFiles };
-}
-
-if (totalMd === 0) {
-  console.error('build-catalog: FAIL — no markdown files in any submodule');
   process.exit(1);
 }
 
-console.log(`build-catalog: ${totalMd} markdown file(s) across ${modules.length} submodule(s)`);
-console.log(JSON.stringify({ sources }, null, 2));
-console.error(
-  'build-catalog: not emitting catalog.json — article adaptation is session 2. Refusing an empty article list.',
+if (!SHOW_DRAFTS && linkReport.draftTargets.length > 0) {
+  console.error(
+    `build-catalog: FAIL — ${linkReport.draftTargets.length} ref(s) to a draft article in a production build ` +
+      '(set SHOW_DRAFTS=1 to allow)',
+  );
+  for (const d of linkReport.draftTargets) {
+    console.error(`    [${d.from}] -> ${d.to}`);
+  }
+  process.exit(1);
+}
+
+if (linkReport.plannedTargets.length > 0) {
+  console.warn(`build-catalog: WARN — ${linkReport.plannedTargets.length} ref(s) to a planned (unmounted) corpus`);
+  for (const p of linkReport.plannedTargets) console.warn(`    [${p.from}] "${p.raw}" -> ${p.repo}`);
+}
+if (linkReport.demoTargets.length > 0) {
+  console.warn(`build-catalog: WARN — ${linkReport.demoTargets.length} ref(s) to a demo app, not an article`);
+  for (const d of linkReport.demoTargets) console.warn(`    [${d.from}] "${d.raw}" -> ${d.repo}`);
+}
+
+// ---------------------------------------------------------------------------
+
+let paths;
+try {
+  paths = loadPathDefinitions(join(ROOT, 'curation'));
+} catch (err) {
+  console.error(`build-catalog: FAIL — ${err.message}`);
+  process.exit(1);
+}
+
+for (const path of paths) {
+  for (const item of path.items) {
+    const target = articlesByUid.get(item.article);
+    if (!target) {
+      console.error(`build-catalog: FAIL — path "${path.slug}" references missing article \`${item.article}\``);
+      process.exit(1);
+    }
+    if (target.status === 'draft' && !SHOW_DRAFTS) {
+      console.error(`build-catalog: FAIL — path "${path.slug}" references draft article \`${item.article}\``);
+      process.exit(1);
+    }
+  }
+}
+
+const catalog = Catalog.parse({
+  schema: 1,
+  builtAt: new Date().toISOString(),
+  sources,
+  articles: [...articlesByUid.values()],
+  paths,
+  edges: linkReport.resolved,
+  aliases: [],
+});
+
+writeFileSync(join(ROOT, 'catalog.json'), `${JSON.stringify(catalog, null, 2)}\n`, 'utf8');
+console.log(
+  `build-catalog: wrote catalog.json — ${catalog.articles.length} article(s), ${catalog.edges.length} edge(s), ${catalog.paths.length} path(s)`,
 );
-process.exit(1);
-
-/**
- * @param {string} raw
- * @returns {Array<{ name: string, path: string }>}
- */
-function parseGitmodules(raw) {
-  /** @type {Array<{ name: string, path: string }>} */
-  const out = [];
-  /** @type {{ name: string, path: string } | null} */
-  let current = null;
-  for (const line of raw.split(/\r?\n/)) {
-    const header = /^\[submodule "(.+)"\]/.exec(line);
-    if (header) {
-      current = { name: header[1], path: '' };
-      out.push(current);
-      continue;
-    }
-    if (!current) continue;
-    const kv = /^\s*path\s*=\s*(.+?)\s*$/.exec(line);
-    if (kv) current.path = kv[1];
-  }
-  return out;
-}
-
-/** @param {string[]} args @param {string} cwd */
-function git(args, cwd) {
-  return execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
-}
-
-/** @param {string} dir */
-function countMarkdown(dir) {
-  let n = 0;
-  /** @param {string} current */
-  function walk(current) {
-    let entries;
-    try {
-      entries = readdirSync(current);
-    } catch {
-      return;
-    }
-    for (const name of entries) {
-      if (name === '.git' || name === 'node_modules') continue;
-      const full = join(current, name);
-      let stat;
-      try {
-        stat = statSync(full);
-      } catch {
-        continue;
-      }
-      if (stat.isDirectory()) walk(full);
-      else if (name.endsWith('.md') || name.endsWith('.mdx')) n += 1;
-    }
-  }
-  walk(dir);
-  return n;
-}
