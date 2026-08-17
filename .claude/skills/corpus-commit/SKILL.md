@@ -10,7 +10,8 @@ description: "Commit and push procedure for corpus-web. Use before any git commi
 2. `CHANGELOG.md` has an entry under `## [Unreleased]` for this session.
 3. `.agents/summary.md` has been updated **if and only if** something in it became false.
    Targeted edits only.
-4. `progress.md` reflects the new status of any item touched.
+4. `progress.md` reflects the new status of any item touched. If a debt row
+   changed, `docs/DEBT.md` was updated too.
 
 If any of these is missing, stop and complete it. Do not commit.
 

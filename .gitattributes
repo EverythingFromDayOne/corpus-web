@@ -2,6 +2,6 @@
 .agents/SESSION-LOG.md merge=union
 CHANGELOG.md merge=union
 
-# Do NOT add progress.md or .agents/summary.md here. Both are edited in place, so a
-# union merge keeps the stale line alongside the corrected one rather than merging
-# them. See .cursor/rules/00-session-protocol.mdc.
+# Do NOT add progress.md, .agents/summary.md, or docs/DEBT.md here. All three are
+# edited in place, so a union merge keeps the stale line alongside the corrected
+# one rather than merging them. See .cursor/rules/00-session-protocol.mdc.
