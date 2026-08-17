@@ -1031,5 +1031,223 @@ adapt. The other three corpora are unchanged, so `build-catalog` still cannot wr
 
 ---
 
+## Session 2 follow-up c — the catalog emits with exclusions — 2026-08-16
+
+**Branch:** `cursor/catalog-emit-with-exclusions-e8aa`
+
+**Files changed:**
+- `packages/content-schema/src/catalog.ts` — new `CatalogFailure` schema (`repo`,
+  `sourcePath`, `reason`) and a required `failures` array on `Catalog`; the doc comment
+  states the emit-with-exclusions contract and where the gate now lives
+- `scripts/build-catalog.mjs` — an adaptation failure is a warning and an exclusion, not
+  an abort; the failure list travels into `catalog.failures`; the summary line reports
+  the excluded count
+- `scripts/verify-catalog.mjs` — new check: a non-empty `catalog.failures` exits 1,
+  printed grouped by reason
+- `prompts/session-3.md` — Track A step 4 no longer implies `build:catalog`'s exit code
+  is the adaptation verdict
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this session
+- `.agents/summary.md` — the catalog's new emit-with-exclusions behaviour as a key fact
+- `progress.md` — Phase 1 items 7 and 7b annotated; session log entry
+
+**Why:** `build-catalog.mjs` was all-or-nothing: one unadaptable file and it wrote
+nothing. That coupling is wrong in both directions. It makes a small number of authoring
+gaps — 16, against ~180 finished articles — hold the entire artifact hostage, and it
+does so on a distinction the pipeline does not otherwise make. A `draft` article is
+already excluded from what ships without failing anything; an article that cannot adapt
+is the same kind of thing, an article that is not ready, and it now gets the same
+treatment.
+
+Nothing is hidden by the change, which is the part that matters. The exclusions travel
+inside the artifact rather than only in a build log, so anything reading `catalog.json`
+can see exactly which files are missing and why. `verify-catalog` exits 1 while that
+array is non-empty, and `verify-frontmatter` still fails on the source content
+unconditionally, so CI is exactly as red as it was before. What changed is that a
+partial catalog now exists to develop routes and chrome against, instead of nothing.
+
+Proven end-to-end against a synthetic four-corpus fixture (not committed — no real
+catalog can build until Debt D5 lands, and the two failure modes needed to be exercised
+in isolation): seven articles, two deliberately broken (one missing `description`, one
+with its only `# ` line inside a code fence). `build-catalog` exited 0, wrote five
+articles and the two exclusions; `verify-catalog` exited 1 and named both; deleting the
+two broken files and rebuilding gave five articles, zero exclusions, and a clean
+`verify-catalog`.
+
+**A finding that outlives this change.** With a synthetic `description` injected to
+simulate the post-Q1-pass corpus, 181 of 196 articles adapt and 15 fail — but
+`build-catalog` still would not write, because the link report is separately fatal: 128
+`related` refs are unresolved and 278 point at draft articles. 79 of the unresolved refs
+point at the 15 excluded articles; the other 49 point at articles that exist in no
+corpus at all (`nestjs/nest-cant-resolve-dependencies`, `nestjs/dynamic-modules`,
+`nextjs/use-cache-directive`, and 20 more targets). So this change is necessary for the
+16-blocks-180 problem and not sufficient on its own. Extending the same
+emit-with-exclusions treatment to unresolved and draft-target refs was deliberately NOT
+done here — it is a semantic change to `verify-links` and `.cursor/rules/30`'s
+"cross-repo links hard-fail here" rule, and that is a decision to take explicitly rather
+than fold into this one.
+
+**Invented decisions:**
+- **`schema` stays at `1` rather than bumping to `2`.** Adding a required field is a
+  shape change, and the literal exists precisely to mark those. It was left alone because
+  no catalog of shape v1 has ever been produced — `build-catalog` has never successfully
+  written the file, and the artifact is gitignored and rebuilt from scratch on every
+  build, so there is no v1 reader or v1 copy anywhere for the number to distinguish
+  against. Bump it the first time a real consumer exists.
+- **`failures` is required, not optional.** An optional array would let a consumer read
+  a catalog and not know whether "no failures" meant a clean corpus or an old builder.
+- **`CatalogFailure` carries no `uid`.** Adaptation is what produces a uid, and every
+  entry is a file that did not get that far; `sourcePath` is its only stable identity.
+  It would be derivable from the filename slug in most cases, and inventing one for a
+  file whose frontmatter never validated is exactly the plausible-wrong-value failure
+  the adapters throw to avoid.
+- **`build-catalog` exits 0 when it excludes.** Otherwise the exit code carries the same
+  all-or-nothing meaning the change was made to remove, and a non-zero exit alongside a
+  successfully written artifact is the more confusing signal of the two.
+- **The zero-articles refusal is kept.** Emitting a catalog with no articles is not a
+  partial build, it is a broken one.
+- **The exclusion report prints to stderr and is grouped by reason**, reusing
+  `printGroupedFailures`. Sixteen flat lines would bury the single-instance problems.
+- **`prompts/session-3.md` Track A step 4 was corrected** rather than left to mislead —
+  it told a future session to read `build:catalog`'s exit code as the adaptation verdict,
+  which is now false. Factual correction only; no prose was invented.
+
+**Known issues / next steps:**
+- The link report is the remaining blocker on a real `catalog.json` — see the finding
+  above. Needs an explicit decision before Track A of session 3 can produce an artifact.
+- `verify-catalog` runs in CI (`.github/workflows/ci.yml`, `content` job) with no
+  `build:catalog` step before it, so it currently fails on a missing `catalog.json`
+  rather than on the catalog's contents. Wiring that is a CI gate configuration change
+  and is a stop-and-ask item; flagged, not done.
+- Debt D5 and Debt D11 are untouched. Against the real corpus `pnpm build:catalog` still
+  exits 1 — now on the zero-articles refusal rather than on the failure list, since all
+  196 selected files fail.
+
+---
+
+## Session 2 follow-up d — the link report is classified four ways — 2026-08-16
+
+**Branch:** `cursor/catalog-emit-with-exclusions-e8aa`
+
+**Files changed:**
+- `packages/content-schema/src/catalog.ts` — `LinkReport` restructured: `resolved` ->
+  `edges`, `unresolved` -> `unresolvedTargets`, new `excludedTargets`, and per-bucket doc
+  comments stating severity and why. New `LinkEdge` and `ExcludedTarget` shapes. `Catalog`
+  gains `excludedTargets` and `draftTargets`, and `edges` is now documented as pointing
+  only at articles the catalog contains
+- `scripts/lib/link-report.mjs` — `buildLinkReport()` takes the adaptation `failures` and
+  classifies four ways; `indexFailuresByUid()` keys the excluded files by
+  `${repo}/${filename slug}` so a ref to one is recognised
+- `scripts/build-catalog.mjs` — only `unresolvedTargets` is fatal; excluded and draft
+  targets warn and travel into the artifact; the summary line reports both counts
+- `scripts/verify-links.mjs` — adaptation failures warn instead of failing the gate;
+  `unresolvedTargets` is the only fatal condition; the excluded/draft/planned/demo buckets
+  are reported as warnings with distinct-target counts
+- `scripts/verify-catalog.mjs` — two structural checks: every `edges` entry resolves to an
+  article the catalog contains, and every `excludedTargets` entry names a file in
+  `failures`. Excluded and draft targets are reported as a renderer warning, not a failure
+- `.cursor/rules/30-content-pipeline.mdc` — the "Cross-repo links" section now states the
+  four-way classification with a severity table, why an excluded target warns, and the
+  filename-slug matching rule
+- `AGENTS.md` — regenerated
+- `docs/audit/unresolved-refs-2026-08-16.md` — new. All 49 unresolved refs individually:
+  source article, raw ref, target, and whether the target is on the target corpus's own
+  roadmap, grouped by the fix each one needs
+- `prompts/session-3.md` — Track A step 4's link expectation corrected to
+  `unresolvedTargets`, with Debt D13 named as the known exception
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this session
+- `.agents/summary.md` — the four-way classification as a key fact; the blocked-catalog
+  fact rewritten
+- `progress.md` — Debt D12 closed, Debt D13 rewritten with the four causes; Phase 1 item
+  7b annotated; session log entry
+
+**Why:** "Unresolved" was one bucket doing four jobs. Follow-up c made an unadaptable
+article an exclusion rather than an abort, which left every inbound `related` ref pointing
+at a file the catalog deliberately no longer contains — and those refs were still being
+reported as unresolved and still failing the build. Measured: 15 excluded articles produce
+**79** unresolved refs. The gate was restating 15 root causes 79 times, and the 49 refs
+that point at nothing at all — the case the rule was actually written for, and the only one
+with no other report anywhere — were 38% of a list nobody would read to the bottom of.
+
+So the report now classifies by cause and fails only where failing tells someone something
+new. `edges` is unchanged. `excludedTargets` warns, because `verify-frontmatter` and
+`catalog.failures` already name that file once, by path and reason. `draftTargets` warns
+and is **recorded**, because a ref to a draft is a correct ref with no route in this build
+— it goes live the day the article is marked complete, and the actual defect would be
+rendering it as a link that 404s, which is a rendering decision the renderer can now make.
+`unresolvedTargets` stays fatal.
+
+An excluded target is matched by `repo` + filename slug. `CatalogFailure` carries no uid
+by design (follow-up c), and this does not sneak one in: the slug is what a ref to the file
+must resolve to regardless of what its frontmatter says, because the adapter rejects any
+article whose id is not its filename slug, and the derived key is used only to downgrade a
+fatal to a warning — never to give an unadapted file an identity in the artifact.
+
+**The 49 are itemised in `docs/audit/unresolved-refs-2026-08-16.md`, and they are not one
+problem.** 34 distinct targets, all in `nextjs` and `nestjs`, in four groups: 10 refs point
+at articles that are **written and present but unpublished** (6 of them at
+`nestjs/validation/dtos-and-class-validator.ts` — a complete article with frontmatter and
+an H1, saved with a `.ts` extension, so file selection never sees it; 4 at
+`nextjs/prompts/cache-lifetimes.md.tpl` and `use-cache-directive.md.tpl`, both carrying
+`verified_against: next@16.3.0`). 21 are forward references to concept articles enumerated
+on the target corpus's own roadmap and queued in its `progress.md`. 18 are `nestjs` recipe
+slugs written into `related` before their recipe track opened — a pattern
+`nestjs-concepts/progress.md` already logs as debt. **Zero are rename leftovers:** no file
+named `<slug>.md` for any of the 34 targets has ever existed on any branch of any corpus,
+and a rename could only orphan a ref by changing the slug itself, since `parseRelated()`
+resolves on the slug and discards folder segments. Every rename in the four corpora is a
+folder move. PR #9's body said 23 distinct targets; the correct count is 34.
+
+**Invented decisions:**
+- **`verify-links` no longer fails on adaptation failures.** It exited 1 the moment any
+  file failed to adapt, on the stated grounds that a link graph over partially-adapted
+  content is untrustworthy — so it would never have reached the new classification at all,
+  and the change would have been inert in the gate that matters. The distinction that was
+  missing is exactly the one now present: the graph says which refs land on an excluded
+  file and which land on nothing. `verify-frontmatter` owns that failure and still fails
+  on it unconditionally. This is the largest inferred decision here and the one most worth
+  disagreeing with.
+- **`LinkReport.resolved` renamed to `edges` and `unresolved` to `unresolvedTargets`.**
+  The instruction named four buckets; `resolved` was the same set under a second name
+  (`Catalog.edges` was already built from it), and `unresolved`/`draftTargets` mixed two
+  naming conventions in one schema.
+- **`ExcludedTarget` carries `sourcePath`.** `from` + `to` would have left a reader
+  joining an excluded target to the right `CatalogFailure` by guesswork.
+- **`Catalog` carries `excludedTargets` and `draftTargets`.** The instruction asked for
+  draft targets to be recorded so the renderer can emit plain text; an excluded target is
+  the identical rendering hazard, so recording one and not the other would have left the
+  renderer with half a contract.
+- **`schema` stays at `1`**, on the same reasoning as follow-up c and in the same PR: no
+  catalog of any shape has been produced yet and there is no consumer to distinguish.
+- **The two structural checks in `verify-catalog`.** Only a builder bug can fail them, no
+  corpus content can. They exist because a renderer trusts `edges` enough to emit a link
+  without checking, and mis-classification is the new failure mode this change introduces.
+- **`docs/audit/unresolved-refs-2026-08-16.md` exists at all**, rather than only in the PR
+  body. The per-ref table is the input to corpus-side work in four different repos, and a
+  PR body is not where that survives. Generated by an uncommitted script, same practice as
+  the session-2 frontmatter audit.
+- **The "on a corpus roadmap?" verdict uses a delimited match**, not a substring: matching
+  `caching` anywhere reported a sentence about caching in an unrelated `progress.md` row as
+  a plan entry for `nestjs/caching`. One false positive found and removed that way.
+- **Group 3's boundary is the ref's own `recipes/` prefix**, not the absence of a roadmap
+  mention. Two recipe slugs do appear in `nestjs` planning docs — one in the debt row that
+  records them as invented ahead of their track, one inside an example frontmatter block in
+  roadmap §6.2 — and neither is a plan entry.
+
+**Known issues / next steps:**
+- **`buildLinkReport()` has no unit test.** It lives in `scripts/lib/`, which is outside
+  every workspace package, so a test target for it would change the Turborepo task graph —
+  a stop-and-ask item. Proven instead against a synthetic four-corpus fixture (not
+  committed) that exercises all six buckets, plus the real corpus under a simulated
+  description pass. Moving the function into `packages/content-schema/src/` would make it
+  testable by the existing `node:test` runner and is the cheap fix.
+- The 49 unresolved refs still fail the build, by design. Every one is corpus-side; the
+  audit doc groups them by the fix each needs. The `.ts`-extension article is a one-file
+  `git mv` in `nestjs-concepts` and closes 6 of them.
+- Debt D5 and D11 are untouched. Against the real corpus `verify:links` still exits 1, now
+  on the zero-articles refusal, since no article adapts at all.
+- `verify-catalog` still runs in CI with no `build:catalog` step before it (flagged in
+  follow-up c, still a stop-and-ask).
 
 ---

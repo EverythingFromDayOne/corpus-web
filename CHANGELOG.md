@@ -89,6 +89,81 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   pass does not change hashes and must not flag `lesson_progress` for invalidation
 - Promotion PRs stay one submodule; remaining gate failures on other corpora are
   pre-existing and not a reason to bump those pins in the same PR
+### [2026-08-16] — cursor/catalog-emit-with-exclusions-e8aa — The link report is classified four ways
+
+**Added**
+- `LinkReport.excludedTargets` — a `related` ref whose target is a real corpus file that
+  did not adapt, so it is already in `catalog.failures`. **Warns**; 15 excluded articles
+  were producing 79 of these as hard failures
+- `Catalog.excludedTargets` and `Catalog.draftTargets` — refs to a real article this build
+  has no route for, carried in the artifact so a renderer emits plain text rather than a
+  link that 404s
+- `LinkEdge` and `ExcludedTarget` schemas; `ExcludedTarget` carries the excluded file's
+  `sourcePath` so an entry joins to the `CatalogFailure` that explains it
+- Two structural checks in `verify-catalog`: every `edges` entry resolves to an article the
+  catalog contains, and every `excludedTargets` entry names a file in `failures`
+- `docs/audit/unresolved-refs-2026-08-16.md` — all 49 unresolved refs individually, with
+  the fix each needs
+
+**Changed**
+- `LinkReport.resolved` -> `edges`, `unresolved` -> `unresolvedTargets`
+- `draftTargets` warns and is recorded instead of failing the build. A ref to a draft is a
+  correct ref with no route in this build; it goes live when the article is marked complete
+- `unresolvedTargets` — target exists in no corpus at all — is the only fatal link bucket
+- `verify-links` no longer fails when a file fails to adapt. It exited before ever
+  classifying anything, and `verify-frontmatter` owns that failure
+- `.cursor/rules/30-content-pipeline.mdc` — the "Cross-repo links" section carries the
+  four-way severity table, so the rule and the code agree
+- `prompts/session-3.md` — Track A step 4's link expectation is `unresolvedTargets`, with
+  Debt D13 named as the known exception
+
+**Fixed**
+- Nothing in behaviour that was a defect; the 49 refs still fail, by design
+
+**Architecture decisions**
+- Fail once on the root cause, never on its symptoms. An excluded target is an adaptation
+  failure seen from the far end of a link, already reported by path and reason
+- A link to a page that 404s is a rendering bug, so draft and excluded targets are recorded
+  for the renderer rather than treated as build failures
+- An excluded target is matched by `repo` + filename slug. `CatalogFailure` still carries
+  no uid; the slug is what a ref must resolve to anyway, and the key only downgrades a
+  fatal to a warning
+
+### [2026-08-16] — cursor/catalog-emit-with-exclusions-e8aa — The catalog emits with exclusions
+
+**Added**
+- `CatalogFailure` in `packages/content-schema/src/catalog.ts` — `repo`, `sourcePath`,
+  `reason` — and a required `failures` array on `Catalog`, so the files a build left out
+  travel inside the artifact rather than only in a build log
+- `verify-catalog` check: a non-empty `catalog.failures` exits 1, printed grouped by
+  reason
+
+**Changed**
+- `scripts/build-catalog.mjs` no longer refuses to write when a file fails to adapt. The
+  file is excluded from `articles`, recorded in `failures`, and the build continues —
+  the same treatment a draft already gets. Zero articles adapting, an unresolved
+  `related` ref, a draft target outside `SHOW_DRAFTS`, and a path item pointing at a
+  missing or draft article all remain fatal
+- `build-catalog`'s summary line reports the excluded count alongside articles, edges,
+  and paths
+- `prompts/session-3.md` — Track A step 4 no longer implies `build:catalog`'s exit code
+  is the adaptation verdict
+
+**Fixed**
+- Nothing. `verify-frontmatter` is untouched and still fails on all 196 selected files
+
+**Architecture decisions**
+- A failed article is not categorically different from a draft one: both are articles
+  that are not ready, and the pipeline already excludes drafts without failing. Sixteen
+  authoring gaps do not get to hold ~180 finished articles hostage
+- The gate moves rather than disappearing. `verify-frontmatter` fails on the source
+  content; `verify-catalog` fails on the artifact's `failures`. CI is exactly as red as
+  before, and the artifact now exists to build routes against
+- `schema` stays at `1`: no catalog of that shape has ever been produced, since
+  `build-catalog` has never successfully written the file. Bump it when a real consumer
+  exists
+- `failures` is required rather than optional, so "no failures" can never mean "old
+  builder"
 
 ### [2026-08-16] — cursor/fix-derive-title-mdast-15ee — `packages/content-schema` typechecks its tests
 

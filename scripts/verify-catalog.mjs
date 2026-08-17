@@ -8,12 +8,26 @@
  * content. This gate checks the BUILT artifact:
  *
  *   - schema-valid against `Catalog` in `packages/content-schema/src/catalog.ts`
+ *   - an empty `failures` array — `build-catalog` emits with exclusions rather
+ *     than refusing to write, so this is where an unadaptable article stops
+ *     being a warning and becomes a build failure. The artifact ships every
+ *     finished article; the gate still refuses to call the corpus clean
  *   - no duplicate article `uid`
  *   - no path item pointing at a missing or (outside `SHOW_DRAFTS`) draft article
  *   - no article landed in the `dirnamePath()` fallback's `root` sentinel —
  *     that value only appears when a corpus file has no explicit folder key
  *     AND lives outside `docs/`, which means folder inference silently guessed
  *     wrong rather than the corpus genuinely wanting a root-level article
+ *   - every `edges` entry points at an article the catalog actually contains,
+ *     and every `excludedTargets` entry names a file the catalog actually lists
+ *     in `failures`. Both are the builder's own claims about the link report's
+ *     four-way classification, and a renderer trusts `edges` enough to emit a
+ *     link without checking. Only a builder bug can fail these; no corpus
+ *     content can
+ *
+ * `excludedTargets` and `draftTargets` are NOT failures here. They are refs to a
+ * real article this build has no route for, and their root cause is reported
+ * once each — in `failures` above, and by the corpus's own draft status.
  *
  * Does not build the catalog itself — run `pnpm build:catalog` first. A
  * missing `catalog.json` is a failure, not a skip: a gate that passes when
@@ -21,7 +35,7 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ROOT } from './lib/corpus-fs.mjs';
+import { printGroupedFailures, ROOT } from './lib/corpus-fs.mjs';
 import { Catalog } from '../packages/content-schema/src/index.ts';
 
 const SHOW_DRAFTS = process.env.SHOW_DRAFTS === '1' || process.env.NEXT_PUBLIC_SHOW_DRAFTS === '1';
@@ -55,6 +69,14 @@ if (catalog.articles.length === 0) {
   process.exit(1);
 }
 
+// Every file the build excluded. Reported grouped by reason rather than folded
+// into `errors`, because exclusions arrive in the tens and one flat line each
+// would bury the single-instance problems below.
+const excluded = catalog.failures;
+if (excluded.length > 0) {
+  printGroupedFailures('verify-catalog: FAIL — article(s) excluded from the catalog', excluded);
+}
+
 const errors = [];
 
 // No duplicate uid.
@@ -82,6 +104,23 @@ for (const path of catalog.paths) {
   }
 }
 
+// The link report's classification must hold inside the artifact: a live edge
+// resolves, and an excluded target names one of the excluded files.
+for (const edge of catalog.edges) {
+  if (!articlesByUid.has(edge.to)) {
+    errors.push(`edge \`${edge.from}\` -> \`${edge.to}\` points at an article the catalog does not contain`);
+  }
+}
+const excludedPaths = new Set(catalog.failures.map((f) => f.sourcePath));
+for (const target of catalog.excludedTargets) {
+  if (!excludedPaths.has(target.sourcePath)) {
+    errors.push(
+      `excluded target \`${target.from}\` -> \`${target.to}\` names \`${target.sourcePath}\`, ` +
+        'which is not in catalog.failures',
+    );
+  }
+}
+
 // No article silently fell into the folder-inference fallback sentinel.
 for (const article of catalog.articles) {
   if (article.folder === 'root') {
@@ -95,7 +134,17 @@ for (const article of catalog.articles) {
 if (errors.length > 0) {
   console.error(`verify-catalog: FAIL (${errors.length})`);
   for (const error of errors) console.error(`- ${error}`);
+}
+
+if (excluded.length > 0 || errors.length > 0) {
   process.exit(1);
+}
+
+if (catalog.excludedTargets.length > 0 || catalog.draftTargets.length > 0) {
+  console.warn(
+    `verify-catalog: WARN — ${catalog.excludedTargets.length} ref(s) to an excluded article and ` +
+      `${catalog.draftTargets.length} to a draft; a renderer must emit these as plain text, not links`,
+  );
 }
 
 console.log(

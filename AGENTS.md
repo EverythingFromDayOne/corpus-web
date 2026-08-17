@@ -411,14 +411,44 @@ completed work only. A path may not reference a draft article — `verify-catalo
 ## Cross-repo links
 
 The corpus repos WARN on cross-repo links because they cannot resolve standalone.
-Here they CAN resolve, so here they are a **hard failure**. `verify-links` in this repo
-is strictly stronger than the per-repo gate.
+Here they CAN resolve, so here a ref that points at **nothing** is a **hard failure**.
+`verify-links` in this repo is strictly stronger than the per-repo gate.
 
-**Two exceptions, both warn rather than fail.** A ref to a PLANNED corpus (`dsa`, no remote
-yet) points at work that exists but is unpublished — failing over it would push authors
-toward deleting correct cross-references. A ref to a DEMO app (`auth`, `authz`, `websec`)
-points at a runnable application rather than an article, which is legitimate. They land in
+**Fail once on the root cause, never on its symptoms.** "Unresolved" was one bucket and
+had to become four, because a ref that does not become a link has four causes and only one
+of them is this gate's to report. `LinkReport` (`packages/content-schema/src/catalog.ts`)
+classifies every `article`-resolution ref into exactly one of:
+
+| Bucket | The target | Severity |
+|---|---|---|
+| `edges` | adapts and is complete | live link |
+| `excludedTargets` | is a real file, already listed in `catalog.failures` | **WARN** |
+| `draftTargets` | adapts, but is `draft` outside `SHOW_DRAFTS` | **WARN**, recorded |
+| `unresolvedTargets` | exists in no corpus at all | **FATAL** |
+
+An excluded target is not a second defect. It is the adaptation failure that
+`verify-frontmatter` and `catalog.failures` already report once, by path and reason, seen
+from the far end of a link — and inbound refs cluster, so failing on it restates a handful
+of root causes dozens of times and buries the breakage that has no other report.
+
+A draft target is a **correct** ref with no route in this build; it goes live the day the
+article is marked complete. It is recorded rather than merely counted so the renderer emits
+plain text instead of a link that 404s. Both buckets travel in `catalog.json` for that
+reason. Linking to a page that does not exist is a rendering bug, not a build failure.
+
+An unresolved target is the only case with no other report anywhere and no path to
+resolving itself, which is what this rule has always been about.
+
+**Two further exceptions, both warn.** A ref to a PLANNED corpus (`dsa`, no remote yet)
+points at work that exists but is unpublished — failing over it would push authors toward
+deleting correct cross-references. A ref to a DEMO app (`auth`, `authz`, `websec`) points at
+a runnable application rather than an article, which is legitimate. They land in
 `LinkReport.plannedTargets` and `demoTargets` respectively.
+
+An excluded target is matched by `repo` + **filename slug**, not by a uid — `CatalogFailure`
+carries none, because adaptation is what produces one. That is sound only because the id is
+always the filename slug (above), and it is used solely to downgrade a fatal to a warning,
+never to give an unadapted file an identity in the artifact.
 
 ## content_hash
 

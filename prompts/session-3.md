@@ -38,11 +38,18 @@ wasted work if the catalog is about to change shape.
    the `corpus-promote-content` skill: bump the submodule pointer, one repo per PR, run
    the gates, never auto-merge.
 4. Once all four are promoted, run `pnpm build:catalog` for real. It should now:
-   - adapt every selected file with zero failures
-   - resolve every `related` ref with zero unresolved and zero unexpected draft targets
+   - adapt every selected file with zero failures — note that since the
+     emit-with-exclusions change, a file that does not adapt no longer stops the build;
+     it lands in `catalog.failures` and `verify-catalog` fails on it in step 5. Read the
+     `excluded` count in the build's own summary line, not its exit code
+   - resolve every `related` ref with an empty `unresolvedTargets` — since the four-way
+     classification that is the only fatal link bucket. Refs to an excluded or `draft`
+     article warn and travel in `catalog.excludedTargets` / `catalog.draftTargets`
    - emit a real `catalog.json`
    If it does not, treat that as a new finding — do not force it green by touching the
-   adapters or the corpus. Report exactly which file/ref is still failing and why.
+   adapters or the corpus. Report exactly which file/ref is still failing and why. The 49
+   refs in Debt D13 are the known exception: they are corpus-side and each one is listed
+   individually in that debt entry, so they are a report to act on rather than a discovery.
 5. Run `pnpm verify:frontmatter && pnpm verify:links && pnpm verify:catalog` and confirm
    all three pass against the real, promoted content. Capture the article/edge/path counts
    in the session log.
