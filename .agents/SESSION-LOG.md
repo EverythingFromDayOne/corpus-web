@@ -896,5 +896,50 @@ tags.
 - All ten nextjs articles still adapt as `status: draft` (pre-existing). They will
   not ship in production until the corpus marks them complete.
 - Do not auto-merge this PR.
+## Session promote-content — react v0.5.0 — 2026-08-16
+
+**Branch:** `cursor/promote-react-v0.5.0-a7bb`
+
+**Files changed:**
+- `content/react` — gitlink `react-concepts@v0.4.0` (`6989ea0`) → `@v0.5.0` (`daf5b56`)
+- `packages/content-schema/src/adapters/index.ts` — react `excludeDirs: ['prompts']`; nestjs comment updated
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this promotion
+- `.agents/summary.md` — react pin, D5/D11 remaining counts, planned next steps
+- `progress.md` — Phase 1 items 7/7b/16, Debt D5, session log
+
+**Why:** `react-concepts` tagged `v0.5.0` with `description` on 58 titled articles (the
+Q1 pass; 15 D11 files skipped because they have no H1). Promoting the gitlink is how
+that field reaches `corpus-web`. The 58 bodies are byte-identical to `v0.4.0`, so
+`content_hash` (sha256 of the body) does not change and reader completion must not be
+invalidated.
+
+`v0.5.0` also added `prompts/description-pass.md`. The react adapter uses
+`conceptsRoot: null` (repo-root scan), so that directory would have been selected as a
+concept category. Excluding `prompts/` matches the nestjs adapter and is an adapter
+correction, not a corpus edit.
+
+**Invented decisions:**
+- Branch named `cursor/promote-react-v0.5.0-a7bb` rather than the skill's
+  `content/react-v0.5.0`, because this cloud-agent environment requires the
+  `cursor/<slug>-a7bb` template
+- `excludeDirs: ['prompts']` on the react adapter — the skill does not mention adapter
+  edits; without it the prompt file would fail adaptation as a fake article
+- Did not regenerate `docs/audit/frontmatter-2026-08-16.md` — that file is the session 2
+  audit artifact; current counts live in this entry, summary, and progress
+- Skipped `pnpm verify:code-blocks` — the script is named in the promote-content skill
+  but does not exist in this repo yet
+- Opened the PR while `verify-frontmatter` / `build-catalog` / `verify-links` /
+  `verify-catalog` still fail. That is the pre-existing D5 (other three corpora) plus
+  D11 (15 untitled react articles), not a regression from this pin. 58 react articles
+  now adapt; previously zero did
+
+**Known issues / next steps:**
+- Catalog still cannot build: 123 missing `description` (10 nextjs, 94 angular, 19
+  nestjs) and 15 react articles with no title (Debt D11, same list as before)
+- Promote `nextjs` / `angular` / `nestjs` when they cut description tags
+- D11 still needs a corpus-side PR in `react-concepts` adding an H1 to each of the 15,
+  then a re-tag. The derive-title tests that assert those files have no title will fail
+  by design on that promotion
 
 ---

@@ -24,6 +24,28 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   in the other three repos
 - `content_hash` is sha256 of the body after frontmatter, so a dek-only tag does
   not change hashes; invalidation stays a human decision either way
+### [2026-08-16] — cursor/promote-react-v0.5.0-a7bb — Promote `content/react` to `v0.5.0`
+
+**Added**
+- Nothing.
+
+**Changed**
+- `content/react` gitlink `react-concepts@v0.4.0` → `@v0.5.0` (`daf5b56`). 58 articles
+  gained a `description` frontmatter field; bodies are unchanged
+- React adapter `excludeDirs: ['prompts']` — `v0.5.0` added
+  `prompts/description-pass.md`, which is an authoring prompt, not an article
+
+**Fixed**
+- Nothing. `verify-frontmatter` / `build-catalog` / `verify-links` still fail: 15
+  `react` articles have no title (Debt D11) and the other three corpora still lack
+  `description` (Debt D5)
+
+**Architecture decisions**
+- `content_hash` is sha256 of the body, so a description-only frontmatter pass does
+  not change any hash and must not invalidate reader completion
+- Root-scan corpora exclude `prompts/` when that directory appears — same rule
+  `nestjs` already had; `react` joined it at `v0.5.0`
+
 
 ### [2026-08-16] — cursor/fix-derive-title-mdast-15ee — `packages/content-schema` typechecks its tests
 
