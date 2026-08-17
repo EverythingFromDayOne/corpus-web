@@ -4,23 +4,25 @@ Generated during the four-way link-report classification (`LinkReport` in
 `packages/content-schema/src/catalog.ts`). Every ref below is in
 `LinkReport.unresolvedTargets`: its target exists in no corpus as an article and is
 not one of the excluded files either, which is the one link bucket that fails the
-build. Measured against the submodule tags currently pinned, with a synthetic dek
-injected wherever the corpus has none, so the numbers are what they will be once the
-Debt D5 description pass lands rather than what a build reports today.
+build.
 
-**49 refs, 34 distinct targets**, all in `nextjs` and `nestjs`.
+**Re-measured 2026-08-17 against `nestjs@v0.3.1`:** **44 refs, 33 distinct targets**,
+all in `nextjs` and `nestjs`. The original 49/34 count was against `nestjs@v0.3.0`.
+`v0.3.1` closed D12 (6 inbound refs to `nestjs/dtos-and-class-validator` now resolve
+as draft targets) and the recovered article added 1 outbound ref to
+`nestjs/nested-dto-not-validated` (already a group-3 target).
 
 | Cause | Refs | Targets | Fix |
 |---|---|---|---|
-| Written, present, not published | 10 | 3 | move one file, corpus-side |
+| Written, present, not published | 4 | 2 | publish two staged `nextjs` articles, corpus-side |
 | Forward ref to a planned concept article | 21 | 16 | write the article, corpus-side |
-| Recipe slug written ahead of its track | 18 | 15 | write the recipe or drop the ref, corpus-side |
+| Recipe slug written ahead of its track | 19 | 15 | write the recipe or drop the ref, corpus-side |
 | Left behind by a rename | 0 | 0 | — |
 
 ## None of them is a rename leftover
 
 Checked against the full history of all four corpora, every branch: no file named
-`<slug>.md` for any of the 34 targets has ever existed. Nor could most renames orphan
+`<slug>.md` for any of the remaining 33 targets has ever existed. Nor could most renames orphan
 a ref in the first place — `parseRelated()` discards the folder segments and resolves
 on the slug alone, and every rename recorded in the four corpora is a folder move that
 keeps the slug: two in `react-concepts` (`useref-and-the-dom`,
@@ -30,14 +32,12 @@ slug itself, which has not happened yet in any corpus.
 
 ## Every ref, individually
 
+Rows 1–6 (inbound to `nestjs/dtos-and-class-validator`) resolved at `nestjs@v0.3.1`
+and were removed; they now warn as `draftTargets`. Remaining rows keep their original
+numbers. Row 50 is the recovered article's new outbound ref.
+
 | # | Source article | Raw ref | Target | On a corpus roadmap? |
 |---|---|---|---|---|
-| 1 | `nestjs/configuration-and-environment` | `validation/dtos-and-class-validator` | `nestjs/dtos-and-class-validator` | written — `validation/dtos-and-class-validator.ts`, unpublished |
-| 2 | `nestjs/controllers-and-routing` | `validation/dtos-and-class-validator` | `nestjs/dtos-and-class-validator` | written — `validation/dtos-and-class-validator.ts`, unpublished |
-| 3 | `nestjs/pipes` | `validation/dtos-and-class-validator` | `nestjs/dtos-and-class-validator` | written — `validation/dtos-and-class-validator.ts`, unpublished |
-| 4 | `nestjs/serialization-and-response-shaping` | `validation/dtos-and-class-validator` | `nestjs/dtos-and-class-validator` | written — `validation/dtos-and-class-validator.ts`, unpublished |
-| 5 | `nestjs/typescript-for-nest` | `validation/dtos-and-class-validator` | `nestjs/dtos-and-class-validator` | written — `validation/dtos-and-class-validator.ts`, unpublished |
-| 6 | `nestjs/validationpipe-in-depth` | `validation/dtos-and-class-validator` | `nestjs/dtos-and-class-validator` | written — `validation/dtos-and-class-validator.ts`, unpublished |
 | 7 | `nestjs/custom-providers-and-injection-tokens` | `recipes/di-and-modules/nest-cant-resolve-dependencies` | `nestjs/nest-cant-resolve-dependencies` | no — recipe slug, track not opened |
 | 8 | `nestjs/decorators-and-metadata-reflection` | `recipes/di-and-modules/nest-cant-resolve-dependencies` | `nestjs/nest-cant-resolve-dependencies` | no — recipe slug, track not opened |
 | 9 | `nestjs/providers-and-di` | `recipes/di-and-modules/nest-cant-resolve-dependencies` | `nestjs/nest-cant-resolve-dependencies` | no — recipe slug, track not opened |
@@ -81,15 +81,9 @@ slug itself, which has not happened yet in any corpus.
 | 47 | `nextjs/static-shell-and-streaming` | `routing/instant-navigation-and-prefetching` | `nextjs/instant-navigation-and-prefetching` | yes — roadmap.md + progress.md |
 | 48 | `nextjs/file-conventions-and-the-route-tree` | `routing/layouts-templates-and-state` | `nextjs/layouts-templates-and-state` | yes — roadmap.md + progress.md |
 | 49 | `nextjs/cache-components-model` | `caching/the-other-cache-layers` | `nextjs/the-other-cache-layers` | yes — roadmap.md + progress.md |
+| 50 | `nestjs/dtos-and-class-validator` | `recipes/validation/nested-dto-not-validated` | `nestjs/nested-dto-not-validated` | no — recipe slug, track not opened |
 
 ## Group 1 — written, present, not published
-
-### `nestjs/dtos-and-class-validator` — 6 ref(s)
-
-File: `content/nestjs/validation/dtos-and-class-validator.ts`
-
-- `roadmap.md`: | 16 | `dtos-and-class-validator` |
-- `progress.md`: | 16 | `dtos-and-class-validator.md` | 🟢 | Opens Wave 2. Spine: a DTO is a **runtime object carrying metadata**, so every rule is about what survives compilation. **Measured again…
 
 ### `nextjs/cache-lifetimes` — 2 ref(s)
 
@@ -206,7 +200,7 @@ block that references them. The corpus already logs the pattern as debt:
 - `nestjs/guard-vs-interceptor-ordering` — 1 ref(s), from `nestjs/execution-order`
 - `nestjs/interceptor-ran-the-handler-twice` — 1 ref(s), from `nestjs/interceptors`
 - `nestjs/middleware-timing-measures-nothing` — 1 ref(s), from `nestjs/middleware`
-- `nestjs/nested-dto-not-validated` — 1 ref(s), from `nestjs/validationpipe-in-depth`
+- `nestjs/nested-dto-not-validated` — 2 ref(s), from `nestjs/validationpipe-in-depth`, `nestjs/dtos-and-class-validator`
 - `nestjs/password-leaked-in-the-response` — 1 ref(s), from `nestjs/serialization-and-response-shaping`
 - `nestjs/repository-leaked-orm-types` — 1 ref(s), from `nestjs/persistence-boundaries`
 - `nestjs/request-scope-bubbling` — 1 ref(s), from `nestjs/scopes-and-lifetimes`
