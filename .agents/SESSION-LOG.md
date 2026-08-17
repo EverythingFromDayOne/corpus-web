@@ -987,5 +987,49 @@ blocked on Debt D5 in `nextjs` / `react` / `nestjs` plus this one angular file.
   D11), and `nestjs` (19). `catalog.json` still cannot be written.
 - Content-hash invalidation: **no hashes changed.** The user still owns that call;
   there is nothing to invalidate.
+## Session promote-nestjs-v0.3.0 — pin nestjs-concepts to v0.3.0 — 2026-08-16
+
+**Branch:** `cursor/promote-nestjs-v030-6ac3`
+
+**Files changed:**
+- `content/nestjs` — gitlink bumped from `v0.2.0` (`1493917`) to `v0.3.0` (`a9b2c8b`)
+- `docs/audit/frontmatter-2026-08-16.md` — regenerated; nestjs 19/19 now adapt
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this promotion
+- `.agents/summary.md` — nestjs pin, D5 no longer universal, planned next steps
+- `progress.md` — D5 narrowed; new Debt D12; session log line
+
+**Why:** `nestjs-concepts` tagged `v0.3.0` with the Q1 `description` frontmatter pass
+across all 19 articles (one insertion per file, no body edits). This repo consumes
+content as a tag-pinned submodule, so the pin has to move here before those deks can
+adapt. The other three corpora are unchanged, so `build-catalog` still cannot write
+`catalog.json`.
+
+**Invented decisions:**
+- Branch named `cursor/promote-nestjs-v030-6ac3` to satisfy the cloud-agent prefix
+  rather than the skill's `content/<repo>-<tag>` form
+- Regenerated `docs/audit/frontmatter-2026-08-16.md` even though `/promote-content`
+  does not list it — the nestjs section would otherwise still claim 19 missing
+  `description`s
+- Skipped `pnpm verify:code-blocks` — the script is not in `package.json` yet
+- Recorded nestjs's missing `validation/dtos-and-class-validator.md` as Debt D12
+  here (the corpus tracker calls it D13) so `verify-links` does not surprise us
+  the moment D5 clears on the other three corpora
+- Session log id `promote-nestjs-v0.3.0` rather than a sequential session number —
+  this is a content promotion, not a `prompts/session-N.md` work session
+
+**Known issues / next steps:**
+- `content_hash` is sha256 of the body after frontmatter strip, so all 19 hashes
+  are unchanged. No completion-invalidation decision is needed.
+- `verify-frontmatter` / `build-catalog` / `verify-links` still fail on 177
+  articles in the other three corpora (D5 + D11). Expected.
+- Once nestjs is the only corpus in a catalog build, `verify-links` will still
+  fail: every nestjs article has object-shaped `status` which this adapter
+  collapses to `draft`, and ~33 `related` refs point at unpublished files
+  (queued recipes/concepts plus D12).
+- Do not auto-merge this PR.
+
+---
+
 
 ---

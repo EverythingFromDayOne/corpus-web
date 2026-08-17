@@ -227,9 +227,9 @@ _(none)_
 ## `nestjs`
 
 **Adapter roots:** conceptsRoot=`(repo root)`, recipesRoot=`recipes`, excludeDirs=[`demos`, `prompts`, `scripts`]
-- Files on disk (all `.md`/`.mdx`, recursive): **28**
+- Files on disk (all `.md`/`.mdx`, recursive): **29**
 - Selected as articles (concepts: 19, recipes: 0): **19**
-- On disk but NOT selected (support files, indexes, other corpora tooling): **9**
+- On disk but NOT selected (support files, indexes, other corpora tooling): **10**
 
 **On-disk top-level directories and their `.md` counts:**
 
@@ -243,7 +243,7 @@ _(none)_
 | `foundations/` | 9 | 9 |
 | `observability/` | 0 | 0 |
 | `performance/` | 0 | 0 |
-| `prompts/` | 5 | 0 |
+| `prompts/` | 6 | 0 |
 | `recipes/` | 0 | 0 |
 | `request-lifecycle/` | 7 | 7 |
 | `scripts/` | 0 | 0 |
@@ -254,13 +254,14 @@ _(none)_
 **Adapter run, over the 19 selected file(s):**
 
 - Parsed (frontmatter extracted): 19 ok, 0 failed
-- Adapted to `Article`: 0 ok, 19 failed
+- Adapted to `Article`: 19 ok, 0 failed
 
 **Distinct frontmatter keys observed** (adapter-recognised keys marked):
 
 | Key | Count | Recognised by adapter? | Example |
 |---|---|---|---|
 | `article_id` | 19 | yes | `data/persistence-boundaries.md` |
+| `description` | 19 | yes | `data/persistence-boundaries.md` |
 | `concept_folder` | 19 | yes | `data/persistence-boundaries.md` |
 | `wave` | 19 | yes | `data/persistence-boundaries.md` |
 | `nest_baseline` | 19 | yes | `data/persistence-boundaries.md` |
@@ -293,6 +294,5 @@ _(none)_
 
 **Adaptation failures, grouped by reason:**
 
-- **19×** missing `description` — run the corpus description pass (prompts/corpus-description-pass.md)
-  - examples: `data/persistence-boundaries.md`, `foundations/bootstrap-and-lifecycle-hooks.md`, `foundations/configuration-and-environment.md`, `foundations/controllers-and-routing.md`, `foundations/custom-providers-and-injection-tokens.md`, `foundations/decorators-and-metadata-reflection.md`
+_(none)_
 
