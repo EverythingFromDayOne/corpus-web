@@ -6,8 +6,8 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-17 (nestjs-concepts pinned to v0.3.1 — D12 closed;
-> census 181 of 197)
+> Last updated: 2026-08-17 (debt register extracted to `docs/DEBT.md`;
+> nestjs-concepts pinned to v0.3.1 — D12 closed; census 181 of 197)
 
 ---
 
@@ -185,6 +185,8 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
 - **Every one of the 181 adapting articles is `status: draft`.** None of the four corpora
   marks an article complete yet, so a production build with `NEXT_PUBLIC_SHOW_DRAFTS`
   unset renders nothing. This is a corpus-side state, not a pipeline defect.
+- **The debt register lives in `docs/DEBT.md`**, not in `progress.md`. IDs D1–D15,
+  append-only, never reused. `progress.md` keeps a one-line pointer.
 
 ---
 

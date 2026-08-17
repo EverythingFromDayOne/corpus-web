@@ -1442,3 +1442,57 @@ refs, 34 → 33 distinct targets. `build-catalog` still cannot write.
 - Do not auto-merge this PR.
 
 ---
+
+## Session task-doc-refactor — documentation architecture — 2026-08-17
+
+**Branch:** `cursor/task-doc-refactor-7e3a`
+
+**Files changed:**
+- `docs/DEBT.md` — new debt register; D1–D15 moved out of `progress.md` with IDs preserved
+- `progress.md` — debt table replaced by a pointer; session-log line added
+- `.cursor/rules/00-session-protocol.mdc` — FIRST ACTION includes `docs/DEBT.md`; document-authority table; SESSION-LOG/CHANGELOG split; CHANGELOG template is bullets only; in-place merge ban covers `docs/DEBT.md`
+- `.gitattributes` — comment names `docs/DEBT.md` as never-union-merge
+- `.claude/skills/corpus-commit/SKILL.md` — preflight covers `docs/DEBT.md`
+- `.agents/summary.md` — last-updated line; key fact that the register moved
+- `AGENTS.md` — regenerated after the rule change
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this session
+
+**Why:** `progress.md` was mixing phase status, debt, and a session summary. Debt is the
+most-consulted artifact and has its own lifecycle (append-only IDs, rows edited in
+place), so it belongs in its own file. SESSION-LOG and CHANGELOG were duplicating
+prose every session; the split is now a rule: *what* in the changelog, *why* in the
+session log. FIRST ACTION now reads `docs/DEBT.md` so an agent cannot miss the
+register.
+
+**Invented decisions:**
+- **Kept `.agents/summary.md`** rather than retiring it. The README document map omits
+  it because that map is human-facing. The unique thing summary covers, which no other
+  file maintains, is the compiled agent-facing snapshot of current gotchas and live
+  census. Retiring it would dump that compilation into `progress.md` (wrong lifecycle)
+  or the README (wrong audience). Rule 00 states this in prose after the table so the
+  table itself stays identical to the README.
+- Document-map links in rule 00 are relative to `.cursor/rules/` (`../../…`) so they
+  resolve from that file. Same rows as the README.
+- `Opened` dates in `docs/DEBT.md` reconstructed from SESSION-LOG first mentions —
+  the old table had no Opened column.
+- D4 stays in Open. It was never marked closed in `progress.md`.
+- Closed-row Closed by / Date taken from the existing ✅ Closed markers; item text
+  otherwise preserved. The ✅ prefix itself was dropped because Closed by carries it.
+- `corpus-commit` preflight gained a DEBT.md line so `/commit` does not skip the new
+  register.
+- Did not author `prompts/session-4.md`. This is a named task, not a numbered session.
+- Did not edit `prompts/session-3.md`, which still says the D11 list lives in
+  `progress.md`.
+- CHANGELOG template drops Architecture decisions going forward. Existing entries
+  left as history.
+- `progress.md` pointer is a markdown link, not the bare path the prompt showed.
+
+**Known issues / next steps:**
+- `prompts/session-3.md` Track A step 2 still says the D11 list is in `progress.md`.
+  The list is now in `docs/DEBT.md`; `progress.md` has a pointer.
+- Content gates (`verify-frontmatter` / `verify-links` / `build-catalog`) remain red
+  on D11, D13, D15 — pre-existing, corpus-side.
+- Do not merge.
+
+---

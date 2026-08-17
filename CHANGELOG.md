@@ -5,6 +5,23 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-17] — cursor/task-doc-refactor-7e3a — Documentation architecture refactor
+
+**Added**
+- `docs/DEBT.md` — debt register (D1–D15) extracted from `progress.md`
+- Document authority table and SESSION-LOG/CHANGELOG split in `.cursor/rules/00-session-protocol.mdc`
+
+**Changed**
+- FIRST ACTION read list now includes `docs/DEBT.md`
+- `progress.md` — debt table replaced by a pointer to `docs/DEBT.md`
+- `.gitattributes` — `docs/DEBT.md` named as never-union-merge
+- `.claude/skills/corpus-commit/SKILL.md` — preflight covers `docs/DEBT.md`
+- `.agents/summary.md` — kept as the agent-facing snapshot; key fact for the new register
+- CHANGELOG template in rule 00 is now Added/Changed/Removed/Fixed bullets only
+
+**Removed**
+- Debt table from `progress.md` (rows preserved in `docs/DEBT.md`)
+
 ### [2026-08-17] — cursor/promote-nestjs-v0.3.1-7497 — Promote `content/nestjs` to v0.3.1
 
 **Added**

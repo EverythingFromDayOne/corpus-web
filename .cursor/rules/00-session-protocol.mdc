@@ -15,12 +15,56 @@ Open and read these exact files, in this order:
 3. `CHANGELOG.md`
 4. `roadmap.md`
 5. `progress.md`
+6. `docs/DEBT.md`
 
 Then respond using only what those files contain.
 If any file is missing, say so and stop.
 
-If the prompt names a session file (`prompts/session-N.md`), read that sixth and treat it
+If the prompt names a session file (`prompts/session-N.md`), read that seventh and treat it
 as the authoritative task list. Anything not in it is out of scope.
+
+---
+
+## Document authority
+
+Every document is authoritative for exactly one thing. When two disagree, each
+wins for its own column. Never sync one to another — `roadmap.md` carries orders
+of magnitude and `progress.md` carries measurements, and collapsing that
+distinction destroys what makes each useful.
+
+| Document | Authoritative for | Lifecycle |
+|---|---|---|
+| [`.cursor/rules/*.mdc`](./) | Constraints and conventions | Edited in place. **Canonical** — `AGENTS.md`, `CLAUDE.md` and `60-skills.mdc` are generated from these |
+| [`.claude/skills/*/SKILL.md`](../../.claude/skills) | Task procedures | Edited in place. Loaded when a task matches the description |
+| [`AGENTS.md`](../../AGENTS.md) | Agent entry point | **Generated.** Never hand-edit |
+| [`roadmap.md`](../../roadmap.md) | Architecture, decisions, phase plan | Stable. Changes only on an approved scope change. Carries orders of magnitude, never exact counts |
+| [`progress.md`](../../progress.md) | Phase and item status, measured counts | Edited in place, every session |
+| [`docs/DEBT.md`](../../docs/DEBT.md) | Known gaps, with IDs | Append-only IDs, **never reused**. Rows edited in place |
+| [`.agents/SESSION-LOG.md`](../../.agents/SESSION-LOG.md) | What happened and **why**, incl. invented decisions | Append-only. One entry per session |
+| [`CHANGELOG.md`](../../CHANGELOG.md) | What changed, in release terms | Append-only. Bullets only — reasoning belongs in the session log |
+| [`docs/adr/`](../../docs/adr) | Decisions with alternatives and consequences | Append-only. Status changes in place |
+| [`docs/audit/`](../../docs/audit) | Point-in-time measurements | Immutable once written. Dated filenames |
+| [`docs/design/`](../../docs/design) | Visual contracts | Replaced wholesale when the design moves |
+| [`prompts/session-N.md`](../../prompts) | The scope of one session | Immutable once run. Annotated, never rewritten |
+
+`.agents/summary.md` is not in the table. It is the **agent-facing snapshot**: current
+gotchas and live census compiled so an agent does not have to reconstruct them from
+the session log. No other file maintains that compilation. Humans start at
+[`README.md`](../../README.md); agents start here. Edited in place, never union-merged.
+
+---
+
+## SESSION-LOG / CHANGELOG split
+
+Both files are append-only and every session writes to both. They are not two copies
+of the same entry.
+
+- **`CHANGELOG.md`** — *what changed*, in release terms. Bullets only, no paragraphs.
+  Added / Changed / Removed / Fixed. A reader scanning releases is the audience.
+- **`.agents/SESSION-LOG.md`** — *what happened and why*. Reasoning, trade-offs,
+  invented decisions, known issues. The next agent is the audience.
+
+**if a sentence explains _why_, it belongs only in the session log; if it states _what_, it belongs only in the changelog.**
 
 ---
 
@@ -79,12 +123,14 @@ Exact format. List every file specifically — never summarise as "various files
 **Changed**
 - bullet per change
 
+**Removed**
+- bullet per removal
+
 **Fixed**
 - bullet per fix
-
-**Architecture decisions**
-- one-liner per decision made
 ~~~
+
+Bullets only, no paragraphs. Reasoning belongs in the session log, not here.
 
 If `## [Unreleased]` does not exist, create it directly below the `# Changelog` heading.
 
@@ -96,13 +142,16 @@ future sessions, or a completed item under "Planned next steps".
 
 Do NOT rewrite `.agents/summary.md` wholesale. Edit the specific sections that changed.
 
-### 4. Update `progress.md`
+### 4. Update `progress.md` (and `docs/DEBT.md` when a debt row changes)
 
 Status vocabulary, suite-wide: WHITE=queued, YELLOW=in progress, GREEN=drafted,
 CHECK=complete, X=dropped. Use the emoji forms already present in the file.
 
+`progress.md` keeps phase tables, measured counts, and the session summary list.
+The debt register lives in `docs/DEBT.md`.
+
 **Debt IDs are append-only and are never reused.** A new debt takes the next unused
-number, recorded as "Highest ID issued" at the top of the Debt table. A closed debt keeps
+number, recorded as "Highest ID issued" at the top of `docs/DEBT.md`. A closed debt keeps
 its row and its number — mark it closed, never delete the row and never hand its number to
 something else. If two sessions have independently claimed the same ID, **the earliest
 claim keeps the number** and the later one is renumbered to the next unused number, with
@@ -129,18 +178,18 @@ precision.
 entry and both entries are wanted, so `.gitattributes` gives those two files
 `merge=union`.
 
-`progress.md` and `.agents/summary.md` are the opposite. Both are edited **in place** — a
-status flips, a count is corrected, a stale bullet is rewritten. A union merge does not
-merge an in-place edit; it keeps the old line *and* the new one. Run that across several
-promotion rebases and the file accumulates four "Last updated" headers, five copies of one
-table row, and four debt rows sharing two IDs, each asserting a different number and none
-of them marked stale.
+`progress.md`, `.agents/summary.md`, and `docs/DEBT.md` are the opposite. They are
+edited **in place** — a status flips, a count is corrected, a stale bullet is rewritten.
+A union merge does not merge an in-place edit; it keeps the old line *and* the new one.
+Run that across several promotion rebases and the file accumulates four "Last updated"
+headers, five copies of one table row, and four debt rows sharing two IDs, each asserting
+a different number and none of them marked stale.
 
-**`.gitattributes` deliberately excludes those two files, and must keep excluding them.**
+**`.gitattributes` deliberately excludes those three files, and must keep excluding them.**
 
-- **NEVER add `progress.md` or `.agents/summary.md` to `.gitattributes`**, with
-  `merge=union` or any other merge driver.
-- **NEVER resolve a conflict in either file by keeping both sides.** Keep the newer claim,
+- **NEVER add `progress.md`, `.agents/summary.md`, or `docs/DEBT.md` to `.gitattributes`**,
+  with `merge=union` or any other merge driver.
+- **NEVER resolve a conflict in any of them by keeping both sides.** Keep the newer claim,
   delete the older one, then **verify the survivor against the repository** — run the
   gate, read the pin, count the files. Whichever copy the merge happened to order last is
   not evidence.
