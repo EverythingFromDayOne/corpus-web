@@ -155,23 +155,23 @@ _(none)_
 ## `angular`
 
 **Adapter roots:** conceptsRoot=`docs/concepts`, recipesRoot=`docs/recipes`
-- Files on disk (all `.md`/`.mdx`, recursive): **105**
+- Files on disk (all `.md`/`.mdx`, recursive): **106**
 - Selected as articles (concepts: 67, recipes: 27): **94**
-- On disk but NOT selected (support files, indexes, other corpora tooling): **11**
+- On disk but NOT selected (support files, indexes, other corpora tooling): **12**
 
 **On-disk top-level directories and their `.md` counts:**
 
 | Directory | `.md` files (recursive) | Selected |
 |---|---|---|
 | `docs/` | 98 | 94 |
-| `prompts/` | 2 | 0 |
+| `prompts/` | 3 | 0 |
 | `scripts/` | 0 | 0 |
 | *(repo root)* | 5 — `AGENTS.md`, `CONTRIBUTING.md`, `README.md`, `REFACTOR-REPORT.md`, `progress.md` | 0 |
 
 **Adapter run, over the 94 selected file(s):**
 
 - Parsed (frontmatter extracted): 94 ok, 0 failed
-- Adapted to `Article`: 0 ok, 94 failed
+- Adapted to `Article`: 93 ok, 1 failed
 
 **Distinct frontmatter keys observed** (adapter-recognised keys marked):
 
@@ -179,6 +179,7 @@ _(none)_
 |---|---|---|---|
 | `angular_baseline` | 94 | yes | `docs/concepts/components/angular-devtools.md` |
 | `status` | 94 | yes | `docs/concepts/components/angular-devtools.md` |
+| `description` | 93 | yes | `docs/concepts/components/angular-devtools.md` |
 | `article_id` | 67 | yes | `docs/concepts/components/angular-devtools.md` |
 | `concept_folder` | 67 | yes | `docs/concepts/components/angular-devtools.md` |
 | `verified_against` | 67 | **no** | `docs/concepts/components/angular-devtools.md` |
@@ -217,8 +218,8 @@ _(none)_
 
 **Adaptation failures, grouped by reason:**
 
-- **94×** missing `description` — run the corpus description pass (prompts/corpus-description-pass.md)
-  - examples: `docs/concepts/components/angular-devtools.md`, `docs/concepts/components/animations.md`, `docs/concepts/components/change-detection.md`, `docs/concepts/components/component-interactions.md`, `docs/concepts/components/dynamic-components.md`, `docs/concepts/components/lifecycle.md`
+- **1×** missing `description` — run the corpus description pass (prompts/corpus-description-pass.md)
+  - examples: `docs/recipes/elements/widget-deployment.md`
 
 
 ---
