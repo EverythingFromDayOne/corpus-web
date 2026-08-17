@@ -1,26 +1,27 @@
 name: Content watch
 
-# Detects when a corpus repo has a newer tag than the pinned submodule and opens
-# one draft PR per drifted submodule, with the catalog diff in the body.
+# Detects when a corpus repo has a newer tag than the pinned submodule and opens one
+# draft PR per drifted submodule, with the catalog diff in the body.
 #
-# Replaces the manual loop: check tags -> bump pointer -> rebuild catalog -> read
-# the diff -> open PR. What it deliberately does NOT do is merge, or decide whether
-# a content_hash change is cosmetic or substantive. Both stay human.
+# Replaces the manual loop: check tags -> bump pointer -> rebuild catalog -> read the
+# diff -> open PR. What it deliberately does NOT do is merge, or decide whether a
+# content_hash change is cosmetic or substantive. Both stay human.
 #
-# ⚠ REQUIRES a PAT in secrets.CONTENT_WATCH_TOKEN with `repo` scope.
-# GITHUB_TOKEN cannot be used here: PRs it opens do not trigger other workflows, so
-# the CI gates would never run on the promotion PR — the one thing the PR exists for.
+# REQUIRES a PAT at secrets.CONTENT_WATCH_TOKEN with Contents and Pull requests
+# read/write. GITHUB_TOKEN cannot be used: PRs it opens do not trigger other
+# workflows, so the CI gates would never run on the promotion PR, which is the one
+# thing the PR exists for.
 
 on:
   schedule:
-    - cron: '0 1 * * *'   # 01:00 UTC daily
+    - cron: '0 1 * * *'
   workflow_dispatch:
     inputs:
       submodule:
-        description: 'Single submodule to check (blank = all four)'
+        description: 'One of nextjs | react | angular | nestjs. Blank checks all four.'
         required: false
-        type: choice
-        options: ['', 'nextjs', 'react', 'angular', 'nestjs']
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -29,17 +30,19 @@ jobs:
   watch:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false          # one corpus failing must not hide drift in another
-      max-parallel: 1           # one PR at a time, per the promote-content skill
+      fail-fast: false
+      max-parallel: 1
       matrix:
         submodule: [nextjs, react, angular, nestjs]
 
     steps:
       - name: Skip unselected submodules
         id: gate
+        env:
+          WANT: ${{ github.event.inputs.submodule }}
+          THIS: ${{ matrix.submodule }}
         run: |
-          want='${{ github.event.inputs.submodule }}'
-          if [ -n "$want" ] && [ "$want" != '${{ matrix.submodule }}' ]; then
+          if [ -n "$WANT" ] && [ "$WANT" != "$THIS" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
@@ -55,21 +58,21 @@ jobs:
       - name: Compare pinned tag against latest
         if: steps.gate.outputs.skip == 'false'
         id: compare
+        env:
+          SM: content/${{ matrix.submodule }}
         run: |
           set -euo pipefail
-          SM="content/${{ matrix.submodule }}"
-
           git -C "$SM" fetch --tags --quiet
 
-          # The pin is a commit; describe it to get the tag it sits on.
           PINNED=$(git -C "$SM" describe --tags --exact-match HEAD 2>/dev/null || echo '')
           if [ -z "$PINNED" ]; then
-            echo "::warning::$SM is not on a tag — verify-submodules should already be failing"
-            echo "drift=false" >> "$GITHUB_OUTPUT"; exit 0
+            echo "::warning::$SM is not on a tag; verify-submodules should already be failing"
+            echo "drift=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
-          # Highest semver tag, not most recently created — a backport must not
-          # look newer than the release it was cut from.
+          # Highest semver, not most recently created: a backport tagged today must
+          # not look newer than the release it was cut from.
           LATEST=$(git -C "$SM" tag -l 'v*' | sort -V | tail -n1)
 
           echo "pinned=$PINNED" >> "$GITHUB_OUTPUT"
@@ -77,14 +80,15 @@ jobs:
 
           if [ "$PINNED" = "$LATEST" ]; then
             echo "drift=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          HIGHER=$(printf '%s\n%s\n' "$PINNED" "$LATEST" | sort -V | tail -n1)
+          if [ "$HIGHER" = "$LATEST" ]; then
+            echo "drift=true" >> "$GITHUB_OUTPUT"
           else
-            HIGHER=$(printf '%s\n%s\n' "$PINNED" "$LATEST" | sort -V | tail -n1)
-            if [ "$HIGHER" = "$LATEST" ]; then
-              echo "drift=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "::warning::$SM pinned at $PINNED which is ahead of latest tag $LATEST"
-              echo "drift=false" >> "$GITHUB_OUTPUT"
-            fi
+            echo "::warning::$SM pinned at $PINNED which is ahead of latest tag $LATEST"
+            echo "drift=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Skip if a PR for this bump already exists
@@ -92,88 +96,75 @@ jobs:
         id: existing
         env:
           GH_TOKEN: ${{ secrets.CONTENT_WATCH_TOKEN }}
+          BRANCH: content/${{ matrix.submodule }}-${{ steps.compare.outputs.latest }}
         run: |
-          BRANCH="content/${{ matrix.submodule }}-${{ steps.compare.outputs.latest }}"
+          set -euo pipefail
           COUNT=$(gh pr list --head "$BRANCH" --state open --json number --jq 'length')
           echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
-          echo "exists=$([ "$COUNT" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          if [ "$COUNT" -gt 0 ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: pnpm/action-setup@v4
         if: steps.compare.outputs.drift == 'true' && steps.existing.outputs.exists == 'false'
-        with: { version: '10.33.0' }
+        with:
+          version: 10.33.0
+
       - uses: actions/setup-node@v4
         if: steps.compare.outputs.drift == 'true' && steps.existing.outputs.exists == 'false'
-        with: { node-version: 22, cache: pnpm }
+        with:
+          node-version: 22
+          cache: pnpm
 
       - name: Bump the pin and diff the catalog
         if: steps.compare.outputs.drift == 'true' && steps.existing.outputs.exists == 'false'
-        id: diff
+        env:
+          SM: content/${{ matrix.submodule }}
+          PINNED: ${{ steps.compare.outputs.pinned }}
+          LATEST: ${{ steps.compare.outputs.latest }}
         run: |
           set -euo pipefail
-          SM="content/${{ matrix.submodule }}"
           pnpm install --frozen-lockfile
 
-          # Catalog before, so the PR body can state what actually changed rather
-          # than just which tag moved.
+          # `|| true` throughout: the catalog cannot build while tracked debt remains,
+          # and the diff is still worth reporting.
           pnpm build:catalog || true
           cp catalog.json /tmp/before.json 2>/dev/null || echo '{}' > /tmp/before.json
 
-          git -C "$SM" checkout --quiet '${{ steps.compare.outputs.latest }}'
+          git -C "$SM" checkout --quiet "$LATEST"
+
           pnpm build:catalog || true
           cp catalog.json /tmp/after.json 2>/dev/null || echo '{}' > /tmp/after.json
 
-          node -e '
-            const fs = require("fs");
-            const rd = p => { try { return JSON.parse(fs.readFileSync(p, "utf8")) } catch { return {} } };
-            const a = rd("/tmp/before.json"), b = rd("/tmp/after.json");
-            const idx = c => Object.fromEntries((c.articles ?? []).map(x => [x.uid, x]));
-            const A = idx(a), B = idx(b);
-            const added   = Object.keys(B).filter(k => !A[k]);
-            const removed = Object.keys(A).filter(k => !B[k]);
-            const hashed  = Object.keys(B).filter(k => A[k] && A[k].contentHash !== B[k].contentHash);
-            const line = s => s.length ? s.map(x => "- `" + x + "`").join("\n") : "_none_";
-            fs.writeFileSync("/tmp/body.md", [
-              "Automated drift detection. **Not reviewed, not merged.**",
-              "",
-              "| | |",
-              "|---|---|",
-              "| pinned | `${{ steps.compare.outputs.pinned }}` |",
-              "| latest | `${{ steps.compare.outputs.latest }}` |",
-              "| articles adapting | " + (a.articles?.length ?? 0) + " → " + (b.articles?.length ?? 0) + " |",
-              "| exclusions | " + (a.failures?.length ?? 0) + " → " + (b.failures?.length ?? 0) + " |",
-              "",
-              "### Articles added\n" + line(added),
-              "\n### Articles removed\n" + line(removed),
-              "\n### content_hash changed\n" + line(hashed),
-              "",
-              hashed.length
-                ? "**Decision required.** For each changed hash, say cosmetic or substantive. "
-                  + "Cosmetic changes must not invalidate reader progress; substantive ones may. "
-                  + "Nobody but you can make that call."
-                : "No `content_hash` changed, so there is nothing to invalidate.",
-              "",
-              "Gate output on this PR is authoritative. Failures listed in `docs/DEBT.md` are expected;",
-              "anything else is new."
-            ].join("\n"));
-          '
+          node scripts/catalog-diff.mjs /tmp/before.json /tmp/after.json "$PINNED" "$LATEST" /tmp/body.md
 
       - name: Open the draft PR
         if: steps.compare.outputs.drift == 'true' && steps.existing.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ secrets.CONTENT_WATCH_TOKEN }}
+          SM: content/${{ matrix.submodule }}
+          BRANCH: ${{ steps.existing.outputs.branch }}
+          TITLE: 'content(${{ matrix.submodule }}): promote submodule to ${{ steps.compare.outputs.latest }}'
         run: |
           set -euo pipefail
-          BRANCH='${{ steps.existing.outputs.branch }}'
           git config user.name  'content-watch'
           git config user.email 'content-watch@users.noreply.github.com'
           git checkout -b "$BRANCH"
-          git add 'content/${{ matrix.submodule }}'
-          git commit -m "content(${{ matrix.submodule }}): promote submodule to ${{ steps.compare.outputs.latest }}
+          git add "$SM"
 
-Detected by the content-watch workflow. Catalog diff is in the PR body.
-Not reviewed: the cosmetic-vs-substantive call on any content_hash change is human."
+          {
+            printf '%s\n\n' "$TITLE"
+            printf '%s\n' 'Detected by the content-watch workflow. Catalog diff is in the PR body.'
+            printf '%s\n' 'Not reviewed: the cosmetic-vs-substantive call on any content_hash change is human.'
+          } > /tmp/commit-msg.txt
+
+          git commit -F /tmp/commit-msg.txt
           git push origin "$BRANCH"
+
           gh pr create --draft \
-            --title "content(${{ matrix.submodule }}): promote submodule to ${{ steps.compare.outputs.latest }}" \
+            --title "$TITLE" \
             --body-file /tmp/body.md \
-            --base main --head "$BRANCH"
+            --base main \
+            --head "$BRANCH"
