@@ -5,6 +5,30 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-17] — cursor/promote-nestjs-v0.3.1-7497 — Promote `content/nestjs` to v0.3.1
+
+**Added**
+- Nothing in this repo. `nestjs-concepts@v0.3.1` recovers
+  `validation/dtos-and-class-validator.md` (was `.ts`) and adds its `description`
+
+**Changed**
+- `content/nestjs` gitlink `v0.3.0` (`a9b2c8b`) → `v0.3.1` (`3c5c9e1`)
+- Census 196 selected / 180 adapting → **197 / 181** (nestjs 19/19 → 20/20)
+- `docs/audit/frontmatter-2026-08-16.md` regenerated: nestjs 20 selected, 20 adapted
+- `docs/audit/unresolved-refs-2026-08-16.md` re-measured: 44 refs / 33 targets
+
+**Fixed**
+- Debt **D12** closed. Six inbound refs to `nestjs/dtos-and-class-validator` are
+  draft-target warnings, not fatals. Catalog still cannot build (44 remaining
+  unresolved refs in D13)
+
+**Architecture decisions**
+- One submodule per promotion PR. Remaining D13 failures are pre-existing plus one
+  new outbound ref from the recovered article to `nestjs/nested-dto-not-validated`
+- `content_hash` is the gray-matter body. The 19 previously adapting nestjs articles
+  are unchanged; the recovered article's body hash matches the old `.ts` file, so
+  there is no completion-invalidation question on existing rows
+
 ### [2026-08-17] — cursor/repair-union-merged-trackers-3709 — Split article counts by document
 
 **Added**

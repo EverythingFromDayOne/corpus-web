@@ -1387,3 +1387,58 @@ the other is the failure this rule exists to prevent.
 - No content, schema, script or application code changed.
 
 ---
+
+## Session promote-nestjs-v0.3.1 — pin nestjs-concepts to v0.3.1 — 2026-08-17
+
+**Branch:** `cursor/promote-nestjs-v0.3.1-7497`
+
+**Files changed:**
+- `content/nestjs` — gitlink bumped from `v0.3.0` (`a9b2c8b`) to `v0.3.1` (`3c5c9e1`)
+- `docs/audit/frontmatter-2026-08-16.md` — regenerated; nestjs 20/20 now adapt
+- `docs/audit/unresolved-refs-2026-08-16.md` — D12's 6 inbound refs removed; new outbound ref recorded; 44 refs / 33 targets
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this promotion
+- `.agents/summary.md` — nestjs pin, census 181 of 197, D12 closed in planned next steps
+- `progress.md` — D12 closed; D13 44/33; D6 now selectable; census; session log line
+
+**Why:** `nestjs-concepts` tagged `v0.3.1` to recover `validation/dtos-and-class-validator`
+as a `.md` file with a `description`. The article was complete at `v0.3.0` but unselectable
+because of the `.ts` extension (Debt D12), so six inbound `related` refs failed
+`verify-links`. This repo consumes content as a tag-pinned submodule, so the pin has to
+move here before that article can adapt. The other three corpora are unchanged.
+
+The six inbound refs now land in `draftTargets` (object-shaped `status` still collapses
+to `draft`). The recovered article adds one new unresolved outbound ref to
+`nestjs/nested-dto-not-validated`, already a D13 group-3 target. Net: 49 → 44 unresolved
+refs, 34 → 33 distinct targets. `build-catalog` still cannot write.
+
+**Invented decisions:**
+- Branch named `cursor/promote-nestjs-v0.3.1-7497` to satisfy the cloud-agent prefix
+  rather than the skill's `content/<repo>-<tag>` form
+- Regenerated `docs/audit/frontmatter-2026-08-16.md` in place (dated filename kept) so
+  the nestjs section records 20/20; the rewrite also corrected stale nextjs/react
+  adaptation counts that still said 0 adapted
+- Re-measured `docs/audit/unresolved-refs-2026-08-16.md` rather than leaving it as a
+  2026-08-16 snapshot that would now be false
+- Skipped `pnpm verify:code-blocks` — the script is not in `package.json` yet
+- Skipped `pnpm sync:content` until after `git add content/nestjs`, because postinstall
+  / `sync:content` restore the recorded gitlink and had reset the working tree to
+  `v0.3.0` during `pnpm install`
+- No `prompts/session-N+1.md` — this is a `/promote-content` skill invocation, not a
+  numbered session from `prompts/session-N.md`
+- Session log id `promote-nestjs-v0.3.1` rather than a sequential session number
+- Did not open a new debt ID for the recovered article's outbound
+  `nested-dto-not-validated` ref; it is the same group-3 target D13 already tracked
+
+**Known issues / next steps:**
+- `content_hash` is sha256 of the body after frontmatter strip. The 19 previously
+  adapting nestjs articles are byte-identical. The recovered article's body hash matches
+  the old `.ts` file. No `lesson_progress` row exists for it yet. Hash-invalidation is
+  the user's call; there is nothing to invalidate on existing rows.
+- `verify-frontmatter` still fails on 16 files (D11 + D15). `verify-links` /
+  `build-catalog` still fail on 44 unresolved refs (D13). Expected.
+- Debt D6 is now selectable: the known-false claim would render under
+  `NEXT_PUBLIC_SHOW_DRAFTS=1`. Production with drafts unset still does not ship it.
+- Do not auto-merge this PR.
+
+---
