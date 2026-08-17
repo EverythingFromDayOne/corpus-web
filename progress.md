@@ -8,6 +8,11 @@ snapshot and `roadmap.md` for the planning rationale.
 This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 
+**This file is the authority for exact article counts.** Measured 2026-08-17 against
+the current pins: **196 selected, 180 adapting** — nextjs 10/10, react 58/73, angular
+93/94, nestjs 19/19. `roadmap.md` carries the order of magnitude only ("four corpora,
+~200 articles") and is not updated when a count is re-measured.
+
 ## Legend
 
 - ✅ Complete and reviewed
@@ -94,6 +99,11 @@ ID, the earliest claim keeps it. Highest ID issued: **D15**.
 
 ## Session log
 
+- **Article-count split (2026-08-17):** this file is now the authority for exact
+  article counts — 196 selected, 180 adapting, nextjs 10/10, react 58/73, angular
+  93/94, nestjs 19/19. `roadmap.md` keeps "four corpora, ~200 articles" and is not
+  updated when a count is re-measured. Recorded in
+  `.cursor/rules/00-session-protocol.mdc` so the two are not synced.
 - **Doc repair (2026-08-17):** removed union-merge damage from this file and
   `.agents/summary.md`. Both are edited in place and are deliberately absent from
   `.gitattributes`, but four promotion rebases plus follow-ups c and d were resolved as

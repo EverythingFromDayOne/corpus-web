@@ -6,17 +6,19 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-17 (doc repair — union-merge damage removed, every surviving fact
-> re-measured against the pinned corpora)
+> Last updated: 2026-08-17 (article-count split — measured figures here and in
+> `progress.md`; `roadmap.md` keeps the order of magnitude)
 
 ---
 
 ## What this repo is
 
-The delivery surface for the `EverythingFromDayOne` concepts suite. It renders ~120
-verified reference articles from four standalone corpus repos into one site at
-`nxhhuy.tech`, and adds the retention layer (progress, quizzes, spaced repetition) that
-standalone markdown cannot provide.
+The delivery surface for the `EverythingFromDayOne` concepts suite. It renders **180 of
+196 selected articles** (nextjs 10/10, react 58/73, angular 93/94, nestjs 19/19) from
+four standalone corpus repos into one site at `nxhhuy.tech`, and adds the retention
+layer (progress, quizzes, spaced repetition) that standalone markdown cannot provide.
+Exact counts live here and in `progress.md`; `roadmap.md` carries the order of
+magnitude only.
 
 **It is not a place where content is authored.** The four corpus repos stay canonical.
 

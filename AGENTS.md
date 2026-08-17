@@ -123,6 +123,14 @@ found first.
 `roadmap.md` is a stable planning document. It is NOT a progress tracker and is not
 updated per session — only on an approved scope change.
 
+**Article counts are split by document and must not be synced.** `roadmap.md` carries
+the order of magnitude — "four corpora, ~200 articles" — so a re-measurement cannot
+make it stale. `progress.md` is the authority for exact counts (selected, adapting,
+per-corpus split); `.agents/summary.md` takes the same measured figures. Do **not**
+copy a re-measurement into `roadmap.md`, and do **not** rewrite `progress.md` or
+`.agents/summary.md` to match the roadmap's `~200`. They are supposed to disagree in
+precision.
+
 ---
 
 ## Append-only docs vs in-place docs — and why it decides the merge driver

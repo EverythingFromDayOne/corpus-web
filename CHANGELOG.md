@@ -5,6 +5,31 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-17] — cursor/repair-union-merged-trackers-3709 — Split article counts by document
+
+**Added**
+- `.cursor/rules/00-session-protocol.mdc` — article counts are split by document and
+  must not be synced: `roadmap.md` carries the order of magnitude, `progress.md` is
+  the authority for exact counts
+- `progress.md` — authority block with the measured census (196 selected, 180
+  adapting, per-corpus 10/10, 58/73, 93/94, 19/19)
+- `roadmap.md` §0.0 — dated entry recording the split as an approved scope change
+
+**Changed**
+- `.agents/summary.md` — opening census is now the measured 180 of 196 (nextjs
+  10/10, react 58/73, angular 93/94, nestjs 19/19), not `~120`
+- `roadmap.md` — living `~120` claims rewritten to "four corpora, ~200 articles",
+  with a pointer to `progress.md` for exact counts
+- `AGENTS.md` — regenerated
+
+**Fixed**
+- The remaining `~120` in `.agents/summary.md`, left as a known issue by the
+  union-merge repair because `roadmap.md` still said the same number
+
+**Architecture decisions**
+- Roadmap carries orders of magnitude; progress.md carries measurements. They are
+  supposed to disagree in precision, and a later session must not sync them
+
 ### [2026-08-17] — cursor/repair-union-merged-trackers-3709 — Repair the union-merged trackers
 
 **Added**

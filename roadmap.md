@@ -1,12 +1,19 @@
 # corpus-web — Roadmap
 
-> Status: **approved with open items** · Planning 2026-08-15 · Revised 2026-08-15
+> Status: **approved with open items** · Planning 2026-08-15 · Revised 2026-08-17
 > The delivery surface for the `EverythingFromDayOne` concepts suite. Ships at `nxhhuy.tech`.
+> Article census: four corpora, ~200 articles. Exact counts live in `progress.md` and
+> are not copied here.
 > Reference layout: [sydexa.com](https://sydexa.com/courses/react-advanced/lessons/js-patterns-react) (structure only — see §14 on trade dress).
 
 ---
 
 ## 0.0 Decisions log
+
+**2026-08-17 — article-count split, approved.** This file carries the order of
+magnitude only: four corpora, ~200 articles. Exact selected / adapting / per-corpus
+counts live in `progress.md` and are not copied here. A re-measurement does not
+update this file.
 
 **2026-08-15 — resolved by the user:**
 
@@ -46,7 +53,7 @@ attach to it is **Q7 — open**.
 
 ## 0. Verdict up front
 
-You have ~120+ articles of verified reference prose sitting in four repos with no reader. The site is not a new content project — it is a **rendering and retention layer** over content that already exists. Every architectural decision below is subordinate to one constraint: **the four corpus repos stay canonical. The site never becomes a place where content is authored.**
+You have four corpora, ~200 articles of verified reference prose, with no reader. Exact counts live in `progress.md`. The site is not a new content project — it is a **rendering and retention layer** over content that already exists. Every architectural decision below is subordinate to one constraint: **the four corpus repos stay canonical. The site never becomes a place where content is authored.**
 
 Three decisions carry the whole plan:
 
@@ -234,7 +241,7 @@ type Article = {
 }
 ```
 
-The adapter layer is the compatibility shim. When a corpus's frontmatter changes, one adapter changes — not 120 files.
+The adapter layer is the compatibility shim. When a corpus's frontmatter changes, one adapter changes — not ~200 files.
 
 `status: 'draft'` articles render only when `NEXT_PUBLIC_SHOW_DRAFTS=1`. Prod ships completed work only.
 
@@ -432,7 +439,7 @@ events                id, user_id?, name, props jsonb, occurred_at    -- partiti
 
 | Option | Verdict |
 |---|---|
-| **Pagefind** | ✅ **Phase 1.** Static index built at deploy, no backend, works offline, fast. Handles ~120 articles trivially. |
+| **Pagefind** | ✅ **Phase 1.** Static index built at deploy, no backend, works offline, fast. Handles ~200 articles trivially. |
 | Fumadocs built-in (Orama-based in recent versions) | Viable if the §6.1 spike lands cleanly — verify what it ships with rather than assuming. |
 | Postgres FTS in Nest | Phase 4+, only if you want personalized ranking (e.g. surface completed articles differently). |
 | Typesense / Meilisearch | Only if the corpus passes ~500 articles or you want typo tolerance + faceting. Real infra cost. Not now. |
