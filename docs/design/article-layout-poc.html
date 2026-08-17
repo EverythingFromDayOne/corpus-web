@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The stale-answer tax — Next.js 16.3 · corpus.web</title>
+<meta name="description" content="Caching converts a latency problem into a correctness problem, and the bill arrives later. Verified against Next.js 16.3 with Cache Components.">
+<link rel="canonical" href="https://nxhhuy.tech/en/concepts/nextjs/stale-answer-tax">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0e141b" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f4f6f9" media="(prefers-color-scheme: light)">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="corpus.web">
+<meta property="og:locale" content="en">
+<meta property="og:title" content="The stale-answer tax — Next.js 16.3">
+<meta property="og:description" content="Caching converts a latency problem into a correctness problem, and the bill arrives later.">
+<meta property="og:url" content="https://nxhhuy.tech/en/concepts/nextjs/stale-answer-tax">
+<meta property="og:image" content="https://cdn.nxhhuy.tech/og/nextjs/stale-answer-tax.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The stale-answer tax — a corpus.web article on Next.js 16.3 caching">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="alternate" hreflang="en" href="https://nxhhuy.tech/en/concepts/nextjs/stale-answer-tax">
+<link rel="alternate" hreflang="x-default" href="https://nxhhuy.tech/en/concepts/nextjs/stale-answer-tax">
+
+<!-- No Person schema and no author field: this site carries no personal content.
+     Attribution is Organization-level only. -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+ {"@type":"WebSite","@id":"https://nxhhuy.tech/#site","name":"corpus.web",
+  "url":"https://nxhhuy.tech/","inLanguage":"en",
+  "publisher":{"@id":"https://nxhhuy.tech/#org"}},
+ {"@type":"Organization","@id":"https://nxhhuy.tech/#org","name":"EverythingFromDayOne",
+  "url":"https://github.com/EverythingFromDayOne"},
+ {"@type":"TechArticle","@id":"https://nxhhuy.tech/en/concepts/nextjs/stale-answer-tax#article",
+  "headline":"The stale-answer tax",
+  "description":"Caching converts a latency problem into a correctness problem, and the bill arrives later.",
+  "inLanguage":"en","isPartOf":{"@id":"https://nxhhuy.tech/#site"},
+  "publisher":{"@id":"https://nxhhuy.tech/#org"},
+  "license":"https://creativecommons.org/licenses/by/4.0/",
+  "proficiencyLevel":"Expert",
+  "dependencies":"Next.js 16.3",
+  "articleSection":"Caching",
+  "mainEntityOfPage":"https://nxhhuy.tech/en/concepts/nextjs/stale-answer-tax"},
+ {"@type":"BreadcrumbList","itemListElement":[
+  {"@type":"ListItem","position":1,"name":"Concepts","item":"https://nxhhuy.tech/en/concepts"},
+  {"@type":"ListItem","position":2,"name":"Next.js","item":"https://nxhhuy.tech/en/concepts/nextjs"},
+  {"@type":"ListItem","position":3,"name":"The stale-answer tax"}]}
+]}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0e141b;--surface:#151d26;--raised:#1e2833;--graphite:#2b3745;
+  --muted:#7c8b9c;--body:#b9c5d2;--display:#e7edf4;
+  --signal:#e4a548;--signal-soft:#f2c782;--signal-dim:#6b5228;
+  --verified:#63b98c;--stale:#d2705f;--cool:#6aa9d8;
+  --fd:'Archivo',system-ui,sans-serif;--fb:'Public Sans',system-ui,sans-serif;--fm:'IBM Plex Mono',ui-monospace,monospace;
+  --measure:60rem;--wsb:17.5rem;--wr:3.5rem;--r:6px;--rs:3px;--fast:120ms;
+}
+[data-theme="light"]{--ink:#f4f6f9;--surface:#fff;--raised:#eef1f6;--graphite:#d3dae3;--muted:#5b6875;--body:#263140;--display:#0e141b;--signal:#a1671a;--signal-soft:#7d4f12;--signal-dim:#f0dcb8;--verified:#2f7d55;--stale:#a83f2e;--cool:#2b6f9e}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:4.5rem}
+body{background:var(--ink);color:var(--body);font:17px/1.65 var(--fb);-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--fd);color:var(--display);font-stretch:92%;line-height:1.18;letter-spacing:-.01em}
+a{color:inherit;text-decoration:none}
+:where(a,button,[tabindex]):focus-visible{outline:2px solid var(--signal);outline-offset:2px;border-radius:var(--rs)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+.meta{font-family:var(--fm);font-size:.8125rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+.topbar{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:1rem;padding:.7rem 1.25rem;background:color-mix(in srgb,var(--ink) 88%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--graphite)}
+.wm{font-family:var(--fm);font-weight:600;color:var(--display);font-size:.9375rem}.wm span{color:var(--signal)}
+.ib{margin-left:auto;background:var(--surface);border:1px solid var(--graphite);color:var(--muted);width:34px;height:34px;border-radius:var(--r);cursor:pointer}
+
+/* Explicit column placement. Without it, display:none on the sidebar removes it
+   from the grid and every later child shifts one column left — main lands in the
+   0-width column and the rail takes 1fr. Placement makes hiding any child safe. */
+.view{display:grid;grid-template-columns:var(--wsb) minmax(0,1fr) var(--wr)}
+.view>.sb{grid-column:1;grid-row:1}
+.view>main{grid-column:2;grid-row:1}
+.view>.rail{grid-column:3;grid-row:1}
+.sb{border-right:1px solid var(--graphite);background:var(--surface);padding:1.1rem .85rem;overflow-y:auto;max-height:calc(100vh - 55px);position:sticky;top:55px}
+.sbhd{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.85rem}
+.sbhd b{font-family:var(--fm);font-size:.6875rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.sbtog{background:var(--raised);border:1px solid var(--graphite);color:var(--muted);width:26px;height:26px;border-radius:var(--rs);cursor:pointer;display:grid;place-items:center;font-size:.75rem;flex:none;line-height:1}
+.sbtog:hover{color:var(--display);border-color:var(--muted)}
+.view.nosb{grid-template-columns:0 minmax(0,1fr) var(--wr)}
+.view.nosb>.sb{visibility:hidden;overflow:hidden;padding:0;border-right:0;min-width:0}
+.sb select,.sb input{width:100%;background:var(--raised);border:1px solid var(--graphite);color:var(--display);font-family:var(--fm);font-size:.8125rem;padding:.5rem .6rem;border-radius:var(--rs);margin-bottom:.7rem}
+.sb input{background:var(--ink);font-family:var(--fb);color:var(--body);margin-bottom:1.1rem}
+.grp{margin-bottom:1.1rem}
+.grp h4{font-family:var(--fm);font-size:.6875rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.45rem;display:flex;justify-content:space-between}
+.grp a{display:flex;gap:.5rem;align-items:center;padding:.34rem .5rem;border-radius:var(--rs);font-size:.875rem;color:var(--muted)}
+.grp a:hover{background:var(--raised);color:var(--body)}
+.grp a.on{background:var(--raised);color:var(--display);box-shadow:inset 2px 0 0 var(--signal)}
+.d{width:6px;height:6px;border-radius:50%;background:var(--graphite);flex:none}
+.d.done{background:var(--verified)}.d.now{background:var(--signal)}.d.dr{background:transparent;border:1px solid var(--graphite)}
+
+main{padding:2rem 2.5rem 6rem;min-width:0;width:100%;max-width:76rem;margin-inline:auto}
+.head{max-width:var(--measure);margin-inline:auto}
+.crumb{display:flex;gap:.45rem;margin-bottom:1rem}
+main h1{font-size:clamp(1.85rem,3.6vw,2.45rem);margin:.3rem 0 .6rem;max-width:22ch}
+.dek{font-size:1.1rem;color:var(--muted);max-width:var(--measure);margin-bottom:1rem}
+.mr{display:flex;flex-wrap:wrap;gap:1.1rem;padding:.7rem 0;border-top:1px solid var(--graphite);border-bottom:1px solid var(--graphite);margin-bottom:2.2rem}
+.mr div{display:flex;gap:.4rem}.mr b{color:var(--display);font-weight:500}
+/* One width for everything. Prose and figures share an edge, so the eye never
+   jumps between two column widths — the thing that made v5 read as broken. */
+.prose{max-width:var(--measure);margin-inline:auto;width:100%}
+.wide{width:100%}
+.prose h2{font-size:1.6rem;margin:3.2rem 0 .5rem;scroll-margin-top:72px}
+.prose h2 .pn{font-family:var(--fm);font-size:.6875rem;letter-spacing:.14em;color:var(--signal);display:block;margin-bottom:.3rem;text-transform:uppercase}
+.prose h3{font-size:1.15rem;margin:2rem 0 .5rem}
+.prose p{margin-bottom:1rem}
+.prose strong{color:var(--display);font-weight:600}
+.prose code{font-family:var(--fm);font-size:.875em;background:var(--raised);padding:.1em .35em;border-radius:var(--rs);color:var(--signal-soft)}
+.prose ul{margin:0 0 1rem 1.1rem}.prose li{margin-bottom:.45rem}
+.wide{margin:1.6rem 0;width:100%}
+
+/* hook */
+.hook{border:1px solid var(--graphite);border-left:2px solid var(--stale);background:var(--surface);padding:1.2rem 1.3rem;border-radius:0 var(--r) var(--r) 0;margin-bottom:2rem}
+.hook .lab{font-family:var(--fm);font-size:.6875rem;letter-spacing:.12em;text-transform:uppercase;color:var(--stale);margin-bottom:.6rem}
+.hook p:last-child{margin-bottom:0}
+.hook em{color:var(--display);font-style:italic}
+
+/* roadmap */
+.rm{display:grid;gap:.7rem}
+.rm li{list-style:none;display:grid;grid-template-columns:2.2rem 1fr;gap:.7rem;border:1px solid var(--graphite);border-radius:var(--r);padding:.8rem .9rem;background:var(--surface)}
+.rm .n{font-family:var(--fm);font-size:.75rem;color:var(--signal)}
+.rm b{color:var(--display);display:block;font-weight:600;margin-bottom:.2rem}
+.rm span{font-size:.92rem;color:var(--muted)}
+
+/* generic figure */
+.fig{border:1px solid var(--graphite);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.fig .hd{display:flex;align-items:center;gap:.7rem;padding:.55rem .85rem;border-bottom:1px solid var(--graphite);font-family:var(--fm);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);flex-wrap:wrap}
+.fig .hd b{color:var(--display);font-weight:500;letter-spacing:.04em}
+.fig .bd{padding:1rem}
+.fig svg{width:100%;height:auto;display:block}
+.fig .cap{padding:.65rem .85rem;border-top:1px solid var(--graphite);font-size:.9rem;color:var(--muted);min-height:3.2rem}
+.ctl{margin-left:auto;display:flex;gap:.4rem;align-items:center}
+.ctl button{font-family:var(--fm);font-size:.6875rem;letter-spacing:.08em;text-transform:uppercase;background:var(--raised);border:1px solid var(--graphite);color:var(--body);padding:.32rem .65rem;border-radius:var(--rs);cursor:pointer}
+.ctl button.go{background:var(--signal);border-color:var(--signal);color:#0e141b;font-weight:600}
+[data-theme="light"] .ctl button.go{color:#fff}
+.ctl button:disabled{opacity:.4;cursor:not-allowed}
+.hud{display:flex;gap:1.2rem;padding:.5rem .85rem;border-bottom:1px solid var(--graphite);font-family:var(--fm);font-size:.75rem;background:var(--ink)}
+.hud i{font-style:normal;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.hud b{color:var(--signal);font-weight:600}
+.hud b.ok{color:var(--verified)}.hud b.bad{color:var(--stale)}
+
+/* svg semantics */
+.bx{fill:var(--raised);stroke:var(--graphite);stroke-width:1;transition:var(--fast)}
+.bx.hot{stroke:var(--signal);fill:color-mix(in srgb,var(--signal) 10%,var(--raised))}
+.bx.cool{stroke:var(--cool)}.bx.ok{stroke:var(--verified)}.bx.bad{stroke:var(--stale)}
+.lb{font-family:var(--fm);font-size:10px;fill:var(--muted);letter-spacing:.05em}
+.tt{font-family:var(--fm);font-size:11px;fill:var(--display)}
+.hotf{fill:var(--signal)}.coolf{fill:var(--cool)}.okf{fill:var(--verified)}.badf{fill:var(--stale)}
+.ar{stroke:var(--graphite);stroke-width:1.2;fill:none;transition:var(--fast)}
+.ar.live{stroke:var(--signal)}.ar.cool{stroke:var(--cool)}
+.dash{stroke-dasharray:3 3}
+.dim{opacity:.2}
+#tok{transition:transform 620ms cubic-bezier(.4,0,.2,1)}
+#tok.warp{transition:none}
+
+/* tabs */
+.tabs{display:flex;gap:2px;padding:.4rem .5rem;border-bottom:1px solid var(--graphite);background:var(--ink);flex-wrap:wrap}
+.tabs button{font-family:var(--fm);font-size:.7rem;letter-spacing:.06em;background:none;border:1px solid transparent;color:var(--muted);padding:.35rem .6rem;border-radius:var(--rs);cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--raised);border-color:var(--graphite);color:var(--display)}
+.pane{display:none;padding:1rem}.pane.on{display:block}
+.sql{font-family:var(--fm);font-size:.8125rem;background:var(--ink);border:1px solid var(--graphite);border-radius:var(--rs);padding:.6rem .7rem;margin-bottom:.7rem;overflow-x:auto;white-space:pre}
+.out{font-family:var(--fm);font-size:.78rem;background:var(--raised);border-left:2px solid var(--cool);padding:.6rem .7rem;overflow-x:auto;white-space:pre;color:var(--body);margin-bottom:.7rem}
+.out em{color:var(--signal);font-style:normal}
+.note{font-size:.92rem;color:var(--muted)}
+
+/* code + provenance */
+.cb{border:1px solid var(--graphite);border-radius:var(--r);overflow:hidden;margin:1.3rem 0;background:var(--raised)}
+.prov{display:flex;align-items:center;gap:.55rem;padding:.5rem .75rem;background:var(--surface);border-bottom:1px solid var(--graphite);font-family:var(--fm);font-size:.75rem;flex-wrap:wrap}
+.prov .p{color:var(--muted)}.prov .s{color:var(--signal)}.prov .s::before{content:"› ";color:var(--graphite)}
+.prov .t{color:var(--verified);margin-left:auto;letter-spacing:.06em}
+/* code block chrome: filename · language · download · fullscreen · copy */
+.cbhd{display:flex;align-items:center;gap:.6rem;padding:.5rem .75rem;background:var(--surface);border-bottom:1px solid var(--graphite);font-family:var(--fm);font-size:.8125rem}
+.cbi{color:var(--muted);font-size:.75rem}
+.cbf{color:var(--display);font-weight:500}
+.cbsp{flex:1}
+.cblang{color:var(--muted);font-size:.6875rem;border:1px solid var(--graphite);border-radius:2px;padding:.05rem .3rem}
+.cbb{background:none;border:0;color:var(--muted);cursor:pointer;padding:.2rem .3rem;border-radius:var(--rs);font-size:.9rem;line-height:1}
+.cbb:hover{color:var(--display);background:var(--raised)}
+.cbft{display:flex;border-top:1px solid var(--graphite);background:var(--surface)}
+.cbcopy{background:none;border:0;color:var(--muted);cursor:pointer;font-family:var(--fm);font-size:.75rem;padding:.55rem .75rem;display:flex;gap:.45rem;align-items:center}
+.cbcopy:hover{color:var(--display)}
+.cbcopy.done{color:var(--verified)}
+.cb:fullscreen,.cb:-webkit-full-screen{background:var(--ink);display:flex;flex-direction:column;border:0;border-radius:0}
+.cb:fullscreen pre,.cb:-webkit-full-screen pre{flex:1;font-size:.95rem;padding:1.2rem}
+.cb:fullscreen .prov,.cb:-webkit-full-screen .prov{padding:.7rem 1.2rem}
+.cb:fullscreen .cbhd,.cb:-webkit-full-screen .cbhd{padding:.8rem 1.2rem;font-size:.9rem}
+pre{margin:0;padding:.85rem .75rem;overflow-x:auto;font-family:var(--fm);font-size:.8125rem;line-height:1.7}
+.ln{display:block;padding-left:2.5rem;position:relative;white-space:pre}
+.ln::before{content:attr(data-n);position:absolute;left:0;width:1.9rem;text-align:right;color:var(--graphite)}
+.ln.hl{background:color-mix(in srgb,var(--signal) 9%,transparent);box-shadow:inset 2px 0 0 var(--signal)}
+.k{color:#c792ea}.st{color:var(--verified)}.fn{color:#82aaff}.cm{color:var(--muted);font-style:italic}
+
+/* tables */
+table{width:100%;border-collapse:collapse;margin:1.3rem 0;font-size:.92rem}
+th{font-family:var(--fm);font-size:.7rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);text-align:left;padding:.5rem .6rem;border-bottom:1px solid var(--graphite)}
+td{padding:.55rem .6rem;border-bottom:1px solid var(--graphite);vertical-align:top}
+td b{color:var(--display)}
+
+.co{border-left:2px solid var(--signal);background:var(--surface);padding:.9rem 1.1rem;border-radius:0 var(--r) var(--r) 0;margin:1.3rem 0}
+.co.myth{border-left-color:var(--cool)}
+.co.iv{border-left-color:var(--verified)}
+.co .lab{font-family:var(--fm);font-size:.6875rem;letter-spacing:.12em;text-transform:uppercase;color:var(--signal);margin-bottom:.35rem}
+.co.myth .lab{color:var(--cool)}.co.iv .lab{color:var(--verified)}
+.co p{font-size:.94rem;margin-bottom:.6rem}.co p:last-child{margin-bottom:0}
+.co ol{margin:0 0 0 1.1rem;font-size:.94rem}
+
+/* quiz */
+.qz{border:1px solid var(--graphite);border-radius:var(--r);margin:1.8rem 0;overflow:hidden;background:var(--surface)}
+.qz .hd{padding:.55rem .9rem;border-bottom:1px solid var(--graphite);font-family:var(--fm);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--signal);display:flex;justify-content:space-between}
+.qz .bd{padding:1rem}
+.qz .q{font-weight:500;color:var(--display);margin-bottom:.85rem}
+.opt{display:flex;gap:.6rem;width:100%;text-align:left;background:var(--ink);border:1px solid var(--graphite);border-radius:var(--rs);padding:.6rem .8rem;margin-bottom:.45rem;color:var(--body);cursor:pointer;font-family:var(--fm);font-size:.8125rem}
+.opt:hover{border-color:var(--muted)}
+.opt.r{border-color:var(--verified);background:color-mix(in srgb,var(--verified) 9%,var(--ink))}
+.opt.w{border-color:var(--stale);background:color-mix(in srgb,var(--stale) 9%,var(--ink))}
+.opt .lt{color:var(--muted);flex:none}
+.ex{display:none;border-top:1px solid var(--graphite);padding:.75rem .9rem;font-size:.9rem;color:var(--muted)}
+.ex.on{display:block}.ex b{color:var(--display)}
+
+/* exercise */
+.chips{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;min-height:2.4rem}
+.chip{font-family:var(--fm);font-size:.75rem;background:var(--raised);border:1px solid var(--graphite);color:var(--body);padding:.45rem .6rem;border-radius:var(--rs);cursor:grab;user-select:none}
+.chip:hover{border-color:var(--muted)}
+.chip.sel{border-color:var(--signal);background:color-mix(in srgb,var(--signal) 12%,var(--raised))}
+.chip.ok{border-color:var(--verified)}.chip.no{border-color:var(--stale)}
+.bks{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.7rem}
+.bk{border:1px dashed var(--graphite);border-radius:var(--r);padding:.7rem;min-height:8.5rem;background:var(--ink);transition:var(--fast)}
+.bk.over{border-color:var(--signal);background:color-mix(in srgb,var(--signal) 6%,var(--ink))}
+.bk h5{font-family:var(--fm);font-size:.6875rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.55rem}
+.bk[data-b="cached"] h5{color:var(--signal)}.bk[data-b="dynamic"] h5{color:var(--cool)}.bk[data-b="error"] h5{color:var(--stale)}
+.bk .slot{display:flex;flex-direction:column;gap:.4rem}
+.exf{display:flex;gap:.7rem;margin-top:.9rem;align-items:center;flex-wrap:wrap}
+.sc{font-family:var(--fm);font-size:.8125rem;color:var(--muted)}
+.fb{display:none;margin-top:.8rem;border-top:1px solid var(--graphite);padding-top:.8rem;font-size:.9rem;color:var(--muted)}
+.fb.on{display:block}.fb b{color:var(--display)}
+
+/* flashcards */
+.fc{perspective:1200px;margin:1.3rem 0}
+.fcin{position:relative;height:170px;transition:transform 520ms cubic-bezier(.4,0,.2,1);transform-style:preserve-3d;cursor:pointer}
+.fc.flip .fcin{transform:rotateY(180deg)}
+.fcf,.fcb{position:absolute;inset:0;backface-visibility:hidden;border:1px solid var(--graphite);border-radius:var(--r);background:var(--surface);display:grid;place-items:center;padding:1.4rem;text-align:center}
+.fcf{color:var(--display);font-family:var(--fd);font-size:1.15rem;font-stretch:92%}
+.fcb{transform:rotateY(180deg);color:var(--body);font-size:.95rem;border-color:var(--signal)}
+.fcn{display:flex;align-items:center;justify-content:space-between;margin-top:.6rem}
+.fcn span{font-family:var(--fm);font-size:.75rem;color:var(--muted)}
+.fcn button{font-family:var(--fm);font-size:.75rem;background:var(--raised);border:1px solid var(--graphite);color:var(--body);padding:.3rem .6rem;border-radius:var(--rs);cursor:pointer}
+
+/* big picture + teaser */
+.bp{border:1px solid var(--signal);border-radius:var(--r);background:color-mix(in srgb,var(--signal) 6%,var(--surface));padding:1.2rem 1.3rem;margin:2rem 0}
+.bp .lab{font-family:var(--fm);font-size:.6875rem;letter-spacing:.12em;text-transform:uppercase;color:var(--signal);margin-bottom:.6rem}
+.bp p{font-size:.95rem}.bp p:last-child{margin-bottom:0}
+.tz{border:1px solid var(--graphite);border-radius:var(--r);padding:1.1rem 1.2rem;margin:1.5rem 0;background:var(--surface)}
+.tz .lab{font-family:var(--fm);font-size:.6875rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem}
+.tz b{color:var(--display);display:block;font-family:var(--fd);font-size:1.1rem;margin-bottom:.4rem}
+.tz p{font-size:.94rem;margin:0}
+
+.pnav{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-top:2.5rem}
+.pnav a{border:1px solid var(--graphite);border-radius:var(--r);padding:.85rem 1rem}
+.pnav a:hover{border-color:var(--signal)}
+.pnav .dr{font-family:var(--fm);font-size:.6875rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.pnav .ti{color:var(--display);font-weight:500;font-size:.94rem;margin-top:.2rem;display:block}
+.pnav a:last-child{text-align:right}
+
+/* rail */
+.rail{position:sticky;top:55px;height:calc(100vh - 55px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px}
+.tk{width:18px;height:2px;background:var(--graphite);border-radius:2px;transition:var(--fast);position:relative;cursor:pointer;border:0;padding:0}
+.tk.seen{background:var(--signal-dim)}.tk.on{background:var(--signal);width:30px}
+.tk:hover{background:var(--signal-soft);width:30px}
+.tk .l{position:absolute;right:38px;top:50%;transform:translateY(-50%);background:var(--raised);border:1px solid var(--graphite);color:var(--display);font-family:var(--fm);font-size:.6875rem;line-height:1.45;letter-spacing:.03em;padding:.45rem .65rem;border-radius:var(--rs);white-space:normal;width:max-content;max-width:15rem;text-align:left;opacity:0;pointer-events:none;transition:var(--fast);box-shadow:0 4px 14px rgba(0,0,0,.38)}
+[data-theme="light"] .tk .l{box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.tk .l i{display:block;margin:0 0 .15rem 0;font-size:.625rem;letter-spacing:.12em;text-transform:uppercase}
+.tk:hover .l,.tk:focus-visible .l{opacity:1}
+.tk .l i{color:var(--signal);font-style:normal}
+.ring{margin-top:1rem;position:relative;width:30px;height:30px}
+.ring svg{transform:rotate(-90deg)}
+.ring .bg{fill:none;stroke:var(--graphite);stroke-width:2}
+.ring .fg{fill:none;stroke:var(--signal);stroke-width:2;stroke-linecap:round;transition:stroke-dashoffset 200ms}
+.ring .pc{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--fm);font-size:.5625rem;color:var(--muted)}
+.ring.done .fg{stroke:var(--verified)}.ring.done .pc{color:var(--verified)}
+
+/* tables and figures must never force a horizontal page scroll */
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{min-width:32rem}
+.fig .bd{overflow-x:auto}
+
+.scrim{display:none;position:fixed;inset:55px 0 0;background:rgba(0,0,0,.5);z-index:57}
+#mbar{display:none}
+@media(max-width:1280px){main{padding:2rem 1.5rem 6rem}}
+@media(max-width:1000px){
+  .view{grid-template-columns:1fr}.sb,.rail{display:none}main{padding:1.4rem 1.1rem 4rem}
+  #mbar{display:block;position:sticky;top:55px;z-index:55;height:2px;background:var(--graphite)}
+  #mbar i{display:block;height:100%;width:0;background:var(--signal);transition:width 200ms}
+  .view>.sb{grid-column:1/-1}
+  .sb{display:block;position:fixed;left:0;top:55px;bottom:0;width:min(20rem,82vw);z-index:58;transform:translateX(-102%);transition:transform 200ms var(--fast,ease);box-shadow:6px 0 24px rgba(0,0,0,.4);max-height:none}
+  .view.mobsb .sb{transform:translateX(0)}
+  .view.nosb>.sb{visibility:visible;padding:1.1rem .85rem}
+  .view.mobsb ~ .scrim,body:has(.view.mobsb) .scrim{display:block}
+  main h1{font-size:clamp(1.55rem,7vw,2rem)}
+  .mr{gap:.55rem 1rem;font-size:.75rem}
+  .hud{gap:.9rem;overflow-x:auto}
+  .bks{grid-template-columns:1fr}
+  .pnav{grid-template-columns:1fr}
+  .pnav a:last-child{text-align:left}
+  .ctl{width:100%;margin-left:0;flex-wrap:wrap}
+  .fig .hd{gap:.5rem}
+}
+@media(max-width:520px){
+  body{font-size:16px}
+  main{padding:1.1rem .9rem 3rem}
+  .chip{font-size:.7rem}
+  .opt{font-size:.75rem}
+  .fcin{height:210px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="ib" id="sbt" title="Toggle sidebar" aria-label="Toggle sidebar" aria-expanded="true" style="margin-left:0">☰</button>
+  <div class="wm">corpus<span>.</span>web</div>
+  <button class="ib" id="th" title="Toggle theme" aria-label="Toggle theme">◐</button>
+</div>
+
+<div id="mbar"><i></i></div>
+
+<div class="scrim" id="scrim"></div>
+
+<div class="view">
+  <aside class="sb" id="sb">
+    <div class="sbhd"><b>Corpus</b><button class="sbtog" id="sbc" title="Collapse sidebar" aria-label="Collapse sidebar">‹</button></div>
+    <select aria-label="Choose corpus"><option>Next.js · 16.3</option><option>React · 19.2</option><option>Angular · 21</option><option>NestJS · 11.1</option></select>
+    <input placeholder="Search corpus  ⌘K">
+    <div class="grp"><h4>Foundations <span>4</span></h4>
+      <a href="#"><i class="d done"></i>App Router model</a><a href="#"><i class="d done"></i>Server &amp; client components</a>
+      <a href="#"><i class="d done"></i>The request lifecycle</a><a href="#"><i class="d done"></i>Streaming and Suspense</a></div>
+    <div class="grp"><h4>Caching <span>5</span></h4>
+      <a href="#"><i class="d done"></i>Cache Components model</a>
+      <a class="on" href="#"><i class="d now"></i>The stale-answer tax</a>
+      <a href="#"><i class="d"></i>cacheLife and cacheTag</a><a href="#"><i class="d"></i>Private caching</a>
+      <a href="#"><i class="d dr"></i>Revalidation paths</a></div>
+  </aside>
+
+  <main>
+    <div class="head">
+    <div class="crumb meta"><span>Next.js</span> / <span>Caching</span> / <span style="color:var(--display)">The stale-answer tax</span></div>
+    <h1>The stale-answer tax</h1>
+    <p class="dek">Caching converts a latency problem into a correctness problem, and the bill arrives later.</p>
+    <div class="mr meta">
+      <div>Baseline <b>Next.js 16.3</b></div><div>Kind <b>Concept</b></div>
+      <div>Wave <b>1</b></div><div>Difficulty <b>Advanced</b></div><div style="color:var(--verified)">✓ 7 blocks verified</div>
+    </div>
+    </div>
+
+    <div class="prose">
+
+      <!-- ============ HOOK ============ -->
+      <div class="hook">
+        <div class="lab">Monday</div>
+        <p>You add <code>'use cache'</code> to the product page. TTFB drops from 840ms to 40ms. Lighthouse goes green. You merge it and go to lunch.</p>
+        <p><strong>Thursday</strong>, support forwards a ticket: <em>“The price on the listing says €39 but checkout charges €45.”</em></p>
+        <p>The listing was cached at build. The price changed Tuesday. Nothing errored, no alert fired, no log line was written — the page was doing exactly what you told it to. You didn't buy speed. You <strong>borrowed</strong> it, and the interest is paid in wrong answers.</p>
+      </div>
+
+      <!-- ============ WARM-UP ============ -->
+      <h3>Warm-up — from the previous article</h3>
+      <div class="qz" data-quiz>
+        <div class="hd"><span>Recall check</span><span>1 / 2</span></div>
+        <div class="bd">
+          <div class="q">Under Cache Components, what happens to a server component with no cache directive?</div>
+          <button class="opt" data-ok="0"><span class="lt">A</span><span>Cached until manually revalidated</span></button>
+          <button class="opt" data-ok="1"><span class="lt">B</span><span>Rendered per request — nothing is cached by default</span></button>
+          <button class="opt" data-ok="0"><span class="lt">C</span><span>Cached for 60 seconds</span></button>
+          <button class="opt" data-ok="0"><span class="lt">D</span><span>Cached only in production builds</span></button>
+        </div>
+        <div class="ex"><b>B.</b> Next 16 inverted the default. Pre-16 material assumes the opposite, which is what makes it dangerous rather than merely outdated.</div>
+      </div>
+
+      <!-- ============ ROADMAP ============ -->
+      <h3>What this article establishes</h3>
+      <ul class="rm">
+        <li><span class="n">01</span><div><b>Three phases of a cached response</b><span>One is free, one is bounded, one is unbounded. You will watch each fire, with an origin-hit counter running.</span></div></li>
+        <li><span class="n">02</span><div><b>When caching turns against you</b><span>The failure is never a crash. It is a correct-looking page containing a stale fact, and the window is wider than you think.</span></div></li>
+        <li><span class="n">03</span><div><b>What each cached surface costs</b><span>Every cache entry is a key, a payload, and an invalidation obligation you now own forever.</span></div></li>
+      </ul>
+
+      <!-- ============ PART 1 ============ -->
+      <h2 id="s1"><span class="pn">Part 1</span>Three phases of a cached response</h2>
+      <p>Every cached page — whether it is a marketing shell or a per-tenant dashboard — passes through the same three phases. Their costs are not comparable, and only one of them is unbounded.</p>
+
+      <h3>Phase 1 · Prerender</h3>
+      <p>At build, Next executes the cached scope and writes HTML to <code>.next/server/app</code>. This costs build minutes, once. It is <strong>O(routes)</strong> and you can see it in the build output. Never a production cost.</p>
+
+      <h3>Phase 2 · Shell flush</h3>
+      <p>On request, the edge finds that artefact and flushes it. No database, no origin, no render. <strong>O(1)</strong> and bounded — this is the entire performance win, and it happens before any per-user work begins.</p>
+
+      <h3>Phase 3 · Boundary resolve</h3>
+      <p>Each <code>&lt;Suspense&gt;</code> hole then resolves against the origin. <strong>O(boundaries × origin latency)</strong>, unbounded, and it scales with how much of the page you left uncached. This is where the cost actually lives.</p>
+
+
+      <div class="cb">
+        <div class="prov"><span class="p">demo/app/products/[id]/page.tsx</span><span class="s">CachedProducts</span><span class="lang">tsx</span><span class="t">✓ extracted</span></div>
+        <pre><code><span class="ln" data-n="1"><span class="k">import</span> { cacheLife } <span class="k">from</span> <span class="st">'next/cache'</span>;</span><span class="ln" data-n="2"></span><span class="ln" data-n="3"><span class="k">async function</span> <span class="fn">CachedProducts</span>({ id }) {</span><span class="ln hl" data-n="4">  <span class="st">'use cache'</span>;</span><span class="ln hl" data-n="5">  <span class="fn">cacheLife</span>(<span class="st">'max'</span>);</span><span class="ln" data-n="6"></span><span class="ln" data-n="7">  <span class="cm">// runs once at build — never per request</span></span><span class="ln" data-n="8">  <span class="k">const</span> product = <span class="k">await</span> <span class="fn">db</span>.<span class="fn">products</span>.<span class="fn">find</span>(id);</span><span class="ln" data-n="9">  <span class="k">return</span> &lt;Shell product={product} /&gt;;</span><span class="ln" data-n="10">}</span></code></pre>
+      </div>
+
+      <div class="fig wide">
+        <div class="hd"><b>Three phases · request for /products/42</b>
+          <span class="ctl">
+            <button id="rst">Reset</button>
+            <button id="stp">Step</button>
+            <button class="go" id="ply">▶ Play</button>
+          </span>
+        </div>
+        <div class="hud">
+          <span><i>Phase</i> <b id="hP">—</b></span>
+          <span><i>Origin hits</i> <b id="hO">0</b></span>
+          <span><i>Bytes to reader</i> <b id="hB">0</b></span>
+          <span><i>TTFB</i> <b id="hT">—</b></span>
+        </div>
+        <div class="bd">
+          <svg viewBox="0 0 880 250" role="img" aria-label="Animated walkthrough of the three phases of a cached response">
+            <text class="lb" x="18" y="18">BUILD</text><line x1="18" y1="25" x2="250" y2="25" class="ar dash"/>
+            <g id="n1"><rect class="bx" x="18" y="42" width="110" height="46" rx="5"/><text class="tt" x="73" y="62" text-anchor="middle">page.tsx</text><text class="lb" x="73" y="77" text-anchor="middle">'use cache'</text></g>
+            <path id="e1" class="ar" d="M132 65 L166 65" marker-end="url(#m1)"/>
+            <g id="n2"><rect class="bx" x="170" y="36" width="118" height="58" rx="5"/><text class="tt" x="229" y="58" text-anchor="middle">shell.html</text><text class="lb" x="229" y="73" text-anchor="middle">.next/server/app</text><text class="lb hotf" x="229" y="87" text-anchor="middle">immutable</text></g>
+
+            <line x1="316" y1="12" x2="316" y2="238" class="ar dash"/>
+            <text class="lb" x="336" y="18">REQUEST</text><line x1="336" y1="25" x2="862" y2="25" class="ar dash"/>
+
+            <g id="n0"><rect class="bx" x="336" y="42" width="96" height="46" rx="5"/><text class="tt" x="384" y="62" text-anchor="middle">browser</text><text class="lb" x="384" y="77" text-anchor="middle">GET</text></g>
+            <path id="e2" class="ar" d="M436 65 L470 65" marker-end="url(#m1)"/>
+            <g id="n3"><rect class="bx" x="474" y="42" width="96" height="46" rx="5"/><text class="tt" x="522" y="62" text-anchor="middle">edge</text><text class="lb" x="522" y="77" text-anchor="middle">cache hit</text></g>
+            <path id="e3" class="ar" d="M574 65 L608 65" marker-end="url(#m1)"/>
+
+            <g id="n4"><rect class="bx" x="612" y="36" width="230" height="120" rx="5"/>
+              <text class="tt" x="727" y="58" text-anchor="middle">rendered page</text>
+              <rect x="630" y="70" width="194" height="7" rx="3" class="hotf" opacity=".55"/>
+              <rect x="630" y="82" width="160" height="7" rx="3" class="hotf" opacity=".35"/>
+              <rect x="630" y="94" width="194" height="7" rx="3" class="hotf" opacity=".35"/>
+              <rect id="hole" class="bx cool" x="630" y="110" width="194" height="34" rx="4" stroke-dasharray="4 3"/>
+              <text id="holeT" class="lb coolf" x="727" y="131" text-anchor="middle">&lt;Suspense&gt; · pending</text>
+            </g>
+
+            <path id="e4" class="ar cool" d="M727 160 L727 190" marker-end="url(#m2)"/>
+            <g id="n5"><rect class="bx" x="640" y="194" width="174" height="44" rx="5"/><text class="tt" x="727" y="214" text-anchor="middle">api.nxhhuy.tech</text><text class="lb coolf" x="727" y="229" text-anchor="middle">origin · uncached</text></g>
+
+            <circle id="tok" class="hotf" cx="0" cy="0" r="6" opacity="0"/>
+            <defs>
+              <marker id="m1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="var(--signal)" stroke-width="1.6"/></marker>
+              <marker id="m2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="var(--cool)" stroke-width="1.6"/></marker>
+            </defs>
+          </svg>
+        </div>
+        <div class="cap" id="cap">Press <b style="color:var(--display)">Play</b> to run a request, or <b style="color:var(--display)">Step</b> to advance one phase at a time.</div>
+      </div>
+
+      <div class="tw"><table>
+        <thead><tr><th>Phase</th><th>Name</th><th>Cost</th><th>Bounded?</th></tr></thead>
+        <tbody>
+          <tr><td><b>1</b></td><td>Prerender</td><td>O(routes), build only</td><td>Yes — visible in build output</td></tr>
+          <tr><td><b>2</b></td><td>Shell flush</td><td>O(1)</td><td>Yes — always fast</td></tr>
+          <tr><td><b>3</b></td><td>Boundary resolve</td><td>O(boundaries × origin latency)</td><td><b style="color:var(--stale)">No</b> — this is the one that hurts</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>The build output tells you which one you got</h3>
+      <p>Every <code>next build</code> prints the render mode per route. Three symbols cover almost everything, and misreading them is how a route silently goes dynamic.</p>
+
+      <div class="fig wide">
+        <div class="hd"><b>Reading the build output</b></div>
+        <div class="tabs" role="tablist">
+          <button role="tab" aria-selected="true" data-p="p1">◐ Partial — shell + holes</button>
+          <button role="tab" aria-selected="false" data-p="p2">○ Static — fully cached</button>
+          <button role="tab" aria-selected="false" data-p="p3">ƒ Dynamic — nothing cached</button>
+        </div>
+        <div class="pane on" id="p1">
+          <div class="sql">Route (app)                          Size    First Load JS
+◐ /products/[id]                     2.1 kB        108 kB</div>
+          <div class="out">◐  (Partial Prerender)  prerendered as static HTML with dynamic holes
+   └ <em>&lt;Suspense&gt;</em> boundary: PriceWidget  →  resolved per request</div>
+          <p class="note">What you almost always want. The shell is cached and shared; only the boundary hits the origin. Phase 3 fires once per reader, for one component — not the page.</p>
+        </div>
+        <div class="pane" id="p2">
+          <div class="sql">Route (app)                          Size    First Load JS
+○ /about                             1.4 kB         96 kB</div>
+          <div class="out">○  (Static)  prerendered as static content
+   no dynamic holes — zero origin hits at request time</div>
+          <p class="note">Correct for content that changes only on deploy. <b style="color:var(--stale)">Dangerous</b> for anything with a price, a stock level, or a personalised greeting — this is exactly the Thursday ticket.</p>
+        </div>
+        <div class="pane" id="p3">
+          <div class="sql">Route (app)                          Size    First Load JS
+ƒ /dashboard                         3.8 kB        142 kB</div>
+          <div class="out">ƒ  (Dynamic)  server-rendered on demand
+   reason: <em>used `cookies()` outside a Suspense boundary</em></div>
+          <p class="note">Usually accidental. One <code>cookies()</code> read above the boundary drags the whole route dynamic, and phases 1 and 2 stop existing. The <b>reason</b> line is the thing to read — it names the exact call.</p>
+        </div>
+      </div>
+
+      <div class="qz" data-quiz>
+        <div class="hd"><span>Quick check</span><span>1 / 1</span></div>
+        <div class="bd">
+          <div class="q">Which phase has a cost you cannot bound at build time?</div>
+          <button class="opt" data-ok="0"><span class="lt">A</span><span>Phase 1 — prerender</span></button>
+          <button class="opt" data-ok="0"><span class="lt">B</span><span>Phase 2 — shell flush</span></button>
+          <button class="opt" data-ok="1"><span class="lt">C</span><span>Phase 3 — boundary resolve</span></button>
+          <button class="opt" data-ok="0"><span class="lt">D</span><span>All three are bounded</span></button>
+        </div>
+        <div class="ex"><b>C.</b> Phases 1 and 2 are visible in the build output and constant per request. Phase 3 scales with boundary count and origin latency, neither of which the build knows.</div>
+      </div>
+
+      <p>So who decides which mode a route gets? Not you, directly. The compiler infers it from what your code touches — and it will silently choose <em>dynamic</em> the moment you read a request-scoped value in the wrong place.</p>
+
+      <!-- ============ PART 2 ============ -->
+      <h2 id="s2"><span class="pn">Part 2</span>When caching turns against you</h2>
+
+      <div class="co myth">
+        <div class="lab">The reflex — and why it's wrong</div>
+        <p>“The cache is stale, just lower <code>cacheLife</code>.” It sounds like tuning. It isn't.</p>
+        <p>Lowering the TTL narrows the staleness window; it never closes it. At <code>cacheLife('minutes')</code> you have simply agreed to serve wrong prices for up to sixty seconds instead of three days. If serving a wrong answer is unacceptable, <strong>no TTL is correct</strong> — the value belongs below a Suspense boundary, not in the shell. TTL tuning is how teams spend a quarter converting a correctness bug into a smaller, harder-to-reproduce correctness bug.</p>
+      </div>
+
+      <p>Two ingredients turn a cache from a win into an incident, and neither one raises an alarm.</p>
+
+      <h3>Ingredient 1 · Facts that expire faster than the TTL</h3>
+      <p>Prices, stock levels, feature flags, permissions. Anything a human can change in an admin panel changes on human time — seconds — while your cache thinks in deploys. The mismatch is silent by construction: a stale page is a <em>correct render of an old fact</em>, so nothing in your stack has anything to complain about.</p>
+
+      <h3>Ingredient 2 · Cache keys that multiply</h3>
+      <p>A cache entry is keyed by everything the cached scope reads. Add locale, currency, and an A/B variant, and one route becomes a few hundred entries. Hit rate collapses, memory climbs, and the cache now costs more than it saves — while still being stale.</p>
+
+
+      <div class="cb">
+        <div class="prov"><span class="p">demo/app/products/[id]/page.tsx</span><span class="s">ProductPage</span><span class="lang">tsx</span><span class="t">✓ extracted</span></div>
+        <pre><code><span class="ln" data-n="1"><span class="cm">// WRONG — price lives in the cached shell, frozen at build</span></span><span class="ln" data-n="2"><span class="k">async function</span> <span class="fn">ProductPage</span>({ id }) {</span><span class="ln" data-n="3">  <span class="st">'use cache'</span>;</span><span class="ln hl" data-n="4">  <span class="k">const</span> { name, price } = <span class="k">await</span> <span class="fn">getProduct</span>(id);  <span class="cm">// ← Thursday's ticket</span></span><span class="ln" data-n="5">  <span class="k">return</span> &lt;&gt;&lt;h1&gt;{name}&lt;/h1&gt;&lt;p&gt;{price}&lt;/p&gt;&lt;/&gt;;</span><span class="ln" data-n="6">}</span><span class="ln" data-n="7"></span><span class="ln" data-n="8"><span class="cm">// RIGHT — shell cached, price below a boundary</span></span><span class="ln" data-n="9"><span class="k">async function</span> <span class="fn">ProductPage</span>({ id }) {</span><span class="ln" data-n="10">  <span class="st">'use cache'</span>;</span><span class="ln" data-n="11">  <span class="k">const</span> { name } = <span class="k">await</span> <span class="fn">getProduct</span>(id);</span><span class="ln" data-n="12">  <span class="k">return</span> (</span><span class="ln" data-n="13">    &lt;&gt;&lt;h1&gt;{name}&lt;/h1&gt;</span><span class="ln hl" data-n="14">      &lt;Suspense fallback={&lt;PriceSkeleton /&gt;}&gt;</span><span class="ln hl" data-n="15">        &lt;LivePrice id={id} /&gt;  <span class="cm">{/* per request, always current */}</span></span><span class="ln hl" data-n="16">      &lt;/Suspense&gt;&lt;/&gt;</span><span class="ln" data-n="17">  );</span><span class="ln" data-n="18">}</span></code></pre>
+      </div>
+
+      <div class="fig wide">
+        <div class="hd"><b>Where each strategy wins</b><span class="ctl"><span class="meta" id="mk">rate of change: 1 / day</span></span></div>
+        <div class="bd">
+          <svg viewBox="0 0 860 330" role="img" aria-label="Total cost of three caching strategies against how often the underlying fact changes">
+            <line x1="70" y1="278" x2="820" y2="278" class="ar"/>
+            <line x1="70" y1="26" x2="70" y2="278" class="ar"/>
+            <text class="lb" x="46" y="150" text-anchor="middle" transform="rotate(-90 46 150)">total cost</text>
+            <text class="lb" x="445" y="308" text-anchor="middle">how often the underlying fact changes  →</text>
+            <text class="lb" x="70" y="294" text-anchor="middle">deploy</text><text class="lb" x="320" y="294" text-anchor="middle">daily</text>
+            <text class="lb" x="570" y="294" text-anchor="middle">hourly</text><text class="lb" x="820" y="294" text-anchor="middle">live</text>
+
+            <rect x="70" y="26" width="250" height="252" fill="var(--signal)" opacity=".05"/>
+            <rect x="320" y="26" width="250" height="252" fill="var(--cool)" opacity=".05"/>
+            <rect x="570" y="26" width="250" height="252" fill="var(--stale)" opacity=".06"/>
+            <text class="lb hotf" x="195" y="44" text-anchor="middle">STATIC WINS</text>
+            <text class="lb coolf" x="445" y="44" text-anchor="middle">PARTIAL WINS</text>
+            <text class="lb badf" x="695" y="44" text-anchor="middle">DYNAMIC WINS</text>
+
+            <path d="M70 254 C260 250 430 180 560 96 C650 44 730 32 820 30" fill="none" stroke="var(--signal)" stroke-width="2"/>
+            <path d="M70 210 C250 202 430 172 600 150 C700 138 760 132 820 128" fill="none" stroke="var(--cool)" stroke-width="2"/>
+            <path d="M70 150 L820 150" fill="none" stroke="var(--stale)" stroke-width="2"/>
+
+            <circle cx="320" cy="207" r="5" fill="var(--ink)" stroke="var(--cool)" stroke-width="2"/>
+            <circle cx="570" cy="150" r="5" fill="var(--ink)" stroke="var(--stale)" stroke-width="2"/>
+
+            <text class="lb hotf" x="120" y="246">static</text>
+            <text class="lb coolf" x="120" y="202">partial</text>
+            <text class="lb badf" x="120" y="142">dynamic</text>
+          </svg>
+        </div>
+        <div class="cap">Static's cost curve is staleness, not latency — it climbs as the fact changes faster. Dynamic is flat: you always pay origin latency, and you are never wrong. The crossings move with your tolerance for a wrong answer, which is a product decision, not a technical one.</div>
+      </div>
+
+      <div class="tw"><table>
+        <thead><tr><th>Situation</th><th>Changes</th><th>Correct choice</th></tr></thead>
+        <tbody>
+          <tr><td>Article body, docs page</td><td>On deploy</td><td><b>Static</b> — cache everything</td></tr>
+          <tr><td>Product page with live price</td><td>Hourly</td><td><b>Partial</b> — shell cached, price in a boundary</td></tr>
+          <tr><td>Reader's own progress</td><td>Per interaction</td><td><b>Partial</b> — never in the shell</td></tr>
+          <tr><td>Checkout total</td><td>Per request</td><td><b>Dynamic</b> — a wrong answer here is fraud</td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="qz" data-quiz>
+        <div class="hd"><span>Quick check</span><span>1 / 1</span></div>
+        <div class="bd">
+          <div class="q">A price changes hourly. Product page is cached with <code>cacheLife('hours')</code>. What is the real exposure?</div>
+          <button class="opt" data-ok="0"><span class="lt">A</span><span>None — TTL matches the rate of change</span></button>
+          <button class="opt" data-ok="1"><span class="lt">B</span><span>Up to one full hour of serving a price you no longer honour</span></button>
+          <button class="opt" data-ok="0"><span class="lt">C</span><span>Only the first request after a change is wrong</span></button>
+          <button class="opt" data-ok="0"><span class="lt">D</span><span>Next revalidates automatically when the source changes</span></button>
+        </div>
+        <div class="ex"><b>B.</b> Matching TTL to rate of change is the most common reasoning error here. It bounds the window; it does not eliminate it. Next has no idea your database changed unless something tells it.</div>
+      </div>
+
+      <!-- ============ PART 3 ============ -->
+      <h2 id="s3"><span class="pn">Part 3</span>What each cached surface actually costs</h2>
+      <p>A <code>tenant-dashboard</code> route, cached per tenant and per locale. Eight hundred tenants, four locales: 3,200 entries. Each holds a rendered payload. Hit rate is poor because most tenants visit once a day, so most reads miss and render anyway — you pay origin cost <em>and</em> storage. The cache is now a tax with no benefit.</p>
+
+      <div class="cb">
+        <div class="prov"><span class="p">demo/app/[locale]/dashboard/page.tsx</span><span class="s">TenantShell</span><span class="t">✓ extracted</span></div>
+        <pre><code><span class="ln" data-n="1"><span class="k">async function</span> <span class="fn">TenantShell</span>({ tenant, locale }) {</span><span class="ln hl" data-n="2">  <span class="st">'use cache'</span>;  <span class="cm">// key = tenant × locale = 3,200 entries</span></span><span class="ln" data-n="3">  <span class="k">const</span> chrome = <span class="k">await</span> <span class="fn">getChrome</span>(tenant, locale);</span><span class="ln" data-n="4">  <span class="k">return</span> &lt;Shell {...chrome} /&gt;;</span><span class="ln" data-n="5">}</span></code></pre>
+      </div>
+
+      <div class="tw"><table>
+        <thead><tr><th></th><th>Read latency</th><th>Correctness risk</th><th>Invalidation you own</th></tr></thead>
+        <tbody>
+          <tr><td><b>No caching</b></td><td>Slowest</td><td>None</td><td>None</td></tr>
+          <tr><td><b>Shell cached, data in boundaries</b></td><td>Fast first paint</td><td>Low</td><td>Deploy only</td></tr>
+          <tr><td><b>Everything cached</b></td><td>Fastest</td><td><b style="color:var(--stale)">High</b></td><td>Every mutation, forever</td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="co">
+        <div class="lab">The rule</div>
+        <p>Cache what changes on <strong>deploy</strong>. Stream what changes on <strong>human</strong> time. Never cache what changes per <strong>request</strong>. If you cannot say which of the three a value is, you are not ready to cache it.</p>
+      </div>
+
+      <div class="co iv">
+        <div class="lab">Interview question</div>
+        <p>“Why not cache everything, given caching makes things faster?” A complete answer names three costs:</p>
+        <ol>
+          <li>Every entry is keyed by what the scope reads — keys multiply and hit rate collapses</li>
+          <li>Every cached fact becomes an invalidation obligation you own for the life of the system</li>
+          <li>Staleness fails silently: nothing errors, nothing logs, and the page looks correct</li>
+        </ol>
+        <p>Naming the third is what separates a candidate who has run a cache in production from one who has read about caching.</p>
+      </div>
+
+      <div class="qz" data-quiz>
+        <div class="hd"><span>Quick check</span><span>1 / 1</span></div>
+        <div class="bd">
+          <div class="q">A cached scope reads tenant, locale, and an A/B variant. 800 tenants, 4 locales, 3 variants. How many entries?</div>
+          <button class="opt" data-ok="0"><span class="lt">A</span><span>800 — one per tenant</span></button>
+          <button class="opt" data-ok="0"><span class="lt">B</span><span>807 — the sum of the inputs</span></button>
+          <button class="opt" data-ok="1"><span class="lt">C</span><span>9,600 — the product of every input</span></button>
+          <button class="opt" data-ok="0"><span class="lt">D</span><span>1 — the key is the route</span></button>
+        </div>
+        <div class="ex"><b>C.</b> Keys multiply, they do not add. This is why an innocuous third input is usually the one that breaks the cache economics.</div>
+      </div>
+
+      <!-- ============ PART 4 ============ -->
+      <h2 id="s4"><span class="pn">Part 4</span>Practice</h2>
+      <p>Six snippets. Sort each into what it actually produces. Drag it, or tap the snippet then tap a column.</p>
+
+      <div class="fig wide">
+        <div class="hd"><b>Exercise 1</b><span>classify the render mode</span>
+          <span class="ctl"><button id="exr">Reset</button><button class="go" id="exc">Check</button></span></div>
+        <div class="bd">
+          <div class="chips" id="pool">
+            <div class="chip" draggable="true" data-a="cached">'use cache' + cacheLife('max')</div>
+            <div class="chip" draggable="true" data-a="dynamic">await cookies() inside a boundary</div>
+            <div class="chip" draggable="true" data-a="error">new Date() in a cached scope</div>
+            <div class="chip" draggable="true" data-a="dynamic">'use cache: private'</div>
+            <div class="chip" draggable="true" data-a="cached">module-level 'use cache'</div>
+            <div class="chip" draggable="true" data-a="error">class instance across the boundary</div>
+          </div>
+          <div class="bks">
+            <div class="bk" data-b="cached"><h5>Cached shell</h5><div class="slot"></div></div>
+            <div class="bk" data-b="dynamic"><h5>Per-request</h5><div class="slot"></div></div>
+            <div class="bk" data-b="error"><h5>Build failure</h5><div class="slot"></div></div>
+          </div>
+          <div class="exf"><span class="sc" id="exs">0 / 6 placed</span></div>
+          <div class="fb" id="exf"></div>
+        </div>
+      </div>
+
+      <div class="co">
+        <div class="lab">Exercise 2 · on your own repo</div>
+        <p>Run <code>next build</code> and read the route table. For every <code>ƒ</code>, find the <b>reason</b> line and name the exact call that forced it dynamic. For every <code>○</code>, ask out loud: <em>what is the oldest fact this page can show, and is that acceptable?</em></p>
+        <p>Most teams find at least one accidental <code>ƒ</code> and at least one <code>○</code> that should not be.</p>
+      </div>
+
+      <!-- ============ PART 5 ============ -->
+      <h2 id="s5"><span class="pn">Part 5</span>Check yourself</h2>
+
+      <div class="qz" data-quiz>
+        <div class="hd"><span>Final check</span><span>1 / 3</span></div>
+        <div class="bd">
+          <div class="q">A route shows <code>ƒ (Dynamic)</code> and you expected <code>◐</code>. What is the first thing to read?</div>
+          <button class="opt" data-ok="0"><span class="lt">A</span><span>The bundle size column</span></button>
+          <button class="opt" data-ok="1"><span class="lt">B</span><span>The reason line — it names the call that forced it</span></button>
+          <button class="opt" data-ok="0"><span class="lt">C</span><span>The dev server output</span></button>
+          <button class="opt" data-ok="0"><span class="lt">D</span><span>The response headers in curl</span></button>
+        </div>
+        <div class="ex"><b>B.</b> C and D are both actively misleading — <code>next dev</code> under-reports severity, and the streamed response cannot tell you what was prerendered.</div>
+      </div>
+
+      <h3>Flashcards</h3>
+      <div class="fc" id="fc">
+        <div class="fcin">
+          <div class="fcf" id="fcF">Which of the three phases is unbounded?</div>
+          <div class="fcb" id="fcB">Phase 3, boundary resolve. O(boundaries × origin latency) — the build cannot know either factor.</div>
+        </div>
+      </div>
+      <div class="fcn"><span id="fcN">1 / 3</span><button id="fcNext">Next card →</button></div>
+
+      <div class="bp">
+        <div class="lab">The bigger picture</div>
+        <p>Across both caching articles: Next 16 inverted the default → nothing caches until you say so → a cached page is a shell plus holes → the shell is free and the holes are not → and every cached fact is a promise you now have to keep.</p>
+        <p>Remember Thursday's ticket at the top. You can now say exactly what happened: the price lived in the shell instead of below a boundary, so it was frozen at build and no mechanism existed to notice. Not a bug in Next. A design decision, made implicitly, by adding one directive without asking which of the three kinds of value it was wrapping.</p>
+      </div>
+
+      <div class="tz">
+        <div class="lab">Next article</div>
+        <b>cacheLife and cacheTag</b>
+        <p>You now know <em>whether</em> to cache. But <code>cacheLife('hours')</code> and <code>cacheTag('product-42')</code> solve completely different problems, and reaching for the first when you needed the second is the most common mistake in the whole caching surface. One bounds a window; the other closes it.</p>
+      </div>
+
+      <div class="pnav">
+        <a href="#"><span class="dr">← Previous</span><span class="ti">Cache Components model</span></a>
+        <a href="#"><span class="dr">Next →</span><span class="ti">cacheLife and cacheTag</span></a>
+      </div>
+    </div>
+  </main>
+
+  <div class="rail" id="rail"></div>
+</div>
+
+<script>
+document.getElementById('th').onclick=()=>{const r=document.documentElement;r.dataset.theme=r.dataset.theme==='dark'?'light':'dark'};
+
+/* Sidebar: collapses on desktop, slides over on mobile. In the real build this
+   state lives in a cookie so SSR renders it without a flash — localStorage would
+   paint the wrong width first. */
+const view=document.querySelector('.view'),sbt=document.getElementById('sbt'),scrim=document.getElementById('scrim');
+const isMobile=()=>window.matchMedia('(max-width:1000px)').matches;
+function toggleSb(){
+  if(isMobile()){view.classList.toggle('mobsb')}
+  else{view.classList.toggle('nosb');
+    const open=!view.classList.contains('nosb');
+    sbt.setAttribute('aria-expanded',open);
+    document.getElementById('sbc').textContent=open?'‹':'›';}
+}
+sbt.onclick=toggleSb;
+document.getElementById('sbc').onclick=toggleSb;
+scrim.onclick=()=>view.classList.remove('mobsb');
+document.addEventListener('keydown',e=>{if(e.key==='Escape')view.classList.remove('mobsb')});
+document.querySelectorAll('.sb a').forEach(a=>a.addEventListener('click',()=>view.classList.remove('mobsb')));
+
+/* ---------- rail ---------- */
+const H=[...document.querySelectorAll('.prose h2')],rail=document.getElementById('rail');
+H.forEach((h,i)=>{
+  const b=document.createElement('button');b.className='tk';
+  const pn=h.querySelector('.pn');
+  const marker=pn?pn.textContent.trim():String(i+1).padStart(2,'0');
+  const text=(pn?h.childNodes[1]?.textContent:h.textContent)||h.textContent;
+  b.innerHTML=`<span class="l"><i>${marker}</i>${text.trim()}</span>`;
+  b.setAttribute('aria-label',`${marker} — ${text.trim()}`);
+  b.onclick=()=>h.scrollIntoView({block:'start'});
+  b.onkeydown=e=>{
+    const d=e.key==='ArrowDown'?1:e.key==='ArrowUp'?-1:0;
+    if(!d)return;e.preventDefault();
+    const n=rail.querySelectorAll('.tk')[i+d];if(n)n.focus();
+  };
+  rail.appendChild(b);
+});
+const ring=document.createElement('div');ring.className='ring';
+ring.innerHTML='<svg viewBox="0 0 30 30"><circle class="bg" cx="15" cy="15" r="12"/><circle class="fg" cx="15" cy="15" r="12" stroke-dasharray="75.4" stroke-dashoffset="75.4"/></svg><span class="pc">0%</span>';
+rail.appendChild(ring);
+const TK=[...rail.querySelectorAll('.tk')],FG=ring.querySelector('.fg'),PC=ring.querySelector('.pc'),C=75.4,seen=new Set();
+function paint(a){TK.forEach((t,j)=>{t.classList.toggle('seen',seen.has(j));t.classList.toggle('on',j===a)});
+  const p=seen.size/H.length;FG.setAttribute('stroke-dashoffset',C*(1-p));PC.textContent=Math.round(p*100)+'%';
+  ring.classList.toggle('done',seen.size===H.length);
+  const mb=document.querySelector('#mbar i');
+  if(mb){mb.style.width=(p*100)+'%';mb.style.background=seen.size===H.length?'var(--verified)':'var(--signal)'}}
+H.forEach(h=>new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting){seen.add(H.indexOf(x.target));paint(H.indexOf(x.target))}}),{rootMargin:'-72px 0px -55% 0px'}).observe(h));
+paint(-1);
+
+/* ---------- animated mechanism ---------- */
+const tok=document.getElementById('tok'),cap=document.getElementById('cap');
+const hP=document.getElementById('hP'),hO=document.getElementById('hO'),hB=document.getElementById('hB'),hT=document.getElementById('hT');
+const N={n0:'n0',n1:'n1',n2:'n2',n3:'n3',n4:'n4',n5:'n5'};
+const S=[
+ {p:'—',lit:[],edge:[],from:null,to:null,o:0,b:0,t:'—',
+  c:'Press <b style="color:var(--display)">Play</b> to run a request, or <b style="color:var(--display)">Step</b> to advance one phase at a time.'},
+ {p:'1 · prerender',lit:['n1','n2'],edge:['e1'],from:[73,65],to:[229,65],o:0,b:0,t:'—',
+  c:'<b style="color:var(--display)">Build time.</b> The cached scope executes once and its HTML is written to disk. Nobody has requested anything yet — this cost never appears in production.'},
+ {p:'2 · shell flush',lit:['n0','n3'],edge:['e2'],from:[384,65],to:[522,65],o:0,b:0,t:'—',
+  c:'A reader arrives. The edge finds the prerendered artefact. <b style="color:var(--display)">No origin call has happened.</b>'},
+ {p:'2 · shell flush',lit:['n3','n4'],edge:['e3'],from:[522,65],to:[727,96],o:0,b:14200,t:'41 ms',
+  c:'The shell flushes. <b style="color:var(--display)">The reader is already reading.</b> This is the entire win, and it holds even if the origin is completely down.'},
+ {p:'3 · boundary resolve',lit:['n4','n5'],edge:['e4'],from:[727,160],to:[727,216],o:1,b:14200,t:'41 ms',
+  c:'<b style="color:var(--cool)">Only now</b> does the hole resolve against the origin. One boundary, one origin hit. Ten boundaries would be ten.'},
+ {p:'done',lit:['n4'],edge:[],from:null,to:null,o:1,b:15100,t:'41 ms',
+  c:'<b style="color:var(--verified)">Complete.</b> First paint at 41ms from cache; the per-user fragment arrived after. Reverse the order — put the price in the shell — and you get Thursday\'s ticket.'}
+];
+let i=0,timer=null;
+function apply(k,warp){
+  const s=S[k];
+  Object.values(N).forEach(id=>document.getElementById(id).classList.toggle('dim',s.lit.length>0&&!s.lit.includes(id)));
+  ['e1','e2','e3','e4'].forEach(id=>document.getElementById(id).classList.toggle('live',s.edge.includes(id)));
+  document.getElementById('n4').querySelector('rect').classList.toggle('hot',k>=3);
+  const hole=document.getElementById('hole'),ht=document.getElementById('holeT');
+  if(k>=5){hole.classList.remove('cool');hole.classList.add('ok');hole.removeAttribute('stroke-dasharray');ht.textContent='€45 · live';ht.setAttribute('class','lb okf')}
+  else{hole.classList.add('cool');hole.classList.remove('ok');hole.setAttribute('stroke-dasharray','4 3');ht.textContent='<Suspense> · pending';ht.setAttribute('class','lb coolf')}
+  hP.textContent=s.p;hO.textContent=s.o;hO.className=s.o?'':'';hB.textContent=s.b?s.b.toLocaleString():'0';hT.textContent=s.t;hT.className=s.t==='—'?'':'ok';
+  cap.innerHTML=s.c;
+  if(s.from&&s.to){
+    tok.setAttribute('opacity','1');
+    tok.classList.add('warp');tok.style.transform=`translate(${s.from[0]}px,${s.from[1]}px)`;
+    requestAnimationFrame(()=>{tok.classList.remove('warp');
+      requestAnimationFrame(()=>{tok.style.transform=`translate(${s.to[0]}px,${s.to[1]}px)`})});
+  } else tok.setAttribute('opacity','0');
+}
+function step(){if(i<S.length-1){i++;apply(i)}if(i===S.length-1)stop()}
+function stop(){clearInterval(timer);timer=null;document.getElementById('ply').textContent='▶ Play'}
+document.getElementById('stp').onclick=()=>{stop();step()};
+document.getElementById('rst').onclick=()=>{stop();i=0;apply(0)};
+document.getElementById('ply').onclick=e=>{
+  if(timer){stop();return}
+  if(i===S.length-1)i=0;
+  e.target.textContent='❚❚ Pause';step();timer=setInterval(step,1450);
+};
+apply(0);
+
+/* ---------- code blocks: filename, language, download, fullscreen, copy ---------- */
+document.querySelectorAll('.cb').forEach(cb=>{
+  const prov=cb.querySelector('.prov');
+  const path=prov?.querySelector('.p')?.textContent.trim()||'snippet.txt';
+  const lang=prov?.querySelector('.lang')?.textContent.trim()
+        ||prov?.querySelector('.t')?.previousElementSibling?.textContent.trim()||'txt';
+  const file=path.split('/').pop();
+  const code=cb.querySelector('pre').innerText;
+
+  const hd=document.createElement('div');
+  hd.className='cbhd';
+  hd.innerHTML=`<span class="cbi">&lt;/&gt;</span><span class="cbf">${file}</span>`
+    +`<span class="cbsp"></span><span class="cblang">${lang}</span>`
+    +`<button class="cbb" data-a="dl" title="Download" aria-label="Download ${file}">⭳</button>`
+    +`<button class="cbb" data-a="fs" title="Full screen" aria-label="Full screen">⤢</button>`;
+  cb.insertBefore(hd,cb.firstChild);
+
+  const ft=document.createElement('div');
+  ft.className='cbft';
+  ft.innerHTML='<button class="cbcopy"><span>⧉</span><span class="lbl">Copy code</span></button>';
+  cb.appendChild(ft);
+
+  hd.querySelector('[data-a="dl"]').onclick=()=>{
+    const url=URL.createObjectURL(new Blob([code],{type:'text/plain'}));
+    const a=document.createElement('a');a.href=url;a.download=file;a.click();
+    URL.revokeObjectURL(url);
+  };
+  hd.querySelector('[data-a="fs"]').onclick=()=>{
+    if(document.fullscreenElement)document.exitFullscreen();
+    else cb.requestFullscreen?.().catch(()=>{});
+  };
+  const cp=ft.querySelector('.cbcopy');
+  cp.onclick=async()=>{
+    try{await navigator.clipboard.writeText(code)}
+    catch{const ta=document.createElement('textarea');ta.value=code;document.body.appendChild(ta);
+      ta.select();document.execCommand('copy');ta.remove()}
+    cp.classList.add('done');cp.querySelector('.lbl').textContent='Copied';
+    setTimeout(()=>{cp.classList.remove('done');cp.querySelector('.lbl').textContent='Copy code'},1600);
+  };
+});
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected',x===b));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id===b.dataset.p));
+});
+
+/* ---------- quizzes ---------- */
+document.querySelectorAll('[data-quiz]').forEach(q=>{
+  q.querySelectorAll('.opt').forEach(o=>o.onclick=()=>{
+    q.querySelectorAll('.opt').forEach(x=>{x.classList.add(x.dataset.ok==='1'?'r':'w');x.disabled=true});
+    q.querySelector('.ex').classList.add('on');
+  });
+});
+
+/* ---------- flashcards ---------- */
+const CARDS=[
+ ['Which of the three phases is unbounded?','Phase 3, boundary resolve. O(boundaries × origin latency) — the build cannot know either factor.'],
+ ['Does lowering cacheLife fix staleness?','No. It narrows the window, never closes it. If a wrong answer is unacceptable, the value belongs below a boundary, not in the shell.'],
+ ['Why do cache keys multiply rather than add?','An entry is keyed by everything the scope reads. Tenant × locale × variant, not tenant + locale + variant.']
+];
+let ci=0;const fc=document.getElementById('fc');
+fc.onclick=()=>fc.classList.toggle('flip');
+document.getElementById('fcNext').onclick=()=>{
+  fc.classList.remove('flip');
+  setTimeout(()=>{ci=(ci+1)%CARDS.length;
+    document.getElementById('fcF').textContent=CARDS[ci][0];
+    document.getElementById('fcB').textContent=CARDS[ci][1];
+    document.getElementById('fcN').textContent=`${ci+1} / ${CARDS.length}`;},260);
+};
+
+/* ---------- exercise ---------- */
+const pool=document.getElementById('pool'),sc=document.getElementById('exs'),fb=document.getElementById('exf');
+let held=null;
+function cnt(){const n=document.querySelectorAll('.bk .chip').length;sc.textContent=`${n} / 6 placed`;document.getElementById('exc').disabled=n<6}
+document.querySelectorAll('.chip').forEach(c=>{
+  c.addEventListener('dragstart',()=>held=c);
+  c.addEventListener('click',()=>{
+    if(held===c){c.classList.remove('sel');held=null;return}
+    document.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));held=c;c.classList.add('sel')});
+});
+function place(b){if(!held)return;b.querySelector('.slot').appendChild(held);held.classList.remove('sel');held=null;cnt()}
+document.querySelectorAll('.bk').forEach(b=>{
+  b.addEventListener('dragover',e=>{e.preventDefault();b.classList.add('over')});
+  b.addEventListener('dragleave',()=>b.classList.remove('over'));
+  b.addEventListener('drop',e=>{e.preventDefault();b.classList.remove('over');place(b)});
+  b.addEventListener('click',()=>place(b));
+});
+document.getElementById('exc').onclick=()=>{
+  let ok=0;
+  document.querySelectorAll('.bk').forEach(b=>b.querySelectorAll('.chip').forEach(c=>{
+    const r=c.dataset.a===b.dataset.b;c.classList.add(r?'ok':'no');if(r)ok++}));
+  fb.innerHTML=`<b>${ok} / 6 correct.</b> The two build failures are the ones to remember: a clock read inside a cached scope freezes at entry creation, and a class instance crossing the client boundary is fatal at build on a prerendered route — not a silent degradation.`;
+  fb.classList.add('on');
+};
+document.getElementById('exr').onclick=()=>{
+  document.querySelectorAll('.bk .chip').forEach(c=>{c.classList.remove('ok','no','sel');pool.appendChild(c)});
+  fb.classList.remove('on');held=null;cnt();
+};
+cnt();
+</script>
+</body>
+</html>
