@@ -111,8 +111,50 @@ Do NOT rewrite `.agents/summary.md` wholesale. Edit the specific sections that c
 Status vocabulary, suite-wide: WHITE=queued, YELLOW=in progress, GREEN=drafted,
 CHECK=complete, X=dropped. Use the emoji forms already present in the file.
 
+**Debt IDs are append-only and are never reused.** A new debt takes the next unused
+number, recorded as "Highest ID issued" at the top of the Debt table. A closed debt keeps
+its row and its number — mark it closed, never delete the row and never hand its number to
+something else. If two sessions have independently claimed the same ID, **the earliest
+claim keeps the number** and the later one is renumbered to the next unused number, with
+the renumbering stated in the row. An ID that means two things in two places is worse than
+no ID, because every cross-reference to it silently points at whichever row the reader
+found first.
+
 `roadmap.md` is a stable planning document. It is NOT a progress tracker and is not
 updated per session — only on an approved scope change.
+
+**Article counts are split by document and must not be synced.** `roadmap.md` carries
+the order of magnitude — "four corpora, ~200 articles" — so a re-measurement cannot
+make it stale. `progress.md` is the authority for exact counts (selected, adapting,
+per-corpus split); `.agents/summary.md` takes the same measured figures. Do **not**
+copy a re-measurement into `roadmap.md`, and do **not** rewrite `progress.md` or
+`.agents/summary.md` to match the roadmap's `~200`. They are supposed to disagree in
+precision.
+
+---
+
+## Append-only docs vs in-place docs — and why it decides the merge driver
+
+`.agents/SESSION-LOG.md` and `CHANGELOG.md` are append-only. Two branches each add an
+entry and both entries are wanted, so `.gitattributes` gives those two files
+`merge=union`.
+
+`progress.md` and `.agents/summary.md` are the opposite. Both are edited **in place** — a
+status flips, a count is corrected, a stale bullet is rewritten. A union merge does not
+merge an in-place edit; it keeps the old line *and* the new one. Run that across several
+promotion rebases and the file accumulates four "Last updated" headers, five copies of one
+table row, and four debt rows sharing two IDs, each asserting a different number and none
+of them marked stale.
+
+**`.gitattributes` deliberately excludes those two files, and must keep excluding them.**
+
+- **NEVER add `progress.md` or `.agents/summary.md` to `.gitattributes`**, with
+  `merge=union` or any other merge driver.
+- **NEVER resolve a conflict in either file by keeping both sides.** Keep the newer claim,
+  delete the older one, then **verify the survivor against the repository** — run the
+  gate, read the pin, count the files. Whichever copy the merge happened to order last is
+  not evidence.
+- The same applies to any future tracker that is edited rather than appended to.
 
 ---
 

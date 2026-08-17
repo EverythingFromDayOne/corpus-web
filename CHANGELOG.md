@@ -5,6 +5,80 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-17] — cursor/repair-union-merged-trackers-3709 — Split article counts by document
+
+**Added**
+- `.cursor/rules/00-session-protocol.mdc` — article counts are split by document and
+  must not be synced: `roadmap.md` carries the order of magnitude, `progress.md` is
+  the authority for exact counts
+- `progress.md` — authority block with the measured census (196 selected, 180
+  adapting, per-corpus 10/10, 58/73, 93/94, 19/19)
+- `roadmap.md` §0.0 — dated entry recording the split as an approved scope change
+
+**Changed**
+- `.agents/summary.md` — opening census is now the measured 180 of 196 (nextjs
+  10/10, react 58/73, angular 93/94, nestjs 19/19), not `~120`
+- `roadmap.md` — living `~120` claims rewritten to "four corpora, ~200 articles",
+  with a pointer to `progress.md` for exact counts
+- `AGENTS.md` — regenerated
+
+**Fixed**
+- The remaining `~120` in `.agents/summary.md`, left as a known issue by the
+  union-merge repair because `roadmap.md` still said the same number
+
+**Architecture decisions**
+- Roadmap carries orders of magnitude; progress.md carries measurements. They are
+  supposed to disagree in precision, and a later session must not sync them
+
+### [2026-08-17] — cursor/repair-union-merged-trackers-3709 — Repair the union-merged trackers
+
+**Added**
+- `.cursor/rules/00-session-protocol.mdc` — debt IDs are append-only and never reused; the
+  earliest claim on a number keeps it and the later claimant is renumbered
+- `.cursor/rules/00-session-protocol.mdc` — new section "Append-only docs vs in-place
+  docs", forbidding `merge=union` on `progress.md` and `.agents/summary.md` and requiring
+  that a conflict survivor be verified against the repository rather than trusted
+- `.gitattributes` — comments recording why only the two append-only docs are listed
+- `progress.md` — Debt **D14** (the link report was all-or-nothing; closed by follow-up d,
+  renumbered out of its D12 collision) and Debt **D15** (`angular`'s
+  `docs/recipes/elements/widget-deployment.md` is a byte-identical duplicate of
+  `docs/concepts/tooling/cdk-coercion.md`, previously tracked only inside a D5 row)
+- `progress.md` — an append-only-IDs note and a "Highest ID issued: D15" line above the
+  Debt table
+- `.agents/summary.md` and `progress.md` — a header on each stating it is edited in place
+  and never union-merged
+
+**Changed**
+- `.agents/summary.md` — five `Last updated` headers, five `build-catalog` state
+  paragraphs, four `Content submodules wired` bullets, five `Debt D5` key facts and four
+  `Planned next steps` item-1 paragraphs each collapsed to a single re-measured entry
+- `progress.md` — Phase 1 items 7 (×5), 7b (×5) and 16 (×4), and Debt rows D5 (×4) and
+  D6 (×2), each collapsed to one
+- `progress.md` — Debt **D12** now means only the earliest claim on that number, the
+  `nestjs-concepts` `.ts`-extension article; the later link-report claim moved to D14
+- Every surviving claim re-measured against the pinned corpora rather than inherited:
+  180 of 196 articles adapt (nextjs 10/10, react 58/73, angular 93/94, nestjs 19/19),
+  16 fail, and `verify-links` fails on 49 refs across 34 distinct targets
+- `AGENTS.md` — regenerated
+
+**Fixed**
+- Debt **D12** claimed `nestjs-concepts` `validation/dtos-and-class-validator.md` was
+  "absent from disk". The file is present as `validation/dtos-and-class-validator.**ts**`
+  with full frontmatter and an H1; only the extension keeps it out of file selection.
+  `docs/audit/unresolved-refs-2026-08-16.md` had this right
+- Debt **D13**'s distinct-target count corrected from 23 to the measured 34
+- Debt **D4** no longer lists `reactjs`, `auth`, `authz` or `websec` as corpora, and
+  Debt **D7** no longer calls the React repo `reactjs-concepts` — both settled by the
+  session-1 follow-up
+
+**Architecture decisions**
+- A doc's merge driver follows its write pattern, not its importance: append-only docs get
+  `merge=union`, in-place docs get hand resolution and must never be listed
+- A conflict survivor is a candidate, not evidence. Verify it against the repository —
+  run the gate, read the pin, count the files — before keeping it
+- Debt IDs are identifiers, not slots. Reusing one silently redirects every existing
+  cross-reference to whichever row the reader finds first
+
 ### [2026-08-16] — cursor/promote-nextjs-v0.3.0-6413 — Promote `content/nextjs` to v0.3.0
 
 **Added**
