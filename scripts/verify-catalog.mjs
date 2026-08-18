@@ -13,7 +13,7 @@
  *     being a warning and becomes a build failure. The artifact ships every
  *     finished article; the gate still refuses to call the corpus clean
  *   - no duplicate article `uid`
- *   - no path item pointing at a missing or (outside `SHOW_DRAFTS`) draft article
+ *   - no path item pointing at a missing article
  *   - no article landed in the `dirnamePath()` fallback's `root` sentinel —
  *     that value only appears when a corpus file has no explicit folder key
  *     AND lives outside `docs/`, which means folder inference silently guessed
@@ -21,16 +21,17 @@
  *   - every `edges` entry points at an article the catalog actually contains,
  *     and every `excludedTargets` entry names a file the catalog actually lists
  *     in `failures`. Both are the builder's own claims about the link report's
- *     four-way classification, and a renderer trusts `edges` enough to emit a
+ *     classification, and a renderer trusts `edges` enough to emit a
  *     link without checking. Only a builder bug can fail these; no corpus
  *     content can
  *
- * `excludedTargets`, `draftTargets`, and `unresolvedTargets` are NOT failures
- * here. The first two are refs to a real article this build has no route for,
- * and their root cause is reported once each — in `failures` above, and by the
- * corpus's own draft status. `unresolvedTargets` is fatal in `verify-links`;
- * this gate records the warning so a renderer emits plain text, and does not
- * restate the same unresolved refs.
+ * `excludedTargets` and `unresolvedTargets` are NOT failures here.
+ * `excludedTargets` are refs to a real article this build has no route for,
+ * and their root cause is already reported in `failures`. `draftTargets` is
+ * vestigial and always empty — there is no draft gate; publication is
+ * adaptation. `unresolvedTargets` is fatal in `verify-links`; this gate
+ * records the warning so a renderer emits plain text, and does not restate
+ * the same unresolved refs.
  *
  * Does not build the catalog itself — run `pnpm build:catalog` first. A
  * missing `catalog.json` is a failure, not a skip: a gate that passes when
@@ -41,7 +42,6 @@ import { join } from 'node:path';
 import { printGroupedFailures, ROOT } from './lib/corpus-fs.mjs';
 import { Catalog } from '../packages/content-schema/src/index.ts';
 
-const SHOW_DRAFTS = process.env.SHOW_DRAFTS === '1' || process.env.NEXT_PUBLIC_SHOW_DRAFTS === '1';
 const catalogPath = join(ROOT, 'catalog.json');
 
 if (!existsSync(catalogPath)) {
@@ -92,17 +92,13 @@ for (const article of catalog.articles) {
   }
 }
 
-// Path items must point at a real, non-draft (unless SHOW_DRAFTS) article.
+// Path items must point at a real adapted article.
 const articlesByUid = new Map(catalog.articles.map((a) => [a.uid, a]));
 for (const path of catalog.paths) {
   for (const item of path.items) {
     const target = articlesByUid.get(item.article);
     if (!target) {
       errors.push(`path "${path.slug}" references missing article \`${item.article}\``);
-      continue;
-    }
-    if (target.status === 'draft' && !SHOW_DRAFTS) {
-      errors.push(`path "${path.slug}" references draft article \`${item.article}\``);
     }
   }
 }
@@ -139,10 +135,10 @@ if (errors.length > 0) {
   for (const error of errors) console.error(`- ${error}`);
 }
 
-if (catalog.excludedTargets.length > 0 || catalog.draftTargets.length > 0) {
+if (catalog.excludedTargets.length > 0) {
   console.warn(
-    `verify-catalog: WARN — ${catalog.excludedTargets.length} ref(s) to an excluded article and ` +
-      `${catalog.draftTargets.length} to a draft; a renderer must emit these as plain text, not links`,
+    `verify-catalog: WARN — ${catalog.excludedTargets.length} ref(s) to an excluded article; ` +
+      'a renderer must emit these as plain text, not links',
   );
 }
 

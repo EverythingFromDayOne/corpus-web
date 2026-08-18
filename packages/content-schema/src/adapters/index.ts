@@ -22,7 +22,8 @@ export { createAdapter } from './factory.js';
  *    relies on the body's H1 (`deriveTitle` in `shared.ts`).
  * 3. `status` is a plain string in `nextjs`/`angular` concepts but an object
  *    in `react`/`nestjs` concepts and some `angular` recipes
- *    (`normaliseStatus` in `shared.ts`).
+ *    (`normaliseAuthoringStage` in `shared.ts`). It is carried through as
+ *    `Article.authoringStage` — a display label, not a publication signal.
  *
  * NO adapter exists for:
  *   dsa                  — planned corpus, no remote yet

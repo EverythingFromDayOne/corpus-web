@@ -12,8 +12,6 @@
  *
  *   - target is a real file that failed to adapt — `verify-frontmatter` fails on
  *     it by path and reason, and `catalog.failures` carries it. Warned here.
- *   - target is a draft — correct ref, no route in a production build. Warned,
- *     and recorded in the catalog so the renderer degrades it to plain text.
  *   - target is a planned corpus (`dsa`, no remote) or a demo app (`auth`,
  *     `authz`, `websec`) — the work exists, it is just not an article. Warned.
  *
@@ -25,8 +23,6 @@
 import { adaptAllArticles } from './lib/adapt-all.mjs';
 import { printGroupedFailures } from './lib/corpus-fs.mjs';
 import { buildLinkReport } from './lib/link-report.mjs';
-
-const SHOW_DRAFTS = process.env.SHOW_DRAFTS === '1' || process.env.NEXT_PUBLIC_SHOW_DRAFTS === '1';
 
 let articlesByUid;
 let failures;
@@ -49,7 +45,7 @@ if (articlesByUid.size === 0) {
   process.exit(1);
 }
 
-const report = buildLinkReport(articlesByUid, { showDrafts: SHOW_DRAFTS, failures });
+const report = buildLinkReport(articlesByUid, { failures });
 
 let ok = true;
 
@@ -72,14 +68,6 @@ if (report.excludedTargets.length > 0) {
       `(${distinct} distinct target(s); the root cause is above, once per file)`,
   );
   for (const t of report.excludedTargets) console.warn(`    [${t.from}] -> ${t.to} (${t.sourcePath})`);
-}
-
-if (!SHOW_DRAFTS && report.draftTargets.length > 0) {
-  console.warn(
-    `verify-links: WARN — ${report.draftTargets.length} ref(s) to a draft article ` +
-      '(set SHOW_DRAFTS=1 to treat them as live links)',
-  );
-  for (const d of report.draftTargets) console.warn(`    [${d.from}] -> ${d.to}`);
 }
 
 if (report.plannedTargets.length > 0) {

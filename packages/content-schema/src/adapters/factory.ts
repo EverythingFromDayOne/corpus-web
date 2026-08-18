@@ -5,8 +5,8 @@ import {
   BaseFrontmatter,
   buildSourceUrl,
   deriveTitle,
+  normaliseAuthoringStage,
   normaliseDifficulty,
-  normaliseStatus,
   normaliseWave,
   parseRelated,
   requireDescription,
@@ -123,7 +123,9 @@ export function createAdapter(spec: AdapterSpec): RepoAdapter {
           sourcePath,
         ),
         baseline: { framework: spec.framework, version: baselineVersion },
-        status: normaliseStatus(fm.status as string | Record<string, unknown> | undefined),
+        authoringStage: normaliseAuthoringStage(
+          fm.status as string | Record<string, unknown> | undefined,
+        ),
         related: (Array.isArray(fm.related) ? (fm.related as string[]) : []).map((r) =>
           parseRelated(r, spec.repo, sourcePath),
         ),

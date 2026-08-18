@@ -60,17 +60,18 @@ export type UnresolvedTarget = z.infer<typeof UnresolvedTarget>;
  * `lesson_progress` points at them and articles get renamed and moved.
  *
  * The catalog is emit-with-exclusions, not all-or-nothing: an article that
- * cannot adapt is left out of `articles` and recorded in `failures`, the same
- * way a draft is left out of a production render without failing the build.
+ * cannot adapt is left out of `articles` and recorded in `failures`.
  * `verify-catalog` then fails on a non-empty `failures`, so the gate keeps its
  * teeth while the artifact stops being hostage to the worst file in the corpus.
+ * Adaptation is the publication gate — an article that adapts renders.
  *
  * Exclusion has a second cost the artifact has to carry: every `related` ref
- * pointing at an excluded or draft article is now a ref to a page with no route.
- * Those refs travel in `excludedTargets` and `draftTargets` so a renderer can
- * emit plain text rather than a link that 404s — see `LinkReport`. Refs whose
- * target exists in no corpus at all travel in `unresolvedTargets` the same way:
- * the artifact still writes, and `verify-links` is what fails on them.
+ * pointing at an excluded article is now a ref to a page with no route.
+ * Those refs travel in `excludedTargets` so a renderer can emit plain text
+ * rather than a link that 404s — see `LinkReport`. `draftTargets` is vestigial
+ * and always empty: there is no draft gate. Refs whose target exists in no
+ * corpus at all travel in `unresolvedTargets` the same way: the artifact still
+ * writes, and `verify-links` is what fails on them.
  */
 export const Catalog = z.object({
   schema: z.literal(1),
@@ -91,8 +92,9 @@ export const Catalog = z.object({
    */
   excludedTargets: z.array(ExcludedTarget),
   /**
-   * Refs whose target adapted but is `draft`, in a build that is not showing
-   * drafts. Same rendering rule as `excludedTargets` — plain text, no link.
+   * Vestigial. Always empty: there is no draft gate. Publication is
+   * adaptation, full stop. Kept so the schema and any consumer that reads
+   * `catalog.draftTargets` stay stable.
    */
   draftTargets: z.array(LinkEdge),
   /**
@@ -109,9 +111,11 @@ export type Catalog = z.infer<typeof Catalog>;
 
 /**
  * Result of resolving `related` blocks, classified by WHY a ref does or does not
- * land on a page. The four buckets for an `article`-resolution ref are `edges`,
- * `excludedTargets`, `draftTargets`, and `unresolvedTargets`. Only the last is
- * fatal, and only in `verify-links` — `build-catalog` records it and writes.
+ * land on a page. The buckets for an `article`-resolution ref are `edges`,
+ * `excludedTargets`, `draftTargets`, and `unresolvedTargets`. `draftTargets` is
+ * vestigial and always empty — there is no draft gate; publication is
+ * adaptation. Only `unresolvedTargets` is fatal, and only in `verify-links` —
+ * `build-catalog` records it and writes.
  *
  * The split exists so the build fails once on a root cause and never again on
  * its symptoms. One article that cannot adapt is one failure in
@@ -131,10 +135,9 @@ export const LinkReport = z.object({
    */
   excludedTargets: z.array(ExcludedTarget),
   /**
-   * Target adapted but is `draft`, and this build is not showing drafts. WARNS,
-   * and is recorded so a renderer can degrade the ref to plain text. A link to
-   * a page that 404s is a rendering bug; the ref itself is correct and becomes
-   * live the day the article is marked complete.
+   * Vestigial. Always empty: there is no draft gate. Publication is
+   * adaptation, so a resolved target in `articles` is a live edge. Kept so
+   * the schema and any consumer that reads `draftTargets` stay stable.
    */
   draftTargets: z.array(LinkEdge),
   /**

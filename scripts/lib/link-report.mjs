@@ -5,14 +5,19 @@
  * set. Shared by `build-catalog.mjs` and `verify-links.mjs` so the two gates
  * can never disagree about what "resolved" means.
  *
- * Four-way classification, because a ref that does not become a link has four
- * distinct causes and only one of them is a build failure:
+ * Classification, because a ref that does not become a link has distinct
+ * causes and only one of them is a build failure:
  *
- *   edges             target adapted and is renderable
+ *   edges             target adapted — live link (adaptation is the publication gate)
  *   excludedTargets   target is a real file in `catalog.failures`      WARN
- *   draftTargets      target adapted but is draft                     WARN
+ *   draftTargets      vestigial, always empty — no draft gate          (schema only)
  *   unresolvedTargets target exists in no corpus at all               FATAL in verify-links;
  *                                                                     build-catalog records and writes
+ *
+ * `draftTargets` is kept as an empty array so the `LinkReport` / `Catalog`
+ * schema and any consumer that reads the key stay stable. There is no more
+ * draft gate: an article that adapts is published, and any resolved target
+ * in `articlesByUid` is an edge.
  *
  * Fail once on the root cause, never on its symptoms. An excluded target is the
  * adaptation failure already reported by `verify-frontmatter` and already
@@ -25,18 +30,16 @@ import { articleUid, LinkReport } from '../../packages/content-schema/src/index.
 
 /**
  * @param {Map<string, object>} articlesByUid
- * @param {{ showDrafts: boolean, failures?: Array<{ repo: string, sourcePath: string, reason: string }> }} options
+ * @param {{ failures?: Array<{ repo: string, sourcePath: string, reason: string }> }} options
  * @returns {import('../../packages/content-schema/src/index.ts').LinkReport}
  */
-export function buildLinkReport(articlesByUid, { showDrafts, failures = [] }) {
+export function buildLinkReport(articlesByUid, { failures = [] } = {}) {
   const excludedByUid = indexFailuresByUid(failures);
 
   /** @type {Array<{ from: string, to: string }>} */
   const edges = [];
   /** @type {Array<{ from: string, to: string, sourcePath: string }>} */
   const excludedTargets = [];
-  /** @type {Array<{ from: string, to: string }>} */
-  const draftTargets = [];
   /** @type {Array<{ from: string, raw: string, reason: string }>} */
   const unresolvedTargets = [];
   /** @type {Array<{ from: string, raw: string, repo: string }>} */
@@ -72,10 +75,6 @@ export function buildLinkReport(articlesByUid, { showDrafts, failures = [] }) {
         continue;
       }
 
-      if (target.status === 'draft' && !showDrafts) {
-        draftTargets.push({ from: article.uid, to: targetUid });
-        continue;
-      }
       edges.push({ from: article.uid, to: targetUid });
     }
   }
@@ -83,7 +82,7 @@ export function buildLinkReport(articlesByUid, { showDrafts, failures = [] }) {
   return LinkReport.parse({
     edges: dedupeEdges(edges),
     excludedTargets: dedupeEdges(excludedTargets),
-    draftTargets: dedupeEdges(draftTargets),
+    draftTargets: [],
     unresolvedTargets,
     plannedTargets,
     demoTargets,
