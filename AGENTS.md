@@ -483,7 +483,7 @@ type Article = {
   wave: number | null;
   difficulty: 'foundational' | 'intermediate' | 'advanced' | null;
   baseline: { framework: string; version: string };
-  status: 'draft' | 'complete';
+  authoringStage: string; // the author's own workflow label — NOT a publication gate
   related: ArticleRef[];
   sourcePath: string;  // drives the "Edit on GitHub" link
   contentHash: string; // sha256 of body — drives the DB upsert
@@ -494,10 +494,24 @@ When a corpus changes its frontmatter, **one adapter changes** — never 120+ fi
 
 `article_id` / `recipe_id` is always the filename slug, never a sequence number.
 
-## Draft gating
+## Publication gate — adaptation, not `status`
 
-`status: 'draft'` renders only when `NEXT_PUBLIC_SHOW_DRAFTS=1`. Production ships
-completed work only. A path may not reference a draft article — `verify-catalog` fails.
+**An article that adapts is publishable.** Adaptation already enforces the real gates: a
+title exists (frontmatter or body H1), a description exists, frontmatter validates against
+the corpus's adapter. There is no second, separate publication gate on top of that.
+
+The corpus's own `status` frontmatter key (`draft`, `review`, `needs-upgrade`, or an object
+shape like `{ drafted, reviewed }`) is carried through as `Article.authoringStage` — a
+string, typed only enough to be comparable. It is the author's own workflow bookmark
+("have I looked at this"), not a quality or completeness signal, and it **must never gate
+rendering or link resolution.** Measured 2026-08-18: all 181 adapting articles across all
+four corpora normalised to a `status` value, and `complete`/`published`/`final` appears in
+none of them — the old draft/complete collapse was hiding 100% of the corpus.
+
+`NEXT_PUBLIC_SHOW_DRAFTS` still exists, but it no longer gates whether an article renders.
+It controls only whether the UI **surfaces** `authoringStage` (e.g. a "needs upgrade" badge)
+once that UI exists. A path may reference any article that adapted — `verify-catalog` only
+fails on a path item pointing at a **missing** article, never a "draft" one.
 
 ## Cross-repo links
 
@@ -512,9 +526,9 @@ classifies every `article`-resolution ref into exactly one of:
 
 | Bucket | The target | Severity |
 |---|---|---|
-| `edges` | adapts and is complete | live link |
+| `edges` | adapts | live link |
 | `excludedTargets` | is a real file, already listed in `catalog.failures` | **WARN** |
-| `draftTargets` | adapts, but is `draft` outside `SHOW_DRAFTS` | **WARN**, recorded |
+| `draftTargets` | vestigial — always empty, no draft gate | kept for schema stability only |
 | `unresolvedTargets` | exists in no corpus at all | **FATAL** for `verify-links`. `build-catalog` writes the artifact with them recorded |
 
 An excluded target is not a second defect. It is the adaptation failure that
@@ -522,10 +536,10 @@ An excluded target is not a second defect. It is the adaptation failure that
 from the far end of a link — and inbound refs cluster, so failing on it restates a handful
 of root causes dozens of times and buries the breakage that has no other report.
 
-A draft target is a **correct** ref with no route in this build; it goes live the day the
-article is marked complete. It is recorded rather than merely counted so the renderer emits
-plain text instead of a link that 404s. Both buckets travel in `catalog.json` for that
-reason. Linking to a page that does not exist is a rendering bug, not a build failure.
+`draftTargets` is kept in the `Catalog`/`LinkReport` schema so a consumer reading the key
+does not break, but it is always `[]`: a ref that resolves to an adapting article is an
+`edges` entry, full stop. There is no intermediate "adapted but not shown" state anymore —
+that was `status`-based draft gating, and it was hiding 100% of the corpus (see above).
 
 An unresolved target has no article and no excluded file. `verify-links` fails
 on it — that gate is still stricter than the per-repo one. `build-catalog`

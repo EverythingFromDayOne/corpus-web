@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   ArticleKind,
   ArticleRef,
+  AuthoringStage,
   Difficulty,
   isDemoSource,
   isMounted,
@@ -10,7 +11,6 @@ import {
   REPO_DEFAULT_BRANCH,
   REPO_IS_PRIVATE,
   REPO_ORIGINS,
-  Status,
 } from '../common.js';
 import { findTitleHeading } from '../sections.js';
 import { AdapterError } from './types.js';
@@ -43,10 +43,12 @@ export const BaseFrontmatter = z.object({
   title: z.string().min(1).optional(),
   description: z.string().min(1).optional(),
   /**
-   * Session 2 audit: `status` is a plain string in `nextjs`/`angular`
-   * (`draft`, `review`, `needs-upgrade`, ...) but an OBJECT in `react`/`nestjs`
-   * concept files and in some `angular` recipes (`{ drafted, reviewed }` /
-   * `{ upgraded, reviewed }`). `normaliseStatus` accepts both shapes.
+   * Raw authoring-stage value from corpus frontmatter. A plain string in
+   * `nextjs`/`angular` (`draft`, `review`, `needs-upgrade`, ...) and an object
+   * in `react`/`nestjs` concept files and some `angular` recipes
+   * (`{ drafted, reviewed }` / `{ upgraded, reviewed }`).
+   * `normaliseAuthoringStage` carries it through as a comparable string; it
+   * is not a publication gate.
    */
   status: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
   wave: z.union([z.number(), z.string()]).optional(),
@@ -80,9 +82,10 @@ const REPO_ALIASES: Record<string, KnownRepoId> = {
 };
 
 /**
- * Collapse a corpus `status` value onto the two states the site cares about.
- * Anything not explicitly complete is a draft — the safe direction. A draft that
- * renders in production is a worse failure than a finished article that doesn't.
+ * Carry a corpus `status` value through as a typed, comparable string for
+ * display. Authoring stage is not a publication gate — adaptation success is
+ * the sole publication gate. An article that adapts renders, and this field
+ * is only the author's own workflow bookmark.
  *
  * Session 2 audit found `status` written two ways across the corpora:
  *   - a plain string (`nextjs`, `angular` concepts): `draft`, `review`, `stub`,
@@ -90,17 +93,27 @@ const REPO_ALIASES: Record<string, KnownRepoId> = {
  *   - an object (`react`/`nestjs` concepts, some `angular` recipes):
  *     `{ drafted: true, reviewed: false }` or `{ upgraded: true, reviewed: false }`
  *
- * The object form's subfields are not a documented convention — guessing that
- * `reviewed: true` means "complete" would be exactly the invented semantics
- * adapters must not supply. Every object shape collapses to `draft`
- * unconditionally, same as any unrecognised string.
+ * Strings are trimmed and lowercased for consistency only — `review` and
+ * `needs-upgrade` stay distinct. Objects are encoded as a stable canonical
+ * string (`drafted:true,reviewed:false`) so field order in the corpus does
+ * not produce two different-looking stages for the same data, and so which
+ * flags were set is not collapsed away.
  */
-export function normaliseStatus(raw: string | Record<string, unknown> | undefined): Status {
-  if (typeof raw !== 'string') return 'draft';
-  const value = raw.trim().toLowerCase();
-  return value === 'complete' || value === 'published' || value === 'final'
-    ? 'complete'
-    : 'draft';
+export function normaliseAuthoringStage(
+  raw: string | Record<string, unknown> | undefined,
+): AuthoringStage {
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim().toLowerCase();
+    return trimmed || 'unspecified';
+  }
+  if (raw && typeof raw === 'object') {
+    const encoded = Object.keys(raw)
+      .sort()
+      .map((key) => `${key}:${String(raw[key])}`)
+      .join(',');
+    return encoded || 'unspecified';
+  }
+  return 'unspecified';
 }
 
 export function normaliseWave(

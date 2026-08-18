@@ -1568,6 +1568,116 @@ missing as `{}`, and the body reported "articles adapting 0 → 0" and `_none_` 
 list. That is indistinguishable from a genuine no-change, so a PR that added or removed
 articles would get merged as a no-op.
 
+---
+
+## Session — `Status` removed from the publication decision — 2026-08-18
+
+**Branch:** `cursor/authoring-stage-not-publication-cac7`
+
+**Files changed:**
+- `packages/content-schema/src/common.ts` — `Status` (`z.enum(['draft', 'complete'])`) replaced
+  with `AuthoringStage` (`z.string().min(1)`); JSDoc rewritten to state the field is the
+  author's own workflow bookmark, never a publication signal
+- `packages/content-schema/src/article.ts` — `Article.status: Status` renamed to
+  `Article.authoringStage: AuthoringStage`, with a comment stating it carries no
+  publication meaning
+- `packages/content-schema/src/adapters/shared.ts` — `normaliseStatus` renamed to
+  `normaliseAuthoringStage`; the `complete`/`published`/`final` → `'complete'` mapping is
+  **deleted**, not extended. Strings are trimmed/lowercased and carried through as-is
+  (`draft`, `review`, `needs-upgrade` stay distinct); object shapes (`{ drafted, reviewed }` /
+  `{ upgraded, reviewed }`) are encoded as a stable sorted `key:value` string
+  (`drafted:true,reviewed:false`) instead of collapsing to `'draft'`
+- `packages/content-schema/src/adapters/factory.ts` — builds `authoringStage` via
+  `normaliseAuthoringStage(fm.status)` instead of `status` via `normaliseStatus`
+- `packages/content-schema/src/adapters/index.ts` — doc comment updated to name
+  `normaliseAuthoringStage` and describe `authoringStage` as a display label
+- `packages/content-schema/src/catalog.ts` — `Catalog.draftTargets` and
+  `LinkReport.draftTargets` JSDoc rewritten: the field is kept in the schema for consumer
+  stability but is now vestigial and always `[]`, since there is no more draft gate
+- `scripts/lib/link-report.mjs` — `buildLinkReport` no longer takes a `showDrafts` option
+  or checks `target.status === 'draft'`; every ref that resolves to an adapted article
+  becomes an `edges` entry. `draftTargets` is hardcoded to `[]` in the returned report
+- `scripts/build-catalog.mjs` — removed the `SHOW_DRAFTS` env read, the
+  `linkReport.draftTargets` warn block, and the path-item
+  `target.status === 'draft' && !SHOW_DRAFTS` fatal check (a path may reference any
+  adapted article now)
+- `scripts/verify-links.mjs` — removed the `SHOW_DRAFTS` env read and the
+  `report.draftTargets` warn block
+- `scripts/verify-catalog.mjs` — removed the `SHOW_DRAFTS` env read and the path-item
+  draft check; the excluded-targets warn line no longer mentions drafts
+- `.cursor/rules/30-content-pipeline.mdc` — "Draft gating" section replaced with
+  "Publication gate — adaptation, not `status`"; the `Article` shape's `status` field
+  renamed to `authoringStage`; the link-bucket severity table's `draftTargets` row marked
+  vestigial; `NEXT_PUBLIC_SHOW_DRAFTS` repointed to a UI-surfacing flag, not a render gate
+- `.claude/skills/corpus-adapter/SKILL.md` — "the deliberate asymmetry" example no longer
+  cites `status` collapsing to `draft` (that collapse is gone); reframed around
+  `difficulty` throwing versus a pure display field needing no gate
+- `AGENTS.md` — regenerated (`pnpm agents:build`) after the rule 30 change
+- `.agents/summary.md` — key facts and open-state notes about `status`/draft-collapse and
+  the four-way link classification corrected; catalog numbers re-measured
+- `progress.md` — Phase 1 item 7 re-measured with the new edge count
+- `docs/DEBT.md` — **D6** row updated: the invalidated `nestjs/dtos-and-class-validator`
+  claim is no longer hidden by draft gating and will now render in any build, since nothing
+  gates on `authoringStage`
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this session
+
+**Why:** the `status` frontmatter field was being read as a publication signal it was
+never designed to carry. `normaliseStatus` collapsed every value that was not exactly
+`complete`/`published`/`final` down to `draft`, and none of the four corpora ever writes
+any of those three strings — they use `draft`, `review`, `needs-upgrade`, or one of two
+object shapes recording an author's private "have I looked at this" checkbox. The
+practical effect: **all 181 adapting articles normalised to `draft`**, and
+`scripts/lib/link-report.mjs` treated every ref to a `draft` target as a non-rendering
+warning instead of a live edge, so `catalog.json` had 181 articles and **0 edges** —
+production, unset `NEXT_PUBLIC_SHOW_DRAFTS`, would have shipped a corpus with no
+cross-links at all.
+
+The actual publication gate already existed and was doing its job correctly: an article
+either adapts — has a title, a description, and frontmatter that validates against its
+corpus's adapter — or it is excluded and recorded in `catalog.failures`. `status` was a
+second, redundant gate layered on top, and because of the vocabulary mismatch it was a
+strictly worse one: it gated on a value no author was ever going to set correctly for this
+purpose, because it was never a purpose-built field. Deleting the collapse rather than
+extending it with more synonyms (`review` → draft, `needs-upgrade` → draft, ...) was the
+right fix because widening the vocabulary would only have delayed the same discovery for
+the next raw value a corpus author writes; the field itself is the wrong lever.
+
+`AuthoringStage` keeps the raw label around — under a name that cannot be misread as a
+publication state — because it may be useful UI chrome later (an "author flagged this for
+review" badge), and because deleting information a corpus author wrote is not this
+adapter's call to make. `NEXT_PUBLIC_SHOW_DRAFTS` is kept for the same reason: its
+semantics move from "gate rendering" to "surface the badge," but no UI reads
+`authoringStage` yet, so the flag's new meaning is documented, not wired up.
+
+**Invented decisions:**
+- The canonical string encoding for object-shaped `status` — sorted `key:value` pairs
+  joined by commas (`drafted:true,reviewed:false`) — was not specified. Chosen so two
+  authors writing the same booleans in a different key order produce the same
+  `authoringStage` string, and so the encoding is reversible enough to audit by eye.
+- `undefined`/empty string/empty object all normalise to the sentinel string
+  `'unspecified'` rather than throwing. `authoringStage` is a display field with no gating
+  consequence, so the asymmetry that makes `difficulty` throw on an unrecognised value
+  (mis-categorising is silent; over-hiding is loud) does not transfer — there is nothing
+  left to over-hide.
+- `draftTargets` was kept as a schema field (always `[]`) rather than deleted outright,
+  since the task described it as "should now be empty," not "should be removed," and
+  removing a field is a larger, unrequested schema change with its own migration
+  implications for any future consumer.
+- Flagged Debt **D6** as newly urgent: the `nestjs/dtos-and-class-validator` article with
+  an upstream-invalidated headline claim was previously never shown in production because
+  every article — including that one — normalised to `draft`. It now renders in any build,
+  since `authoringStage` no longer gates anything. This is a genuine behavioural
+  consequence of the fix, not a regression in this repo's logic, but it raises the
+  practical urgency of the corpus-side correction tracked in D6.
+
+**Known issues / next steps:** `verify-links` still fails on the pre-existing 44 unresolved
+`related` refs (Debt D13, unrelated to this change) and `verify-catalog` still fails on the
+pre-existing 16 adaptation exclusions (Debt D11/D15). Both were confirmed unchanged before
+and after this change. `NEXT_PUBLIC_SHOW_DRAFTS` has no live consumer yet — wiring an
+`authoringStage` badge into the reader UI is future Phase 1 work (item 8, full route tree),
+not part of this session.
+
 The two fixes are one fact seen from two ends. The diff has to say when it could not
 tell. The catalog has to exist so there is something to tell. Adaptation failures already
 got emit-with-exclusions in follow-up c; unresolved refs were deliberately left fatal for

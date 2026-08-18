@@ -44,7 +44,7 @@ the current pins: **197 selected, 181 adapting** — nextjs 10/10, react 58/73, 
 |---|---|---|---|
 | 6 | Frontmatter adapters + zod union, four mounted repos | ✅ | Session 2: run for real against every file in all four corpora and corrected (`docs/audit/frontmatter-2026-08-16.md`). Directory-shape, `title`, and `status` mismatches fixed. Session 2 follow-up: `deriveTitle` rewritten as an mdast walk — the regex was matching inside code fences — with tests in `packages/content-schema/test/`, typechecked as of the `@types/node` (`^22`, the lowest consumer) addition |
 | 6b | Section extraction (`extractSections()`) | ✅ | Session 2: mdast-based, GitHub-slug anchors verified against real `react-concepts` cross-references. Session 2 follow-up: accepts a pre-parsed tree so title derivation and section extraction share one parse per file |
-| 7 | `build-catalog.mjs` → routes + sidebar tree | 🟡 | Session 2: real implementation, all logic proven (incl. via synthetic fixtures for `verify-catalog`). Follow-up c: emit-with-exclusions — an unadaptable file lands in `catalog.failures` instead of aborting the write. Follow-up d: the link report is classified four ways and only a ref resolving to nothing is fatal (D14 closed). **Measured 2026-08-18: `build-catalog` writes — 181 of 197 articles, 16 excluded (D11 + D15), 44 unresolved refs recorded in `catalog.unresolvedTargets` (D13). `verify-links` still fails on the 44. Routes and sidebar are the remaining work.** |
+| 7 | `build-catalog.mjs` → routes + sidebar tree | 🟡 | Session 2: real implementation, all logic proven (incl. via synthetic fixtures for `verify-catalog`). Follow-up c: emit-with-exclusions — an unadaptable file lands in `catalog.failures` instead of aborting the write. Follow-up d: the link report is classified four ways and only a ref resolving to nothing is fatal (D14 closed). **`status` removed from the publication decision (2026-08-18):** renamed `Article.status` → `authoringStage`, deleted draft gating from the link report and from path validation. Re-measured: `build-catalog` writes — 181 of 197 articles, **289 edges** (was 0 — every one of them was previously a `draftTargets` warning because all 181 adapting articles normalised `status` to `draft`), 16 excluded (D11 + D15), 0 draft-target warnings (bucket now vestigial), 44 unresolved refs recorded in `catalog.unresolvedTargets` (D13, unchanged). `verify-links` still fails on the 44. Routes and sidebar are the remaining work. |
 | 7b | `verify-frontmatter.mjs` / `verify-links.mjs` / `verify-catalog.mjs` gates | ✅ | Session 2; `verify-catalog`'s four checks (dup uid, missing/draft path target, `root`-folder sentinel) proven against synthetic fixtures. Follow-up c added a fifth: non-empty `catalog.failures` exits 1. Follow-up d: `verify-links`'s only fatal condition is `unresolvedTargets`; excluded/draft/planned/demo targets warn, and adaptation failures warn there because `verify-frontmatter` owns them. `verify-catalog` gained two structural checks (every edge resolves; every excluded target names a file in `failures`), both proven by tampering with a built artifact. All three still correctly fail on current content |
 | 8 | Full route tree, every completed article renders | ⚪ | Blocked on item 7 |
 | 9 | Chrome: sidebar, breadcrumb, TOC rail, prev/next | ⚪ | |
@@ -77,6 +77,23 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **authoring-stage-not-publication (2026-08-18):** `status` removed from the publication
+  decision. `Article.status: 'draft' | 'complete'` renamed to
+  `Article.authoringStage: string`, carrying the corpus's raw value through (trimmed
+  strings, or a stable sorted-key encoding for the two object shapes) instead of collapsing
+  everything but `complete`/`published`/`final` to `'draft'` — a mapping no corpus ever
+  satisfies. Deleted draft gating from `buildLinkReport`, `build-catalog.mjs`'s and
+  `verify-catalog.mjs`'s path-item validation; `Catalog.draftTargets` /
+  `LinkReport.draftTargets` kept in the schema but now always `[]`. Rebuilt:
+  **289 edges, up from 0** — every one of the 181 adapting articles had normalised
+  `status` to `draft`, so every one of the ~289 resolvable cross-article refs was a
+  non-rendering warning instead of a live link. Article count (181/197), exclusions (16,
+  D11/D15), and unresolved refs (44, D13) are unchanged — `verify-links` and
+  `verify-catalog` confirmed to fail on the same pre-existing counts before and after.
+  `NEXT_PUBLIC_SHOW_DRAFTS` repointed in `.cursor/rules/30-content-pipeline.mdc` to a
+  future UI-surfacing flag; no code reads it anymore. Flagged Debt **D6** as more urgent:
+  the invalidated `nestjs/dtos-and-class-validator` claim was previously hidden by draft
+  gating and now renders in every build.
 - **content-watch-honest-diff (2026-08-18):** `catalog-diff.mjs` now warns when a
   snapshot is missing or unparseable instead of treating `{}` as a genuine empty
   catalog. `build-catalog` writes `catalog.json` with unresolved refs recorded

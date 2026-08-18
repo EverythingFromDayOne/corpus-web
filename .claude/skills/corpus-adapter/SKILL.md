@@ -25,11 +25,14 @@ if (!baselineVersion) {
 
 ## The deliberate asymmetry
 
-Unknown `status` collapses to `draft`. Unknown `difficulty` **throws**.
+Unknown `difficulty` **throws**. `status` (carried through as `authoringStage`) is not a
+gate at all anymore — see `.cursor/rules/30-content-pipeline.mdc` § "Publication gate" —
+so there is nothing to over-hide there; any string or object shape is accepted and typed.
 
-Over-hiding is recoverable — a finished article that fails to render is loud. Mis-categorising
-is silent, and a wrong difficulty badge is never noticed. Preserve this asymmetry when adding
-fields: ask which direction of error is detectable.
+Mis-categorising is silent, and a wrong difficulty badge is never noticed, which is why
+`difficulty` still throws on an unrecognised value. Preserve that asymmetry when adding a
+field that *does* gate something: ask which direction of error is detectable. A field that
+is purely a display label, like `authoringStage`, does not need it.
 
 ## Adding a field
 

@@ -5,6 +5,48 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-18] — cursor/authoring-stage-not-publication-cac7 — `status` removed from the publication decision
+
+**Added**
+- `AuthoringStage` (`packages/content-schema/src/common.ts`) — a typed string carrying the
+  corpus's raw `status` value through unmodified in meaning, never collapsed into a
+  publication signal
+- `normaliseAuthoringStage` (`packages/content-schema/src/adapters/shared.ts`) — replaces
+  `normaliseStatus`; encodes object-shaped `status` (`{ drafted, reviewed }` /
+  `{ upgraded, reviewed }`) as a stable sorted string instead of collapsing it to `'draft'`
+
+**Changed**
+- `Article.status: Status` renamed to `Article.authoringStage: AuthoringStage`
+- `scripts/lib/link-report.mjs` — every ref that resolves to an adapted article is now an
+  `edges` entry; the draft-target branch is removed
+- `scripts/build-catalog.mjs`, `scripts/verify-links.mjs`, `scripts/verify-catalog.mjs` —
+  removed all `SHOW_DRAFTS`/`NEXT_PUBLIC_SHOW_DRAFTS` gating; a path item may reference any
+  adapted article
+- `Catalog.draftTargets` / `LinkReport.draftTargets` — kept in the schema for consumer
+  stability, now vestigial and always `[]`
+- `.cursor/rules/30-content-pipeline.mdc` — "Draft gating" section replaced with
+  "Publication gate — adaptation, not `status`"; link-bucket severity table updated;
+  `NEXT_PUBLIC_SHOW_DRAFTS` repointed to a future UI-surfacing flag, not a render gate
+- `.claude/skills/corpus-adapter/SKILL.md` — asymmetry example no longer cites the deleted
+  `status` → `draft` collapse
+- `AGENTS.md` — regenerated
+
+**Removed**
+- The `complete`/`published`/`final` → `'complete'` string mapping in `normaliseStatus`
+  (function itself renamed, not just its body) — not extended with more synonyms, deleted
+- Every `target.status === 'draft'` gate: in `buildLinkReport`, in `build-catalog.mjs`'s
+  and `verify-catalog.mjs`'s path-item validation
+
+**Fixed**
+- All 181 adapting articles previously normalised to `status: 'draft'` (none of the four
+  corpora ever writes `complete`/`published`/`final`), so `catalog.json` had 181 articles
+  but **0 edges** — every one of the ~289 resolvable cross-article refs was bucketed as a
+  non-rendering `draftTargets` warning instead of a live link. Rebuilt: **181 articles, 289
+  edges, 0 paths, 16 excluded (unchanged, Debt D11/D15), 79 excludedTargets (unchanged), 0
+  draftTargets, 44 unresolvedTargets (unchanged, Debt D13)**. `verify-links` and
+  `verify-catalog` still fail on the same pre-existing 44/16, confirmed unchanged by this
+  fix
+
 ### [2026-08-18] — cursor/catalog-diff-honest-snapshots-c14e — Catalog diff honest about missing snapshots
 
 **Added**

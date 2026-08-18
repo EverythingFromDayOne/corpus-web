@@ -20,6 +20,17 @@ This session has two tracks, run in order. **Do not start Track B until Track A'
 prerequisite is confirmed** — building routes against an empty or partial catalog is
 wasted work if the catalog is about to change shape.
 
+> **Annotation, 2026-08-18 — do not rewrite the steps below, read this first.** Step 4's
+> mention of a `draft` article warning bucket and step 7's `complete`/`draft`-status
+> rendering split describe pre-2026-08-18 behavior. `status` no longer gates rendering at
+> all — see `.cursor/rules/30-content-pipeline.mdc` § "Publication gate" and the
+> `.agents/SESSION-LOG.md` entry for that date. Read step 4 as: refs to an excluded article
+> warn and travel in `catalog.excludedTargets`; `catalog.draftTargets` is vestigial and
+> always empty. Read step 7 as: every article the catalog contains renders at its canonical
+> URL, full stop — there is no `draft`-status article to gate behind
+> `NEXT_PUBLIC_SHOW_DRAFTS` anymore. That flag is reserved for a future UI surfacing of
+> `Article.authoringStage` (the renamed `status` field), not for gating a route tree.
+
 ---
 
 ## Track A — confirm and promote (blocking)

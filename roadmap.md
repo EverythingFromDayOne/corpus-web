@@ -10,6 +10,19 @@
 
 ## 0.0 Decisions log
 
+**2026-08-18 — `status` removed from the publication decision, approved (explicit user
+instruction).** §5.2's `Article.status: 'draft' | 'complete'` and the "draft gating"
+sentence are superseded. Measured against the four mounted corpora: all 181 adapting
+articles normalised `status` to `draft` (`complete`/`published`/`final` appears in none of
+them), so draft gating was hiding the entire corpus's cross-link graph rather than gating
+anything meaningful. The corpus's `status` value is an authoring-workflow bookmark, not a
+publication signal — adaptation (title, description, valid frontmatter) already is, and is
+now the *only* gate. The field is renamed `authoringStage` on `Article`, carried through
+typed but ungated. `NEXT_PUBLIC_SHOW_DRAFTS` is retained, repointed to a future
+UI-surfacing concern rather than a render gate. See `.cursor/rules/30-content-pipeline.mdc`
+§ "Publication gate" and `.agents/SESSION-LOG.md` for the full rationale and invented
+decisions.
+
 **2026-08-17 — article-count split, approved.** This file carries the order of
 magnitude only: four corpora, ~200 articles. Exact selected / adapting / per-corpus
 counts live in `progress.md` and are not copied here. A re-measurement does not
@@ -234,7 +247,7 @@ type Article = {
   wave: number | null;
   difficulty: Difficulty | null;
   baseline: { framework: string; version: string };
-  status: 'draft' | 'complete';
+  authoringStage: string; // the author's own workflow label — NOT a publication gate (§0.0, 2026-08-18)
   related: ArticleRef[];
   sourcePath: string;    // for the "Edit on GitHub" link
   contentHash: string;   // sha256 of body — drives the DB upsert (§9)
@@ -243,7 +256,11 @@ type Article = {
 
 The adapter layer is the compatibility shim. When a corpus's frontmatter changes, one adapter changes — not ~200 files.
 
-`status: 'draft'` articles render only when `NEXT_PUBLIC_SHOW_DRAFTS=1`. Prod ships completed work only.
+**Publication gate is adaptation, full stop (revised 2026-08-18, see §0.0).** An article
+that adapts — has a title, a description, and frontmatter that validates — renders. The
+corpus's `status` field is carried through as `authoringStage` for possible future UI
+display and gates nothing. `NEXT_PUBLIC_SHOW_DRAFTS` controls only whether that label is
+surfaced in the UI, not whether an article renders.
 
 ### 5.3 Catalog
 

@@ -6,8 +6,8 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-18 (content-watch catalog-diff: missing snapshots
-> warn rather than look like a no-op; `build-catalog` writes through D13)
+> Last updated: 2026-08-18 (`status` removed from the publication decision —
+> renamed `authoringStage`, draft gating deleted, catalog now writes 289 edges)
 
 ---
 
@@ -147,9 +147,15 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
   Title derivation takes only the tree's top-level depth-1 heading; section extraction
   descends the whole tree, because GitHub anchors nested headings. Do not unify them.
 - **`status` is a plain string in `nextjs`/`angular` but an object in `react`/`nestjs` and
-  some `angular` recipes** (`{ drafted, reviewed }` / `{ upgraded, reviewed }`).
-  `normaliseStatus()` collapses any object shape to `draft` unconditionally — it does not
-  attempt to read `reviewed: true` as "complete".
+  some `angular` recipes** (`{ drafted, reviewed }` / `{ upgraded, reviewed }`). **It is no
+  longer a publication gate.** `Article.authoringStage` (renamed from `status` 2026-08-18)
+  carries the raw value through as a typed string via `normaliseAuthoringStage()` — strings
+  pass through trimmed, object shapes encode as a stable sorted `key:value` string. The old
+  `normaliseStatus()` collapsed every value that was not `complete`/`published`/`final` to
+  `'draft'`, and since no corpus ever writes those three strings, **all 181 adapting
+  articles normalised to `draft`**, which was hiding 100% of the corpus's cross-links
+  behind draft gating. Adaptation — a title, a description, valid frontmatter — is now the
+  only publication gate.
 - **Debt D5 is nearly closed: 181 of the 197 selected articles adapt.** All four corpora
   have run the Q1 `description` pass — `nextjs@v0.3.0` 10/10, `react@v0.5.0` 58/73,
   `angular@v0.3.0` 93/94, `nestjs@v0.3.1` 20/20. Exactly 16 files still fail, and only one
@@ -169,29 +175,38 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
   `verify-catalog` exits 1 while `failures` is non-empty; `verify-frontmatter`
   still fails on the source content. Read the build's `excluded` count, not its
   exit code, to know whether every file adapted.
-- **The link report is classified four ways, and only one is fatal.** `edges` (target
-  adapts and is complete) render as links; `excludedTargets` (target is a real file in
-  `catalog.failures`) and `draftTargets` (target adapts but is `draft`) **warn** and travel
-  in `catalog.json` so the renderer emits plain text instead of a dead link;
-  `unresolvedTargets` (target exists in no corpus at all) is **fatal in
-  `verify-links`**. `build-catalog` records the same list and still writes, so a
-  content-watch catalog diff has a real snapshot to compare. The principle is
-  fail once on the root cause, never on its symptoms — the excluded articles were
-  producing 79 inbound "unresolved" failures and burying the refs that point at nothing.
-  Refs to a planned corpus or a demo app still warn separately. `verify-links` therefore no
-  longer fails on adaptation failures; `verify-frontmatter` owns those.
-- **A real catalog now writes with the 44 recorded.** Measured 2026-08-18 against the current
-  pins (`nestjs@v0.3.1`): 181 of 197 adapt, 79 refs hit an excluded article across 14
-  distinct targets (warn), 289 hit a draft (warn), 6 hit a demo app (warn), and **44 refs
-  across 33 distinct targets** resolve to nothing. `build-catalog` writes all of that into
-  `catalog.json` and exits 0; `verify-links` still fails on the 44. The D12 `git mv` closed 6
-  inbound refs to `nestjs/dtos-and-class-validator` (they are now draft-target warnings)
-  and the recovered article added 1 new unresolved outbound ref to
-  `nestjs/nested-dto-not-validated`. Itemised in
+- **The link report's buckets, and which is fatal — re-scoped 2026-08-18.** `edges`
+  (target adapts) render as links; `excludedTargets` (target is a real file in
+  `catalog.failures`) **warns** and travels in `catalog.json` so the renderer emits plain
+  text instead of a dead link; `draftTargets` is now **vestigial and always empty** — there
+  is no more draft gate, kept only so the schema and any consumer reading the key stay
+  stable; `unresolvedTargets` (target exists in no corpus at all) is **fatal in
+  `verify-links`**. `build-catalog` records the unresolved list and still writes, so a
+  content-watch catalog diff has a real snapshot to compare. The principle is fail once on
+  the root cause, never on its symptoms — the excluded articles were producing 79 inbound
+  "unresolved" failures and burying the refs that point at nothing. Refs to a planned
+  corpus or a demo app still warn separately. `verify-links` therefore no longer fails on
+  adaptation failures; `verify-frontmatter` owns those.
+- **A real catalog now writes 289 edges, not 0.** Measured 2026-08-18 against the current
+  pins (`nestjs@v0.3.1`), after the `authoringStage` change: 181 of 197 adapt, **289 refs
+  resolve to a live edge**, 79 refs hit an excluded article across 14 distinct targets
+  (warn), 0 draft-target warnings, 6 hit a demo app (warn), and **44 refs across 33
+  distinct targets** resolve to nothing. Before the fix, the 289 that are now edges were
+  bucketed as `draftTargets` warnings instead, because every adapting article normalised to
+  `status: 'draft'` — see the key fact above. `build-catalog` writes all of that into
+  `catalog.json` and exits 0; `verify-links` still fails on the unrelated 44 unresolved
+  refs. The D12 `git mv` closed 6 inbound refs to `nestjs/dtos-and-class-validator` (now
+  live edges, not draft-target warnings) and the recovered article added 1 new unresolved
+  outbound ref to `nestjs/nested-dto-not-validated`. Itemised in
   `docs/audit/unresolved-refs-2026-08-16.md` — see Debt D13.
-- **Every one of the 181 adapting articles is `status: draft`.** None of the four corpora
-  marks an article complete yet, so a production build with `NEXT_PUBLIC_SHOW_DRAFTS`
-  unset renders nothing. This is a corpus-side state, not a pipeline defect.
+- **`authoringStage` (formerly `status`) is no longer a publication gate — adaptation is.**
+  Every one of the 181 adapting articles carries some raw authoring-stage label (`draft`,
+  `review`, `needs-upgrade`, or an object shape), and none of that gates rendering anymore.
+  `NEXT_PUBLIC_SHOW_DRAFTS` still exists but now controls only whether a future UI surfaces
+  that label as a badge — it has no consumer yet. See Debt **D6**: the one known-false
+  headline claim in the corpus (`nestjs/dtos-and-class-validator`) was previously hidden by
+  draft gating regardless of `NEXT_PUBLIC_SHOW_DRAFTS`; it now renders in every build, which
+  raises the urgency of the corpus-side correction.
 - **The debt register lives in `docs/DEBT.md`**, not in `progress.md`. IDs D1–D16,
   append-only, never reused. `progress.md` keeps a one-line pointer. D16: nextjs and
   angular article/recipe templates omit `description` (reintroduces D5); react and

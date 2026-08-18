@@ -10,24 +10,24 @@
  *
  * **Emit with exclusions, not all-or-nothing.** A file that cannot adapt is
  * left out of `articles` and recorded in `catalog.failures` with its repo,
- * source path, and reason. This is the same treatment a draft already gets —
- * excluded from what ships, without taking the rest of the corpus down with
- * it — so a handful of authoring gaps cannot stop every finished article from
- * rendering. Nothing is hidden: the failures travel inside the artifact,
- * `verify-catalog` exits 1 while that array is non-empty, and
+ * source path, and reason. Adaptation is the publication gate: an article
+ * that adapts renders. A handful of authoring gaps cannot stop every adapted
+ * article from rendering. Nothing is hidden: the failures travel inside the
+ * artifact, `verify-catalog` exits 1 while that array is non-empty, and
  * `verify-frontmatter` still fails on the source content unconditionally.
  *
- * The same principle governs the link report, which is classified four ways
- * (`packages/content-schema/src/catalog.ts`). A ref to an excluded article, or
- * to a draft, warns and travels in the artifact so the renderer can emit plain
- * text instead of a dead link. A ref to an article that exists in no corpus is
+ * The same principle governs the link report
+ * (`packages/content-schema/src/catalog.ts`). A ref to an excluded article
+ * warns and travels in the artifact so the renderer can emit plain text
+ * instead of a dead link. `draftTargets` is vestigial and always empty —
+ * there is no draft gate. A ref to an article that exists in no corpus is
  * recorded the same way — `catalog.unresolvedTargets` — and this script still
  * writes. `verify-links` is the gate that fails on them. Forward references
  * to planned work must not block adapting articles from being reported on, and a
  * catalog that does not exist makes every downstream diff a lie.
  *
  * Still fatal here, because neither is a per-article exclusion: zero articles
- * adapting, and a path item pointing at a missing or draft article.
+ * adapting, and a path item pointing at a missing article.
  */
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -36,8 +36,6 @@ import { printGroupedFailures, ROOT } from './lib/corpus-fs.mjs';
 import { loadPathDefinitions } from './lib/curation.mjs';
 import { buildLinkReport } from './lib/link-report.mjs';
 import { Catalog } from '../packages/content-schema/src/index.ts';
-
-const SHOW_DRAFTS = process.env.SHOW_DRAFTS === '1' || process.env.NEXT_PUBLIC_SHOW_DRAFTS === '1';
 
 let sources;
 let articlesByUid;
@@ -61,7 +59,7 @@ if (articlesByUid.size === 0) {
 // ---------------------------------------------------------------------------
 // Resolve every `related` ref against the full article set.
 
-const linkReport = buildLinkReport(articlesByUid, { showDrafts: SHOW_DRAFTS, failures });
+const linkReport = buildLinkReport(articlesByUid, { failures });
 
 if (linkReport.unresolvedTargets.length > 0) {
   const distinct = countDistinct(linkReport.unresolvedTargets, (u) => u.reason);
@@ -74,25 +72,16 @@ if (linkReport.unresolvedTargets.length > 0) {
   }
 }
 
-// Both of the buckets below are refs to a real, correctly-named article that
-// this build has no route for. They travel in the catalog so the renderer emits
-// plain text instead of a dead link, and they warn rather than fail: the
-// excluded targets are the same handful of files already named in `failures`,
-// and a draft target is a correct ref that goes live when the article does.
+// Refs to a real, correctly-named article that this build has no route for.
+// They travel in the catalog so the renderer emits plain text instead of a
+// dead link, and they warn rather than fail: the excluded targets are the
+// same handful of files already named in `failures`.
 if (linkReport.excludedTargets.length > 0) {
   console.warn(
     `build-catalog: WARN — ${linkReport.excludedTargets.length} ref(s) to an excluded article ` +
       `(${countDistinct(linkReport.excludedTargets, (t) => t.to)} distinct target(s), all in catalog.failures)`,
   );
   for (const t of linkReport.excludedTargets) console.warn(`    [${t.from}] -> ${t.to} (${t.sourcePath})`);
-}
-
-if (linkReport.draftTargets.length > 0) {
-  console.warn(
-    `build-catalog: WARN — ${linkReport.draftTargets.length} ref(s) to a draft article ` +
-      '(set SHOW_DRAFTS=1 to render them as links)',
-  );
-  for (const d of linkReport.draftTargets) console.warn(`    [${d.from}] -> ${d.to}`);
 }
 
 if (linkReport.plannedTargets.length > 0) {
@@ -121,10 +110,6 @@ for (const path of paths) {
       console.error(`build-catalog: FAIL — path "${path.slug}" references missing article \`${item.article}\``);
       process.exit(1);
     }
-    if (target.status === 'draft' && !SHOW_DRAFTS) {
-      console.error(`build-catalog: FAIL — path "${path.slug}" references draft article \`${item.article}\``);
-      process.exit(1);
-    }
   }
 }
 
@@ -146,7 +131,7 @@ writeFileSync(join(ROOT, 'catalog.json'), `${JSON.stringify(catalog, null, 2)}\n
 console.log(
   `build-catalog: wrote catalog.json — ${catalog.articles.length} article(s), ${catalog.edges.length} edge(s), ` +
     `${catalog.paths.length} path(s), ${catalog.failures.length} excluded, ` +
-    `${catalog.excludedTargets.length} ref(s) to an excluded article, ${catalog.draftTargets.length} to a draft, ` +
+    `${catalog.excludedTargets.length} ref(s) to an excluded article, ` +
     `${catalog.unresolvedTargets.length} unresolved`,
 );
 

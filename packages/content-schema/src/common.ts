@@ -142,12 +142,19 @@ export const Difficulty = z.enum(['foundational', 'intermediate', 'advanced']);
 export type Difficulty = z.infer<typeof Difficulty>;
 
 /**
- * Normalised publication state. Corpus repos carry richer values; adapters
- * collapse anything not explicitly complete into `draft`, which is the safe
- * direction — a draft that renders is worse than a finished article that doesn't.
+ * The corpus author's own workflow label, carried through for potential UI
+ * display. It must never be read as a publication or completeness signal —
+ * adaptation is the real publication gate. An article that adapts is published;
+ * this field is a bookmark the author left for themselves.
+ *
+ * Corpus frontmatter writes this as a string (`draft`, `review`,
+ * `needs-upgrade`, ...) or as an object (`{ drafted, reviewed }` /
+ * `{ upgraded, reviewed }`). Adapters encode the object form as a stable
+ * canonical string (`drafted:true,reviewed:false`) so the value stays
+ * comparable without collapsing which flags were set.
  */
-export const Status = z.enum(['draft', 'complete']);
-export type Status = z.infer<typeof Status>;
+export const AuthoringStage = z.string().min(1);
+export type AuthoringStage = z.infer<typeof AuthoringStage>;
 
 /**
  * A slug. Never a sequence number — renumbering must never touch article files.

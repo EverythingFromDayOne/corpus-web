@@ -3,12 +3,12 @@ import {
   ArticleKind,
   ArticleRef,
   ArticleUid,
+  AuthoringStage,
   Baseline,
   Difficulty,
   FolderPath,
   RepoId,
   Slug,
-  Status,
 } from './common.js';
 
 /**
@@ -39,7 +39,11 @@ export const Article = z.object({
   wave: z.number().int().positive().nullable(),
   difficulty: Difficulty.nullable(),
   baseline: Baseline,
-  status: Status,
+  /**
+   * The corpus author's own workflow label. Carries no publication meaning —
+   * adaptation is the publication gate. See `AuthoringStage`.
+   */
+  authoringStage: AuthoringStage,
   related: z.array(ArticleRef),
 
   /** Path within the corpus repo, e.g. `docs/concepts/rendering/foo.md`. */
