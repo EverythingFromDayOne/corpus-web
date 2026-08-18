@@ -42,14 +42,16 @@ wasted work if the catalog is about to change shape.
      emit-with-exclusions change, a file that does not adapt no longer stops the build;
      it lands in `catalog.failures` and `verify-catalog` fails on it in step 5. Read the
      `excluded` count in the build's own summary line, not its exit code
-   - resolve every `related` ref with an empty `unresolvedTargets` — since the four-way
-     classification that is the only fatal link bucket. Refs to an excluded or `draft`
-     article warn and travel in `catalog.excludedTargets` / `catalog.draftTargets`
-   - emit a real `catalog.json`
-   If it does not, treat that as a new finding — do not force it green by touching the
-   adapters or the corpus. Report exactly which file/ref is still failing and why. The 49
-   refs in Debt D13 are the known exception: they are corpus-side and each one is listed
-   individually in that debt entry, so they are a report to act on rather than a discovery.
+   - record every unresolved `related` ref in `catalog.unresolvedTargets` and
+     still emit `catalog.json` — `verify-links` is the gate that fails on them.
+     Refs to an excluded or `draft` article warn and travel in
+     `catalog.excludedTargets` / `catalog.draftTargets`
+   - emit a real `catalog.json` even while D13 is open
+   If the write itself fails, treat that as a new finding — do not force it green
+   by touching the adapters or the corpus. Report exactly which file/ref is still
+   failing and why. The 44 refs in Debt D13 are the known `verify-links`
+   exception: they are corpus-side and each one is listed individually in that
+   debt entry, so they are a report to act on rather than a discovery.
 5. Run `pnpm verify:frontmatter && pnpm verify:links && pnpm verify:catalog` and confirm
    all three pass against the real, promoted content. Capture the article/edge/path counts
    in the session log.

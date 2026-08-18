@@ -9,31 +9,110 @@
  * version of that workflow was rejected by GitHub for exactly that kind of mistake.
  * Here it can be run and tested directly.
  *
- * A missing or unparseable snapshot is treated as empty rather than fatal: when the
- * catalog cannot build at all — which is the current state on tracked debt — the
- * diff should still say which tag moved.
+ * A missing or unparseable snapshot is not an empty catalog. `{}` and a catalog
+ * that failed to build are different facts: one is a genuine no-change, the other
+ * is "we could not tell". Reporting 0 → 0 and `_none_` for both is how a PR that
+ * added articles gets merged as a no-op. Exit 0 either way — this is reporting,
+ * not a gate.
  */
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 
-const [before, after, pinned, latest, out] = process.argv.slice(2);
+const [beforePath, afterPath, pinned, latest, out] = process.argv.slice(2);
 if (!out) {
   console.error('usage: catalog-diff.mjs <before.json> <after.json> <pinned> <latest> <out.md>');
   process.exit(2);
 }
 
-const read = (p) => {
+/**
+ * @typedef {{ state: 'ok', catalog: object } | { state: 'missing' } | { state: 'unparseable' }} Snapshot
+ */
+
+/**
+ * @param {string} p
+ * @returns {Snapshot}
+ */
+const readSnapshot = (p) => {
+  if (!existsSync(p)) return { state: 'missing' };
+  let raw;
   try {
-    return JSON.parse(readFileSync(p, 'utf8'));
+    raw = JSON.parse(readFileSync(p, 'utf8'));
   } catch {
-    return {};
+    return { state: 'unparseable' };
   }
+  // A catalog snapshot has an `articles` array. `{}` is the old missing-file
+  // stand-in, not a catalog — treating it as empty was the lie this script
+  // exists to stop.
+  if (raw == null || typeof raw !== 'object' || Array.isArray(raw) || !Array.isArray(raw.articles)) {
+    return { state: 'unparseable' };
+  }
+  return { state: 'ok', catalog: raw };
 };
 
-const a = read(before);
-const b = read(after);
+/**
+ * @param {'before' | 'after'} side
+ * @param {Snapshot} snap
+ * @returns {string | null}
+ */
+const warningFor = (side, snap) => {
+  if (snap.state === 'ok') return null;
+  return (
+    ':warning: Catalog could not be built on the ' +
+    side +
+    ' side, so the article and content_hash diff below is not meaningful'
+  );
+};
 
+/**
+ * @param {object} cat
+ * @returns {Record<string, { uid: string, contentHash: string }>}
+ */
 const index = (cat) => Object.fromEntries((cat.articles ?? []).map((x) => [x.uid, x]));
+
+const before = readSnapshot(beforePath);
+const after = readSnapshot(afterPath);
+const warnings = [warningFor('before', before), warningFor('after', after)].filter(Boolean);
+const usable = before.state === 'ok' && after.state === 'ok';
+
+const lines = [];
+if (warnings.length > 0) {
+  lines.push(...warnings, '');
+}
+
+lines.push(
+  'Automated drift detection. **Not reviewed, not merged.**',
+  '',
+  '| | |',
+  '|---|---|',
+  `| pinned | \`${pinned}\` |`,
+  `| latest | \`${latest}\` |`,
+);
+
+/** @param {Snapshot} snap */
+const adapting = (snap) => (snap.state === 'ok' ? String(snap.catalog.articles.length) : 'unavailable');
+/** @param {Snapshot} snap */
+const exclusions = (snap) =>
+  snap.state === 'ok' ? String(snap.catalog.failures?.length ?? 0) : 'unavailable';
+
+if (!usable) {
+  lines.push(
+    `| articles adapting | ${adapting(before)} → ${adapting(after)} |`,
+    `| exclusions | ${exclusions(before)} → ${exclusions(after)} |`,
+    '',
+    'Gate output on this PR is authoritative. Failures listed in `docs/DEBT.md` are',
+    'expected; anything else is new.',
+  );
+  writeFileSync(out, lines.join('\n') + '\n', 'utf8');
+  const sides = [
+    before.state !== 'ok' ? 'before' : null,
+    after.state !== 'ok' ? 'after' : null,
+  ].filter(Boolean);
+  console.log(`catalog-diff: snapshot ${sides.join('+')} missing or unparseable → ${out}`);
+  process.exit(0);
+}
+
+const a = before.catalog;
+const b = after.catalog;
 const A = index(a);
 const B = index(b);
 
@@ -45,14 +124,8 @@ const rehashed = Object.keys(B)
 
 const list = (xs) => (xs.length ? xs.map((x) => `- \`${x}\``).join('\n') : '_none_');
 
-const lines = [
-  'Automated drift detection. **Not reviewed, not merged.**',
-  '',
-  '| | |',
-  '|---|---|',
-  `| pinned | \`${pinned}\` |`,
-  `| latest | \`${latest}\` |`,
-  `| articles adapting | ${a.articles?.length ?? 0} → ${b.articles?.length ?? 0} |`,
+lines.push(
+  `| articles adapting | ${a.articles.length} → ${b.articles.length} |`,
   `| exclusions | ${a.failures?.length ?? 0} → ${b.failures?.length ?? 0} |`,
   '',
   '### Articles added',
@@ -72,9 +145,7 @@ const lines = [
   '',
   'Gate output on this PR is authoritative. Failures listed in `docs/DEBT.md` are',
   'expected; anything else is new.',
-];
+);
 
 writeFileSync(out, lines.join('\n') + '\n', 'utf8');
-console.log(
-  `catalog-diff: +${added.length} -${removed.length} ~${rehashed.length} → ${out}`,
-);
+console.log(`catalog-diff: +${added.length} -${removed.length} ~${rehashed.length} → ${out}`);

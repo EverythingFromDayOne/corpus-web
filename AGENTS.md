@@ -515,7 +515,7 @@ classifies every `article`-resolution ref into exactly one of:
 | `edges` | adapts and is complete | live link |
 | `excludedTargets` | is a real file, already listed in `catalog.failures` | **WARN** |
 | `draftTargets` | adapts, but is `draft` outside `SHOW_DRAFTS` | **WARN**, recorded |
-| `unresolvedTargets` | exists in no corpus at all | **FATAL** |
+| `unresolvedTargets` | exists in no corpus at all | **FATAL** for `verify-links`. `build-catalog` writes the artifact with them recorded |
 
 An excluded target is not a second defect. It is the adaptation failure that
 `verify-frontmatter` and `catalog.failures` already report once, by path and reason, seen
@@ -527,8 +527,12 @@ article is marked complete. It is recorded rather than merely counted so the ren
 plain text instead of a link that 404s. Both buckets travel in `catalog.json` for that
 reason. Linking to a page that does not exist is a rendering bug, not a build failure.
 
-An unresolved target is the only case with no other report anywhere and no path to
-resolving itself, which is what this rule has always been about.
+An unresolved target has no article and no excluded file. `verify-links` fails
+on it — that gate is still stricter than the per-repo one. `build-catalog`
+records the same list in `catalog.unresolvedTargets` and still writes: forward
+references to planned work must not block adapting articles from being reported
+on, and a catalog that does not exist makes every downstream diff a lie. The
+renderer must not emit these as links.
 
 **Two further exceptions, both warn.** A ref to a PLANNED corpus (`dsa`, no remote yet)
 points at work that exists but is unpublished — failing over it would push authors toward

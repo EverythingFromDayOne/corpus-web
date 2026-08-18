@@ -6,8 +6,8 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-18 (Debt D16: nextjs/angular templates omit `description`;
-> nestjs-concepts pinned to v0.3.1 — D12 closed; census 181 of 197)
+> Last updated: 2026-08-18 (content-watch catalog-diff: missing snapshots
+> warn rather than look like a no-op; `build-catalog` writes through D13)
 
 ---
 
@@ -72,8 +72,9 @@ Do not duplicate the version table here.
       untitled `react` articles (Debt D11) and `angular`'s duplicate
       `docs/recipes/elements/widget-deployment.md` (Debt D15). Since follow-up c the
       catalog emits with exclusions rather than all-or-nothing, so those 16 no longer hold
-      the artifact hostage; **`build-catalog` still refuses to write, now only on the 44
-      unresolved `related` refs (Debt D13)**
+      the artifact hostage; **`build-catalog` now writes `catalog.json` with the 44
+      unresolved refs recorded (Debt D13). `verify-links` is the gate that still fails
+      on them.**
 - [x] `packages/ui/DESIGN.md` + `tokens.css` — the "Instrument" direction
 - [x] `.github/workflows/ci.yml`
 - [x] `docs/adr/0001` — Angular demos integration (proposed, pending Q7)
@@ -155,29 +156,35 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
   of them fails on `description`: `angular`'s duplicate
   `docs/recipes/elements/widget-deployment.md` (Debt D15). The other 15 are the untitled
   `react` articles (Debt D11), which the description pass skipped precisely because they
-  have no H1. `verify-frontmatter` therefore still exits 1 on 16 files, and
-  `build-catalog` / `verify-links` still exit 1 — but on the 44 unresolved refs (Debt
-  D13), not on adaptation. `nestjs@v0.3.1` recovered `dtos-and-class-validator` (Debt D12
-  closed), which is why selected went 196 → 197 and adapting 180 → 181.
+  have no H1. `verify-frontmatter` therefore still exits 1 on 16 files.
+  `verify-links` still exits 1 on the 44 unresolved refs (Debt D13).
+  `build-catalog` writes the artifact with those refs recorded and exits 0.
+  `nestjs@v0.3.1` recovered `dtos-and-class-validator` (Debt D12 closed), which
+  is why selected went 196 → 197 and adapting 180 → 181.
 - **`catalog.json` is emit-with-exclusions, not all-or-nothing.** A file that cannot
   adapt is left out of `articles` and recorded in `catalog.failures` with its repo,
-  source path, and reason — the same treatment a draft gets. `build-catalog` exits 0 and
-  writes; `verify-catalog` exits 1 while `failures` is non-empty; `verify-frontmatter`
-  still fails on the source content. Read the build's `excluded` count, not its exit
-  code, to know whether every file adapted.
+  source path, and reason — the same treatment a draft gets. Unresolved `related`
+  refs are recorded in `catalog.unresolvedTargets` the same way: `build-catalog`
+  exits 0 and writes; `verify-links` is the gate that fails on them;
+  `verify-catalog` exits 1 while `failures` is non-empty; `verify-frontmatter`
+  still fails on the source content. Read the build's `excluded` count, not its
+  exit code, to know whether every file adapted.
 - **The link report is classified four ways, and only one is fatal.** `edges` (target
   adapts and is complete) render as links; `excludedTargets` (target is a real file in
   `catalog.failures`) and `draftTargets` (target adapts but is `draft`) **warn** and travel
   in `catalog.json` so the renderer emits plain text instead of a dead link;
-  `unresolvedTargets` (target exists in no corpus at all) is **fatal**. The principle is
+  `unresolvedTargets` (target exists in no corpus at all) is **fatal in
+  `verify-links`**. `build-catalog` records the same list and still writes, so a
+  content-watch catalog diff has a real snapshot to compare. The principle is
   fail once on the root cause, never on its symptoms — the excluded articles were
   producing 79 inbound "unresolved" failures and burying the refs that point at nothing.
   Refs to a planned corpus or a demo app still warn separately. `verify-links` therefore no
   longer fails on adaptation failures; `verify-frontmatter` owns those.
-- **A real catalog is blocked only by the 44.** Measured 2026-08-17 against the current
+- **A real catalog now writes with the 44 recorded.** Measured 2026-08-18 against the current
   pins (`nestjs@v0.3.1`): 181 of 197 adapt, 79 refs hit an excluded article across 14
   distinct targets (warn), 289 hit a draft (warn), 6 hit a demo app (warn), and **44 refs
-  across 33 distinct targets** resolve to nothing and fail. The D12 `git mv` closed 6
+  across 33 distinct targets** resolve to nothing. `build-catalog` writes all of that into
+  `catalog.json` and exits 0; `verify-links` still fails on the 44. The D12 `git mv` closed 6
   inbound refs to `nestjs/dtos-and-class-validator` (they are now draft-target warnings)
   and the recovered article added 1 new unresolved outbound ref to
   `nestjs/nested-dto-not-validated`. Itemised in
@@ -212,11 +219,13 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
    articles with no title, skipped by the pass for that reason) and Debt D15
    (`angular`'s duplicate `widget-deployment.md`). See
    `prompts/corpus-description-pass.md`.
-2. The 44 unresolved `related` refs (Debt D13) are the only thing still stopping
-   `build-catalog` from writing. All corpus-side; itemised per ref in
+2. The 44 unresolved `related` refs (Debt D13) still fail `verify-links`. They no
+   longer stop `build-catalog` from writing — the artifact records them in
+   `catalog.unresolvedTargets`. All corpus-side; itemised per ref in
    `docs/audit/unresolved-refs-2026-08-16.md`. Debt D12 is closed (`nestjs@v0.3.1`).
    The cheapest remaining Group 1 fix is publishing the two staged `nextjs` articles
    (`cache-lifetimes`, `use-cache-directive`), which closes 4 of the 44.
-3. Wire `apps/web` routes + sidebar to `catalog.json` once it can build (Phase 1 items 7–8).
+3. Wire `apps/web` routes + sidebar to `catalog.json` (Phase 1 items 7–8). The
+   artifact now exists: 181 articles, 16 exclusions, 44 unresolved refs recorded.
 4. Design tokens applied in `packages/ui`.
 5. DNS cutover: `nxhhuy.tech` -> Vercel.

@@ -1541,3 +1541,65 @@ two cannot reintroduce D5 via this path; they also have no shared template to pa
 - Do not merge until reviewed.
 
 ---
+
+## Session content-watch-honest-diff — catalog-diff missing snapshots — 2026-08-18
+
+**Branch:** `cursor/catalog-diff-honest-snapshots-c14e`
+
+**Files changed:**
+- `scripts/catalog-diff.mjs` — missing or unparseable snapshots warn instead of collapsing to `{}`
+- `scripts/build-catalog.mjs` — writes `catalog.json` with unresolved refs recorded; `verify-links` stays the fatal gate
+- `scripts/verify-catalog.mjs` — warns on `unresolvedTargets` without failing on them; warnings print even when `failures` is non-empty
+- `scripts/lib/link-report.mjs` — comment: unresolved is fatal in `verify-links`, recorded by `build-catalog`
+- `packages/content-schema/src/catalog.ts` — required `Catalog.unresolvedTargets`; shared `UnresolvedTarget` schema
+- `.cursor/rules/30-content-pipeline.mdc` — unresolved is FATAL for `verify-links`; `build-catalog` still writes
+- `AGENTS.md` — regenerated after the rule 30 change
+- `.github/workflows/content-watch.yml` — no `{}` stand-in when `catalog.json` is missing
+- `prompts/session-3.md` — Track A step 4: catalog write is no longer blocked by D13
+- `.agents/summary.md` — catalog now writes; D13 is a `verify-links` failure
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this session
+- `progress.md` — Phase 1 item 7 no longer blocked on the catalog write
+- `docs/DEBT.md` — D5/D13 impact: catalog writes; `verify-links` still fails on the 44
+
+**Why:** content-watch's PR body was lying. `build-catalog` refused to write on the 44
+unresolved refs in D13, so both snapshots were missing, `catalog-diff.mjs` treated
+missing as `{}`, and the body reported "articles adapting 0 → 0" and `_none_` for every
+list. That is indistinguishable from a genuine no-change, so a PR that added or removed
+articles would get merged as a no-op.
+
+The two fixes are one fact seen from two ends. The diff has to say when it could not
+tell. The catalog has to exist so there is something to tell. Adaptation failures already
+got emit-with-exclusions in follow-up c; unresolved refs were deliberately left fatal for
+the write because extending that treatment was a semantic change to the hard-fail rule.
+This session takes that decision: `verify-links` stays the gate, `build-catalog` records
+the list and writes. Proven by simulating content-watch against `nestjs-concepts`
+`v0.3.0` → `v0.3.1`: the body reports 180 → 181 and `nestjs/dtos-and-class-validator`
+added, with `_none_` only for lists that genuinely did not change.
+
+**Invented decisions:**
+- `Catalog.unresolvedTargets` is required, matching `failures` / `excludedTargets` /
+  `draftTargets`. `schema` stays at `1` — no catalog of any previous shape has been
+  consumed
+- JSON without an `articles` array, including `{}`, is unparseable rather than empty.
+  `{}` was the workflow's missing-file stand-in, and treating it as empty was the lie
+- When either snapshot is missing, omit the added/removed/rehashed lists rather than
+  printing `_none_`. Keep the pin table; count cells say `unavailable`, not `0`
+- `verify-catalog` warns on unresolved refs and does not fail on them. `verify-links`
+  owns that fatal. Warnings print before the exclusions exit so they are visible while
+  D11/D15 keep `failures` non-empty
+- content-watch.yml no longer writes `{}` when `catalog.json` is missing, so the new
+  catalog-diff warning is reachable from the workflow and not only from a direct
+  invocation
+- Did not author `prompts/session-N+1.md`. This is a named Slack task, not a numbered
+  session. Session 3 Track A step 4 was factually corrected because it still said D13
+  blocked the write
+
+**Known issues / next steps:**
+- `verify-frontmatter` still fails on 16 files (D11 + D15). `verify-links` still fails
+  on 44 unresolved refs (D13). `verify-catalog` still fails on the 16 exclusions.
+  Expected, corpus-side. `build-catalog` now exits 0
+- Phase 1 item 7 remaining work is wiring routes and the sidebar to the artifact
+- Do not auto-merge
+
+---

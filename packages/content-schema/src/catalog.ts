@@ -40,6 +40,18 @@ export const ExcludedTarget = z.object({
 export type ExcludedTarget = z.infer<typeof ExcludedTarget>;
 
 /**
+ * A ref whose target exists in no corpus at all — no article, and no excluded
+ * file either. Recorded in the catalog so a content-watch diff has a real
+ * snapshot to compare; `verify-links` is the gate that fails on them.
+ */
+export const UnresolvedTarget = z.object({
+  from: ArticleUid,
+  raw: z.string(),
+  reason: z.string(),
+});
+export type UnresolvedTarget = z.infer<typeof UnresolvedTarget>;
+
+/**
  * `catalog.json` — the only artifact the API knows about content.
  *
  * Produced by scripts/build-catalog.mjs at build time, POSTed to
@@ -56,7 +68,9 @@ export type ExcludedTarget = z.infer<typeof ExcludedTarget>;
  * Exclusion has a second cost the artifact has to carry: every `related` ref
  * pointing at an excluded or draft article is now a ref to a page with no route.
  * Those refs travel in `excludedTargets` and `draftTargets` so a renderer can
- * emit plain text rather than a link that 404s — see `LinkReport`.
+ * emit plain text rather than a link that 404s — see `LinkReport`. Refs whose
+ * target exists in no corpus at all travel in `unresolvedTargets` the same way:
+ * the artifact still writes, and `verify-links` is what fails on them.
  */
 export const Catalog = z.object({
   schema: z.literal(1),
@@ -81,6 +95,13 @@ export const Catalog = z.object({
    * drafts. Same rendering rule as `excludedTargets` — plain text, no link.
    */
   draftTargets: z.array(LinkEdge),
+  /**
+   * Refs whose target exists in no corpus at all. Same rendering rule as
+   * `excludedTargets` — plain text, no link. `verify-links` fails on a
+   * non-empty list; `build-catalog` still writes so a catalog diff is
+   * meaningful while that gate is red.
+   */
+  unresolvedTargets: z.array(UnresolvedTarget),
   /** Old id -> new id, from renames. Feeds `lesson_aliases` and Next `redirects()`. */
   aliases: z.array(LinkEdge),
 });
@@ -89,8 +110,8 @@ export type Catalog = z.infer<typeof Catalog>;
 /**
  * Result of resolving `related` blocks, classified by WHY a ref does or does not
  * land on a page. The four buckets for an `article`-resolution ref are `edges`,
- * `excludedTargets`, `draftTargets`, and `unresolvedTargets`, and only the last
- * is fatal.
+ * `excludedTargets`, `draftTargets`, and `unresolvedTargets`. Only the last is
+ * fatal, and only in `verify-links` — `build-catalog` records it and writes.
  *
  * The split exists so the build fails once on a root cause and never again on
  * its symptoms. One article that cannot adapt is one failure in
@@ -118,14 +139,13 @@ export const LinkReport = z.object({
   draftTargets: z.array(LinkEdge),
   /**
    * Target exists in no corpus at all — no article, and no excluded file
-   * either. FATAL. Cross-repo links WARN in the corpus repos because they
-   * cannot resolve standalone; here they CAN, so this gate is deliberately
-   * stronger than the per-repo one. This is the only unresolved-ref case that
-   * has no other report and no route to becoming live without an author.
+   * either. FATAL for `verify-links`. Cross-repo links WARN in the corpus
+   * repos because they cannot resolve standalone; here they CAN, so that gate
+   * is deliberately stronger than the per-repo one. `build-catalog` records
+   * the same list in `Catalog.unresolvedTargets` and still writes: the
+   * artifact existing is what makes every downstream diff meaningful.
    */
-  unresolvedTargets: z.array(
-    z.object({ from: ArticleUid, raw: z.string(), reason: z.string() }),
-  ),
+  unresolvedTargets: z.array(UnresolvedTarget),
   /**
    * Points at a known corpus that has no remote yet — currently `dsa`.
    * WARNS, never fails. The work exists; it just is not published. Failing the
