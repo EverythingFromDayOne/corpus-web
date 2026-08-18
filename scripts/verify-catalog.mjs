@@ -25,9 +25,12 @@
  *     link without checking. Only a builder bug can fail these; no corpus
  *     content can
  *
- * `excludedTargets` and `draftTargets` are NOT failures here. They are refs to a
- * real article this build has no route for, and their root cause is reported
- * once each — in `failures` above, and by the corpus's own draft status.
+ * `excludedTargets`, `draftTargets`, and `unresolvedTargets` are NOT failures
+ * here. The first two are refs to a real article this build has no route for,
+ * and their root cause is reported once each — in `failures` above, and by the
+ * corpus's own draft status. `unresolvedTargets` is fatal in `verify-links`;
+ * this gate records the warning so a renderer emits plain text, and does not
+ * restate the same unresolved refs.
  *
  * Does not build the catalog itself — run `pnpm build:catalog` first. A
  * missing `catalog.json` is a failure, not a skip: a gate that passes when
@@ -136,15 +139,23 @@ if (errors.length > 0) {
   for (const error of errors) console.error(`- ${error}`);
 }
 
-if (excluded.length > 0 || errors.length > 0) {
-  process.exit(1);
-}
-
 if (catalog.excludedTargets.length > 0 || catalog.draftTargets.length > 0) {
   console.warn(
     `verify-catalog: WARN — ${catalog.excludedTargets.length} ref(s) to an excluded article and ` +
       `${catalog.draftTargets.length} to a draft; a renderer must emit these as plain text, not links`,
   );
+}
+
+if (catalog.unresolvedTargets.length > 0) {
+  const distinct = new Set(catalog.unresolvedTargets.map((u) => u.reason)).size;
+  console.warn(
+    `verify-catalog: WARN — ${catalog.unresolvedTargets.length} unresolved ref(s) ` +
+      `(${distinct} distinct target(s); verify-links fails on these)`,
+  );
+}
+
+if (excluded.length > 0 || errors.length > 0) {
+  process.exit(1);
 }
 
 console.log(

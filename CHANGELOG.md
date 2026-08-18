@@ -5,6 +5,31 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-18] — cursor/catalog-diff-honest-snapshots-c14e — Catalog diff honest about missing snapshots
+
+**Added**
+- `Catalog.unresolvedTargets` — unresolved `related` refs travel in `catalog.json`
+- Warning block in `catalog-diff.mjs` when a before or after snapshot is missing or
+  unparseable
+
+**Changed**
+- `scripts/build-catalog.mjs` writes `catalog.json` when unresolved refs are present;
+  `verify-links` remains the fatal gate
+- `.github/workflows/content-watch.yml` no longer substitutes `{}` for a missing
+  `catalog.json`
+- `.cursor/rules/30-content-pipeline.mdc` — unresolved is FATAL for `verify-links`,
+  recorded by `build-catalog`
+- Debt D13 no longer blocks the catalog write
+
+**Removed**
+- Nothing
+
+**Fixed**
+- content-watch PR bodies that reported `0 → 0` and `_none_` for every list when
+  `catalog.json` could not be built, which was indistinguishable from a genuine
+  no-change. Simulated against `nestjs-concepts` `v0.3.0` → `v0.3.1`: **180 → 181**,
+  `nestjs/dtos-and-class-validator` added
+
 ### [2026-08-18] — cursor/debt-d16-article-templates-b29a — Debt D16: templates omit `description`
 
 **Added**

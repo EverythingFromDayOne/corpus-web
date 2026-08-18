@@ -129,10 +129,17 @@ jobs:
           set -euo pipefail
           pnpm install --frozen-lockfile
 
-          # `|| true` throughout: the catalog cannot build while tracked debt remains,
-          # and the diff is still worth reporting.
+          # `|| true` on the catalog build: a remaining fatal (zero articles,
+          # a path pointing at a missing article) must not abort the bump.
+          # Unresolved refs no longer refuse the write — they travel in the
+          # artifact and `verify-links` is the gate that fails on them.
+          # Do not substitute `{}` for a missing catalog.json: catalog-diff
+          # distinguishes a missing snapshot from an empty one, and `{}` is
+          # how a real add/remove used to look like a no-op.
           pnpm build:catalog || true
-          cp catalog.json /tmp/before.json 2>/dev/null || echo '{}' > /tmp/before.json
+          if [ -f catalog.json ]; then
+            cp catalog.json /tmp/before.json
+          fi
 
           BEFORE_SHA=$(git -C "$SM" rev-parse HEAD)
           git -C "$SM" checkout --quiet "$LATEST"
@@ -149,7 +156,9 @@ jobs:
           echo "same_commit=false" >> "$GITHUB_OUTPUT"
 
           pnpm build:catalog || true
-          cp catalog.json /tmp/after.json 2>/dev/null || echo '{}' > /tmp/after.json
+          if [ -f catalog.json ]; then
+            cp catalog.json /tmp/after.json
+          fi
 
           node scripts/catalog-diff.mjs /tmp/before.json /tmp/after.json "$PINNED" "$LATEST" /tmp/body.md
 

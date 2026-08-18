@@ -11,7 +11,8 @@
  *   edges             target adapted and is renderable
  *   excludedTargets   target is a real file in `catalog.failures`      WARN
  *   draftTargets      target adapted but is draft                     WARN
- *   unresolvedTargets target exists in no corpus at all               FATAL
+ *   unresolvedTargets target exists in no corpus at all               FATAL in verify-links;
+ *                                                                     build-catalog records and writes
  *
  * Fail once on the root cause, never on its symptoms. An excluded target is the
  * adaptation failure already reported by `verify-frontmatter` and already

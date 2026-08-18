@@ -21,11 +21,13 @@
  * (`packages/content-schema/src/catalog.ts`). A ref to an excluded article, or
  * to a draft, warns and travels in the artifact so the renderer can emit plain
  * text instead of a dead link. A ref to an article that exists in no corpus is
- * fatal — nothing else reports it, and no author is coming for it by accident.
+ * recorded the same way — `catalog.unresolvedTargets` — and this script still
+ * writes. `verify-links` is the gate that fails on them. Forward references
+ * to planned work must not block adapting articles from being reported on, and a
+ * catalog that does not exist makes every downstream diff a lie.
  *
- * Still fatal here, because none of them are per-article exclusions: zero
- * articles adapting, a `related` ref pointing at an article that exists in no
- * corpus, and a path item pointing at a missing or draft article.
+ * Still fatal here, because neither is a per-article exclusion: zero articles
+ * adapting, and a path item pointing at a missing or draft article.
  */
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -62,14 +64,14 @@ if (articlesByUid.size === 0) {
 const linkReport = buildLinkReport(articlesByUid, { showDrafts: SHOW_DRAFTS, failures });
 
 if (linkReport.unresolvedTargets.length > 0) {
-  console.error(
-    `build-catalog: FAIL — ${linkReport.unresolvedTargets.length} \`related\` ref(s) pointing at an article ` +
-      'that exists in no corpus',
+  const distinct = countDistinct(linkReport.unresolvedTargets, (u) => u.reason);
+  console.warn(
+    `build-catalog: WARN — ${linkReport.unresolvedTargets.length} \`related\` ref(s) pointing at an article ` +
+      `that exists in no corpus (${distinct} distinct target(s); verify-links fails on these)`,
   );
   for (const u of linkReport.unresolvedTargets) {
-    console.error(`    [${u.from}] "${u.raw}" — ${u.reason}`);
+    console.warn(`    [${u.from}] "${u.raw}" — ${u.reason}`);
   }
-  process.exit(1);
 }
 
 // Both of the buckets below are refs to a real, correctly-named article that
@@ -136,6 +138,7 @@ const catalog = Catalog.parse({
   edges: linkReport.edges,
   excludedTargets: linkReport.excludedTargets,
   draftTargets: linkReport.draftTargets,
+  unresolvedTargets: linkReport.unresolvedTargets,
   aliases: [],
 });
 
@@ -143,7 +146,8 @@ writeFileSync(join(ROOT, 'catalog.json'), `${JSON.stringify(catalog, null, 2)}\n
 console.log(
   `build-catalog: wrote catalog.json — ${catalog.articles.length} article(s), ${catalog.edges.length} edge(s), ` +
     `${catalog.paths.length} path(s), ${catalog.failures.length} excluded, ` +
-    `${catalog.excludedTargets.length} ref(s) to an excluded article, ${catalog.draftTargets.length} to a draft`,
+    `${catalog.excludedTargets.length} ref(s) to an excluded article, ${catalog.draftTargets.length} to a draft, ` +
+    `${catalog.unresolvedTargets.length} unresolved`,
 );
 
 /**
