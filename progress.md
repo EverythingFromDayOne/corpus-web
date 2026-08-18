@@ -77,6 +77,11 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **debt-d16 (2026-08-18):** opened Debt **D16** — `ARTICLE_TEMPLATE.md` and
+  `RECIPE_TEMPLATE.md` in `nextjs-concepts` and `angular-concepts` omit the required
+  `description` key, so new articles authored from them reintroduce D5. Highest ID
+  issued is now D16. Confirmed `react-concepts` and `nestjs-concepts` have no
+  article/recipe templates. Fix is corpus-side, then re-tag.
 - **task-doc-refactor (2026-08-17):** extracted the debt register into
   `docs/DEBT.md` (D1–D15, IDs unchanged). `progress.md` keeps a pointer.
   Document authority map and SESSION-LOG/CHANGELOG split added to rule 00.

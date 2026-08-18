@@ -5,6 +5,26 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-18] — cursor/debt-d16-article-templates-b29a — Debt D16: templates omit `description`
+
+**Added**
+- Debt **D16** in `docs/DEBT.md` — `ARTICLE_TEMPLATE.md` and `RECIPE_TEMPLATE.md` in
+  `nextjs-concepts` and `angular-concepts` omit the required `description` key, so
+  articles authored from them reintroduce D5
+
+**Changed**
+- Highest ID issued D15 → D16
+- D5 row now points at D16 for template recurrence
+- `.agents/summary.md` — debt ID range D1–D16
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Nothing in this repo. Confirmed `react-concepts@v0.5.0` and `nestjs-concepts@v0.3.1`
+  have no article/recipe templates (no `docs/templates/`, no `ARTICLE_TEMPLATE.md` /
+  `RECIPE_TEMPLATE.md`)
+
 ### [2026-08-17] — cursor/task-doc-refactor-7e3a — Documentation architecture refactor
 
 **Added**

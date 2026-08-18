@@ -1496,3 +1496,48 @@ register.
 - Do not merge.
 
 ---
+
+## Session debt-d16 — article/recipe templates omit `description` — 2026-08-18
+
+**Branch:** `cursor/debt-d16-article-templates-b29a`
+
+**Files changed:**
+- `docs/DEBT.md` — new Debt D16; Highest ID issued bumped D15 → D16; D5 row cross-references D16
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this session
+- `.agents/summary.md` — debt ID range D1–D15 → D1–D16
+- `progress.md` — session-log line
+
+**Why:** The Q1 `description` pass closed D5 on every selected article that has a title,
+but `nextjs-concepts` and `angular-concepts` still ship `docs/templates/ARTICLE_TEMPLATE.md`
+and `docs/templates/RECIPE_TEMPLATE.md` whose frontmatter omits the now-required key.
+Copying either template authors a new D5 failure. That is a distinct defect from the
+remaining D5 residues (D11 untitled react articles, D15 angular duplicate), so it gets
+its own ID rather than living inside D5.
+
+`react-concepts` and `nestjs-concepts` were checked rather than assumed. Neither has
+`ARTICLE_TEMPLATE.md`, `RECIPE_TEMPLATE.md`, a `docs/templates/` directory, or a mention
+of either filename. The nestjs agent's "we have no templates" report is confirmed. Those
+two cannot reintroduce D5 via this path; they also have no shared template to patch.
+
+**Invented decisions:**
+- Cross-referenced D16 from the D5 row, and changed D5's "closes when D11 and D15 close"
+  to treat remaining misses and template recurrence as separate close conditions. Without
+  that, closing D11+D15 would look like D5 was done while the templates still omitted the
+  key.
+- Did not open a "missing templates" debt for react/nestjs. Absence is recorded inside
+  D16 as a finding, not as a second ID.
+- Did not put nextjs-concepts' own progress.md note (templates plus roadmap §5's
+  frontmatter list) into the D16 row. The user scoped D16 to the templates; the roadmap
+  list is the same class of omission in that corpus and is noted here rather than
+  widened into the register.
+- Session log id `debt-d16` rather than a sequential session number — this is a named
+  Slack task, not a `prompts/session-N.md` run. No `prompts/session-N+1.md` authored.
+
+**Known issues / next steps:**
+- Fix is corpus-side in `nextjs-concepts` and `angular-concepts`: add `description` to
+  both templates, then re-tag and `/promote-content`. Not a `corpus-web` adapter change.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side.
+- Do not merge until reviewed.
+
+---
