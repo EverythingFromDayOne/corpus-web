@@ -119,6 +119,7 @@ jobs:
           cache: pnpm
 
       - name: Bump the pin and diff the catalog
+        id: bump
         if: steps.compare.outputs.drift == 'true' && steps.existing.outputs.exists == 'false'
         env:
           SM: content/${{ matrix.submodule }}
@@ -133,7 +134,19 @@ jobs:
           pnpm build:catalog || true
           cp catalog.json /tmp/before.json 2>/dev/null || echo '{}' > /tmp/before.json
 
+          BEFORE_SHA=$(git -C "$SM" rev-parse HEAD)
           git -C "$SM" checkout --quiet "$LATEST"
+          AFTER_SHA=$(git -C "$SM" rev-parse HEAD)
+
+          # Two tags can point at the same commit — a re-tag, or a release cut with
+          # no new commits. The tag moved but the gitlink did not, so there is nothing
+          # for the parent to record and `git commit` would exit 1 under `set -e`.
+          if [ "$BEFORE_SHA" = "$AFTER_SHA" ]; then
+            echo "::notice::$LATEST points at the same commit as $PINNED; no gitlink change"
+            echo "same_commit=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "same_commit=false" >> "$GITHUB_OUTPUT"
 
           pnpm build:catalog || true
           cp catalog.json /tmp/after.json 2>/dev/null || echo '{}' > /tmp/after.json
@@ -141,7 +154,10 @@ jobs:
           node scripts/catalog-diff.mjs /tmp/before.json /tmp/after.json "$PINNED" "$LATEST" /tmp/body.md
 
       - name: Open the draft PR
-        if: steps.compare.outputs.drift == 'true' && steps.existing.outputs.exists == 'false'
+        if: >-
+          steps.compare.outputs.drift == 'true' &&
+          steps.existing.outputs.exists == 'false' &&
+          steps.bump.outputs.same_commit == 'false'
         env:
           GH_TOKEN: ${{ secrets.CONTENT_WATCH_TOKEN }}
           SM: content/${{ matrix.submodule }}
@@ -153,6 +169,11 @@ jobs:
           git config user.email 'content-watch@users.noreply.github.com'
           git checkout -b "$BRANCH"
           git add "$SM"
+
+          if git diff --cached --quiet; then
+            echo "::error::nothing staged for $SM — the gitlink did not change"
+            exit 1
+          fi
 
           {
             printf '%s\n\n' "$TITLE"
