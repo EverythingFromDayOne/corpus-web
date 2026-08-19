@@ -5,6 +5,22 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-19] — cursor/phase-0-dns-cutover-1094 — Phase 0 DNS cutover recorded
+
+**Added**
+- Nothing
+
+**Changed**
+- Phase 0 item 5 marked complete: `nxhhuy.tech` cut over to Vercel on 2026-08-19
+- Apex serves the site (200); `www` 308s to the apex; every page emits `<link rel="canonical">` pointing at the apex
+- Listing-routes scope fence ("Do not mark Phase 0 item 5 complete") replaced with the 2026-08-19 completion
+
+**Removed**
+- Planned next step "DNS cutover: `nxhhuy.tech` -> Vercel"
+
+**Fixed**
+- Apex CNAME description: previously `angular-demos.pages.dev`, now Vercel; demos remain at `ng21.` / `ng15.`
+
 ### [2026-08-19] — cursor/verify-prerender-aa14 — prerender HTML gate
 
 **Added**
