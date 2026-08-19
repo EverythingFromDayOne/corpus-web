@@ -10,6 +10,66 @@
 
 ## 0.0 Decisions log
 
+**2026-08-19 — the three-surface shell, approved (explicit user instruction).**
+§1 argues against adopting the reference site's information architecture wholesale. That
+argument is **narrowed, not reversed**: the surfaces are adopted, the content model is not.
+
+| surface | route | what it is in this project's terms |
+|---|---|---|
+| home | `/en` | corpus landing, §15.1 contents |
+| courses | `/en/courses`, `/en/courses/[course]` | the **paths** layer of §1, promoted from thin to primary |
+| lesson | `/en/courses/[course]/lessons/[slug]` | an article rendered with course chrome |
+| articles | `/en/blog` | index over the whole corpus |
+| article | `/en/blog/[corpus]/[slug]` | **canonical** article URL |
+
+The reference-first invariant holds: one article, one canonical URL, a course owns no
+content, and one article may appear in several courses. What changes is that courses become
+a first-class browse surface in Phase 1 rather than Phase 4.
+
+**2026-08-19 — canonical article URL moves from `/en/concepts/…` to `/en/blog/…`**
+This amends §1's URL shape directly — it is the first amendment to that block, not a
+supersession of another log entry. The flattening — no concept-folder segment —
+**stands as the part that matters**; only the first segment changes (`concepts` → `blog`),
+to match the three-surface shell. §1 had named `/en/concepts/nextjs/caching/...` with the
+folder in the path.
+
+Taken now because nothing is deployed and nothing is indexed. This is the last moment it is
+free. The design contract asserts the old path in six places — `canonical`, `og:url`, two
+`hreflang`, the JSON-LD `@id` and `mainEntityOfPage`, and the `BreadcrumbList` — and all six
+must be updated in `docs/design/article-layout-poc.html` as part of this session.
+
+Noted honestly: "blog" is a poor description of reference documentation with no publication
+dates. It is adopted because it is the conventional label readers expect for this surface
+and because it matches the navigation the shell is modelled on. The corpus is not blog
+content and must not grow blog affordances — no dates, no chronological sort, no authors.
+
+**2026-08-19 — `/en/paths/*` deferral withdrawn; the cookie constraint dissolved**
+This morning's entry deferred paths because a path-context cookie read above the article
+shell would force the route dynamic. **That constraint no longer applies.** Course context
+lives in a URL segment — `/en/courses/[course]/lessons/[slug]` — so `generateStaticParams`
+enumerates course×lesson pairs, every lesson page prerenders, and course-aware prev/next and
+the curriculum sidebar need no cookie, no `searchParams`, and no dynamic route.
+
+`/en/paths/*` is retired as a URL; `/en/courses/*` replaces it. Position-number redirects
+(`/en/paths/x/3`) are dropped entirely rather than deferred — lesson slugs are stable and
+position numbers are not, which is the same argument that keeps `article_id` off sequence
+numbers in §1.
+
+**2026-08-19 — Q3 monetization resolved: non-commercial (explicit user instruction)**
+Not commercial; no content will ever be gated behind payment. Consequences, all
+simplifying:
+
+- Vercel Hobby is permissible unconditionally. Remove the commercial-use warning from §12.
+- `entitlements` leaves the §8 Nest module inventory entirely.
+- Quiz scoring is `mode: 'local'` only; the server branch is dropped, which also removes the
+  interactive layer's dependency on auth.
+- **No lock icons, no locked-lesson state, no prices, no enrol or purchase affordance, no
+  paywall, no "notify me" email capture.** Every lesson in every course is open. The
+  reference site's sidebar shows padlocks on most lessons; ours shows none.
+- Progress and completion remain, anonymous in `localStorage` per §10.
+
+Tick §16 Q3 on the approval checklist.
+
 **2026-08-18 — `status` removed from the publication decision, approved (explicit user
 instruction).** §5.2's `Article.status: 'draft' | 'complete'` and the "draft gating"
 sentence are superseded. Measured against the four mounted corpora: all 181 adapting
@@ -89,17 +149,17 @@ This gives Sydexa's lesson-by-lesson UX (sidebar order, prev/next, progress, com
 **URL shape:**
 
 ```
-/en                                corpus landing — thesis, four corpora, entry points
-/en/concepts                       corpus index — all four repos
-/en/concepts/nextjs                repo index
-/en/concepts/nextjs/caching/...    article (canonical URL, stable forever)
-/en/paths                          curated tracks index
-/en/paths/react-deep-dive          path overview
-/en/paths/react-deep-dive/3        path position → 308 redirect to canonical article URL
-                                   (+ path context in a cookie/searchParam for prev/next chrome)
+/en                                    home — thesis, four corpora, entry points
+/en/courses                            course index
+/en/courses/react-render-cycle         course detail, with #curriculum
+/en/courses/[course]/lessons/[slug]    lesson — the article with course chrome
+/en/blog                               article index — all four repos
+/en/blog/nextjs/stale-answer-tax       article (canonical URL, stable forever)
 ```
 
-Canonical URL is always the article. Path positions redirect. One page, one URL, no duplicate-content SEO penalty.
+**Concept folder and recipe track are nav-only.** They group the sidebar tree and populate `articleSection`; they appear in no URL and in no breadcrumb. An article moving between folders keeps its URL — see §0.0, 2026-08-19.
+
+Canonical URL is always the `/en/blog/…` article. A lesson renders the same article with course chrome and points `rel=canonical` back. One document, one indexed URL, no duplicate-content penalty.
 
 ---
 
@@ -583,7 +643,7 @@ Explicitly absent: name, photo, bio, work history, employers, clients, testimoni
 33. `llms.txt` / MCP endpoint — you're writing a reference corpus in 2026; make it machine-readable.
 
 ### Phase 5 — Conditional
-34. i18n (§16 Q2), entitlements + payments (§16 Q3), comments, RSS/newsletter.
+34. i18n (§16 Q2), comments, RSS/newsletter. Entitlements and payments are struck — §16 Q3 resolved non-commercial, 2026-08-19 (§0.0).
 
 ---
 
@@ -593,7 +653,7 @@ Explicitly absent: name, photo, bio, work history, employers, clients, testimoni
 
 ---
 
-**Q3 — Monetization. Open, and now urgent.** Determines whether `entitlements` is built at all, whether Vercel Hobby is permissible (it forbids commercial use), and whether quiz scoring must be server-side. Not urgent to *implement* — urgent to *decide*, because the quiz component's `mode: 'local' | 'server'` prop and the Phase 2 hosting choice both branch on it.
+**Q3 — Monetization. RESOLVED 2026-08-19: non-commercial.** See §0.0. Nothing is ever gated behind payment, so Vercel Hobby's commercial-use prohibition does not bite and the hosting shape in §12 is unconditional. `entitlements` leaves the §8 Nest module inventory. The quiz component is `mode: 'local'` only; the server-scoring branch is dropped, which also removes the interactive layer's dependency on auth. No price, enrol, paywall, lock-state, or email-capture affordance ships anywhere.
 
 **Q5 — Media strategy. Open, recommendation standing.** The reference embeds video for closure and `this`. Video means production time, hosting cost, and content that goes stale independently of the article. **Recommend: SVG + motion-driven animation instead** — versionable, diffable, no bandwidth, sharper on retina, and it lives in the same CI gates as everything else.
 
@@ -665,9 +725,10 @@ Stated explicitly per convention — all of these are mine, none came from you:
 - [ ] §4.0 single-monorepo argument
 - [x] §16 Q8 — resolved 2026-08-15: no personal content (§15.1, §0.0)
 - [ ] §15.1 landing-page contents
-- [ ] §16 Q3 (monetization), Q5 (media), **Q7 (Angular demos)**
+- [x] §16 Q3 — resolved 2026-08-19: non-commercial (§0.0)
+- [ ] §16 Q5 (media), **Q7 (Angular demos)**
 - [ ] §17 invented decisions
 
 On approval: `prompts/session-1.md` — monorepo scaffold, content submodules, and the blocking fumadocs × Next 16.3 × Cache Components spike. Everything else is downstream of that spike result.
 
-Q7 does not block anything before Phase 4. Q3 blocks Phase 2 hosting. Nothing blocks Phase 1.
+Q7 does not block anything before Phase 4. Q3 is resolved and blocks nothing. Nothing blocks Phase 1.
