@@ -207,6 +207,15 @@ have no such assets; use a typographic card treatment rather than a placeholder 
 measure, collapsible sidebar, hover-label rail with progress ring, provenance strip on code
 blocks, breadcrumb, prev/next.
 
+Two contracts, no overlap. `docs/design/listing-pages-poc.html` is the contract for `/en`,
+`/en/courses`, `/en/courses/[course]`, `/en/blog`, and the lesson chrome — the shared top
+bar, the card and chip treatments, the census readout, the curriculum sidebar, and the
+pinned-chrome scroll model. `docs/design/article-layout-poc.html` remains the contract for
+the article body: prose measure, headings, code blocks with the provenance strip, figures,
+callouts, the parts structure, and the rail. Neither restates the other, and the lesson
+route composes both. If a change would have to be made in both files, the split is wrong —
+say so rather than editing both.
+
 **The POC carries known defects. Correct them; do not transcribe them.**
 
 - **The mobile grid.** At ≤1000px the sidebar becomes `position:fixed` and the rail
@@ -241,6 +250,19 @@ blocks, breadcrumb, prev/next.
   folder route to link, so `Articles / <Corpus> / <title>` is the only shape where every
   non-terminal crumb resolves. Use it in both, and update the six hardcoded `/en/concepts/…`
   URLs in the POC's head while you are there.
+
+**Defects in `listing-pages-poc.html` — same rule, correct rather than transcribe:**
+
+- **`.foot` does two jobs** — the page footer and the metadata row inside cards. This
+  already caused a real selector collision in the POC, where `querySelector('.foot')`
+  matched a card row instead of the footer. Split the names before this becomes
+  components; it gets worse, not better, once these are React.
+- **The mobile curriculum stacks above the article at ≤1000px**, pushing the lesson
+  content below a twelve-item list. A drawer is the likely answer, matching the article
+  POC's mobile sidebar. The POC does not specify one — decide, and disclose it.
+- **The rail's 18×2px ticks are carried over deliberately and fail WCAG 2.2 target-size.**
+  Do not silently enlarge them: the dimension is the visual contract and the tension is
+  tracked in §10. If you believe they must change, stop and say so.
 
 Five accessibility defects are **out of scope and go to debt** (§9). Do not fix them here
 and do not claim axe-clean.

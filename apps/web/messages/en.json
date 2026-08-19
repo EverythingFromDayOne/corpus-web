@@ -1,0 +1,103 @@
+{
+  "site": {
+    "name": "corpus.web",
+    "nameLead": "corpus",
+    "nameTail": ".web",
+    "origin": "https://nxhhuy.tech",
+    "orgName": "EverythingFromDayOne",
+    "orgUrl": "https://github.com/EverythingFromDayOne",
+    "orgLink": "GitHub organization"
+  },
+  "nav": {
+    "home": "Home",
+    "courses": "Courses",
+    "articles": "Articles",
+    "skipToContent": "Skip to content",
+    "themeToggle": "Toggle colour theme",
+    "primary": "Primary"
+  },
+  "placeholders": {
+    "comingSoon": "Coming soon",
+    "search": "Search coming soon",
+    "searchHint": "Full-text search is not available yet.",
+    "demoTitle": "Interactive demo",
+    "demoHint": "Simulators ship later. This panel is a placeholder.",
+    "graphFullView": "Full graph coming soon",
+    "demoLabsTitle": "Demo labs",
+    "demoLabsHint": "Runnable applications, not articles. Coming soon."
+  },
+  "home": {
+    "title": "A verified reference corpus",
+    "description": "Claims traced to official docs, framework source, or measurement. Code extracted from running demos. CI gates that fail on drift.",
+    "eyebrow": "Four corpora, one graph",
+    "thesis": "Claims in this corpus are traced to official docs, framework source, or measurement. Code is extracted verbatim from running demos rather than hand-written. CI gates fail on drift between the two. That is uncommon, and it is the pitch.",
+    "corpusHeading": "The corpora",
+    "graphHeading": "Concept graph",
+    "graphEyebrow": "Four corpora",
+    "graphCaption": "Cross-links among the four corpora, cropped to the corpus level.",
+    "entriesHeading": "Entry points",
+    "entryCourseTitle": "New to React",
+    "entryCourseBody": "A reading order through the render cycle.",
+    "entryDebugTitle": "Debugging a specific problem",
+    "entryDebugBody": "Browse articles by corpus and folder.",
+    "entryBrowseTitle": "Browse everything",
+    "entryBrowseBody": "The full article index.",
+    "readingHeading": "How to read this",
+    "readingConcept": "A concept article explains a mechanism.",
+    "readingRecipe": "A recipe starts from a symptom and points at the mechanism.",
+    "readingDifficulty": "Difficulty is foundational, intermediate, or advanced.",
+    "readingBaseline": "Each article is pinned to a framework baseline version.",
+    "featuredEyebrow": "Featured course",
+    "adaptingCount": "{adapting} adapting",
+    "selectedCount": "{selected} selected",
+    "baseline": "Baseline {framework} {version}"
+  },
+  "corpora": {
+    "nextjs": {
+      "label": "Next.js",
+      "scope": "Reference articles on Next.js."
+    },
+    "react": {
+      "label": "React",
+      "scope": "Reference articles on React."
+    },
+    "angular": {
+      "label": "Angular",
+      "scope": "Reference articles on Angular."
+    },
+    "nestjs": {
+      "label": "NestJS",
+      "scope": "Reference articles on NestJS."
+    }
+  },
+  "courses": {
+    "indexTitle": "Courses",
+    "indexDescription": "Ordered reading paths over existing articles. A course owns no content.",
+    "lessons": "{count} lessons",
+    "readingTime": "{minutes} min read",
+    "startFirst": "Start the first lesson",
+    "viewCurriculum": "View curriculum",
+    "curriculumHeading": "Curriculum",
+    "position": "{n}.",
+    "level": "Level {level}",
+    "drawnFrom": "Drawn from {corpora}"
+  },
+  "blog": {
+    "title": "Articles",
+    "description": "Every adapting article, grouped by corpus and folder.",
+    "filterAll": "All",
+    "filterLabel": "Filter by corpus",
+    "readingTime": "{minutes} min read",
+    "folderLabel": "{folder}",
+    "empty": "No articles in this corpus."
+  },
+  "breadcrumb": {
+    "label": "Breadcrumb",
+    "home": "Home",
+    "courses": "Courses",
+    "articles": "Articles"
+  },
+  "notFound": {
+    "title": "Not found"
+  }
+}

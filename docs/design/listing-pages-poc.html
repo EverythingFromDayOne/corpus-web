@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Listing pages — design contract · corpus.web</title>
+<meta name="color-scheme" content="dark light">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   TOKENS — identical to docs/design/article-layout-poc.html.
+   Do not introduce new colour or type values here. This file
+   extends that contract to the four listing surfaces; it does
+   not open a second design system.
+   ============================================================ */
+:root{
+  --ink:#0e141b;--surface:#151d26;--raised:#1e2833;--graphite:#2b3745;
+  --muted:#7c8b9c;--body:#b9c5d2;--display:#e7edf4;
+  --signal:#e4a548;--signal-soft:#f2c782;--signal-dim:#6b5228;
+  --verified:#63b98c;--stale:#d2705f;--cool:#6aa9d8;
+  --fd:'Archivo',system-ui,sans-serif;--fb:'Public Sans',system-ui,sans-serif;--fm:'IBM Plex Mono',ui-monospace,monospace;
+  --measure:60rem;--page:76rem;--r:6px;--rs:3px;--fast:120ms;--tb:3.6rem;
+}
+[data-theme="light"]{--ink:#f4f6f9;--surface:#fff;--raised:#eef1f6;--graphite:#d3dae3;--muted:#5b6875;--body:#263140;--display:#0e141b;--signal:#a1671a;--signal-soft:#7d4f12;--signal-dim:#f0dcb8;--verified:#2f7d55;--stale:#a83f2e;--cool:#2b6f9e}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:calc(var(--tb) + 1rem)}
+body{background:var(--ink);color:var(--body);font:17px/1.65 var(--fb);-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--fd);color:var(--display);font-stretch:92%;line-height:1.14;letter-spacing:-.015em}
+a{color:inherit;text-decoration:none}
+:where(a,button,input,[tabindex]):focus-visible{outline:2px solid var(--signal);outline-offset:2px;border-radius:var(--rs)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+.meta{font-family:var(--fm);font-size:.8125rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.wrap{max-width:var(--page);margin-inline:auto;padding-inline:1.5rem;width:100%}
+
+/* ---------- POC chrome. NOT part of the contract. ---------- */
+.pocbar{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);z-index:200;display:flex;align-items:center;gap:.25rem;background:var(--raised);border:1px solid var(--graphite);border-radius:999px;padding:.3rem;box-shadow:0 6px 24px rgba(0,0,0,.4)}
+.pocbar-lab{font-family:var(--fm);font-size:.625rem;letter-spacing:.14em;text-transform:uppercase;color:var(--stale);padding-left:.7rem;padding-right:.35rem;white-space:nowrap}
+.pocbar button{font-family:var(--fm);font-size:.6875rem;letter-spacing:.04em;background:none;border:0;color:var(--muted);padding:.45rem .7rem;border-radius:999px;cursor:pointer;white-space:nowrap}
+.pocbar button[aria-current="true"]{background:var(--signal);color:#0e141b;font-weight:600}
+.page{display:none}.page.on{display:block}
+
+/* ============================================================
+   LESSON CHROME — the one variant neither POC covered.
+   The article body, code blocks, and prose treatment are
+   unchanged from docs/design/article-layout-poc.html and are
+   NOT restated here. What this specifies is the delta:
+   the left column carries the COURSE CURRICULUM rather than
+   the corpus tree, and the rail's ticks map to the article's
+   own parts exactly as they do on a standalone article.
+   ============================================================ */
+.lview{display:block}
+.lsb{background:var(--surface);border-right:1px solid var(--graphite);padding:1.1rem .85rem;overflow-y:auto}
+.lsb .back{display:inline-flex;align-items:center;gap:.4rem;font-family:var(--fm);font-size:.6875rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lsb .back:hover{color:var(--display)}
+.lsb h2{font-size:1.0625rem;margin:.75rem 0 .2rem;font-weight:500}
+.lsb .prog{display:flex;align-items:center;gap:.5rem;margin-bottom:1.1rem}
+.lsb .prog .t{font-family:var(--fm);font-size:.6875rem;letter-spacing:.06em;color:var(--muted);font-variant-numeric:tabular-nums}
+.lsb .pbar{flex:1;height:2px;background:var(--graphite);border-radius:999px;overflow:hidden}
+.lsb .pbar i{display:block;height:100%;background:var(--signal)}
+.lsn{list-style:none}
+.lsn a{display:grid;grid-template-columns:1.6rem minmax(0,1fr);gap:.15rem;align-items:start;padding:.42rem .5rem;border-radius:var(--rs);font-size:.9375rem;color:var(--muted);line-height:1.4}
+.lsn a:hover{background:var(--raised);color:var(--body)}
+.lsn a.on{background:var(--raised);color:var(--display);box-shadow:inset 2px 0 0 var(--signal)}
+.lsn .n{font-family:var(--fm);font-size:.75rem;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:.1rem}
+.lsn a.on .n{color:var(--signal)}
+.lsn .k{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--graphite);margin-left:.4rem;vertical-align:middle;flex:none}
+.lsn .k.done{background:var(--verified)}
+.lsn .k.rec{background:transparent;border:1px solid var(--signal)}
+
+.lmain{padding:2rem 2.5rem 6rem;min-width:0}
+.lmain .inner{max-width:var(--measure);margin-inline:auto}
+.lmain h1{font-size:clamp(1.85rem,3.6vw,2.45rem);margin:.5rem 0 .6rem;max-width:22ch}
+.lmain .dek{font-size:1.1rem;color:var(--muted);max-width:var(--measure);margin-bottom:1.5rem}
+.lstub{border:1px dashed var(--graphite);border-radius:var(--r);padding:1.4rem;color:var(--muted);font-size:.9375rem}
+.lstub b{color:var(--display);font-weight:500;font-family:var(--fd)}
+.pnav{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-top:2.5rem}
+.pnav a{border:1px solid var(--graphite);background:var(--surface);border-radius:var(--r);padding:.85rem 1rem}
+.pnav a:hover{border-color:var(--muted)}
+.pnav .l{font-family:var(--fm);font-size:.6875rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.pnav .t{color:var(--display);font-family:var(--fd);font-weight:500;font-stretch:92%;margin-top:.25rem;font-size:.9375rem}
+.pnav a.nx{text-align:right}
+
+/* Rail — dimensions carried over from the article POC unchanged.
+   Ticks sit vertically centred in the viewport, not pinned to the top.
+   Note for implementation: 18x2px ticks fail WCAG 2.2 target-size.
+   That tension is recorded in session-3 §10, not resolved here. */
+.lrail{position:relative}
+.lrail .stick{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px}
+.tk{position:relative;width:18px;height:2px;background:var(--graphite);border:0;padding:0;cursor:pointer;display:block}
+.tk:hover,.tk.on{background:var(--signal)}
+.tk .l{position:absolute;right:38px;top:50%;transform:translateY(-50%);background:var(--raised);border:1px solid var(--graphite);color:var(--display);font-family:var(--fm);font-size:.6875rem;line-height:1.45;letter-spacing:.03em;padding:.45rem .65rem;border-radius:var(--rs);white-space:normal;width:max-content;max-width:15rem;text-align:left;opacity:0;pointer-events:none;transition:var(--fast);box-shadow:0 4px 14px rgba(0,0,0,.38)}
+.tk .l b{display:block;color:var(--signal);font-weight:500;margin-bottom:.15rem}
+.tk:hover .l,.tk:focus-visible .l{opacity:1}
+.ring{position:relative;width:30px;height:30px;margin-top:1rem}
+.ring svg{display:block;transform:rotate(-90deg)}
+.ring .bg{fill:none;stroke:var(--graphite);stroke-width:2}
+.ring .fg{fill:none;stroke:var(--verified);stroke-width:2;stroke-linecap:round}
+.ring .pc{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--fm);font-size:.5rem;color:var(--muted)}
+
+/* ---------- Shared: top bar ---------- */
+.topbar{position:sticky;top:0;z-index:60;height:var(--tb);background:color-mix(in srgb,var(--ink) 88%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--graphite)}
+.topbar .wrap{display:flex;align-items:center;gap:1.5rem;height:100%}
+.wm{font-family:var(--fm);font-weight:600;color:var(--display);font-size:.9375rem;white-space:nowrap}
+.wm span{color:var(--signal)}
+.nav{display:flex;gap:1.35rem;font-size:.9375rem}
+.nav a{color:var(--muted);padding-block:.15rem;border-bottom:1px solid transparent}
+.nav a:hover{color:var(--display)}
+.nav a[aria-current="page"]{color:var(--display);border-bottom-color:var(--signal)}
+.tools{margin-left:auto;display:flex;align-items:center;gap:.6rem}
+.srch{display:flex;align-items:center;gap:.5rem;background:var(--surface);border:1px solid var(--graphite);border-radius:var(--r);padding:.4rem .6rem;color:var(--muted);cursor:not-allowed;opacity:.55;max-width:15rem}
+.srch input{background:none;border:0;color:inherit;font:inherit;font-size:.875rem;width:100%;pointer-events:none}
+.srch .kbd{font-family:var(--fm);font-size:.6875rem;letter-spacing:.06em;border:1px solid var(--graphite);border-radius:var(--rs);padding:.05rem .3rem;white-space:nowrap}
+.ib{background:var(--surface);border:1px solid var(--graphite);color:var(--muted);width:34px;height:34px;border-radius:var(--r);cursor:pointer;flex:none}
+.ib:hover{color:var(--display)}
+
+/* ---------- Signature: the census readout ----------
+   The subject is a corpus whose thesis is verified claims.
+   The readout states the corpus's own measurements in the
+   utility face, including the counts that are not clean.
+   Every figure is read from catalog.json — none are decorative. */
+.readout{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--graphite);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.readout div{flex:1 1 8rem;padding:.85rem 1.05rem;border-right:1px solid var(--graphite)}
+.readout div:last-child{border-right:0}
+.readout .n{font-family:var(--fm);font-size:1.5rem;font-weight:600;color:var(--display);line-height:1.1;font-variant-numeric:tabular-nums}
+.readout .n.warn{color:var(--stale)}
+.readout .l{font-family:var(--fm);font-size:.6875rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:.3rem}
+
+/* ---------- Hero ---------- */
+.hero{border-bottom:1px solid var(--graphite);background:
+  linear-gradient(180deg,color-mix(in srgb,var(--surface) 55%,transparent),transparent 70%),
+  repeating-linear-gradient(90deg,transparent 0 79px,color-mix(in srgb,var(--graphite) 45%,transparent) 79px 80px);}
+.hero .wrap{padding-block:4rem 3rem}
+.hero h1{font-size:clamp(2.4rem,5.4vw,3.9rem);margin:.9rem 0 0;max-width:16ch;font-weight:600}
+.hero .dek{font-size:1.125rem;max-width:var(--measure);margin-top:1.25rem;color:var(--body)}
+.hero .readout{margin-top:2.5rem}
+.cta{display:flex;flex-wrap:wrap;gap:.7rem;margin-top:2rem}
+.btn{display:inline-flex;align-items:center;gap:.5rem;font:inherit;font-size:.9375rem;border:1px solid var(--graphite);background:var(--surface);color:var(--display);padding:.65rem 1.1rem;border-radius:var(--r);cursor:pointer;transition:var(--fast)}
+.btn:hover{border-color:var(--muted)}
+.btn.pri{background:var(--signal);border-color:var(--signal);color:#0e141b;font-weight:600}
+.btn.pri:hover{background:var(--signal-soft);border-color:var(--signal-soft)}
+
+/* ---------- Sections ---------- */
+.sec{padding-block:3.5rem}
+.sec + .sec{border-top:1px solid var(--graphite)}
+.sechd{display:flex;align-items:baseline;gap:1rem;flex-wrap:wrap;margin-bottom:1.75rem}
+.sechd h2{font-size:1.5rem}
+.sechd .more{margin-left:auto;font-size:.9375rem;color:var(--muted)}
+.sechd .more:hover{color:var(--display)}
+
+/* ---------- Cards ---------- */
+.grid{display:grid;gap:1rem}
+.g2{grid-template-columns:repeat(auto-fit,minmax(19rem,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(16rem,1fr))}
+.card{display:block;border:1px solid var(--graphite);background:var(--surface);border-radius:var(--r);padding:1.25rem 1.3rem;transition:var(--fast)}
+a.card:hover{border-color:var(--muted);background:var(--raised)}
+.card h3{font-size:1.1875rem;margin:.45rem 0 0}
+.card p{font-size:.9375rem;color:var(--muted);margin-top:.55rem}
+.card .foot{display:flex;align-items:center;gap:.6rem;margin-top:1rem;flex-wrap:wrap}
+.card.soon{opacity:.5}
+
+/* corpus card ratio bar — adapting vs selected, read from the catalog */
+.bar{height:3px;background:var(--graphite);border-radius:999px;overflow:hidden;margin-top:.9rem}
+.bar i{display:block;height:100%;background:var(--verified)}
+.bar.part i{background:var(--signal)}
+
+/* ---------- Badges ---------- */
+.tag{font-family:var(--fm);font-size:.6875rem;letter-spacing:.09em;text-transform:uppercase;border:1px solid var(--graphite);border-radius:var(--rs);padding:.12rem .4rem;color:var(--muted);white-space:nowrap}
+.tag.concept{color:var(--cool);border-color:color-mix(in srgb,var(--cool) 45%,var(--graphite))}
+.tag.recipe{color:var(--signal);border-color:color-mix(in srgb,var(--signal) 45%,var(--graphite))}
+.tag.soon{color:var(--muted)}
+
+/* ---------- Chips (filters) ---------- */
+.chips{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.75rem}
+.chip{font-family:var(--fm);font-size:.75rem;letter-spacing:.07em;text-transform:uppercase;border:1px solid var(--graphite);background:var(--surface);color:var(--muted);border-radius:999px;padding:.35rem .8rem;cursor:pointer;transition:var(--fast)}
+.chip:hover{color:var(--display);border-color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--raised);color:var(--display);border-color:var(--muted)}
+.chip .c{color:var(--muted);margin-left:.35rem;font-variant-numeric:tabular-nums}
+
+/* ---------- Breadcrumb ---------- */
+.crumb{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;list-style:none}
+.crumb li{list-style:none}
+.crumb a:hover{color:var(--display)}
+.crumb .sep{color:var(--graphite)}
+
+/* ---------- Course detail ---------- */
+.chead{padding-block:3rem 0}
+.chead h1{font-size:clamp(2rem,4.4vw,3rem);margin-top:1rem;max-width:18ch;font-weight:600}
+.rationale{max-width:var(--measure);margin-top:1.5rem}
+.rationale p + p{margin-top:.9rem}
+.strip{display:flex;flex-wrap:wrap;gap:0;border-block:1px solid var(--graphite);margin-top:2.25rem}
+.strip div{padding:.8rem 1.1rem .8rem 0;margin-right:1.1rem;border-right:1px solid var(--graphite)}
+.strip div:last-child{border-right:0}
+.strip .n{font-family:var(--fm);font-size:1rem;color:var(--display);font-variant-numeric:tabular-nums}
+.strip .l{font-family:var(--fm);font-size:.6875rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:.15rem}
+
+/* ---------- Curriculum ----------
+   The number is structural: this IS an ordered sequence and
+   position carries meaning. The kind badge is structural too —
+   the course's editorial argument is that concepts and recipes
+   alternate, so the alternation must be visible. */
+.curr{border:1px solid var(--graphite);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.curr li{list-style:none;display:grid;grid-template-columns:3.25rem minmax(0,1fr);border-bottom:1px solid var(--graphite)}
+.curr li:last-child{border-bottom:0}
+.curr li:hover{background:var(--raised)}
+.curr .num{font-family:var(--fm);font-size:.8125rem;color:var(--muted);padding:1.05rem 0 1.05rem 1.25rem;font-variant-numeric:tabular-nums}
+.curr .bd{padding:1.05rem 1.25rem 1.05rem 0}
+.curr .t{display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap}
+.curr .t strong{font-family:var(--fd);font-weight:500;font-stretch:92%;color:var(--display);font-size:1.0625rem;letter-spacing:-.01em}
+.curr .note{font-size:.9375rem;color:var(--muted);margin-top:.35rem;max-width:56ch}
+
+/* ---------- Article index rows ---------- */
+.grp{margin-top:2.25rem}
+.grp:first-of-type{margin-top:0}
+.grphd{display:flex;align-items:baseline;gap:.75rem;padding-bottom:.6rem;border-bottom:1px solid var(--graphite)}
+.grphd h3{font-size:1.125rem}
+.rows{border:1px solid var(--graphite);border-top:0;border-radius:0 0 var(--r) var(--r);overflow:hidden;background:var(--surface)}
+.rows a{display:block;padding:.95rem 1.15rem;border-bottom:1px solid var(--graphite)}
+.rows a:last-child{border-bottom:0}
+.rows a:hover{background:var(--raised)}
+.rows .t{display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap}
+.rows .t strong{font-family:var(--fd);font-weight:500;font-stretch:92%;color:var(--display);font-size:1rem;letter-spacing:-.01em}
+.rows .d{font-size:.9375rem;color:var(--muted);margin-top:.25rem;max-width:72ch}
+
+/* ---------- Placeholder panel ---------- */
+.ph{border:1px dashed var(--graphite);border-radius:var(--r);background:var(--surface);padding:1.5rem;color:var(--muted)}
+.ph .lab{font-family:var(--fm);font-size:.6875rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.ph p{font-size:.9375rem;margin-top:.5rem}
+
+/* ---------- Convention list ---------- */
+.conv{display:grid;gap:.75rem;max-width:var(--measure)}
+.conv li{list-style:none;display:grid;grid-template-columns:auto minmax(0,1fr);gap:.85rem;align-items:baseline}
+
+.foot{border-top:1px solid var(--graphite);padding-block:2rem 3rem;color:var(--muted);font-size:.875rem}
+.foot .wrap{display:flex;gap:1.25rem;flex-wrap:wrap;align-items:center}
+.foot a:hover{color:var(--display)}
+
+/* ============================================================
+   Breakpoints. Complementary ranges, every child placed in
+   both — the lesson from the article POC's implicit-track bug.
+   ============================================================ */
+.sbtog{background:var(--surface);border:1px solid var(--graphite);color:var(--muted);border-radius:var(--rs);cursor:pointer;font-family:var(--fm);font-size:.8125rem;line-height:1;padding:.3rem .45rem}
+.sbtog:hover{color:var(--display)}
+.lsb .hd{display:flex;align-items:center;gap:.5rem}
+.lsb .hd .sbtog{margin-left:auto}
+
+@media (width > 1000px){
+  /* The document scrolls, so the scrollbar sits at the window edge rather
+     than inside a column. The curriculum and the rail are taken out of
+     flow and pinned, which leaves the article as the only thing that moves.
+     The shell reserves their width with padding. */
+  .lview{display:block;padding-left:19rem;padding-right:3.5rem}
+  .lview > .lsb{position:fixed;top:var(--tb);left:0;width:19rem;height:calc(100vh - var(--tb));overflow-y:auto;overscroll-behavior:contain}
+  .lview > .lrail{position:fixed;top:var(--tb);right:0;width:3.5rem;height:calc(100vh - var(--tb));overflow:hidden}
+  .lview > .lmain{min-height:calc(100vh - var(--tb))}
+  .lrail .stick{height:100%}
+  /* Collapse is a desktop-only state and is declared inside this range,
+     so no rule has to out-specify another to undo it at mobile. */
+  .lview.nosb{padding-left:0}
+  .lview.nosb > .lsb{visibility:hidden;overflow:hidden;padding:0;border-right:0;width:0;min-width:0}
+}
+@media (width <= 1000px){
+  /* Mobile returns to normal document flow — nothing is pinned, the
+     curriculum stacks above the article, and the rail is dropped. */
+  .lview{display:block;padding-left:0;padding-right:0}
+  .lview > .lsb{position:static;width:auto;height:auto;overflow:visible;border-right:0;border-bottom:1px solid var(--graphite)}
+  .lview > .lmain{min-height:0;padding:1.5rem 1.25rem 4rem}
+  .lview > .lrail{display:none}
+  .pnav{grid-template-columns:1fr}
+}
+@media (width > 900px){
+  .split{display:grid;grid-template-columns:minmax(0,1fr) 20rem;gap:2.5rem;align-items:start}
+  .split > .main{grid-column:1;grid-row:1}
+  .split > .side{grid-column:2;grid-row:1}
+}
+@media (width <= 900px){
+  .split{display:grid;grid-template-columns:minmax(0,1fr);gap:1.5rem}
+  .split > .main,.split > .side{grid-column:1}
+  .split > .main{grid-row:1}
+  .split > .side{grid-row:2}
+  .nav{gap:1rem;font-size:.875rem}
+  .srch{display:none}
+  .hero .wrap{padding-block:2.75rem 2.25rem}
+  .readout div{flex-basis:7rem}
+}
+@media (width <= 560px){
+  .topbar .wrap{gap:.9rem;flex-wrap:wrap}
+  .wm{order:1}.tools{order:2}.nav{order:3;width:100%}
+  .readout div{flex-basis:50%;border-bottom:1px solid var(--graphite)}
+  .curr li{grid-template-columns:2.5rem minmax(0,1fr)}
+  .curr .num{padding-left:.9rem}
+  .strip div{border-right:0;margin-right:0;padding-right:0;flex:1 1 40%}
+}
+</style>
+</head>
+<body>
+
+<!-- POC-only page switcher. Not part of the contract. Labelled with
+     route paths, not words, so it cannot be mistaken for site nav. -->
+<div class="pocbar" role="group" aria-label="Preview route">
+  <span class="pocbar-lab">Preview</span>
+  <button data-go="home" aria-current="true">/en</button>
+  <button data-go="courses">/en/courses</button>
+  <button data-go="course">/en/courses/[course]</button>
+  <button data-go="lesson">…/lessons/[slug]</button>
+  <button data-go="articles">/en/blog</button>
+  <button data-go="theme" aria-label="Toggle theme">◐</button>
+</div>
+
+<!-- =========================================================
+     SHARED TOP BAR — one implementation, all five surfaces
+     including the article page. aria-current marks the section.
+     ========================================================= -->
+<header class="topbar">
+  <div class="wrap">
+    <button class="sbtog" id="sbt" aria-label="Show curriculum" aria-expanded="true" hidden>☰</button>
+    <a class="wm" href="#">corpus<span>.web</span></a>
+    <nav class="nav" aria-label="Primary">
+      <a href="#" data-nav="home" aria-current="page">Home</a>
+      <a href="#" data-nav="courses">Courses</a>
+      <a href="#" data-nav="articles">Articles</a>
+    </nav>
+    <div class="tools">
+      <label class="srch" aria-disabled="true">
+        <span class="meta" style="font-size:.75rem">Search</span>
+        <input type="search" placeholder="Coming soon" disabled tabindex="-1">
+        <span class="kbd">⌘K</span>
+      </label>
+      <button class="ib" aria-label="Toggle colour theme" data-theme-btn>◐</button>
+    </div>
+  </div>
+</header>
+
+<!-- =========================================================
+     1. HOME  /en
+     ========================================================= -->
+<div class="page on" id="p-home">
+
+  <section class="hero">
+    <div class="wrap">
+      <p class="meta">Four corpora · one graph</p>
+      <h1>A verified reference corpus</h1>
+      <p class="dek">Every claim traces to official docs, framework source, or a measurement someone ran.
+        Code is extracted from demos that build, not typed into a code fence. CI fails when the two drift apart.</p>
+
+      <!-- SIGNATURE. Read from catalog.json at build. The unresolved
+           count is shown deliberately: a corpus that publishes its own
+           gaps is making the argument the rest of the page claims. -->
+      <div class="readout" role="group" aria-label="Corpus census">
+        <div><p class="n">181</p><p class="l">Articles</p></div>
+        <div><p class="n">289</p><p class="l">Cross-links</p></div>
+        <div><p class="n">4</p><p class="l">Corpora</p></div>
+        <div><p class="n warn">44</p><p class="l">Unresolved</p></div>
+      </div>
+
+      <div class="cta">
+        <a class="btn pri" href="#">Start the render cycle course</a>
+        <a class="btn" href="#">Browse all articles</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap">
+
+    <section class="sec">
+      <div class="sechd">
+        <h2>The corpora</h2>
+        <a class="more" href="#">All articles →</a>
+      </div>
+      <div class="grid g2">
+        <a class="card" href="#">
+          <p class="meta">Next.js</p>
+          <h3>Caching, the server boundary, and the route tree</h3>
+          <p>What Cache Components changed, and which of the old mental models still hold.</p>
+          <div class="bar"><i style="width:100%"></i></div>
+          <div class="foot"><span class="meta">10 / 10 adapting</span><span class="tag">16.3</span></div>
+        </a>
+        <a class="card" href="#">
+          <p class="meta">React</p>
+          <h3>Rendering, state, and the escape hatches</h3>
+          <p>Concept articles paired with symptom-first recipes drawn from real failures.</p>
+          <div class="bar part"><i style="width:79%"></i></div>
+          <div class="foot"><span class="meta">58 / 73 adapting</span><span class="tag">19.2</span></div>
+        </a>
+        <a class="card" href="#">
+          <p class="meta">Angular</p>
+          <h3>Signals, DI, and the component lifecycle</h3>
+          <p>The framework's own primitives, read against its source rather than its tutorials.</p>
+          <div class="bar part"><i style="width:99%"></i></div>
+          <div class="foot"><span class="meta">93 / 94 adapting</span><span class="tag">22.1</span></div>
+        </a>
+        <a class="card" href="#">
+          <p class="meta">NestJS</p>
+          <h3>The request lifecycle and the module graph</h3>
+          <p>Where a request actually goes, and which decorator runs when.</p>
+          <div class="bar"><i style="width:100%"></i></div>
+          <div class="foot"><span class="meta">20 / 20 adapting</span><span class="tag">11</span></div>
+        </a>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="split">
+        <div class="main">
+          <div class="sechd"><h2>Three ways in</h2></div>
+          <div class="grid g3">
+            <a class="card" href="#">
+              <p class="meta">Follow a course</p>
+              <h3>The React render cycle</h3>
+              <p>Twelve articles in reading order, concepts alternating with the recipes that exercise them.</p>
+              <div class="foot"><span class="meta">12 lessons</span></div>
+            </a>
+            <a class="card" href="#">
+              <p class="meta">Browse by corpus</p>
+              <h3>All 181 articles</h3>
+              <p>Grouped by repository and concept folder. No chronology, because there is none.</p>
+              <div class="foot"><span class="meta">4 corpora</span></div>
+            </a>
+            <div class="card soon">
+              <p class="meta">Follow the graph</p>
+              <h3>Concept map</h3>
+              <p>289 cross-links across four corpora, drawn as one graph.</p>
+              <div class="foot"><span class="tag soon">Coming soon</span></div>
+            </div>
+          </div>
+        </div>
+        <aside class="side">
+          <div class="ph">
+            <p class="lab">Coming soon</p>
+            <p style="font-family:var(--fd);color:var(--display);font-size:1.0625rem;margin-top:.4rem">Interactive demos</p>
+            <p>Stepped simulators for the render cycle, the event loop, and the Next.js cache.
+              This panel is a placeholder and does nothing yet.</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="sechd"><h2>How to read this corpus</h2></div>
+      <ul class="conv">
+        <li><span class="tag concept">Concept</span><span>Explains a mechanism. Read when you want to know how something works before it breaks.</span></li>
+        <li><span class="tag recipe">Recipe</span><span>Starts from a symptom you have already seen, and works back to the mechanism.</span></li>
+        <li><span class="tag">Baseline</span><span>The framework version every claim in an article was verified against. Claims are pinned, never floating.</span></li>
+        <li><span class="tag">Provenance</span><span>Code blocks name the demo file they were extracted from. Nothing is typed by hand into an article.</span></li>
+      </ul>
+    </section>
+
+  </div>
+</div>
+
+<!-- =========================================================
+     2. COURSES INDEX  /en/courses
+     ========================================================= -->
+<div class="page" id="p-courses">
+  <div class="wrap">
+    <section class="sec">
+      <p class="meta">Reading orders</p>
+      <h1 style="font-size:clamp(2rem,4.2vw,2.75rem);margin-top:.8rem;max-width:20ch">Courses</h1>
+      <p class="dek" style="margin-top:1.1rem;max-width:var(--measure);font-size:1.0625rem">
+        A course is an ordered path through articles that already exist. It owns no content of its own,
+        and one article can sit in several courses.</p>
+
+      <div class="grid g2" style="margin-top:2.5rem">
+        <a class="card" href="#">
+          <p class="meta">React</p>
+          <h3>The React render cycle</h3>
+          <p>Twelve articles in reading order, covering JSX compilation, the render and commit phases,
+            state and context, memoization, and where effects sit relative to render.</p>
+          <div class="foot">
+            <span class="meta">12 lessons</span><span class="meta">234 min</span>
+            <span class="tag concept">10 concepts</span><span class="tag recipe">2 recipes</span>
+          </div>
+        </a>
+        <div class="card soon">
+          <p class="meta">Next.js</p>
+          <h3>The caching model, end to end</h3>
+          <p>Cache Components, the static shell, tags and invalidation, and what each one costs.</p>
+          <div class="foot"><span class="tag soon">Coming soon</span></div>
+        </div>
+        <div class="card soon">
+          <p class="meta">NestJS</p>
+          <h3>The request lifecycle</h3>
+          <p>Middleware, guards, interceptors, pipes and filters, in the order they actually run.</p>
+          <div class="foot"><span class="tag soon">Coming soon</span></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- =========================================================
+     3. COURSE DETAIL  /en/courses/[course]
+     ========================================================= -->
+<div class="page" id="p-course">
+  <div class="wrap">
+
+    <nav class="chead" aria-label="Breadcrumb">
+      <ol class="crumb meta">
+        <li><a href="#">Home</a></li><li class="sep" aria-hidden="true">/</li>
+        <li><a href="#">Courses</a></li><li class="sep" aria-hidden="true">/</li>
+        <li aria-current="page" style="color:var(--display)">The React render cycle</li>
+      </ol>
+      <h1>The React render cycle</h1>
+    </nav>
+
+    <div class="rationale">
+      <p>The corpus holds concept articles and symptom-first recipes in separate trees, and read
+        separately each half is weaker than it should be. A concept article explains a mechanism with no
+        bug in front of it; a recipe diagnoses a bug and points back at a mechanism the reader has not
+        met yet. This sequence alternates them.</p>
+      <p>The order is bottom-up. It starts with what JSX becomes, because everything after it is about
+        when that output is recomputed. The Rules of React sit after the render model rather than before
+        it, because the constraints only make sense once you know what they protect.</p>
+    </div>
+
+    <div class="strip">
+      <div><p class="n">12</p><p class="l">Lessons</p></div>
+      <div><p class="n">234</p><p class="l">Minutes</p></div>
+      <div><p class="n">10 / 2</p><p class="l">Concept / recipe</p></div>
+      <div><p class="n">React</p><p class="l">Corpus</p></div>
+    </div>
+
+    <div class="cta">
+      <a class="btn pri" href="#">Start lesson 1</a>
+      <a class="btn" href="#curriculum">View curriculum</a>
+    </div>
+
+    <section class="sec" id="curriculum">
+      <div class="sechd"><h2>Curriculum</h2><span class="meta" style="margin-left:auto">In order</span></div>
+      <ol class="curr">
+        <li><div class="num">01</div><div class="bd">
+          <div class="t"><strong>JSX and Rendering</strong><span class="tag concept">Concept</span></div>
+          <p class="note">Start here because every later article is about when this output gets recomputed.</p>
+        </div></li>
+        <li><div class="num">02</div><div class="bd">
+          <div class="t"><strong>How React Renders</strong><span class="tag concept">Concept</span></div>
+          <p class="note">The render model itself. Read before anything that schedules a render.</p>
+        </div></li>
+        <li><div class="num">03</div><div class="bd">
+          <div class="t"><strong>Rendering Lists and Keys</strong><span class="tag concept">Concept</span></div>
+          <p class="note">Identity across renders — the first place the model becomes observable.</p>
+        </div></li>
+        <li><div class="num">04</div><div class="bd">
+          <div class="t"><strong>State and useState</strong><span class="tag concept">Concept</span></div>
+          <p class="note">The first thing that schedules the work described in the previous three articles.</p>
+        </div></li>
+        <li><div class="num">05</div><div class="bd">
+          <div class="t"><strong>The Rules of React</strong><span class="tag concept">Concept</span></div>
+          <p class="note">Placed after the render model rather than before it: the constraints read as arbitrary until you know what they protect.</p>
+        </div></li>
+        <li><div class="num">06</div><div class="bd">
+          <div class="t"><strong>useReducer and State Structure</strong><span class="tag concept">Concept</span></div>
+          <p class="note">Shaping state, once you have seen what changing it costs.</p>
+        </div></li>
+        <li><div class="num">07</div><div class="bd">
+          <div class="t"><strong>Context</strong><span class="tag concept">Concept</span></div>
+          <p class="note">Sharing state across the tree. Read the next article immediately after this one.</p>
+        </div></li>
+        <li><div class="num">08</div><div class="bd">
+          <div class="t"><strong>Context Re-Renders the Whole Tree</strong><span class="tag recipe">Recipe</span></div>
+          <p class="note">The recipe that pays off the previous article.</p>
+        </div></li>
+        <li><div class="num">09</div><div class="bd">
+          <div class="t"><strong>Memoization and the Compiler</strong><span class="tag concept">Concept</span></div>
+          <p class="note">When to intervene, and when the compiler has already done it.</p>
+        </div></li>
+        <li><div class="num">10</div><div class="bd">
+          <div class="t"><strong>Typing Lag: The Re-render Storm</strong><span class="tag recipe">Recipe</span></div>
+          <p class="note">The same subject as the previous article, arriving as a symptom instead of a concept.</p>
+        </div></li>
+        <li><div class="num">11</div><div class="bd">
+          <div class="t"><strong>Effects and Synchronization</strong><span class="tag concept">Concept</span></div>
+          <p class="note">Stepping outside render. Everything before this happens during one.</p>
+        </div></li>
+        <li><div class="num">12</div><div class="bd">
+          <div class="t"><strong>Escape Hatches Audit</strong><span class="tag concept">Concept</span></div>
+          <p class="note">Closes the sequence: which of the preceding eleven mechanisms have you been working around rather than with.</p>
+        </div></li>
+      </ol>
+    </section>
+  </div>
+</div>
+
+<!-- =========================================================
+     4. ARTICLES INDEX  /en/blog
+     ========================================================= -->
+<div class="page" id="p-articles">
+  <div class="wrap">
+    <section class="sec">
+      <p class="meta">The whole corpus</p>
+      <h1 style="font-size:clamp(2rem,4.2vw,2.75rem);margin-top:.8rem">Articles</h1>
+      <p class="dek" style="margin-top:1.1rem;max-width:var(--measure);font-size:1.0625rem">
+        Grouped by corpus and concept folder. There is no chronology here — nothing is dated, because
+        a reference article has no publication moment worth sorting by.</p>
+
+      <div class="chips" style="margin-top:2rem" role="group" aria-label="Filter by corpus">
+        <button class="chip" aria-pressed="true">All <span class="c">181</span></button>
+        <button class="chip" aria-pressed="false">Next.js <span class="c">10</span></button>
+        <button class="chip" aria-pressed="false">React <span class="c">58</span></button>
+        <button class="chip" aria-pressed="false">Angular <span class="c">93</span></button>
+        <button class="chip" aria-pressed="false">NestJS <span class="c">20</span></button>
+      </div>
+
+      <div class="grp">
+        <div class="grphd"><h3>React</h3><span class="meta">Rendering</span><span class="meta" style="margin-left:auto">5 articles</span></div>
+        <div class="rows">
+          <a href="#"><div class="t"><strong>How React Renders</strong><span class="tag concept">Concept</span></div>
+            <p class="d">The render and commit phases, and what actually happens between a state update and a pixel.</p></a>
+          <a href="#"><div class="t"><strong>Rendering Lists and Keys</strong><span class="tag concept">Concept</span></div>
+            <p class="d">Why keys are identity rather than an index, and what breaks when they are not stable.</p></a>
+          <a href="#"><div class="t"><strong>Memoization and the Compiler</strong><span class="tag concept">Concept</span></div>
+            <p class="d">What the React Compiler memoizes for you, and the cases where it still cannot.</p></a>
+          <a href="#"><div class="t"><strong>Error Boundaries</strong><span class="tag concept">Concept</span></div>
+            <p class="d">Which errors a boundary catches, which it never sees, and where to place one.</p></a>
+          <a href="#"><div class="t"><strong>Portals and the Event System</strong><span class="tag concept">Concept</span></div>
+            <p class="d">A portal moves the DOM node but not the React tree, and events follow the tree.</p></a>
+        </div>
+      </div>
+
+      <div class="grp">
+        <div class="grphd"><h3>React</h3><span class="meta">Recipes · performance</span><span class="meta" style="margin-left:auto">4 articles</span></div>
+        <div class="rows">
+          <a href="#"><div class="t"><strong>Typing Lag: The Re-render Storm</strong><span class="tag recipe">Recipe</span></div>
+            <p class="d">Every keystroke re-renders a subtree that did not need to change. Where the boundary should have been.</p></a>
+          <a href="#"><div class="t"><strong>The hero paints five seconds late because the page is client-rendered</strong><span class="tag recipe">Recipe</span></div>
+            <p class="d">An LCP regression that profiling attributes to the wrong layer.</p></a>
+          <a href="#"><div class="t"><strong>A 900KB bundle loads before anyone sees the login screen</strong><span class="tag recipe">Recipe</span></div>
+            <p class="d">Route splitting that was configured but never took effect.</p></a>
+          <a href="#"><div class="t"><strong>Switching to the "All transactions" tab freezes the page for six seconds</strong><span class="tag recipe">Recipe</span></div>
+            <p class="d">Where virtualization helps, and where it is treating a symptom.</p></a>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- =========================================================
+     5. LESSON  /en/courses/[course]/lessons/[slug]
+     The same article component as /en/blog/[corpus]/[slug],
+     with two substitutions: the left column carries the course
+     curriculum instead of the corpus tree, and prev/next comes
+     from course order instead of the concept graph.
+     rel=canonical points back at the /en/blog/… URL.
+     ========================================================= -->
+<div class="page" id="p-lesson">
+  <div class="lview">
+
+    <aside class="lsb" aria-label="Course curriculum">
+      <a class="back" href="#">← The React render cycle</a>
+      <div class="hd">
+        <h2>Curriculum</h2>
+        <button class="sbtog" id="sbc" aria-label="Collapse curriculum">‹</button>
+      </div>
+      <div class="prog">
+        <div class="pbar"><i style="width:33%"></i></div>
+        <span class="t">4 / 12</span>
+      </div>
+      <ol class="lsn">
+        <li><a href="#"><span class="n">01</span><span>JSX and Rendering<i class="k done"></i></span></a></li>
+        <li><a href="#"><span class="n">02</span><span>How React Renders<i class="k done"></i></span></a></li>
+        <li><a href="#"><span class="n">03</span><span>Rendering Lists and Keys<i class="k done"></i></span></a></li>
+        <li><a class="on" href="#" aria-current="page"><span class="n">04</span><span>State and useState</span></a></li>
+        <li><a href="#"><span class="n">05</span><span>The Rules of React</span></a></li>
+        <li><a href="#"><span class="n">06</span><span>useReducer and State Structure</span></a></li>
+        <li><a href="#"><span class="n">07</span><span>Context</span></a></li>
+        <li><a href="#"><span class="n">08</span><span>Context Re-Renders the Whole Tree<i class="k rec"></i></span></a></li>
+        <li><a href="#"><span class="n">09</span><span>Memoization and the Compiler</span></a></li>
+        <li><a href="#"><span class="n">10</span><span>Typing Lag: The Re-render Storm<i class="k rec"></i></span></a></li>
+        <li><a href="#"><span class="n">11</span><span>Effects and Synchronization</span></a></li>
+        <li><a href="#"><span class="n">12</span><span>Escape Hatches Audit</span></a></li>
+      </ol>
+    </aside>
+
+    <main class="lmain">
+      <div class="inner">
+        <nav aria-label="Breadcrumb">
+          <ol class="crumb meta">
+            <li><a href="#">Home</a></li><li class="sep" aria-hidden="true">/</li>
+            <li><a href="#">Courses</a></li><li class="sep" aria-hidden="true">/</li>
+            <li><a href="#">The React render cycle</a></li><li class="sep" aria-hidden="true">/</li>
+            <li aria-current="page" style="color:var(--display)">State and useState</li>
+          </ol>
+        </nav>
+        <h1>State and useState</h1>
+        <p class="dek">The first thing that schedules the work described in the previous three articles.</p>
+
+        <div class="lstub">
+          <b>Article body renders here, unchanged.</b>
+          <p style="margin-top:.5rem">Prose measure, headings, code blocks with the provenance strip, figures,
+            callouts and the parts structure are specified in
+            <code style="font-family:var(--fm);font-size:.875em;color:var(--signal-soft)">docs/design/article-layout-poc.html</code>
+            and are not restated here. This file specifies only what differs on a lesson:
+            the curriculum in the left column, and prev/next drawn from course order.</p>
+        </div>
+
+        <nav class="pnav" aria-label="Lesson navigation">
+          <a href="#"><p class="l">← Lesson 3</p><p class="t">Rendering Lists and Keys</p></a>
+          <a class="nx" href="#"><p class="l">Lesson 5 →</p><p class="t">The Rules of React</p></a>
+        </nav>
+      </div>
+    </main>
+
+    <div class="lrail" aria-hidden="false">
+      <div class="stick">
+        <button class="tk" aria-label="Jump to part 1"><span class="l"><b>Part 1</b>What a state update actually schedules</span></button>
+        <button class="tk on" aria-label="Jump to part 2"><span class="l"><b>Part 2</b>Batching, and when it stops</span></button>
+        <button class="tk" aria-label="Jump to part 3"><span class="l"><b>Part 3</b>Why the value looks stale</span></button>
+        <button class="tk" aria-label="Jump to part 4"><span class="l"><b>Part 4</b>Check yourself</span></button>
+        <div class="ring">
+          <svg viewBox="0 0 30 30" width="30" height="30" aria-hidden="true">
+            <circle class="bg" cx="15" cy="15" r="13"></circle>
+            <circle class="fg" cx="15" cy="15" r="13" stroke-dasharray="81.7" stroke-dashoffset="55"></circle>
+          </svg>
+          <span class="pc">33%</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer class="foot">
+  <div class="wrap">
+    <span class="meta">corpus.web</span>
+    <a href="#">Licence</a>
+    <a href="#">Source</a>
+    <span style="margin-left:auto" class="meta">CC BY 4.0</span>
+  </div>
+</footer>
+
+<script>
+/* POC-only wiring. Not part of the contract — the real routes
+   are separate pages, not tab panels. */
+const pages = document.querySelectorAll('.page');
+const bar = document.querySelector('.pocbar');
+const navMap = {home:'home', courses:'courses', course:'courses', lesson:'courses', articles:'articles'};
+const lview = document.querySelector('.lview');
+const sbt = document.getElementById('sbt');
+const sbc = document.getElementById('sbc');
+
+/* The top bar persists on every route including lessons — it is one
+   implementation across all five surfaces. Only the curriculum toggle
+   is route-specific, so it is hidden off the lesson route. The footer
+   does not appear on lessons. */
+function show(id){
+  pages.forEach(p => p.classList.toggle('on', p.id === 'p' + '-' + id));
+  sbt.hidden = id !== 'lesson';
+  document.querySelector('footer.foot').style.display = id === 'lesson' ? 'none' : '';
+  bar.querySelectorAll('button[data-go]').forEach(b =>
+    b.setAttribute('aria-current', String(b.dataset.go === id)));
+  document.querySelectorAll('.nav a').forEach(a => {
+    if (a.dataset.nav === navMap[id]) a.setAttribute('aria-current','page');
+    else a.removeAttribute('aria-current');
+  });
+  window.scrollTo({top:0, behavior:'instant'});
+}
+
+bar.addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  if (b.dataset.go) show(b.dataset.go);
+  else toggleTheme();
+});
+
+document.querySelectorAll('.nav a').forEach(a =>
+  a.addEventListener('click', e => { e.preventDefault(); show(a.dataset.nav); }));
+
+function toggleTheme(){
+  const r = document.documentElement;
+  r.dataset.theme = r.dataset.theme === 'dark' ? 'light' : 'dark';
+}
+document.querySelector('[data-theme-btn]').addEventListener('click', toggleTheme);
+
+/* Collapse. aria-expanded is derived from state on every path rather
+   than set in one branch — the defect logged against the article POC. */
+function setSb(open){
+  lview.classList.toggle('nosb', !open);
+  sbt.setAttribute('aria-expanded', String(open));
+  sbc.textContent = open ? '‹' : '›';
+}
+sbt.addEventListener('click', () => setSb(lview.classList.contains('nosb')));
+sbc.addEventListener('click', () => setSb(lview.classList.contains('nosb')));
+
+/* Chips are inert in the real build too — filtering is Pagefind, item 11.
+   Here they only demonstrate the pressed state. */
+document.querySelectorAll('.chip').forEach(c =>
+  c.addEventListener('click', () => {
+    document.querySelectorAll('.chip').forEach(o => o.setAttribute('aria-pressed','false'));
+    c.setAttribute('aria-pressed','true');
+  }));
+</script>
+</body>
+</html>

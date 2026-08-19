@@ -1960,3 +1960,148 @@ was deleted rather than extended.
 - Do not auto-merge.
 
 ---
+
+## Session 3 — listing routes — 2026-08-19
+
+**Branch:** `cursor/session-3-listing-routes-9394`
+
+**Files changed:**
+- `apps/web/package.json` — Tailwind v4, postcss, `@corpus/ui`; no `@corpus/content-schema`
+- `pnpm-lock.yaml` — lockfile for those deps
+- `apps/web/postcss.config.mjs` — `@tailwindcss/postcss`
+- `apps/web/tsconfig.json` — include `components/` and `messages/`
+- `apps/web/next.config.mjs` — `/` → `/en` redirect; transpile `@corpus/ui`
+- `apps/web/next-env.d.ts` — Next-generated types path
+- `apps/web/app/globals.css` — Tailwind + tokens + graph draw
+- `apps/web/app/layout.tsx` — fonts, theme pre-paint script, `data-theme`
+- `apps/web/app/[locale]/layout.tsx` — site header/footer, `en` only
+- `apps/web/app/[locale]/page.tsx` — `/en` landing
+- `apps/web/app/[locale]/courses/page.tsx` — course index
+- `apps/web/app/[locale]/courses/[course]/page.tsx` — course detail + `#curriculum`
+- `apps/web/app/[locale]/blog/page.tsx` — article index
+- `apps/web/app/[locale]/concepts/[repo]/[...slug]/page.tsx` — deleted session-1 spike
+- `apps/web/lib/source.ts` — deleted with the spike
+- `apps/web/lib/catalog.ts` — listing subset of `catalog.json`, reading time, `relatedHref`
+- `apps/web/lib/i18n.ts` — message catalogue helper
+- `apps/web/lib/locales.ts` — `en` only
+- `apps/web/lib/repos.ts` — four corpus ids without content-schema
+- `apps/web/lib/routes.ts` — `/en/blog/…` and `/en/courses/…` hrefs
+- `apps/web/lib/site.ts` — origin, theme cookie, 200 wpm
+- `apps/web/messages/en.json` — all listing chrome copy
+- `apps/web/components/chrome/site-header.tsx` — nav, no sign-in
+- `apps/web/components/chrome/nav-links.tsx` — `usePathname` current page
+- `apps/web/components/chrome/search-placeholder.tsx` — disabled search
+- `apps/web/components/chrome/theme-toggle.tsx` — cookie theme toggle
+- `apps/web/components/home/concept-graph-teaser.tsx` — four-node graph
+- `apps/web/components/home/corpus-cards.tsx` — live counts + demo-labs placeholder
+- `apps/web/components/home/entry-points.tsx` — three doors + reading conventions
+- `apps/web/components/courses/course-card.tsx` — index card + flat curriculum with `note`
+- `apps/web/components/blog/article-index.tsx` — corpus filter, folder groups
+- `apps/web/components/json-ld.tsx` — WebSite / Organization / ItemList
+- `docs/DEBT.md` — D17–D26 opened; highest issued D26
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this task
+- `.agents/summary.md` — listing routes current state; D1–D26; next step is article routes
+- `progress.md` — items 7/8/13/14; session bullet
+
+**Why:** Session 3's listing slice is the first catalog-driven surface a reader can
+browse. The session-1 spike hardcoded one article and did not read the catalog; it
+is replaced, not extended, because the canonical URL is now flat
+`/en/blog/[corpus]/[slug]`. Article body, chrome, and both article wrappers stay
+out of this invocation so a later one can transcribe the POC without merging two
+layout attempts.
+
+**Invented decisions:**
+- This invocation implements only `/en`, `/en/courses`, `/en/courses/[course]`,
+  `/en/blog`. Article component and both article routes are a separate invocation.
+- Installed Tailwind v4 + `@tailwindcss/postcss` + `postcss` in `apps/web`. They
+  are the declared stack; the spike had never applied them. No next-intl.
+- Message catalogue is `messages/en.json` + `t()`. Thesis copy is quoted from
+  roadmap §15.1. Corpus one-liners are identity ("Reference articles on X"), not
+  behavioural claims. Course YAML copy is used as-is.
+- Listing loader parses a local zod subset of `catalog.json` rather than
+  importing `@corpus/content-schema`. Turbopack cannot resolve that package's
+  NodeNext `.js` specifiers to `.ts` sources, and the blog filter is a client
+  component that must not pull remark.
+- Reading time is `max(1, round(words/200))` from the article file with
+  frontmatter stripped. Course time is the sum. `estimatedHours` is omitted.
+- Course `level` is shown only when every item shares one `difficulty`; the
+  first course is mixed/null so the row omits it.
+- No fabricated coming-soon course cards. Home has the §15.1 demo-labs row as
+  an unlinked coming-soon placeholder (Debt D9).
+- Concept graph teaser is four corpus nodes with directed edge weights, not
+  181 article nodes. "Full graph" is inert (Phase 4).
+- Theme cookie `corpus-theme` via a pre-paint inline script. Toggle is a client
+  leaf. Nothing in the cached tree calls `cookies()`.
+- Site wordmark is `corpus.web`, from the POC. JSON-LD Organization is
+  `EverythingFromDayOne`. Course detail uses `ItemList`, not schema.org `Course`
+  (that type invites `Offer`).
+- `/` → `/en` is a permanent redirect in `next.config.mjs`.
+- Blog corpus filter is client-side state, not `searchParams`, so `/en/blog`
+  stays static.
+- Lesson and article hrefs are emitted even though those routes are not built
+  here. Excluded articles are absent from the index (they 404 later).
+- `relatedHref` returns null unless the uid adapted. Listing pages do not
+  render `related`; the helper is for the article invocation.
+- `--max-width-page: 72rem` in `globals.css` for listing surfaces.
+- Branch named `cursor/session-3-listing-routes-9394` per the cloud-agent
+  template, not `feat/` from `corpus-commit`.
+- Debt D17–D26 opened here to reserve ids. `prompts/session-4.md` was not
+  authored; session 3's article routes remain.
+- Hosting/Vercel config untouched. `verify-links` was not treated as a commit
+  gate (D13, 44 refs, by design).
+- When a corpus has two baseline version strings, the listing card uses the
+  most common (nextjs `16.3` vs `16.3.0`).
+
+**Known issues / next steps:**
+- `/en/blog/[corpus]/[slug]` and `/en/courses/[course]/lessons/[slug]` do not
+  exist yet; curriculum and blog cards link to them and will 404 until the
+  article invocation lands.
+- `next build` reports `○` for `/en`, `/en/blog`, `/en/courses`,
+  `/en/courses/react-render-cycle`, and `◐` for the `[locale]` param templates.
+  No `ƒ` routes. Inspected `.next/server/app/en.html` (and courses/blog) —
+  181 blog hrefs, `#curriculum` present, no sign-in.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side.
+- Do not auto-merge.
+
+---
+
+## Session 4 — Tailwind v4 exact pin corrected to 4.3.3 — 2026-08-19
+
+**Branch:** `cursor/session-3-listing-routes-9394`
+
+**Files changed:**
+- `apps/web/package.json` — `tailwindcss` and `@tailwindcss/postcss` exact pin
+  `4.1.0` → `4.3.3`
+- `pnpm-lock.yaml` — re-resolved for the new pin
+
+**Why:** The previous commit on this branch (`fix(web): pin Tailwind v4 PostCSS
+plugin so pnpm dev compiles CSS`) pinned both packages to exact `4.1.0` and said
+so explicitly in its own invented-decisions block: "4.1.0 exact, matching the
+previous specifier floor, not lockfile 4.3.3." `roadmap.md` §3 constrains
+Tailwind to major `v4` only — it names no patch. `4.1.0` is simply the lowest
+version satisfying that constraint, not a chosen one, and it silently downgraded
+away from `4.3.3`, which `pnpm-lock.yaml` had already resolved from the prior
+caret range (`^4.1.0`) and which is what the Vercel preview built against. This
+session restores the exact pin to `4.3.3` on both packages so the local
+toolchain matches the deployed one, ran `pnpm install` to regenerate the
+lockfile, rebuilt `catalog.json` (`pnpm build:catalog` — gitignored, not
+committed; needed for the listing routes to render at all, unrelated to the
+Tailwind change), and confirmed `pnpm dev` serves all four listing routes
+(`/en`, `/en/courses`, `/en/courses/react-render-cycle`, `/en/blog`) at `200`
+with compiled CSS (`/_next/static/chunks/[root-of-the-server]*.css`, Tailwind
+utility classes present in the rendered HTML).
+
+**Invented decisions:**
+- none — `roadmap.md` §3 constrains only the major; `4.3.3` is this session's
+  explicit patch choice, matching the version the lockfile had already resolved
+  and the Vercel preview was built against, per the task instruction.
+
+**Known issues / next steps:**
+- Unrelated: a stray `apps/web/next-env.d.ts` diff (`.next/types` →
+  `.next/dev/types`) appeared after running `pnpm dev` and was reverted before
+  commit — a Next.js dev-server regeneration artifact, not part of this change.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side,
+  unaffected by this change.
+
+---
