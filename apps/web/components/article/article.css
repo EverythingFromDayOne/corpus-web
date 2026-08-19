@@ -647,15 +647,15 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 8px;
 }
 
 .av-tk {
   appearance: none;
   position: relative;
   flex-shrink: 0;
-  width: 18px;
-  height: 2px;
+  width: 24px;
+  height: 4px;
   background: var(--color-graphite);
   border: 0;
   padding: 0;
@@ -674,7 +674,7 @@
 
 .av-tk.on {
   background: var(--color-signal);
-  width: 30px;
+  width: 36px;
 }
 
 .av-tk:hover {
