@@ -15,6 +15,7 @@
   html {
     scroll-behavior: smooth;
     color-scheme: dark light;
+    --tb: 3.6rem;
   }
 
   body {
@@ -44,21 +45,113 @@
   }
 }
 
-.graph-edge {
-  stroke-dasharray: 240;
-  stroke-dashoffset: 240;
-  animation: graph-draw var(--duration-graph) var(--ease-out) forwards;
+/* Listing POC top bar: height is --tb, one row, no wrap. */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  height: var(--tb);
+  background: color-mix(in srgb, var(--color-ink) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-graphite);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .graph-edge {
-    animation: none;
-    stroke-dashoffset: 0;
-  }
+.topbar-wrap {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 1.5rem;
+  height: 100%;
+  max-width: var(--max-width-page);
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+  width: 100%;
+  overflow: hidden;
 }
 
-@keyframes graph-draw {
-  to {
-    stroke-dashoffset: 0;
-  }
+.topbar-tools {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: 0.6rem;
+}
+
+.topbar-nav {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 1.35rem;
+  font-size: var(--text-sm);
+}
+
+.srch {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-graphite);
+  border-radius: var(--radius-md);
+  padding: 0.4rem 0.6rem;
+  color: var(--color-muted);
+  cursor: not-allowed;
+  opacity: 0.55;
+  max-width: 15rem;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+.srch input {
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  font-size: var(--text-sm);
+  width: 100%;
+  min-width: 0;
+  line-height: 1;
+  padding: 0;
+  height: 1.125rem;
+  pointer-events: none;
+}
+
+.srch-kbd {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.06em;
+  border: 1px solid var(--color-graphite);
+  border-radius: var(--radius-sm);
+  padding: 0.05rem 0.3rem;
+  white-space: nowrap;
+  flex: none;
+}
+
+.tag-soon {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  border: 1px solid color-mix(in srgb, var(--color-signal) 45%, var(--color-graphite));
+  border-radius: var(--radius-sm);
+  padding: 0.12rem 0.4rem;
+  color: var(--color-signal);
+  white-space: nowrap;
+}
+
+/* Shared header control: hidden on listing routes, shown when the article shell mounts. */
+.av-header-tog {
+  display: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-graphite);
+  color: var(--color-muted);
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+}
+
+body:has(.av-view) .av-header-tog {
+  display: inline-flex;
 }

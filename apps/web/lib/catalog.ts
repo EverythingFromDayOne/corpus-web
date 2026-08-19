@@ -5,11 +5,27 @@ import { cacheLife } from 'next/cache';
 import { z } from 'zod';
 import { REPOS, type RepoId } from './repos';
 import { WORDS_PER_MINUTE } from './site';
+import type { Locale } from './locales';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
 const Repo = z.enum(REPOS);
 const Difficulty = z.enum(['foundational', 'intermediate', 'advanced']);
+
+const ArticleSection = z.object({
+  anchor: z.string(),
+  heading: z.string(),
+  depth: z.union([z.literal(2), z.literal(3)]),
+  ordinal: z.number(),
+});
+
+const RelatedRef = z.object({
+  repo: z.string(),
+  articleId: z.string(),
+  raw: z.string(),
+  resolution: z.string(),
+  kind: z.enum(['concept', 'recipe']),
+});
 
 const ListingCatalog = z
   .object({
@@ -23,8 +39,13 @@ const ListingCatalog = z
         description: z.string(),
         kind: z.enum(['concept', 'recipe']),
         difficulty: Difficulty.nullable(),
+        wave: z.number().nullable(),
         baseline: z.object({ framework: z.string(), version: z.string() }),
         sourcePath: z.string(),
+        sourceUrl: z.string().url().nullable(),
+        contentHash: z.string(),
+        sections: z.array(ArticleSection),
+        related: z.array(RelatedRef),
       }),
     ),
     failures: z.array(z.object({ repo: Repo })),
@@ -43,11 +64,23 @@ const ListingCatalog = z
       }),
     ),
     edges: z.array(z.object({ from: z.string(), to: z.string() })),
+    unresolvedTargets: z.array(z.unknown()).optional().default([]),
   })
   .passthrough();
 
 type ListingCatalog = z.infer<typeof ListingCatalog>;
 type DifficultyValue = z.infer<typeof Difficulty>;
+
+export type ArticleSectionView = z.infer<typeof ArticleSection>;
+
+export type RelatedRefView = {
+  uid: string;
+  repo: string;
+  articleId: string;
+  raw: string;
+  resolution: string;
+  kind: 'concept' | 'recipe';
+};
 
 export type ArticleListItem = {
   uid: string;
@@ -58,6 +91,26 @@ export type ArticleListItem = {
   description: string;
   kind: 'concept' | 'recipe';
   minutes: number;
+  wave: number | null;
+  difficulty: DifficultyValue | null;
+  baseline: { framework: string; version: string };
+  sourcePath: string;
+  sourceUrl: string | null;
+  contentHash: string;
+  sections: ArticleSectionView[];
+  related: RelatedRefView[];
+};
+
+export type Neighbor = {
+  uid: string;
+  repo: RepoId;
+  articleId: string;
+  title: string;
+};
+
+export type SidebarGroup = {
+  folder: string;
+  articles: ArticleListItem[];
 };
 
 export type CorpusStats = {
@@ -93,12 +146,20 @@ export type GraphSummary = {
   edges: Array<{ from: RepoId; to: RepoId; count: number }>;
 };
 
+export type Census = {
+  articles: number;
+  edges: number;
+  corpora: number;
+  unresolved: number;
+};
+
 export type CatalogView = {
   articles: ArticleListItem[];
   byUid: Record<string, ArticleListItem>;
   corpora: CorpusStats[];
   courses: CourseView[];
   graph: GraphSummary;
+  census: Census;
   liveUids: string[];
 };
 
@@ -151,6 +212,21 @@ function loadCatalogView(): CatalogView {
       description: article.description,
       kind: article.kind,
       minutes,
+      wave: article.wave,
+      difficulty: article.difficulty,
+      baseline: article.baseline,
+      sourcePath: article.sourcePath,
+      sourceUrl: article.sourceUrl,
+      contentHash: article.contentHash,
+      sections: article.sections,
+      related: article.related.map((ref) => ({
+        uid: `${ref.repo}/${ref.articleId}`,
+        repo: ref.repo,
+        articleId: ref.articleId,
+        raw: ref.raw,
+        resolution: ref.resolution,
+        kind: ref.kind,
+      })),
     };
   });
 
@@ -234,6 +310,12 @@ function loadCatalogView(): CatalogView {
       nodes: corpora.map((corpus) => ({ repo: corpus.repo, count: corpus.adapting })),
       edges: [...edgeCounts.values()],
     },
+    census: {
+      articles: catalog.articles.length,
+      edges: catalog.edges.length,
+      corpora: REPOS.length,
+      unresolved: catalog.unresolvedTargets.length,
+    },
     liveUids: catalog.articles.map((article) => article.uid),
   };
 }
@@ -248,15 +330,70 @@ export function getCourse(view: CatalogView, slug: string): CourseView | undefin
   return view.courses.find((course) => course.slug === slug);
 }
 
+export function getArticle(view: CatalogView, repo: RepoId, slug: string): ArticleListItem | undefined {
+  return view.articles.find((article) => article.repo === repo && article.articleId === slug);
+}
+
+export function corpusTree(view: CatalogView, repo: RepoId): SidebarGroup[] {
+  const groups: SidebarGroup[] = [];
+  const index = new Map<string, SidebarGroup>();
+  for (const article of view.articles) {
+    if (article.repo !== repo) continue;
+    let group = index.get(article.folder);
+    if (!group) {
+      group = { folder: article.folder, articles: [] };
+      index.set(article.folder, group);
+      groups.push(group);
+    }
+    group.articles.push(article);
+  }
+  return groups;
+}
+
+export function conceptNeighbors(view: CatalogView, uid: string): { prev: Neighbor | null; next: Neighbor | null } {
+  const article = view.byUid[uid];
+  if (!article) return { prev: null, next: null };
+  const sequence = view.articles.filter((item) => item.repo === article.repo);
+  const index = sequence.findIndex((item) => item.uid === uid);
+  const prev = index > 0 ? sequence[index - 1] : undefined;
+  const next = index >= 0 && index < sequence.length - 1 ? sequence[index + 1] : undefined;
+  return {
+    prev: prev ? { uid: prev.uid, repo: prev.repo, articleId: prev.articleId, title: prev.title } : null,
+    next: next ? { uid: next.uid, repo: next.repo, articleId: next.articleId, title: next.title } : null,
+  };
+}
+
+export function courseNeighbors(
+  course: CourseView,
+  slug: string,
+): { prev: Neighbor | null; next: Neighbor | null; position: number } {
+  const index = course.items.findIndex((item) => item.articleId === slug);
+  const prev = index > 0 ? course.items[index - 1] : undefined;
+  const next = index >= 0 && index < course.items.length - 1 ? course.items[index + 1] : undefined;
+  return {
+    position: index + 1,
+    prev: prev
+      ? { uid: prev.article, repo: prev.repo, articleId: prev.articleId, title: prev.title }
+      : null,
+    next: next
+      ? { uid: next.article, repo: next.repo, articleId: next.articleId, title: next.title }
+      : null,
+  };
+}
+
+export function articleFilePath(article: ArticleListItem): string {
+  return join(ROOT, 'content', article.repo, article.sourcePath);
+}
+
 /**
  * A `related` target becomes a href only when the article adapted.
  * Excluded and unresolved targets must render as plain text, never as links.
  */
 export function relatedHref(
   view: CatalogView,
-  locale: string,
+  locale: Locale,
   uid: string,
-  toHref: (locale: string, uid: string) => string,
+  toHref: (locale: Locale, uid: string) => string,
 ): string | null {
   if (!view.liveUids.includes(uid)) return null;
   return toHref(locale, uid);

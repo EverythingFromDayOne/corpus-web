@@ -41,7 +41,7 @@ export default async function CoursesPage({ params }: PageProps) {
   const url = absoluteUrl(coursesPath(locale));
 
   return (
-    <PageShell>
+    <PageShell messages={messages}>
       <JsonLd
         data={{
           '@context': 'https://schema.org',

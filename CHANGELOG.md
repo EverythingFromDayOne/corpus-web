@@ -5,6 +5,82 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-19] — cursor/session-3-article-routes-f628 — rail hover labels and part-level ticks
+
+**Added**
+- `article.partEyebrow` message (`Part {n}`) for rail labels when a heading has no `Part N` prefix
+- `apps/web/lib/rail-parts.ts` — catalog sections filtered to `depth === 2`
+
+**Changed**
+- Article/lesson rail ticks are `<button>`s, one per part (h2), not per h2/h3
+- Listing-POC `.lrail` overflow is `visible` so `.tk .l` can paint outside the 3.5rem track
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Rail hover/focus-visible labels were present in markup with text and the reveal rule matched, but `overflow: hidden` on the 3.5rem rail clipped them
+
+### [2026-08-19] — cursor/session-3-article-routes-f628 — home page matches listing POC #p-home
+
+**Added**
+- `/en` census readout from `catalog.json` — articles, cross-links, corpora, unresolved (last in `--stale`)
+- Hero CTAs: `Start the render cycle course` (primary) and `Browse all articles`
+- Hero band: full-bleed 80px hairline grid plus surface-to-transparent gradient
+- Corpus-card ratio bar (adapting/selected) and footer `N / M adapting` plus baseline version chip
+- "How to read this corpus" tag legend (Concept / Recipe / Baseline / Provenance)
+
+**Changed**
+- `/en` transcribed from `docs/design/listing-pages-poc.html` `#p-home` rather than paraphrased
+- "Three ways in" is a two-column split; the coming-soon demo panel is its `aside`, not beside the hero
+- "The corpora" header includes a right-aligned `All articles →` link
+- `.sec` blocks are separated by a top border
+
+**Removed**
+- Demo-labs row from `/en` (not in `#p-home`)
+- Hero-adjacent demo placeholder
+
+**Fixed**
+- Nothing corpus-side. `verify-links` still fails on D13's 44 refs by design
+
+### [2026-08-19] — cursor/session-3-article-routes-f628 — listing chrome defects
+
+**Added**
+- Nothing
+
+**Changed**
+- `/en` concept-graph teaser is the listing-POC coming-soon card in the entry grid (289 live catalog edges, all intra-corpus)
+- Corpus card one-liners taken from `docs/design/listing-pages-poc.html`
+- Disabled top-bar search: `Search` label, `Coming soon` placeholder, `⌘K` hint, one line
+- Top bar height locked to `--tb` (listing POC)
+
+**Removed**
+- Home-page concept-graph SVG (`concept-graph-teaser.tsx`)
+
+**Fixed**
+- Search control no longer wraps a second "coming soon" and overflow `--tb`
+- Article sidebar corpus select no longer sits under the top bar; CORPUS row is not sticky
+
+### [2026-08-19] — cursor/session-3-article-routes-f628 — article and lesson routes
+
+**Added**
+- `/en/blog/[corpus]/[slug]` — 181 adapting articles from `catalog.json`
+- `/en/courses/[course]/lessons/[slug]` — 12 `react-render-cycle` lessons; `rel=canonical` to `/en/blog/…`
+- One `ArticleView` for both routes (corpus tree vs curriculum chrome)
+- Code blocks with provenance strip, copy / download / expand
+- TOC rail with 18×2px ticks and anonymous `localStorage` progress
+
+**Changed**
+- Listing footer moved onto `PageShell`; article routes reuse the existing top bar
+- `@corpus/mdx-components` consumed with Bundler module resolution
+
+**Removed**
+- Locale-layout footer on article routes
+
+**Fixed**
+- Unresolved and excluded `related` refs render as plain text, never links
+- Excluded articles are omitted from `generateStaticParams` and 404 via `notFound()`
+
 ### [2026-08-19] — cursor/session-3-listing-routes-9394 — Tailwind v4 exact pin corrected to 4.3.3
 
 **Changed**

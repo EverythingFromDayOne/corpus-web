@@ -54,7 +54,7 @@ export default async function CourseDetailPage({ params }: PageProps) {
   const corpora = course.corpora.map((repo) => t(messages, `corpora.${repo}.label`)).join(', ');
 
   return (
-    <PageShell>
+    <PageShell messages={messages}>
       <JsonLd
         data={{
           '@context': 'https://schema.org',

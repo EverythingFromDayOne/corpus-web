@@ -41,7 +41,7 @@ export default async function BlogIndexPage({ params }: PageProps) {
   const url = absoluteUrl(blogPath(locale));
 
   return (
-    <PageShell>
+    <PageShell messages={messages}>
       <JsonLd
         data={{
           '@context': 'https://schema.org',

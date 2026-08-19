@@ -14,60 +14,80 @@
     "articles": "Articles",
     "skipToContent": "Skip to content",
     "themeToggle": "Toggle colour theme",
-    "primary": "Primary"
+    "primary": "Primary",
+    "search": "Search",
+    "searchKbd": "⌘K"
   },
   "placeholders": {
     "comingSoon": "Coming soon",
     "search": "Search coming soon",
     "searchHint": "Full-text search is not available yet.",
-    "demoTitle": "Interactive demo",
-    "demoHint": "Simulators ship later. This panel is a placeholder.",
+    "demoTitle": "Interactive demos",
+    "demoHint": "Stepped simulators for the render cycle, the event loop, and the Next.js cache. This panel is a placeholder and does nothing yet.",
     "graphFullView": "Full graph coming soon",
     "demoLabsTitle": "Demo labs",
     "demoLabsHint": "Runnable applications, not articles. Coming soon."
   },
   "home": {
     "title": "A verified reference corpus",
-    "description": "Claims traced to official docs, framework source, or measurement. Code extracted from running demos. CI gates that fail on drift.",
-    "eyebrow": "Four corpora, one graph",
-    "thesis": "Claims in this corpus are traced to official docs, framework source, or measurement. Code is extracted verbatim from running demos rather than hand-written. CI gates fail on drift between the two. That is uncommon, and it is the pitch.",
+    "description": "Every claim traces to official docs, framework source, or a measurement someone ran. Code is extracted from demos that build, not typed into a code fence. CI fails when the two drift apart.",
+    "eyebrow": "Four corpora · one graph",
+    "thesis": "Every claim traces to official docs, framework source, or a measurement someone ran. Code is extracted from demos that build, not typed into a code fence. CI fails when the two drift apart.",
+    "censusLabel": "Corpus census",
+    "censusArticles": "Articles",
+    "censusLinks": "Cross-links",
+    "censusCorpora": "Corpora",
+    "censusUnresolved": "Unresolved",
+    "ctaCourse": "Start the render cycle course",
+    "ctaBrowse": "Browse all articles",
     "corpusHeading": "The corpora",
+    "allArticles": "All articles →",
     "graphHeading": "Concept graph",
     "graphEyebrow": "Four corpora",
     "graphCaption": "Cross-links among the four corpora, cropped to the corpus level.",
-    "entriesHeading": "Entry points",
-    "entryCourseTitle": "New to React",
-    "entryCourseBody": "A reading order through the render cycle.",
-    "entryDebugTitle": "Debugging a specific problem",
-    "entryDebugBody": "Browse articles by corpus and folder.",
-    "entryBrowseTitle": "Browse everything",
-    "entryBrowseBody": "The full article index.",
-    "readingHeading": "How to read this",
-    "readingConcept": "A concept article explains a mechanism.",
-    "readingRecipe": "A recipe starts from a symptom and points at the mechanism.",
-    "readingDifficulty": "Difficulty is foundational, intermediate, or advanced.",
-    "readingBaseline": "Each article is pinned to a framework baseline version.",
-    "featuredEyebrow": "Featured course",
-    "adaptingCount": "{adapting} adapting",
-    "selectedCount": "{selected} selected",
-    "baseline": "Baseline {framework} {version}"
+    "entriesHeading": "Three ways in",
+    "entryCourseEyebrow": "Follow a course",
+    "entryCourseTitle": "The React render cycle",
+    "entryCourseBody": "Twelve articles in reading order, concepts alternating with the recipes that exercise them.",
+    "entryCourseFoot": "{count} lessons",
+    "entryBrowseEyebrow": "Browse by corpus",
+    "entryBrowseTitle": "All {count} articles",
+    "entryBrowseBody": "Grouped by repository and concept folder. No chronology, because there is none.",
+    "entryBrowseFoot": "{count} corpora",
+    "entryGraphEyebrow": "Follow the graph",
+    "entryGraphTitle": "Concept map",
+    "entryGraphBody": "{count} cross-links across four corpora, drawn as one graph.",
+    "readingHeading": "How to read this corpus",
+    "readingConceptLabel": "Concept",
+    "readingConcept": "Explains a mechanism. Read when you want to know how something works before it breaks.",
+    "readingRecipeLabel": "Recipe",
+    "readingRecipe": "Starts from a symptom you have already seen, and works back to the mechanism.",
+    "readingBaselineLabel": "Baseline",
+    "readingBaseline": "The framework version every claim in an article was verified against. Claims are pinned, never floating.",
+    "readingProvenanceLabel": "Provenance",
+    "readingProvenance": "Code blocks name the demo file they were extracted from. Nothing is typed by hand into an article.",
+    "adaptingRatio": "{adapting} / {selected} adapting"
   },
   "corpora": {
     "nextjs": {
       "label": "Next.js",
-      "scope": "Reference articles on Next.js."
+      "scope": "Caching, the server boundary, and the route tree",
+      "blurb": "What Cache Components changed, and which of the old mental models still hold."
     },
     "react": {
       "label": "React",
-      "scope": "Reference articles on React."
+      "scope": "Rendering, state, and the escape hatches",
+      "blurb": "Concept articles paired with symptom-first recipes drawn from real failures."
     },
     "angular": {
       "label": "Angular",
-      "scope": "Reference articles on Angular."
+      "scope": "Signals, DI, and the component lifecycle",
+      "blurb": "The framework's own primitives, read against its source rather than its tutorials."
     },
     "nestjs": {
       "label": "NestJS",
-      "scope": "Reference articles on NestJS."
+      "scope": "The request lifecycle and the module graph",
+      "blurb": "Where a request actually goes, and which decorator runs when."
     }
   },
   "courses": {
@@ -99,5 +119,36 @@
   },
   "notFound": {
     "title": "Not found"
+  },
+  "article": {
+    "corpusNav": "Corpus",
+    "corpus": "Corpus",
+    "chooseCorpus": "Choose corpus",
+    "curriculumNav": "Curriculum",
+    "collapseSidebar": "Collapse sidebar",
+    "closeSidebar": "Close sidebar",
+    "jumpTo": "Jump to {heading}",
+    "partEyebrow": "Part {n}",
+    "baseline": "Baseline",
+    "kind": "Kind",
+    "kindConcept": "Concept",
+    "kindRecipe": "Recipe",
+    "wave": "Wave",
+    "difficulty": "Difficulty",
+    "blocksVerified": "{count} blocks verified",
+    "viewSource": "View source",
+    "related": "Related",
+    "pageNav": "Page",
+    "previous": "Previous",
+    "next": "Next",
+    "previousLesson": "Previous lesson",
+    "nextLesson": "Next lesson",
+    "copy": "Copy",
+    "copied": "Copied",
+    "download": "Download",
+    "expand": "Expand",
+    "extracted": "extracted",
+    "lead": "Lead",
+    "quizHint": "Warm-up quiz ships later. This panel is a placeholder."
   }
 }

@@ -2101,7 +2101,207 @@ utility classes present in the rendered HTML).
 - Unrelated: a stray `apps/web/next-env.d.ts` diff (`.next/types` →
   `.next/dev/types`) appeared after running `pnpm dev` and was reverted before
   commit — a Next.js dev-server regeneration artifact, not part of this change.
-- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side,
-  unaffected by this change.
+---
+
+## Session 3 — article routes — 2026-08-19
+
+**Branch:** `cursor/session-3-article-routes-f628`
+
+**Files changed:**
+- `apps/web/app/[locale]/blog/[corpus]/[slug]/page.tsx` — canonical article wrapper; 181 `generateStaticParams`
+- `apps/web/app/[locale]/courses/[course]/lessons/[slug]/page.tsx` — lesson wrapper; `react-render-cycle` × 12; `rel=canonical` to `/en/blog/…`
+- `apps/web/components/article/article-view.tsx` — one article body for both routes
+- `apps/web/components/article/article-shell.tsx` — chrome context, header toggle, progress bar, scrim
+- `apps/web/components/article/article.css` — listing POC pinned shell + article POC body; 18×2px ticks
+- `apps/web/components/article/sidebars.tsx` — corpus tree vs curriculum; per-item `note`
+- `apps/web/components/article/toc-rail.tsx` — IntersectionObserver rail
+- `apps/web/lib/article-markdown.tsx` — fumadocs MarkdownServer, extract hoist, related/md links
+- `apps/web/lib/article-source.ts` — `'use cache'` + `cacheLife('max')` body read
+- `apps/web/lib/slug.ts` — GitHub slug algorithm copied from content-schema
+- `apps/web/lib/progress.ts` — anonymous `localStorage` progress
+- `apps/web/lib/catalog.ts` — sections, related, neighbors, `relatedHref`
+- `apps/web/messages/en.json` — `article.*` strings
+- `apps/web/app/[locale]/layout.tsx` — shared `ArticleChromeProvider`; listing footer removed from locale layout
+- `apps/web/components/chrome/site-header.tsx` — hamburger in the existing top bar; `SiteFooter` on `PageShell`
+- `apps/web/app/[locale]/page.tsx` — pass messages into `PageShell`
+- `apps/web/app/[locale]/blog/page.tsx` — pass messages into `PageShell`
+- `apps/web/app/[locale]/courses/page.tsx` — pass messages into `PageShell`
+- `apps/web/app/[locale]/courses/[course]/page.tsx` — pass messages into `PageShell`
+- `apps/web/app/globals.css` — `--tb: 3.6rem`; hide header toggle off article routes
+- `packages/mdx-components/src/code-block.tsx` — server code block + provenance strip
+- `packages/mdx-components/src/code-block-controls.tsx` — copy / download / expand leaves
+- `packages/mdx-components/src/index.ts` — register `pre` → `CodeBlock`
+- `packages/mdx-components/tsconfig.json` — `module: ESNext`, `moduleResolution: Bundler` so Next can consume the package
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased article-route bullets
+- `.agents/summary.md` — article routes now exist
+- `progress.md` — items 8 and 9
+- `prompts/session-4.md` — remaining Phase 1 work
+
+**Why:** Session 3's listing slice already shipped the four index routes. This invocation is the article component and the two wrappers only. One body, two chrome variants, so a prose or code-block change cannot fork. The listing POC owns pinned columns and document scroll; the article POC owns the body. The shared top bar is reused rather than duplicated, which meant moving the listing footer onto `PageShell` so article routes do not inherit it.
+
+**Invented decisions:**
+- One shell for both routes uses listing-POC pinned columns (`padding-left: 19rem; padding-right: 3.5rem`; sidebar/rail `position: fixed` below `--tb`) and document scroll, not the article POC's sticky grid.
+- Mobile curriculum is a drawer (article POC pattern), not stacked above the article. Listing POC did not specify one.
+- Blog prev/next is previous/next in catalog sort within the same corpus (repo → folder → title), not graph edges.
+- Provenance comes from `<!-- extract: path#symbol -->` comments hoisted into fence meta. The verified count is omitted when zero. No mock "7 blocks".
+- Heading ids copy the content-schema GitHub slug algorithm into `apps/web/lib/slug.ts` so they match `catalog.sections`.
+- Markdown H1 is stripped; the page renders the catalog title.
+- Unresolved markdown `.md` links resolve against the article's own corpus only and render as plain text when the target did not adapt.
+- Blockquotes starting with "Lead with this" become `.av-hook`; other blockquotes become `.av-co`.
+- No `--cool` token; existing `@theme` tokens only.
+- Remark via `fumadocs-core/content/md` (`createMarkdownRenderer` + `remarkGfm`); no new npm packages.
+- `@corpus/mdx-components` tsconfig is Bundler/ESNext so Next can consume it (was NodeNext).
+- Footer lives on listing `PageShell`, not the locale layout, so article routes have no listing footer.
+- Sidebar collapse is client-only (no cookie) so the routes stay free of `cookies()`.
+- Related `h2` is outside the markdown slugger / rail sections.
+- Lesson notes render in the curriculum sidebar even though the listing POC sidebar omitted them.
+- Warm-up quiz on lesson pages is a dashed `av-ph` placeholder, not an `h3`.
+- Rail ticks are `<a href="#anchor">`, 18×2px default, 30px when `.on`/hover, unchanged from the article POC.
+- `export const dynamicParams` is forbidden under Cache Components, so excluded slugs 404 via `notFound()` after being omitted from `generateStaticParams`.
+- Shared top bar height is listing POC `--tb: 3.6rem`.
+- Article measure follows the article POC's 60rem, not `--measure-prose`.
+- Branch named `cursor/session-3-article-routes-f628` per the cloud-agent template, not `feat/` from `corpus-commit`.
+- Hosting/Vercel/DNS untouched. `verify-links` was not treated as a commit gate (D13, 44 refs, by design).
+
+**Known issues / next steps:**
+- `next build` table: listing concretes stay `○` (`/en`, `/en/blog`, `/en/courses`, `/en/courses/react-render-cycle`). Article and lesson generated paths are grouped as `◐` (`/+184` blog, `/+12` lessons) together with leftover `[slug]` templates. No `ƒ`. Inspected `.next/server/app/en/blog/nextjs/cache-components-model.html` and `en/courses/react-render-cycle/lessons/jsx-and-rendering.html` — full body, 181 blog HTML files, 12 lesson HTML files, lesson `rel=canonical` is the blog URL. `dynamicParams` cannot be set under Cache Components, so unknown slugs remain a request-time `notFound()` branch. Tracked under D23.
+- D18 a11y defects were not fixed. Rail ticks stay 18×2px (D19 tension).
+- Shiki (D20), Pagefind (D21), SEO residue (D22), `/en/license` (D25), DNS (Phase 0 item 5) are out of scope.
+- Do not auto-merge. Do not mark Phase 0 item 5 complete.
 
 ---
+
+## Session 3 follow-up — listing chrome defects — 2026-08-19
+
+**Branch:** `cursor/session-3-article-routes-f628`
+
+**Files changed:**
+- `apps/web/components/home/concept-graph-teaser.tsx` — deleted; SVG dropped
+- `apps/web/components/home/entry-points.tsx` — listing-POC graph coming-soon card as the third grid item
+- `apps/web/app/[locale]/page.tsx` — pass live edge count; no graph SVG
+- `apps/web/components/chrome/search-placeholder.tsx` — Search label, Coming soon placeholder, ⌘K, disabled + aria-disabled
+- `apps/web/components/chrome/site-header.tsx` — `.topbar` locked to `--tb`, no wrap
+- `apps/web/components/chrome/nav-links.tsx` — no wrap
+- `apps/web/app/globals.css` — top bar, search, coming-soon tag; graph-edge animation removed
+- `apps/web/components/article/article.css` — `.av-sbhd` stays `position: static` with opaque surface
+- `apps/web/messages/en.json` — POC corpus one-liners; search and graph-card strings
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased chrome-defect bullets
+- `.agents/summary.md` — 289 edges are intra-corpus; home uses the coming-soon card
+- `progress.md` — items 11 and 13 notes
+
+**Why:** Five non-structural defects on the article-routes PR. The graph SVG used
+`w-full` against a 276-unit viewBox and contained four nodes and no edges. The
+caption claimed cross-corpus links; measuring `catalog.json` showed all 289
+edges are intra-corpus, so drawing inter-corpus stroke-weighted lines would
+still render the subject as absent. The listing POC already specifies the
+coming-soon card in the "Three ways in" grid, which is the other option the
+review allowed. The overflowing search made the sticky top bar taller than
+`--tb` while the article sidebar is pinned at `top: var(--tb)`, so the corpus
+select sat under the bar; the CORPUS row was never sticky.
+
+**Invented decisions:**
+- Drop the SVG rather than draw empty inter-corpus links (0 of 289 edges cross a corpus)
+- Live `{count}` in the coming-soon card body rather than a hardcoded 289
+- Replace the duplicate "Browse everything" entry card with the graph coming-soon card; "Debugging a specific problem" still links to `/en/blog`
+- Leave unused `home.graphHeading` / `graphCaption` / `placeholders.graphFullView` keys in the catalogue
+- Corpus card `scope` strings are the POC `h3` one-liners, not the longer supporting paragraphs
+- Top bar uses listing-POC `height: var(--tb)` rather than `min-height`
+
+**Known issues / next steps:**
+- Pagefind (D21) still replaces this disabled control. Concept-graph view remains Phase 4.
+- Do not auto-merge.
+
+---
+
+## Session 3 follow-up — home page POC transcription — 2026-08-19
+
+**Branch:** `cursor/session-3-article-routes-f628`
+
+**Files changed:**
+- `apps/web/app/[locale]/page.tsx` — `/en` structure matches listing-POC `#p-home`
+- `apps/web/components/home/home.css` — transcribed `#p-home` CSS (hero band, readout, cards, split, conventions)
+- `apps/web/components/home/corpus-cards.tsx` — census readout; ratio bar; adapting/version footer; POC blurbs
+- `apps/web/components/home/entry-points.tsx` — "Three ways in" split with demo `aside`; tag-legend conventions
+- `apps/web/components/chrome/site-header.tsx` — `PageShell` `bleed` so the hero can be full-bleed
+- `apps/web/lib/catalog.ts` — `census` from `catalog.json` (articles, edges, corpora, unresolved)
+- `apps/web/messages/en.json` — `#p-home` copy (census labels, CTAs, blurbs, tag legend)
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased home-POC bullets
+- `.agents/summary.md` — `/en` transcribes `#p-home`
+- `progress.md` — item 13 notes; session bullet
+
+**Why:** `/en` was a paraphrase of `docs/design/listing-pages-poc.html` `#p-home`.
+The lesson route had already been held to a transcription standard; the landing
+page was not. The missing census readout is the element that makes the page
+argue its own thesis — four figures from `catalog.json`, including the 44
+unresolved refs in `--stale`. The rest of the mismatch (no CTAs, flat hero,
+prose counts instead of a ratio bar, demo panel beside the hero, bullet-list
+conventions) followed from the same paraphrase. The POC wins where the two
+disagree.
+
+**Invented decisions:**
+- Home CSS is prefixed `ls-*` and rooted on `.ls-home` so `.grid` cannot collide with Tailwind's `grid` utility (same pattern as article `av-*`)
+- `--cool` is not in `DESIGN.md` / `tokens.css`; `.ls-home` carries the POC's `--cool` locally (`#6aa9d8` dark / `#2b6f9e` light) so `.tag.concept` matches without opening a second design system
+- Primary CTA uses `--color-signal` fill as the POC specifies, against `DESIGN.md`'s "signal is not a button colour" discipline — the listing POC is the contract for `/en`
+- Primary CTA text uses `--color-ink` (dark) / `--color-display` (light) so it stays the POC's `#0e141b` in both themes without a raw hex on the rule
+- Ratio-bar width is a `--ls-bar` custom property on the track, not `style="width:N%"` on the fill
+- Home wrap is the POC's 76rem (`--page`); the shared top bar still uses 72rem
+- `PageShell` gained a `bleed` prop; other listing routes stay padded
+- Census is `articles.length`, `edges.length`, `REPOS.length`, `unresolvedTargets.length`
+- Demo-labs row removed from `/en` because `#p-home` does not include it
+- Course CTA copy is the POC string "Start the render cycle course", linked to `courses[0]`, not derived from the course title
+- Dek measure is the listing POC's 60rem, not `--measure-prose` (68ch)
+- Branch stays `cursor/session-3-article-routes-f628` (PR #21) rather than a new cloud-agent branch
+
+**Known issues / next steps:**
+- Shared `SiteFooter` is still wordmark + org link, not the POC footer's Licence / Source / CC BY 4.0 row. That footer is shared chrome, not `#p-home`; `/en/license` remains D25
+- Home wrap (76rem) is 4rem wider than the existing top bar (72rem). Matching the top bar to `--page` was out of scope
+- Class names are `ls-*`, not the POC's unprefixed names; the DOM structure and visual treatment match
+- `--cool` is local to `home.css` rather than an `@theme` token
+- Do not auto-merge
+
+---
+
+## Session 3 follow-up — rail hover labels — 2026-08-19
+
+**Branch:** `cursor/session-3-article-routes-f628`
+
+**Files changed:**
+- `apps/web/components/article/toc-rail.tsx` — ticks are `<button>`s over part-level sections only; label markup unchanged
+- `apps/web/components/article/article-view.tsx` — passes `railParts()` into the rail
+- `apps/web/lib/rail-parts.ts` — `catalog.sections` filtered to `depth === 2`
+- `apps/web/components/article/article.css` — rail `overflow: visible`; tick 18×2px; hover and `:focus-visible` reveal
+- `apps/web/messages/en.json` — `article.partEyebrow` (`Part {n}`)
+- `docs/design/listing-pages-poc.html` — `.lrail` `overflow: hidden` → `visible` so `.tk .l` can paint
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased rail-label bullets
+- `.agents/summary.md` — rail ticks are depth-2 parts; overflow:hidden clips labels
+- `progress.md` — item 9 note
+
+**Why:** Hover labels on the article/lesson rail did not appear. The label element
+was already in the markup with text, and `.av-tk:hover .av-tk-l` /
+`.av-tk:focus-visible .av-tk-l` already set `opacity: 1`. The labels sit at
+`right: 38px`, entirely to the left of the 3.5rem rail track, and
+`overflow: hidden` on `.av-view > .av-rail` (copied from listing-POC `.lrail`)
+clipped them. The article-layout POC rail has no overflow clip, which is why
+labels work there. The same transcription also mapped every `catalog.sections`
+entry (h2 and h3) onto ticks, so a lesson such as `jsx-and-rendering` showed
+28 ticks instead of 13 parts.
+
+**Invented decisions:**
+- "Part-level" means `catalog.sections` with `depth === 2`, not a `/^Part/` regex and not h3s
+- Eyebrow is the heading's `Part N` prefix when present, else i18n `Part {n}` from the 1-based index among those parts
+- Ticks are `<button type="button">` as both POCs specify, jumping via `scrollIntoView` + `history.replaceState` hash
+- Rail `overflow: visible` plus `z-index: 4` so labels overlay the article without sitting above the top bar
+- Listing POC `.lrail` overflow corrected to `visible` so the contract matches `.tk .l`
+- Branch stays `cursor/session-3-article-routes-f628` (PR #21)
+
+**Known issues / next steps:**
+- 18×2px ticks remain; D18/D19 target-size tension is unchanged
+- Focus-visible reveal is in place (the D18 hover-only concern); the rest of D18 is untouched
+- Do not auto-merge
+
+---
+

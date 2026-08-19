@@ -22,7 +22,7 @@ export function NavLinks({ locale, messages }: { locale: Locale; messages: Messa
   ];
 
   return (
-    <nav aria-label={t(messages, 'nav.primary')} className="flex flex-wrap gap-4 text-sm">
+    <nav aria-label={t(messages, 'nav.primary')} className="topbar-nav">
       {links.map((link) => {
         const current = link.match(pathname);
         return (

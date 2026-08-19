@@ -1,0 +1,199 @@
+import type { ReactNode } from 'react';
+import { cacheLife } from 'next/cache';
+import { createMarkdownRenderer } from 'fumadocs-core/content/md';
+import { remarkGfm } from 'fumadocs-core/mdx-plugins';
+import { CodeBlock, type CodeBlockLabels } from '@corpus/mdx-components';
+import type { Locale } from '@/lib/locales';
+import { articlePath } from '@/lib/routes';
+import { isRepoId } from '@/lib/repos';
+import { createSlugger } from '@/lib/slug';
+import { t, type Messages } from '@/lib/i18n';
+
+const { MarkdownServer } = createMarkdownRenderer({
+  remarkPlugins: [remarkGfm, remarkDropHtmlComments, remarkCodeExtract],
+});
+
+type MdNode = {
+  type?: string;
+  value?: string;
+  lang?: string | null;
+  meta?: string | null;
+  data?: { hProperties?: Record<string, string> };
+  children?: MdNode[];
+};
+
+function walk(node: MdNode, visit: (n: MdNode) => void) {
+  visit(node);
+  node.children?.forEach((child) => walk(child, visit));
+}
+
+function remarkDropHtmlComments() {
+  return (tree: MdNode) => {
+    if (!tree.children) return;
+    tree.children = tree.children.filter(
+      (node) => !(node.type === 'html' && /^\s*<!--/.test(node.value ?? '')),
+    );
+  };
+}
+
+function remarkCodeExtract() {
+  return (tree: MdNode) => {
+    walk(tree, (node) => {
+      if (node.type !== 'code') return;
+      const meta = node.meta ?? '';
+      const match = /extract=(\S+)/.exec(meta);
+      if (!match?.[1]) return;
+      node.data = {
+        ...node.data,
+        hProperties: { ...node.data?.hProperties, 'data-extract': match[1] },
+      };
+    });
+  };
+}
+
+function flatten(node: ReactNode): string {
+  if (node == null || typeof node === 'boolean') return '';
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(flatten).join('');
+  if (typeof node === 'object' && 'props' in node) {
+    const el = node as { props?: { children?: ReactNode } };
+    return flatten(el.props?.children);
+  }
+  return '';
+}
+
+function resolveMarkdownHref(
+  href: string,
+  repo: string,
+  locale: Locale,
+  liveUids: string[],
+): string | null {
+  if (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) return href;
+  if (/^https?:\/\//.test(href)) return href;
+  const [path, hash] = href.split('#');
+  if (!path) return hash ? `#${hash}` : null;
+  const file = path.split('/').pop() ?? '';
+  const slug = file.replace(/\.mdx?$/, '');
+  if (!slug || !isRepoId(repo)) return null;
+  const uid = `${repo}/${slug}`;
+  if (!liveUids.includes(uid)) return null;
+  const live = articlePath(locale, repo, slug);
+  return hash ? `${live}#${hash}` : live;
+}
+
+function githubBlobBase(sourceUrl: string | null): string | null {
+  if (!sourceUrl) return null;
+  const match = /^(https:\/\/github\.com\/[^/]+\/[^/]+\/blob\/[^/]+)\//.exec(sourceUrl);
+  return match?.[1] ?? null;
+}
+
+export function hoistExtractComments(markdown: string): string {
+  return markdown.replace(
+    /<!--\s*extract:\s*(\S+)\s*-->\s*\n```([^\n]*)/g,
+    (_full, extract: string, info: string) => `\`\`\`${info} extract=${extract}`,
+  );
+}
+
+export function countExtracts(markdown: string): number {
+  return (markdown.match(/extract=\S+/g) ?? []).length;
+}
+
+export async function renderArticleMarkdown({
+  contentHash,
+  markdown,
+  repo,
+  locale,
+  liveUids,
+  messages,
+  sourceUrl,
+}: {
+  contentHash: string;
+  markdown: string;
+  repo: string;
+  locale: Locale;
+  liveUids: string[];
+  messages: Messages;
+  sourceUrl: string | null;
+}): Promise<ReactNode> {
+  'use cache';
+  cacheLife('max');
+  void contentHash;
+  const slug = createSlugger();
+  const labels: CodeBlockLabels = {
+    copy: t(messages, 'article.copy'),
+    copied: t(messages, 'article.copied'),
+    download: t(messages, 'article.download'),
+    expand: t(messages, 'article.expand'),
+    extracted: t(messages, 'article.extracted'),
+  };
+  const blobBase = githubBlobBase(sourceUrl);
+  const leadLabel = t(messages, 'article.lead');
+
+  return MarkdownServer({
+    children: hoistExtractComments(markdown),
+    components: {
+      h1: () => null,
+      h2: (props) => {
+        const text = flatten(props.children);
+        const id = slug(text);
+        const part = /^(Part\s+\d+)\s+(.*)$/i.exec(text);
+        if (part?.[1] && part[2]) {
+          return (
+            <h2 id={id}>
+              <span className="av-pn">{part[1]}</span>
+              {part[2]}
+            </h2>
+          );
+        }
+        return <h2 id={id}>{props.children}</h2>;
+      },
+      h3: (props) => {
+        const text = flatten(props.children);
+        return <h3 id={slug(text)}>{props.children}</h3>;
+      },
+      a: (props) => {
+        const href = typeof props.href === 'string' ? props.href : '';
+        const resolved = resolveMarkdownHref(href, repo, locale, liveUids);
+        if (!resolved) return <span>{props.children}</span>;
+        return <a href={resolved}>{props.children}</a>;
+      },
+      blockquote: (props) => {
+        const text = flatten(props.children);
+        const lead = /^\s*Lead with this/i.test(text);
+        return (
+          <div className={lead ? 'av-hook' : 'av-co'}>
+            {lead ? <div className="av-lab">{leadLabel}</div> : null}
+            {props.children}
+          </div>
+        );
+      },
+      img: (props) => (
+        <figure className="av-fig">
+          <img alt={typeof props.alt === 'string' ? props.alt : ''} src={props.src} />
+          {props.alt ? <figcaption className="av-cap">{String(props.alt)}</figcaption> : null}
+        </figure>
+      ),
+      table: (props) => (
+        <div className="av-tw">
+          <table>{props.children}</table>
+        </div>
+      ),
+      pre: (props) => {
+        const extractValue = (props as { 'data-extract'?: unknown })['data-extract'];
+        const extract = typeof extractValue === 'string' ? extractValue : undefined;
+        const path = extract?.split('#')[0];
+        const extractHref = blobBase && path ? `${blobBase}/${path}` : null;
+        return (
+          <CodeBlock
+            className={props.className}
+            labels={labels}
+            extract={extract}
+            extractHref={extractHref}
+          >
+            {props.children}
+          </CodeBlock>
+        );
+      },
+    },
+  });
+}

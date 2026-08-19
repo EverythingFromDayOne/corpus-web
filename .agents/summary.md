@@ -6,9 +6,7 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-19 (session 3 listing routes: `/en`, `/en/courses`,
-> `/en/courses/[course]`, `/en/blog` read `catalog.json`; the session-1
-> `/concepts` spike is gone; article routes are a separate invocation)
+> Last updated: 2026-08-19 (PR #21: rail hover labels; part-level ticks)
 
 ---
 
@@ -85,22 +83,30 @@ Do not duplicate the version table here.
       against `cache-components-model`
 - [x] Content submodules wired, four mounts, pinned to tags — `nextjs` `v0.3.0`,
       `react` `v0.5.0`, `angular` `v0.3.0`, `nestjs` `v0.3.2`
-- [ ] Design tokens applied to the article shell (listing chrome uses them)
+- [x] Design tokens applied to the article shell (listing chrome uses them)
 - [ ] `nxhhuy.tech` DNS cutover
 
 Application code now exists: `apps/web` serves catalog-driven listing routes at
-`/en`, `/en/courses`, `/en/courses/react-render-cycle`, and `/en/blog` (181
-articles, one path). The session-1 spike at `/[locale]/concepts/[repo]/[...slug]`
-is removed. Article and lesson routes are not in this tree yet. `apps/api` is
-an empty Nest bootstrap.
+`/en`, `/en/courses`, `/en/courses/react-render-cycle`, and `/en/blog`, plus
+article routes at `/en/blog/[corpus]/[slug]` (181 adapting) and
+`/en/courses/react-render-cycle/lessons/[slug]` (12). The session-1 spike at
+`/[locale]/concepts/[repo]/[...slug]` is removed. `apps/api` is an empty Nest
+bootstrap.
 
 ---
 
 ## Key facts that are easy to get wrong
 - Canonical article URL is `/en/blog/[corpus]/[slug]`; courses live at
   `/en/courses/*`. Listing routes (`/en`, `/en/courses`, `/en/courses/[course]`,
-  `/en/blog`) already generate from `catalog.json`. The session-1 spike at
-  `/en/concepts/…` is gone and must not be revived.
+  `/en/blog`) and both article wrappers generate from `catalog.json`. The
+  session-1 spike at `/en/concepts/…` is gone and must not be revived.
+- Lesson pages set `rel=canonical` (and `og:url`) to the matching `/en/blog/…`
+  URL. Unresolved and excluded `related` refs render as plain text.
+- **Rail ticks are one per `catalog.sections` entry with `depth === 2` (h2 /
+  part), not h3.** `jsx-and-rendering` is 13 parts / 28 headings. Each tick is
+  a `<button>` containing `.av-tk-l` at `right: 38px`, revealed on `:hover` and
+  `:focus-visible`. The rail must be `overflow: visible` — `overflow: hidden`
+  on the 3.5rem track clips the labels (that was the missing-hover-label bug).
 - **`apps/web` does not import `@corpus/content-schema`.** Next's Turbopack build
   cannot resolve that package's NodeNext `.js` specifiers to `.ts` sources, and
   a client corpus filter must not pull remark/zod adapters. The listing loader
@@ -229,7 +235,12 @@ an empty Nest bootstrap.
   refs. The D12 `git mv` closed 6 inbound refs to `nestjs/dtos-and-class-validator` (now
   live edges, not draft-target warnings) and the recovered article added 1 new unresolved
   outbound ref to `nestjs/nested-dto-not-validated`. Itemised in
-  `docs/audit/unresolved-refs-2026-08-16.md` — see Debt D13.
+  `docs/audit/unresolved-refs-2026-08-16.md` — see Debt D13. **All 289 live edges are
+  intra-corpus** (measured 2026-08-19): there is no inter-corpus link to draw, so
+  `/en` uses the listing-POC coming-soon card rather than an SVG of four unlinked
+  nodes. `/en` itself is a transcription of `docs/design/listing-pages-poc.html`
+  `#p-home`: census readout, two CTAs, hero band, corpus ratio bars, split
+  "Three ways in" with the demo panel as `aside`.
 - **`authoringStage` (formerly `status`) is no longer a publication gate — adaptation is.**
   Every one of the 181 adapting articles carries some raw authoring-stage label (`draft`,
   `review`, `needs-upgrade`, or an object shape), and none of that gates rendering anymore.
@@ -273,10 +284,8 @@ an empty Nest bootstrap.
    Debt D6 is closed (`nestjs@v0.3.2`).
    The cheapest remaining Group 1 fix is publishing the two staged `nextjs` articles
    (`cache-lifetimes`, `use-cache-directive`), which closes 4 of the 44.
-3. Listing routes now read `catalog.json` (`/en`, `/en/courses`,
-   `/en/courses/[course]`, `/en/blog`). Remaining session-3 work is the article
-   component and the two article wrappers — `/en/blog/[corpus]/[slug]` (canonical)
-   and `/en/courses/[course]/lessons/[slug]` — plus the article chrome. Do not
-   revive `/en/concepts/…`.
-4. Design tokens applied to the article shell (listing chrome already uses them).
-5. DNS cutover: `nxhhuy.tech` -> Vercel.
+3. Article and lesson routes now read `catalog.json` (`/en/blog/[corpus]/[slug]`,
+   `/en/courses/[course]/lessons/[slug]`). Remaining Phase 1: Shiki (D20),
+   Pagefind (D21), `/en/license` (D25), SEO residue (D22), render-mode gate
+   (D23), a11y (D18/D19). Do not revive `/en/concepts/…`.
+4. DNS cutover: `nxhhuy.tech` -> Vercel.
