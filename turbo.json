@@ -1,9 +1,27 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
+    "//#build:catalog": {
+      "outputs": ["catalog.json"]
+    },
+    "build:catalog": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "catalog.json"
+      ]
+    },
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+      "dependsOn": [
+        "^build",
+        "//#build:catalog"
+      ],
+      "outputs": [
+        "dist/**",
+        ".next/**",
+        "!.next/cache/**"
+      ]
     },
     "dev": {
       "cache": false,
@@ -11,7 +29,9 @@
     },
     "lint": {},
     "typecheck": {
-      "dependsOn": ["^typecheck"]
+      "dependsOn": [
+        "^typecheck"
+      ]
     },
     "test": {},
     "verify:submodules": {
