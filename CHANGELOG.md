@@ -5,6 +5,26 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-19] — cursor/session-3-article-routes-f628 — article and lesson routes
+
+**Added**
+- `/en/blog/[corpus]/[slug]` — 181 adapting articles from `catalog.json`
+- `/en/courses/[course]/lessons/[slug]` — 12 `react-render-cycle` lessons; `rel=canonical` to `/en/blog/…`
+- One `ArticleView` for both routes (corpus tree vs curriculum chrome)
+- Code blocks with provenance strip, copy / download / expand
+- TOC rail with 18×2px ticks and anonymous `localStorage` progress
+
+**Changed**
+- Listing footer moved onto `PageShell`; article routes reuse the existing top bar
+- `@corpus/mdx-components` consumed with Bundler module resolution
+
+**Removed**
+- Locale-layout footer on article routes
+
+**Fixed**
+- Unresolved and excluded `related` refs render as plain text, never links
+- Excluded articles are omitted from `generateStaticParams` and 404 via `notFound()`
+
 ### [2026-08-19] — cursor/session-3-listing-routes-9394 — Tailwind v4 exact pin corrected to 4.3.3
 
 **Changed**

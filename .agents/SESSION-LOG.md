@@ -2101,7 +2101,73 @@ utility classes present in the rendered HTML).
 - Unrelated: a stray `apps/web/next-env.d.ts` diff (`.next/types` →
   `.next/dev/types`) appeared after running `pnpm dev` and was reverted before
   commit — a Next.js dev-server regeneration artifact, not part of this change.
-- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side,
-  unaffected by this change.
+---
+
+## Session 3 — article routes — 2026-08-19
+
+**Branch:** `cursor/session-3-article-routes-f628`
+
+**Files changed:**
+- `apps/web/app/[locale]/blog/[corpus]/[slug]/page.tsx` — canonical article wrapper; 181 `generateStaticParams`
+- `apps/web/app/[locale]/courses/[course]/lessons/[slug]/page.tsx` — lesson wrapper; `react-render-cycle` × 12; `rel=canonical` to `/en/blog/…`
+- `apps/web/components/article/article-view.tsx` — one article body for both routes
+- `apps/web/components/article/article-shell.tsx` — chrome context, header toggle, progress bar, scrim
+- `apps/web/components/article/article.css` — listing POC pinned shell + article POC body; 18×2px ticks
+- `apps/web/components/article/sidebars.tsx` — corpus tree vs curriculum; per-item `note`
+- `apps/web/components/article/toc-rail.tsx` — IntersectionObserver rail
+- `apps/web/lib/article-markdown.tsx` — fumadocs MarkdownServer, extract hoist, related/md links
+- `apps/web/lib/article-source.ts` — `'use cache'` + `cacheLife('max')` body read
+- `apps/web/lib/slug.ts` — GitHub slug algorithm copied from content-schema
+- `apps/web/lib/progress.ts` — anonymous `localStorage` progress
+- `apps/web/lib/catalog.ts` — sections, related, neighbors, `relatedHref`
+- `apps/web/messages/en.json` — `article.*` strings
+- `apps/web/app/[locale]/layout.tsx` — shared `ArticleChromeProvider`; listing footer removed from locale layout
+- `apps/web/components/chrome/site-header.tsx` — hamburger in the existing top bar; `SiteFooter` on `PageShell`
+- `apps/web/app/[locale]/page.tsx` — pass messages into `PageShell`
+- `apps/web/app/[locale]/blog/page.tsx` — pass messages into `PageShell`
+- `apps/web/app/[locale]/courses/page.tsx` — pass messages into `PageShell`
+- `apps/web/app/[locale]/courses/[course]/page.tsx` — pass messages into `PageShell`
+- `apps/web/app/globals.css` — `--tb: 3.6rem`; hide header toggle off article routes
+- `packages/mdx-components/src/code-block.tsx` — server code block + provenance strip
+- `packages/mdx-components/src/code-block-controls.tsx` — copy / download / expand leaves
+- `packages/mdx-components/src/index.ts` — register `pre` → `CodeBlock`
+- `packages/mdx-components/tsconfig.json` — `module: ESNext`, `moduleResolution: Bundler` so Next can consume the package
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased article-route bullets
+- `.agents/summary.md` — article routes now exist
+- `progress.md` — items 8 and 9
+- `prompts/session-4.md` — remaining Phase 1 work
+
+**Why:** Session 3's listing slice already shipped the four index routes. This invocation is the article component and the two wrappers only. One body, two chrome variants, so a prose or code-block change cannot fork. The listing POC owns pinned columns and document scroll; the article POC owns the body. The shared top bar is reused rather than duplicated, which meant moving the listing footer onto `PageShell` so article routes do not inherit it.
+
+**Invented decisions:**
+- One shell for both routes uses listing-POC pinned columns (`padding-left: 19rem; padding-right: 3.5rem`; sidebar/rail `position: fixed` below `--tb`) and document scroll, not the article POC's sticky grid.
+- Mobile curriculum is a drawer (article POC pattern), not stacked above the article. Listing POC did not specify one.
+- Blog prev/next is previous/next in catalog sort within the same corpus (repo → folder → title), not graph edges.
+- Provenance comes from `<!-- extract: path#symbol -->` comments hoisted into fence meta. The verified count is omitted when zero. No mock "7 blocks".
+- Heading ids copy the content-schema GitHub slug algorithm into `apps/web/lib/slug.ts` so they match `catalog.sections`.
+- Markdown H1 is stripped; the page renders the catalog title.
+- Unresolved markdown `.md` links resolve against the article's own corpus only and render as plain text when the target did not adapt.
+- Blockquotes starting with "Lead with this" become `.av-hook`; other blockquotes become `.av-co`.
+- No `--cool` token; existing `@theme` tokens only.
+- Remark via `fumadocs-core/content/md` (`createMarkdownRenderer` + `remarkGfm`); no new npm packages.
+- `@corpus/mdx-components` tsconfig is Bundler/ESNext so Next can consume it (was NodeNext).
+- Footer lives on listing `PageShell`, not the locale layout, so article routes have no listing footer.
+- Sidebar collapse is client-only (no cookie) so the routes stay free of `cookies()`.
+- Related `h2` is outside the markdown slugger / rail sections.
+- Lesson notes render in the curriculum sidebar even though the listing POC sidebar omitted them.
+- Warm-up quiz on lesson pages is a dashed `av-ph` placeholder, not an `h3`.
+- Rail ticks are `<a href="#anchor">`, 18×2px default, 30px when `.on`/hover, unchanged from the article POC.
+- `export const dynamicParams` is forbidden under Cache Components, so excluded slugs 404 via `notFound()` after being omitted from `generateStaticParams`.
+- Shared top bar height is listing POC `--tb: 3.6rem`.
+- Article measure follows the article POC's 60rem, not `--measure-prose`.
+- Branch named `cursor/session-3-article-routes-f628` per the cloud-agent template, not `feat/` from `corpus-commit`.
+- Hosting/Vercel/DNS untouched. `verify-links` was not treated as a commit gate (D13, 44 refs, by design).
+
+**Known issues / next steps:**
+- `next build` table: listing concretes stay `○` (`/en`, `/en/blog`, `/en/courses`, `/en/courses/react-render-cycle`). Article and lesson generated paths are grouped as `◐` (`/+184` blog, `/+12` lessons) together with leftover `[slug]` templates. No `ƒ`. Inspected `.next/server/app/en/blog/nextjs/cache-components-model.html` and `en/courses/react-render-cycle/lessons/jsx-and-rendering.html` — full body, 181 blog HTML files, 12 lesson HTML files, lesson `rel=canonical` is the blog URL. `dynamicParams` cannot be set under Cache Components, so unknown slugs remain a request-time `notFound()` branch. Tracked under D23.
+- D18 a11y defects were not fixed. Rail ticks stay 18×2px (D19 tension).
+- Shiki (D20), Pagefind (D21), SEO residue (D22), `/en/license` (D25), DNS (Phase 0 item 5) are out of scope.
+- Do not auto-merge. Do not mark Phase 0 item 5 complete.
 
 ---

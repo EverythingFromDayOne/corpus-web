@@ -43,7 +43,7 @@ export default async function HomePage({ params }: PageProps) {
   const featured = view.courses[0];
 
   return (
-    <PageShell>
+    <PageShell messages={messages}>
       <JsonLd
         data={{
           '@context': 'https://schema.org',

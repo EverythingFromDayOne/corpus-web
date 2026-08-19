@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { ArticleHeaderToggle } from '@/components/article/article-shell';
 import { t, type Messages } from '@/lib/i18n';
 import { ThemeToggle } from './theme-toggle';
 import { SearchPlaceholder } from './search-placeholder';
@@ -15,7 +16,8 @@ export function SiteHeader({ locale, messages }: { locale: Locale; messages: Mes
       >
         {t(messages, 'nav.skipToContent')}
       </a>
-      <div className="mx-auto flex max-w-page flex-wrap items-center gap-4 px-5 py-3">
+      <div className="mx-auto flex min-h-[var(--tb)] max-w-page flex-wrap items-center gap-4 px-5 py-3">
+        <ArticleHeaderToggle label={t(messages, 'article.collapseSidebar')} />
         <a href={homePath(locale)} className="font-mono text-sm font-semibold tracking-meta no-underline">
           <span className="text-display">{t(messages, 'site.nameLead')}</span>
           <span className="text-signal">{t(messages, 'site.nameTail')}</span>
@@ -43,10 +45,13 @@ export function SiteFooter({ messages }: { messages: Messages }) {
   );
 }
 
-export function PageShell({ children }: { children: ReactNode }) {
+export function PageShell({ children, messages }: { children: ReactNode; messages: Messages }) {
   return (
-    <div className="mx-auto max-w-page px-5 py-10">
-      <div id="content">{children}</div>
-    </div>
+    <>
+      <div className="mx-auto max-w-page px-5 py-10">
+        <div id="content">{children}</div>
+      </div>
+      <SiteFooter messages={messages} />
+    </>
   );
 }

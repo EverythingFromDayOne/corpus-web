@@ -99,5 +99,35 @@
   },
   "notFound": {
     "title": "Not found"
+  },
+  "article": {
+    "corpusNav": "Corpus",
+    "corpus": "Corpus",
+    "chooseCorpus": "Choose corpus",
+    "curriculumNav": "Curriculum",
+    "collapseSidebar": "Collapse sidebar",
+    "closeSidebar": "Close sidebar",
+    "jumpTo": "Jump to {heading}",
+    "baseline": "Baseline",
+    "kind": "Kind",
+    "kindConcept": "Concept",
+    "kindRecipe": "Recipe",
+    "wave": "Wave",
+    "difficulty": "Difficulty",
+    "blocksVerified": "{count} blocks verified",
+    "viewSource": "View source",
+    "related": "Related",
+    "pageNav": "Page",
+    "previous": "Previous",
+    "next": "Next",
+    "previousLesson": "Previous lesson",
+    "nextLesson": "Next lesson",
+    "copy": "Copy",
+    "copied": "Copied",
+    "download": "Download",
+    "expand": "Expand",
+    "extracted": "extracted",
+    "lead": "Lead",
+    "quizHint": "Warm-up quiz ships later. This panel is a placeholder."
   }
 }

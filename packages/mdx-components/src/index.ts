@@ -1,11 +1,15 @@
 import type { MDXComponents } from 'mdx/types';
+import { CodeBlock } from './code-block';
+
+export { CodeBlock, type CodeBlockLabels } from './code-block';
 
 /**
  * Single registration map for article MDX. Routes must not define components
  * inline — every interactive widget is exported from this package.
- *
- * Spike stub: identity merge. Real components land with the chrome, not here.
  */
 export function getMDXComponents(components: MDXComponents = {}): MDXComponents {
-  return components;
+  return {
+    pre: CodeBlock as unknown as MDXComponents['pre'],
+    ...components,
+  };
 }

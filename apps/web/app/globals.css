@@ -15,6 +15,7 @@
   html {
     scroll-behavior: smooth;
     color-scheme: dark light;
+    --tb: 3.6rem;
   }
 
   body {
@@ -61,4 +62,23 @@
   to {
     stroke-dashoffset: 0;
   }
+}
+
+/* Shared header control: hidden on listing routes, shown when the article shell mounts. */
+.av-header-tog {
+  display: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-graphite);
+  color: var(--color-muted);
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+}
+
+body:has(.av-view) .av-header-tog {
+  display: inline-flex;
 }
