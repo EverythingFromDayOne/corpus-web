@@ -1786,3 +1786,41 @@ register, snapshot, and changelog so they carry one sentence.
 auto-merge.
 
 ---
+
+## Session debt-d6 — rule files seed, not force — 2026-08-19
+
+**Branch:** `content/nestjs-v0.3.2`
+
+**Files changed:**
+- `.cursor/rules/20-never-violate.mdc` — Nest "forces" `forbidUnknownValues: false` replaced with seeded overridable default
+- `.cursor/rules/50-api-nestjs.mdc` — same correction on the Validation section
+- `AGENTS.md` — regenerated; former "forces" hits at lines 378 and 701 are gone
+- `CLAUDE.md` — unchanged (pointer file; not a rule-body projection)
+- `.cursor/rules/60-skills.mdc` — unchanged (generated from skill descriptions, not these two rules)
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this task
+- `.agents/summary.md` — Last updated notes that `.cursor/rules` now matches the corpus correction
+- `progress.md` — session-log bullet for the rule-file alignment
+
+**Why:** Closing D6 in the trackers left the false "forces" wording in the canonical
+rule files. Every future agent run projects those files into `AGENTS.md`, so the
+corpus correction would be undone in context the next time an agent opened the
+repo. The two named lines now match `nestjs-concepts@v0.3.2`: since
+`@nestjs/common` 9.3.2, `ValidationPipe` seeds `forbidUnknownValues: false` as an
+overridable default.
+
+**Invented decisions:**
+- Kept each replacement to three wrapped lines rather than the original two so the
+  9.3.2 / 0.14.0 / 0.14.2 pins and the override constructor fit without becoming
+  an article
+- Did not edit `.claude/skills/corpus-nest-module/SKILL.md`, which still says Nest
+  "forces" the option and indexes as a "forbidUnknownValues reversal" at
+  `AGENTS.md` ~755. Out of the named two-file scope
+- `CLAUDE.md` is a pointer by design (`renderClaude()` in `scripts/build-agent-docs.mjs`);
+  zero hits there is not a projection-sync bug
+
+**Known issues / next steps:**
+- `.claude/skills/corpus-nest-module/SKILL.md` still restates the pre-correction claim
+- Do not auto-merge
+
+---

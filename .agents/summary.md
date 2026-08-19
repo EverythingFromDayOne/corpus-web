@@ -7,7 +7,8 @@
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
 > Last updated: 2026-08-19 (`nestjs@v0.3.2` closes Debt D6 — ValidationPipe
-> `forbidUnknownValues` claim corrected; catalog census unchanged)
+> `forbidUnknownValues` claim corrected in the corpus and in `.cursor/rules`;
+> catalog census unchanged)
 
 ---
 

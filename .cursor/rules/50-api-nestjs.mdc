@@ -38,8 +38,9 @@ is in the wrong service.
 
 - Every request body has a DTO with `class-validator` decorators.
 - `ValidationPipe` with `whitelist: true`, `transform: true`.
-- **Nest forces `forbidUnknownValues: false`**, which reverses `class-validator`'s
-  standalone default. Do not write tests that assume the standalone behaviour.
+- **Since `@nestjs/common` 9.3.2, `ValidationPipe` seeds `forbidUnknownValues: false`**
+  as an overridable default — `new ValidationPipe({ forbidUnknownValues: true })` restores
+  class-validator (`true` since 0.14.0, unconditional since 0.14.2).
 
 ## Persistence
 

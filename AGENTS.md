@@ -375,8 +375,9 @@ prompts/                  session prompts, committed
   The key never leaves the server.
 - **NEVER skip `@nestjs/swagger` decorators.** `packages/api-client` is generated from the
   OpenAPI document; an undecorated endpoint is an invisible endpoint.
-- Note: Nest forces `forbidUnknownValues: false` on `ValidationPipe`, reversing what
-  `class-validator` does standalone. Do not assume the standalone behaviour.
+- Note: since `@nestjs/common` 9.3.2, `ValidationPipe` seeds `forbidUnknownValues: false`
+  as an overridable default — `new ValidationPipe({ forbidUnknownValues: true })` restores
+  the library (`true` since class-validator 0.14.0, unconditional since 0.14.2).
 
 ## Personal content boundary
 
@@ -698,8 +699,9 @@ is in the wrong service.
 
 - Every request body has a DTO with `class-validator` decorators.
 - `ValidationPipe` with `whitelist: true`, `transform: true`.
-- **Nest forces `forbidUnknownValues: false`**, which reverses `class-validator`'s
-  standalone default. Do not write tests that assume the standalone behaviour.
+- **Since `@nestjs/common` 9.3.2, `ValidationPipe` seeds `forbidUnknownValues: false`**
+  as an overridable default — `new ValidationPipe({ forbidUnknownValues: true })` restores
+  class-validator (`true` since 0.14.0, unconditional since 0.14.2).
 
 ## Persistence
 

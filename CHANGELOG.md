@@ -5,6 +5,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-19] — content/nestjs-v0.3.2 — debt-d6: rule files seed, not force
+
+**Changed**
+- `.cursor/rules/20-never-violate.mdc` and `.cursor/rules/50-api-nestjs.mdc` — ValidationPipe
+  `forbidUnknownValues: false` is a seeded overridable default since `@nestjs/common` 9.3.2
+- `AGENTS.md` regenerated from those rules
+
+**Fixed**
+- Canonical rule files no longer say Nest forces `forbidUnknownValues: false`
+
 ### [2026-08-19] — content/nestjs-v0.3.2 — debt-d6: close D6 on nestjs v0.3.2
 
 **Added**

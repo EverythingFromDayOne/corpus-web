@@ -77,6 +77,9 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **debt-d6-rules (2026-08-19):** `.cursor/rules/20-never-violate.mdc` and
+  `50-api-nestjs.mdc` no longer say Nest "forces" `forbidUnknownValues: false`.
+  `AGENTS.md` regenerated. D6 already closed; census unchanged. Do not auto-merge.
 - **promote-nestjs-v0.3.2 (2026-08-19):** pinned `content/nestjs` from
   `nestjs-concepts@v0.3.1` to `@v0.3.2`. Closes Debt D6 (ValidationPipe
   `forbidUnknownValues` claim corrected in the corpus). Census unchanged at
