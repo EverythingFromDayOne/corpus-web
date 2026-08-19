@@ -9,21 +9,21 @@ import type { Locale } from '@/lib/locales';
 
 export function SiteHeader({ locale, messages }: { locale: Locale; messages: Messages }) {
   return (
-    <header className="border-graphite bg-ink/90 sticky top-0 z-50 border-b backdrop-blur-md">
+    <header className="topbar">
       <a
         href="#content"
         className="bg-signal text-ink sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-3 focus:py-1"
       >
         {t(messages, 'nav.skipToContent')}
       </a>
-      <div className="mx-auto flex min-h-[var(--tb)] max-w-page flex-wrap items-center gap-4 px-5 py-3">
+      <div className="topbar-wrap">
         <ArticleHeaderToggle label={t(messages, 'article.collapseSidebar')} />
-        <a href={homePath(locale)} className="font-mono text-sm font-semibold tracking-meta no-underline">
+        <a href={homePath(locale)} className="font-mono text-sm font-semibold tracking-meta shrink-0 no-underline">
           <span className="text-display">{t(messages, 'site.nameLead')}</span>
           <span className="text-signal">{t(messages, 'site.nameTail')}</span>
         </a>
         <NavLinks locale={locale} messages={messages} />
-        <div className="ml-auto flex items-center gap-3">
+        <div className="topbar-tools">
           <SearchPlaceholder messages={messages} />
           <ThemeToggle label={t(messages, 'nav.themeToggle')} />
         </div>

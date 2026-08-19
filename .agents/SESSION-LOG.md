@@ -2171,3 +2171,46 @@ utility classes present in the rendered HTML).
 - Do not auto-merge. Do not mark Phase 0 item 5 complete.
 
 ---
+
+## Session 3 follow-up — listing chrome defects — 2026-08-19
+
+**Branch:** `cursor/session-3-article-routes-f628`
+
+**Files changed:**
+- `apps/web/components/home/concept-graph-teaser.tsx` — deleted; SVG dropped
+- `apps/web/components/home/entry-points.tsx` — listing-POC graph coming-soon card as the third grid item
+- `apps/web/app/[locale]/page.tsx` — pass live edge count; no graph SVG
+- `apps/web/components/chrome/search-placeholder.tsx` — Search label, Coming soon placeholder, ⌘K, disabled + aria-disabled
+- `apps/web/components/chrome/site-header.tsx` — `.topbar` locked to `--tb`, no wrap
+- `apps/web/components/chrome/nav-links.tsx` — no wrap
+- `apps/web/app/globals.css` — top bar, search, coming-soon tag; graph-edge animation removed
+- `apps/web/components/article/article.css` — `.av-sbhd` stays `position: static` with opaque surface
+- `apps/web/messages/en.json` — POC corpus one-liners; search and graph-card strings
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased chrome-defect bullets
+- `.agents/summary.md` — 289 edges are intra-corpus; home uses the coming-soon card
+- `progress.md` — items 11 and 13 notes
+
+**Why:** Five non-structural defects on the article-routes PR. The graph SVG used
+`w-full` against a 276-unit viewBox and contained four nodes and no edges. The
+caption claimed cross-corpus links; measuring `catalog.json` showed all 289
+edges are intra-corpus, so drawing inter-corpus stroke-weighted lines would
+still render the subject as absent. The listing POC already specifies the
+coming-soon card in the "Three ways in" grid, which is the other option the
+review allowed. The overflowing search made the sticky top bar taller than
+`--tb` while the article sidebar is pinned at `top: var(--tb)`, so the corpus
+select sat under the bar; the CORPUS row was never sticky.
+
+**Invented decisions:**
+- Drop the SVG rather than draw empty inter-corpus links (0 of 289 edges cross a corpus)
+- Live `{count}` in the coming-soon card body rather than a hardcoded 289
+- Replace the duplicate "Browse everything" entry card with the graph coming-soon card; "Debugging a specific problem" still links to `/en/blog`
+- Leave unused `home.graphHeading` / `graphCaption` / `placeholders.graphFullView` keys in the catalogue
+- Corpus card `scope` strings are the POC `h3` one-liners, not the longer supporting paragraphs
+- Top bar uses listing-POC `height: var(--tb)` rather than `min-height`
+
+**Known issues / next steps:**
+- Pagefind (D21) still replaces this disabled control. Concept-graph view remains Phase 4.
+- Do not auto-merge.
+
+---

@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { PageShell } from '@/components/chrome/site-header';
-import { ConceptGraphTeaser } from '@/components/home/concept-graph-teaser';
 import { CorpusCards, DemoLabsPlaceholder, DemoPlaceholder } from '@/components/home/corpus-cards';
 import { EntryPoints, ReadingConventions } from '@/components/home/entry-points';
 import { JsonLd } from '@/components/json-ld';
@@ -76,8 +75,12 @@ export default async function HomePage({ params }: PageProps) {
       <div className="mt-16 space-y-16">
         <CorpusCards locale={locale} corpora={view.corpora} messages={messages} />
         <DemoLabsPlaceholder messages={messages} />
-        <ConceptGraphTeaser graph={view.graph} messages={messages} />
-        <EntryPoints locale={locale} featured={featured} messages={messages} />
+        <EntryPoints
+          locale={locale}
+          featured={featured}
+          edgeCount={view.graph.edges.reduce((sum, edge) => sum + edge.count, 0)}
+          messages={messages}
+        />
         <ReadingConventions messages={messages} />
       </div>
     </PageShell>

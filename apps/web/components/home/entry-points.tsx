@@ -6,10 +6,12 @@ import { blogPath, coursePath } from '@/lib/routes';
 export function EntryPoints({
   locale,
   featured,
+  edgeCount,
   messages,
 }: {
   locale: Locale;
   featured: CourseView | undefined;
+  edgeCount: number;
   messages: Messages;
 }) {
   return (
@@ -40,13 +42,16 @@ export function EntryPoints({
           </a>
         </li>
         <li>
-          <a
-            href={blogPath(locale)}
-            className="border-graphite bg-surface hover:border-muted block h-full rounded-md border p-5 no-underline"
-          >
-            <p className="text-display text-lg">{t(messages, 'home.entryBrowseTitle')}</p>
-            <p className="text-muted mt-2 text-sm">{t(messages, 'home.entryBrowseBody')}</p>
-          </a>
+          <div className="border-graphite bg-surface h-full rounded-md border p-5 opacity-60">
+            <p className="meta">{t(messages, 'home.entryGraphEyebrow')}</p>
+            <p className="text-display mt-2 text-lg">{t(messages, 'home.entryGraphTitle')}</p>
+            <p className="text-muted mt-2 text-sm">
+              {t(messages, 'home.entryGraphBody', { count: edgeCount })}
+            </p>
+            <p className="mt-4">
+              <span className="tag-soon">{t(messages, 'placeholders.comingSoon')}</span>
+            </p>
+          </div>
         </li>
       </ul>
     </section>

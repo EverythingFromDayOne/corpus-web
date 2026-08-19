@@ -5,6 +5,24 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-19] — cursor/session-3-article-routes-f628 — listing chrome defects
+
+**Added**
+- Nothing
+
+**Changed**
+- `/en` concept-graph teaser is the listing-POC coming-soon card in the entry grid (289 live catalog edges, all intra-corpus)
+- Corpus card one-liners taken from `docs/design/listing-pages-poc.html`
+- Disabled top-bar search: `Search` label, `Coming soon` placeholder, `⌘K` hint, one line
+- Top bar height locked to `--tb` (listing POC)
+
+**Removed**
+- Home-page concept-graph SVG (`concept-graph-teaser.tsx`)
+
+**Fixed**
+- Search control no longer wraps a second "coming soon" and overflow `--tb`
+- Article sidebar corpus select no longer sits under the top bar; CORPUS row is not sticky
+
 ### [2026-08-19] — cursor/session-3-article-routes-f628 — article and lesson routes
 
 **Added**

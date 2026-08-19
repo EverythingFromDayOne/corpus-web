@@ -14,7 +14,9 @@
     "articles": "Articles",
     "skipToContent": "Skip to content",
     "themeToggle": "Toggle colour theme",
-    "primary": "Primary"
+    "primary": "Primary",
+    "search": "Search",
+    "searchKbd": "⌘K"
   },
   "placeholders": {
     "comingSoon": "Coming soon",
@@ -42,6 +44,9 @@
     "entryDebugBody": "Browse articles by corpus and folder.",
     "entryBrowseTitle": "Browse everything",
     "entryBrowseBody": "The full article index.",
+    "entryGraphEyebrow": "Follow the graph",
+    "entryGraphTitle": "Concept map",
+    "entryGraphBody": "{count} cross-links across four corpora, drawn as one graph.",
     "readingHeading": "How to read this",
     "readingConcept": "A concept article explains a mechanism.",
     "readingRecipe": "A recipe starts from a symptom and points at the mechanism.",
@@ -55,19 +60,19 @@
   "corpora": {
     "nextjs": {
       "label": "Next.js",
-      "scope": "Reference articles on Next.js."
+      "scope": "Caching, the server boundary, and the route tree"
     },
     "react": {
       "label": "React",
-      "scope": "Reference articles on React."
+      "scope": "Rendering, state, and the escape hatches"
     },
     "angular": {
       "label": "Angular",
-      "scope": "Reference articles on Angular."
+      "scope": "Signals, DI, and the component lifecycle"
     },
     "nestjs": {
       "label": "NestJS",
-      "scope": "Reference articles on NestJS."
+      "scope": "The request lifecycle and the module graph"
     }
   },
   "courses": {
