@@ -1865,3 +1865,98 @@ teaching every future agent the claim D6 closed.
 - Do not auto-merge
 
 ---
+
+## Session poc-grid-review — article layout grid placement at every breakpoint — 2026-08-19
+
+**Branch:** `cursor/poc-grid-placement-every-breakpoint-1a80`
+
+**Files changed:**
+- `docs/design/article-layout-poc.html` — desktop template, explicit child placement, and the `.view.nosb` collapse moved into `@media (width > 1000px)`; the ≤1000px block became its exact complement and now places all three children in its single column; the `.view.nosb>.sb{visibility:visible}` specificity patch and `.view>.sb{grid-column:1/-1}` deleted
+- `prompts/session-3.md` — the two grid bullets in §3 annotated with the corrected state and the measured before/after tracks
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this task
+- `progress.md` — session-log bullet; Phase 1 item 8 note that the POC contract no longer carries the two grid defects
+
+**Why:** The review asked three questions about the article component. The first finding is
+that the component does not exist. `apps/web` has one route — the session-1 spike at
+`/[locale]/concepts/[repo]/[...slug]`, hardcoded to a single `nextjs-concepts` article, with
+no shell, sidebar, or rail — and `packages/ui` and `packages/mdx-components` are both empty
+stubs. There is no `/en/blog` route, no `/en/courses/[course]/lessons/[slug]` route, and no
+extracted article component, so the two-copies question has no subject: nothing is shared
+and nothing has drifted. `prompts/session-3.md` §3 specifies the intended shape — one
+component taking a chrome variant, two route wrappers — and that session has not been run.
+
+The two grid defects are therefore reviewable only in the contract file itself, and both
+were live there. `432d825` added explicit placement but only to the top-level template, so
+the ≤1000px block still left `main` at `grid-column:2` against a one-track template. That is
+the identical defect the commit claimed to fix, one breakpoint down. Measured in headless
+Chrome at an exact 1000px viewport, the resolved tracks were `4.8125px 995.188px` — Chrome
+reports the implicit track, which is what makes the diagnosis unambiguous rather than
+inferred. Separately, `.view.nosb` at (0,2,0) outranked the ≤1000px `.view` at (0,1,0), so a
+collapse performed on desktop carried the three-column template into mobile and gave 56px of
+a 390px viewport to an empty rail track. The POC already contained one patch for that
+collision, `.view.nosb>.sb{visibility:visible}`, which fixed the visibility half and missed
+the template half — the signature of patching around a specificity problem rather than
+removing it. Scoping both the template and the collapse to `(width > 1000px)`, complemented
+by `(width <= 1000px)`, means no rule has to out-specify another to be undone, and the patch
+was deleted rather than extended.
+
+**Invented decisions:**
+- **Fixed the POC rather than only reporting.** The task said "report and fix" and named two
+  defects that exist only in `docs/design/article-layout-poc.html`. Rule 00 lists
+  `docs/design/` as "replaced wholesale when the design moves"; this is a defect correction,
+  not a design move, so the edits are surgical and in place. The alternative — leaving the
+  contract wrong and fixing it during session 3 — keeps a known-broken artifact as the thing
+  session 3 transcribes from.
+- **Media Queries Level 4 range syntax** (`width > 1000px` / `width <= 1000px`) for the
+  complementary pair, rather than `min-width:1001px` (which leaves fractional viewports
+  between 1000 and 1001 unstyled) or `min-width:1000.02px` (a fractional-breakpoint hack).
+  The file already requires `:has()` and `color-mix()`, both of which set a higher browser
+  floor than range syntax, so this does not move the floor. The `1280px` and `520px` queries
+  were left in `max-width` form — they are not part of a complement pair and rewriting them
+  is churn.
+- **On mobile all three children are placed in column 1**, not just `main`. `.sb` is a
+  fixed-position drawer and `.rail` is `display:none`, so neither generates a box in that
+  cell; placing them anyway is what makes the block hold at every breakpoint by inspection
+  instead of by knowing which children happen to be out of flow today.
+- **Removed `.sb` from the ≤1000px `display:none` group.** The next rule set it to
+  `display:block` two lines later, so the computed result is identical. It sat inside the
+  rules being rewritten and is the same patch-then-undo shape as the specificity defect.
+- **Annotated `prompts/session-3.md` rather than rewriting its defect list.** Rule 00 makes
+  session prompts immutable once run and annotated thereafter; this one has not been run, but
+  an annotation is the lighter change and it stops the next agent reading a bullet that
+  describes a defect it will not find. The instruction to correct the remaining POC defects is
+  untouched.
+- **No new debt ID opened.** The recurrence guard — a check that asserts resolved grid tracks
+  per breakpoint — is already tracked as a session-3 §7 deferral alongside the note that two
+  grid bugs shipped past every existing gate. A second ID for the same gap would be permanent
+  duplicate noise in an append-only register.
+- Branch named `cursor/poc-grid-placement-every-breakpoint-1a80` to satisfy the cloud-agent
+  prefix and suffix rather than `corpus-commit`'s `fix/<short-slug>` form.
+- Session log id `poc-grid-review` rather than a sequential session number — this is a named
+  Slack review task, not a `prompts/session-N.md` run. No `prompts/session-N+1.md` authored;
+  `prompts/session-3.md` is still the next session and is unrun.
+
+**Known issues / next steps:**
+- **No automated check would have caught either defect, and none was added.** The measurement
+  used here is a throwaway harness in `/tmp` driving the system `google-chrome`: it renders
+  the POC inside fixed-width iframes and reads `getComputedStyle(view).gridTemplateColumns`
+  plus `main`'s rect. Making it a gate means a Playwright or CDP dependency, which is a
+  stop-and-ask under rule 20, so it was not installed. Note for whoever builds it: headless
+  Chrome clamps its own window to roughly 500px, so `--window-size=390,900` silently measures
+  a 500px viewport and reports the 390px case as passing. The iframe wrapper is what makes an
+  exact 390px measurement possible.
+- The remaining POC defects listed in `prompts/session-3.md` §3 are untouched: heading order
+  `h1 → h3 → h3 → h2`, the missing `.lang` badge and its absent CSS rule, `#mk` in the second
+  figure being referenced by no JavaScript, the mock `✓ 7 blocks verified` strip, and the two
+  disagreeing breadcrumbs. Out of the three-item scope.
+- The JavaScript still never clears `nosb` when the viewport crosses 1000px and there is no
+  resize handler. That is now cosmetically harmless because the class has no declarations
+  below the breakpoint, but the real build persists collapse state in a cookie, so the reader
+  path into the old bug was a mobile load with a collapsed cookie, not a resize.
+- `apps/web` remains the spike. Building the two route wrappers over one article component is
+  session 3.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side, untouched here.
+- Do not auto-merge.
+
+---

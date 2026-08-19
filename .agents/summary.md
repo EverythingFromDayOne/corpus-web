@@ -6,9 +6,10 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-19 (`nestjs@v0.3.2` closes Debt D6 — ValidationPipe
-> `forbidUnknownValues` claim corrected in the corpus, `.cursor/rules`, and
-> `corpus-nest-module`; catalog census unchanged)
+> Last updated: 2026-08-19 (the article-layout POC's two grid defects corrected —
+> placement and the sidebar collapse are now breakpoint-scoped; `nestjs@v0.3.2` closes
+> Debt D6 — ValidationPipe `forbidUnknownValues` claim corrected in the corpus,
+> `.cursor/rules`, and `corpus-nest-module`; catalog census unchanged)
 
 ---
 
@@ -123,6 +124,21 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
   `.next/server/app/<route>.html`.
 - `next dev` under-reports prerender severity: some failures show HTTP 200 in dev and are
   fatal at build.
+- **Every rule that places a child of the article shell's grid is breakpoint-scoped, and
+  must stay that way.** `docs/design/article-layout-poc.html` pairs
+  `@media (width > 1000px)` with `@media (width <= 1000px)` — exact complements — and each
+  block declares its own template *and* places `.sb`, `main`, and `.rail` inside it. Two
+  separate bugs came out of splitting those apart: a `grid-column:2` left at top level put
+  `main` in an implicit second track once the mobile block dropped to one column, and
+  `.view.nosb` at (0,2,0) outranked the mobile `.view` at (0,1,0), so a sidebar collapsed on
+  desktop dragged the three-column template into mobile and gave 56px of a 390px viewport to
+  an empty rail track. The second one had already been patched around once, with
+  `.view.nosb>.sb{visibility:visible}` inside the media query — if a fix to this grid needs a
+  higher-specificity selector to undo another rule, the scoping is wrong, not the specificity.
+- **Headless Chrome clamps its own window to roughly 500px wide.** `--window-size=390,900`
+  reports `innerWidth: 500`, so a 390px check silently measures 500px and passes. Render the
+  page inside a fixed-width iframe to get a real 390px viewport. Both POC grid bugs survived
+  a round of manual checking, and the mobile one is invisible at 500px.
 - `class-validator` has defaulted `forbidUnknownValues` to `true` since 0.14.0,
   unconditionally since 0.14.2; from `@nestjs/common` 9.3.2 `ValidationPipe` seeds
   it back to `false` as an overridable default, so an undecorated DTO that
