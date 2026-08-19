@@ -5,6 +5,21 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-19] — cursor/verify-prerender-aa14 — prerender HTML gate
+
+**Added**
+- `scripts/verify-prerender.mjs` — asserts catalog article and path-lesson routes against `.next/server/app/**.html`
+- `verify:prerender` script in the root `package.json`
+
+**Changed**
+- Nothing
+
+**Removed**
+- Nothing
+
+**Fixed**
+- CI job "Lint, typecheck, build" called `pnpm verify:prerender` after `build` with no script (PR #21)
+
 ### [2026-08-19] — cursor/session-3-article-routes-f628 — rail hover labels and part-level ticks
 
 **Added**

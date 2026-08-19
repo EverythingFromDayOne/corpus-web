@@ -53,7 +53,7 @@ the current pins: **197 selected, 181 adapting** — nextjs 10/10, react 58/73, 
 | 12 | Mobile layout | 🟢 | Article/lesson mobile is a drawer, not a stacked curriculum. 390px visual pass is still human. **Headless Chrome clamps its window to roughly 500px**, so a `--window-size=390,900` run silently measures 500px; measure inside a fixed-width iframe |
 | 13 | Corpus landing at `/en` + `/en/license` (roadmap §15.1) | 🟡 | `/en` transcribes listing-POC `#p-home`: census readout from `catalog.json`, two CTAs, hero band, corpus ratio bars + adapting/version footer, split "Three ways in" with the demo panel as aside, tag-legend reading conventions. `/en/license` is Debt D25 |
 | 14 | SEO baseline: metadata, OG, sitemap, JSON-LD | 🟡 | Listing and article pages ship metadata + WebSite/Organization/TechArticle/BreadcrumbList JSON-LD. Sitemap, robots.txt, OG images are Debt D22 |
-| 15 | Cache Components strategy, verified via `.next/server/app/**.html` | 🟡 | Nothing above the article/lesson pages reads `cookies()`, `headers()`, or `searchParams`. Inspected prerender HTML (181 blog + 12 lesson files). Build table groups generated article/lesson paths as `◐` with leftover `[slug]` templates; listing concretes stay `○`. No `ƒ`. `dynamicParams` is incompatible with Cache Components. D23 |
+| 15 | Cache Components strategy, verified via `.next/server/app/**.html` | ✅ | Nothing above the article/lesson pages reads `cookies()`, `headers()`, or `searchParams`. `pnpm verify:prerender` asserts 181 blog + 12 lesson HTML files under `.next/server/app`, each with a non-empty `<body>`. Bracketed `[param]` shells (◐ rows) are excluded. Build table still groups generated paths as `◐`; listing concretes stay `○`. No `ƒ`. D23 closed. |
 | 16 | `description` frontmatter pass, four framework corpora (197 files) | 🟡 | **Debt D5, no longer blocking item 7.** The pass has landed in all four: `nextjs@v0.3.0` 10/10, `react@v0.5.0` 58/73, `angular@v0.3.0` 93/94, `nestjs@v0.3.2` 20/20 — 181 of 197 adapt. Two named residues remain, both corpus-side: the 15 untitled `react` articles the pass deliberately skipped (D11) and `angular`'s duplicate `widget-deployment.md` (D15). `nestjs@v0.3.1` recovered `dtos-and-class-validator` (D12 closed), which is the +1 selected / +1 adapting |
 
 **Gate:** a complete, shippable, useful site with zero backend.
@@ -77,6 +77,11 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **verify-prerender (2026-08-19):** CI `pnpm verify:prerender` had no
+  script. Added `scripts/verify-prerender.mjs` and the package.json
+  entry. Asserts catalog articles and path lessons against
+  `.next/server/app/**.html` (not the build table). D23 closed. Content
+  gates untouched. Do not auto-merge.
 - **session-3-article-routes rail labels (2026-08-19):** hover labels were in
   the markup with text and the reveal rule matched; `overflow: hidden` on the
   3.5rem rail clipped them. Ticks are now `<button>`s over `depth === 2`

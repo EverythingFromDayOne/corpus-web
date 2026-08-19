@@ -2305,3 +2305,42 @@ entry (h2 and h3) onto ticks, so a lesson such as `jsx-and-rendering` showed
 
 ---
 
+## Session 4 pick E — prerender HTML gate — 2026-08-19
+
+**Branch:** `cursor/verify-prerender-aa14`
+
+**Files changed:**
+- `scripts/verify-prerender.mjs` — CI gate: catalog article and path-lesson routes must emit `.next/server/app/**.html` with a non-empty `<body>`
+- `package.json` — `verify:prerender` script
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased prerender-gate bullets
+- `.agents/summary.md` — prerender key fact names the gate; D23 closed in planned next steps
+- `progress.md` — Phase 1 item 15 ✅; session bullet
+- `docs/DEBT.md` — D23 moved to Closed
+
+**Why:** PR #21 added a "Prerender assertions" step to `.github/workflows/ci.yml` that
+runs `pnpm verify:prerender` after `pnpm build`, but neither the script nor the
+package.json entry existed, so the Lint/typecheck/build job failed at that step.
+Roadmap item 15 requires asserting against `.next/server/app/**.html` rather than
+the build table, curl, or view-source; session 3 had already inspected 181 blog
+and 12 lesson files by hand. This session makes that inspection a gate.
+
+Content gates (`verify-frontmatter` / `verify-links` / `verify-catalog`) are
+untouched and stay red on known debt.
+
+**Invented decisions:**
+- Locale is hardcoded `en`, matching the only shipped locale in `apps/web/lib/locales.ts`
+- HTML path form is `apps/web/.next/server/app/<route>.html`, the form session 3 inspected, not nested `page.html`
+- Bracketed templates are any relative path matching `/\[.+\]/`
+- Catalog is JSON-parsed for `articles` and `paths` only; schema validity stays `verify-catalog`'s job
+- Lesson routes are derived from every `catalog.paths` entry, not the `react-render-cycle` filter in `generateStaticParams`
+- Emitted file census is classified by path shape (`en/blog/<corpus>/<slug>.html` and `en/courses/<course>/lessons/<slug>.html`); extras that match those shapes fail, extras that do not are ignored
+- D23 is closed because the method is now a gate; leftover ◐ `[param]` shells remain expected and excluded
+
+**Known issues / next steps:**
+- Content gates stay red (D5/D11/D13/D15)
+- Quality job still calls missing `verify:a11y` / `verify:lighthouse` (D19)
+- Do not auto-merge
+
+---
+
