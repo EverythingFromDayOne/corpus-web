@@ -5,6 +5,35 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-19] — cursor/poc-grid-placement-every-breakpoint-1a80 — article layout grid placement at every breakpoint
+
+**Changed**
+- `docs/design/article-layout-poc.html` — the desktop three-column template, the explicit
+  child placement, and the `.view.nosb` collapse now sit inside `@media (width > 1000px)`;
+  the mobile block is its exact complement, `@media (width <= 1000px)`
+- `docs/design/article-layout-poc.html` — the ≤1000px block declares
+  `grid-template-columns:minmax(0,1fr)` and places `.sb`, `main`, and `.rail` in column 1
+- `prompts/session-3.md` — the two grid bullets in §3 annotated with the corrected state and
+  the before/after track measurements
+
+**Removed**
+- `.view.nosb>.sb{visibility:visible;padding:1.1rem .85rem}` — the specificity patch inside
+  the ≤1000px block, no longer reachable now that the collapse is breakpoint-scoped
+- `.view>.sb{grid-column:1/-1}` from the ≤1000px block, replaced by placement covering all
+  three children
+- `.sb` from the ≤1000px `display:none` group, which the next rule overrode to
+  `display:block` two lines later
+
+**Fixed**
+- `main` no longer lands in an implicit second column at ≤1000px. Measured in headless
+  Chrome at an exact 1000px viewport: resolved tracks `4.8125px 995.188px` from a one-track
+  template before, `1000px` after, with `main` in column 1
+- A sidebar collapsed on desktop no longer carries the three-column template into mobile.
+  Measured at an exact 390px viewport: `main` 334px beside a 56px empty rail track before,
+  390px after
+- Verified at 1440, 1000, and 390px, in both the default and collapsed states, plus the
+  `.mobsb` drawer state; no horizontal overflow at any width
+
 ### [2026-08-19] — content/nestjs-v0.3.2 — debt-d6: nest-module skill seed, not reversal
 
 **Changed**

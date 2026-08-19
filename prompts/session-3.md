@@ -213,10 +213,18 @@ blocks, breadcrumb, prev/next.
   `display:none`, leaving `main` the only grid item while it still declares `grid-column:2`
   — so it lands in an implicit second track with the `1fr` track empty beside it. Place
   children explicitly at every breakpoint.
+  *Annotated 2026-08-19: corrected in the POC itself, so transcribing it now carries the
+  fix. Measured before: 1000px resolved to `4.8125px 995.188px` from a one-track template.
+  After: `1000px`, one track, `main` in column 1.*
 - **The collapsed-sidebar specificity patch.** `.view.nosb` at (0,2,0) outranks the ≤1000px
   `.view` rule at (0,1,0), which is why the POC needs a `.view.nosb>.sb{visibility:visible}`
   patch inside the media query. Scope the desktop collapse to the desktop breakpoint instead
   of patching around it.
+  *Annotated 2026-08-19: corrected in the POC itself. The desktop template, the placement,
+  and `.view.nosb` now sit in a `(width > 1000px)` block whose exact complement is the
+  `(width <= 1000px)` block, and the `visibility:visible` patch is deleted rather than
+  extended. Measured before: a collapsed sidebar carried the three-column template into
+  mobile and cost `main` 56px of 390 to an empty rail track.*
 - **Heading order runs `h1 → h3 → h3 → h2`.** The warm-up and roadmap blocks are `h3` before
   Part 1's `h2`. Demote them out of the hierarchy rather than promoting them. This changes
   the rail's tick denominator and sets an authoring convention for every article using the

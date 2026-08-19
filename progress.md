@@ -47,10 +47,10 @@ the current pins: **197 selected, 181 adapting** — nextjs 10/10, react 58/73, 
 | 7 | `build-catalog.mjs` → routes + sidebar tree | 🟡 | Session 2: real implementation, all logic proven (incl. via synthetic fixtures for `verify-catalog`). Follow-up c: emit-with-exclusions — an unadaptable file lands in `catalog.failures` instead of aborting the write. Follow-up d: the link report is classified four ways and only a ref resolving to nothing is fatal (D14 closed). **`status` removed from the publication decision (2026-08-18):** renamed `Article.status` → `authoringStage`, deleted draft gating from the link report and from path validation. Re-measured: `build-catalog` writes — 181 of 197 articles, **289 edges** (was 0 — every one of them was previously a `draftTargets` warning because all 181 adapting articles normalised `status` to `draft`), 16 excluded (D11 + D15), 0 draft-target warnings (bucket now vestigial), 44 unresolved refs recorded in `catalog.unresolvedTargets` (D13, unchanged). `verify-links` still fails on the 44. Routes and sidebar are the remaining work. |
 | 7b | `verify-frontmatter.mjs` / `verify-links.mjs` / `verify-catalog.mjs` gates | ✅ | Session 2; `verify-catalog`'s four checks (dup uid, missing/draft path target, `root`-folder sentinel) proven against synthetic fixtures. Follow-up c added a fifth: non-empty `catalog.failures` exits 1. Follow-up d: `verify-links`'s only fatal condition is `unresolvedTargets`; excluded/draft/planned/demo targets warn, and adaptation failures warn there because `verify-frontmatter` owns them. `verify-catalog` gained two structural checks (every edge resolves; every excluded target names a file in `failures`), both proven by tampering with a built artifact. All three still correctly fail on current content |
 | 8 | Full route tree, every completed article renders | ⚪ | Blocked on item 7 |
-| 9 | Chrome: sidebar, breadcrumb, TOC rail, prev/next | ⚪ | |
+| 9 | Chrome: sidebar, breadcrumb, TOC rail, prev/next | ⚪ | The contract is `docs/design/article-layout-poc.html`. Its two grid defects are corrected there as of 2026-08-19, so the desktop template, the explicit child placement, and the `.view.nosb` collapse are all breakpoint-scoped and nothing has to out-specify anything to be undone. The other POC defects listed in `prompts/session-3.md` §3 (heading order, `.lang` badge, `#mk`, the mock provenance strip, the two breadcrumbs) are still to be corrected during implementation |
 | 10 | Shiki code blocks (copy / download / expand) | ⚪ | |
 | 11 | Pagefind search + ⌘K dialog | ⚪ | |
-| 12 | Mobile layout | ⚪ | |
+| 12 | Mobile layout | ⚪ | The POC's ≤1000px block now declares one track and places `.sb`, `main`, and `.rail` in it. Verified in headless Chrome at exact 1000px and 390px viewports, default and collapsed. **Headless Chrome clamps its window to roughly 500px**, so a `--window-size=390,900` run silently measures 500px and reports the 390px case as passing; measure inside a fixed-width iframe |
 | 13 | Corpus landing at `/en` + `/en/license` (roadmap §15.1) | ⚪ | |
 | 14 | SEO baseline: metadata, OG, sitemap, JSON-LD | ⚪ | |
 | 15 | Cache Components strategy, verified via `.next/server/app/**.html` | ⚪ | |
@@ -77,6 +77,16 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **poc-grid-review (2026-08-19):** reviewed the article component against
+  `docs/design/article-layout-poc.html`. The component does not exist — `apps/web`
+  is still the session-1 spike, and there is no `/en/blog` or
+  `/en/courses/[course]/lessons/[slug]` route, so nothing has drifted into two
+  copies. Both named grid defects were live in the POC and are fixed there: the
+  desktop template, the explicit placement, and `.view.nosb` now sit in
+  `@media (width > 1000px)`, complemented by `(width <= 1000px)`, which placed
+  every child and let the `visibility:visible` specificity patch be deleted.
+  Measured at 1440 / 1000 / 390px, default and collapsed. No new debt ID; the
+  missing recurrence gate is already a session-3 §7 deferral. Do not auto-merge.
 - **debt-d6-skill (2026-08-19):** `.claude/skills/corpus-nest-module/SKILL.md`
   no longer calls `forbidUnknownValues` a Nest "reversal". Description and body
   now match the rule files (seeded overridable default). `AGENTS.md`

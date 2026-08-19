@@ -79,18 +79,28 @@ a{color:inherit;text-decoration:none}
 
 /* Explicit column placement. Without it, display:none on the sidebar removes it
    from the grid and every later child shifts one column left — main lands in the
-   0-width column and the rail takes 1fr. Placement makes hiding any child safe. */
-.view{display:grid;grid-template-columns:var(--wsb) minmax(0,1fr) var(--wr)}
-.view>.sb{grid-column:1;grid-row:1}
-.view>main{grid-column:2;grid-row:1}
-.view>.rail{grid-column:3;grid-row:1}
+   0-width column and the rail takes 1fr. Placement makes hiding any child safe.
+
+   The template and the placement live together in a breakpoint-scoped block, and
+   the ≤1000px block below is its exact complement. A child of .view is never
+   placed in a column the template at that width does not declare, and the
+   collapsed state cannot outlive the breakpoint it belongs to. */
+.view{display:grid}
+@media (width > 1000px){
+  .view{grid-template-columns:var(--wsb) minmax(0,1fr) var(--wr)}
+  .view>.sb{grid-column:1;grid-row:1}
+  .view>main{grid-column:2;grid-row:1}
+  .view>.rail{grid-column:3;grid-row:1}
+  /* Desktop collapse. Scoped here rather than left at top level, so the ≤1000px
+     block does not have to out-specify it to undo it. */
+  .view.nosb{grid-template-columns:0 minmax(0,1fr) var(--wr)}
+  .view.nosb>.sb{visibility:hidden;overflow:hidden;padding:0;border-right:0;min-width:0}
+}
 .sb{border-right:1px solid var(--graphite);background:var(--surface);padding:1.1rem .85rem;overflow-y:auto;max-height:calc(100vh - 55px);position:sticky;top:55px}
 .sbhd{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.85rem}
 .sbhd b{font-family:var(--fm);font-size:.6875rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500}
 .sbtog{background:var(--raised);border:1px solid var(--graphite);color:var(--muted);width:26px;height:26px;border-radius:var(--rs);cursor:pointer;display:grid;place-items:center;font-size:.75rem;flex:none;line-height:1}
 .sbtog:hover{color:var(--display);border-color:var(--muted)}
-.view.nosb{grid-template-columns:0 minmax(0,1fr) var(--wr)}
-.view.nosb>.sb{visibility:hidden;overflow:hidden;padding:0;border-right:0;min-width:0}
 .sb select,.sb input{width:100%;background:var(--raised);border:1px solid var(--graphite);color:var(--display);font-family:var(--fm);font-size:.8125rem;padding:.5rem .6rem;border-radius:var(--rs);margin-bottom:.7rem}
 .sb input{background:var(--ink);font-family:var(--fb);color:var(--body);margin-bottom:1.1rem}
 .grp{margin-bottom:1.1rem}
@@ -298,14 +308,19 @@ table{min-width:32rem}
 .scrim{display:none;position:fixed;inset:55px 0 0;background:rgba(0,0,0,.5);z-index:57}
 #mbar{display:none}
 @media(max-width:1280px){main{padding:2rem 1.5rem 6rem}}
-@media(max-width:1000px){
-  .view{grid-template-columns:1fr}.sb,.rail{display:none}main{padding:1.4rem 1.1rem 4rem}
+@media (width <= 1000px){
+  /* One column, and every child placed in it. main must not keep the desktop
+     grid-column:2 here: the sidebar becomes a fixed drawer and the rail is
+     removed, so column 2 is a track this template never declares and main would
+     sit in it beside an empty 1fr instead of filling the viewport. */
+  .view{grid-template-columns:minmax(0,1fr)}
+  .view>.sb,.view>main,.view>.rail{grid-column:1;grid-row:1}
+  .rail{display:none}
+  main{padding:1.4rem 1.1rem 4rem}
   #mbar{display:block;position:sticky;top:55px;z-index:55;height:2px;background:var(--graphite)}
   #mbar i{display:block;height:100%;width:0;background:var(--signal);transition:width 200ms}
-  .view>.sb{grid-column:1/-1}
   .sb{display:block;position:fixed;left:0;top:55px;bottom:0;width:min(20rem,82vw);z-index:58;transform:translateX(-102%);transition:transform 200ms var(--fast,ease);box-shadow:6px 0 24px rgba(0,0,0,.4);max-height:none}
   .view.mobsb .sb{transform:translateX(0)}
-  .view.nosb>.sb{visibility:visible;padding:1.1rem .85rem}
   .view.mobsb ~ .scrim,body:has(.view.mobsb) .scrim{display:block}
   main h1{font-size:clamp(1.55rem,7vw,2rem)}
   .mr{gap:.55rem 1rem;font-size:.75rem}
