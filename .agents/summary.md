@@ -6,7 +6,7 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-19 (verify:prerender HTML gate; D23 closed)
+> Last updated: 2026-08-19 (Phase 0 DNS cutover; `nxhhuy.tech` on Vercel)
 
 ---
 
@@ -84,7 +84,9 @@ Do not duplicate the version table here.
 - [x] Content submodules wired, four mounts, pinned to tags — `nextjs` `v0.3.0`,
       `react` `v0.5.0`, `angular` `v0.3.0`, `nestjs` `v0.3.2`
 - [x] Design tokens applied to the article shell (listing chrome uses them)
-- [ ] `nxhhuy.tech` DNS cutover
+- [x] `nxhhuy.tech` DNS cutover — complete 2026-08-19. Apex serves
+      corpus-web on Vercel (200); `www` 308s to the apex; every page emits
+      `<link rel="canonical">` pointing at the apex. Verified with curl.
 
 Application code now exists: `apps/web` serves catalog-driven listing routes at
 `/en`, `/en/courses`, `/en/courses/react-render-cycle`, and `/en/blog`, plus
@@ -264,9 +266,12 @@ bootstrap.
 
 1. **fumadocs spike — PASSED (session 1).** Keep fumadocs-core + fumadocs-mdx. Fallback
    pipeline is not needed.
-2. **AngularDemos integration.** Does `nxhhuy.tech` link out to `ng21.`/`ng15.`, iframe
-   them under a `/demos/*` route, or load Angular 21 as a cross-framework federated
-   remote? Not decided. Default assumption until decided: **link out**.
+2. **AngularDemos integration.** Apex `nxhhuy.tech` now CNAME-points at Vercel
+   (cut over 2026-08-19); it previously pointed at `angular-demos.pages.dev`.
+   Demos remain at `ng21.` / `ng15.`; the apex no longer serves them. How the
+   corpus site attaches to those hosts is still Q7: link out, iframe under
+   `/demos/*`, or load Angular 21 as a cross-framework federated remote? Not
+   decided. Default assumption until decided: **link out**.
 3. **Monetization.** Gates whether `entitlements` is built at all, whether Vercel Hobby is
    permissible, and whether quiz scoring must be server-side.
 
@@ -292,4 +297,3 @@ bootstrap.
   Pagefind (D21), `/en/license` (D25), SEO residue (D22), a11y (D18/D19).
   Render-mode gate (D23) is `pnpm verify:prerender`. Do not revive
   `/en/concepts/…`.
-4. DNS cutover: `nxhhuy.tech` -> Vercel.

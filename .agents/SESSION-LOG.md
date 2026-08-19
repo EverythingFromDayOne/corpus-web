@@ -2344,3 +2344,35 @@ untouched and stay red on known debt.
 
 ---
 
+## Task — Phase 0 item 5 DNS cutover recorded — 2026-08-19
+
+**Branch:** `cursor/phase-0-dns-cutover-1094`
+
+**Files changed:**
+- `progress.md` — Phase 0 item 5 ✅ with cutover facts; listing-routes scope fence replaced; session bullet
+- `.agents/summary.md` — DNS cutover ticked; planned next step 4 removed; apex CNAME fact corrected
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased DNS-cutover bullets
+
+**Why:** Phase 0 item 5 has been open since session 1. `nxhhuy.tech` was cut
+over to Vercel on 2026-08-19. The listing-routes slice left a live instruction
+not to mark the item complete; that fence is now false. Recording the cutover
+closes the item and records that Phase 0's gate (one-article render live at a
+real URL) is met, which the live site now exceeds with 181 articles and a
+twelve-lesson course.
+
+**Invented decisions:**
+- Status marker is ✅, matching the other completed rows in the Phase 0 table
+- Q7 left unresolved; only the factual apex CNAME description was corrected
+  (previously `angular-demos.pages.dev`, now Vercel; demos remain at `ng21.` /
+  `ng15.`)
+- Branch + PR rather than a direct push to `main`, because `corpus-commit`
+  forbids pushing to `main` even for docs-only work
+
+**Known issues / next steps:**
+- Q7 (how Angular demos attach to the shell) remains open
+- Phase 0 item 4 (design tokens) remains 🟢; Phase 0 stays drafted
+- Do not auto-merge
+
+---
+

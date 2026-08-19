@@ -32,7 +32,7 @@ the current pins: **197 selected, 181 adapting** — nextjs 10/10, react 58/73, 
 | 2 | **fumadocs × Next 16.3 × Cache Components spike** | ✅ | Session 1. All four exit criteria passed on `cache-components-model` |
 | 3 | Content submodules + `sync-content.mjs` + `verify-submodules` | ✅ | Four mounts, pinned to tags. Gate proven dirty→fail; session 2 added an exact-count-of-4 check |
 | 4 | Design tokens in `packages/ui` | 🟢 | `DESIGN.md` + `tokens.css` authored; listing chrome and the article shell apply them |
-| 5 | DNS cutover `nxhhuy.tech` → Vercel | ⚪ | Vercel already deploys from `main`; not touched in the listing-routes slice |
+| 5 | DNS cutover `nxhhuy.tech` → Vercel | ✅ | Cut over 2026-08-19. Apex serves the site (200); `www` 308s to the apex; every page emits `<link rel="canonical">` pointing at the apex. Verified with curl. Phase 0 gate met: 181 articles and a twelve-lesson course live at a real URL, not the single hardcoded page originally asked for |
 
 **Gate:** one real article renders at a live URL.
 
@@ -77,6 +77,10 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **phase-0-dns-cutover (2026-08-19):** Phase 0 item 5 complete. `nxhhuy.tech`
+  cut over to Vercel: apex 200, `www` 308 to apex, canonicals point at the
+  apex. Verified with curl. Gate met with 181 articles and a twelve-lesson
+  course. Listing-routes scope fence struck. Q7 left open.
 - **verify-prerender (2026-08-19):** CI `pnpm verify:prerender` had no
   script. Added `scripts/verify-prerender.mjs` and the package.json
   entry. Asserts catalog articles and path lessons against
@@ -105,7 +109,7 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
   are plain text. Shared listing top bar; listing footer stays on `PageShell`.
   Build table: listing concretes `○`, article/lesson generated paths grouped
   `◐`, no `ƒ`. Inspected prerender HTML. Debt D17–D26 unchanged. Do not
-  auto-merge. Do not mark Phase 0 item 5 complete.
+  auto-merge. Phase 0 item 5 is complete as of 2026-08-19.
 - **session-3-listing-routes (2026-08-19):** catalog-driven `/en`,
   `/en/courses`, `/en/courses/[course]`, `/en/blog`. Spike at
   `/[locale]/concepts/[repo]/[...slug]` deleted. Article component and both
