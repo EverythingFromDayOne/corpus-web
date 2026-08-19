@@ -2373,6 +2373,49 @@ twelve-lesson course.
 - Q7 (how Angular demos attach to the shell) remains open
 - Phase 0 item 4 (design tokens) remains 🟢; Phase 0 stays drafted
 - Do not auto-merge
+## Session debt-d27-d28 — empty concept graph; `--cool` untokenized — 2026-08-19
+
+**Branch:** `cursor/debt-d27-d28-70c9`
+
+**Files changed:**
+- `docs/DEBT.md` — D27 and D28 opened; Highest ID issued bumped D26 → D28
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this task
+- `.agents/summary.md` — debt ID range D1–D26 → D1–D28; D27 named on the intra-corpus edges fact
+- `progress.md` — session-log line
+
+**Why:** Two gaps found while building `/en` need IDs of their own rather than
+living inside session notes. D27 is the missing *input* to roadmap §5.4: the
+catalog has 289 live `related` edges and every one is intra-corpus, so a
+cross-corpus concept map has nothing to draw and the home teaser correctly
+became a coming-soon card. That is corpus-side authoring, not a rendering
+bug. D28 is a colour (`--cool`) that both layout POCs define and that home
+`.tag.concept` already copies locally, while `packages/ui/DESIGN.md` and
+`tokens.css` do not. One untokenized copy already exists; leaving it
+unregistered invites a second.
+
+`docs/DEBT.md` and `.agents/summary.md` are edited in place and were not
+union-merged.
+
+**Invented decisions:**
+- Session log id `debt-d27-d28` rather than a sequential session number —
+  this is a named Slack task, not a `prompts/session-N.md` run. No
+  `prompts/session-N+1.md` authored.
+- Branch named `cursor/debt-d27-d28-70c9` per the cloud-agent template,
+  not `docs/` from `corpus-commit`.
+- D27/D28 `Blocks` cells carry the user's stated fix (corpus-side
+  `related` refs; promote-or-remove `--cool`) rather than a Phase item.
+- D27 named on the existing intra-corpus key fact in `.agents/summary.md`
+  rather than adding a new key fact. D28 recorded only in the debt-range
+  paragraph.
+
+**Known issues / next steps:**
+- D27 fix is corpus-side: write `related` refs that cross repos, then
+  re-tag. Not a `corpus-web` rendering task.
+- D28 fix is promote `--cool` into `packages/ui` or drop it and use an
+  existing token.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side.
+- Do not auto-merge.
 
 ---
 

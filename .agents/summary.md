@@ -6,7 +6,7 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-19 (Phase 0 DNS cutover; `nxhhuy.tech` on Vercel)
+> Last updated: 2026-08-19 (D27–D28 opened; `nxhhuy.tech` on Vercel)
 
 ---
 
@@ -243,7 +243,7 @@ bootstrap.
   `docs/audit/unresolved-refs-2026-08-16.md` — see Debt D13. **All 289 live edges are
   intra-corpus** (measured 2026-08-19): there is no inter-corpus link to draw, so
   `/en` uses the listing-POC coming-soon card rather than an SVG of four unlinked
-  nodes. `/en` itself is a transcription of `docs/design/listing-pages-poc.html`
+  nodes (Debt **D27**). `/en` itself is a transcription of `docs/design/listing-pages-poc.html`
   `#p-home`: census readout, two CTAs, hero band, corpus ratio bars, split
   "Three ways in" with the demo panel as `aside`.
 - **`authoringStage` (formerly `status`) is no longer a publication gate — adaptation is.**
@@ -253,12 +253,14 @@ bootstrap.
   that label as a badge — it has no consumer yet. Debt **D6** is closed:
   `nestjs-concepts@v0.3.2` corrects the `nestjs/dtos-and-class-validator` headline
   claim (`forbidUnknownValues` is a seeded overridable default).
-- **The debt register lives in `docs/DEBT.md`**, not in `progress.md`. IDs D1–D26,
+- **The debt register lives in `docs/DEBT.md`**, not in `progress.md`. IDs D1–D28,
   append-only, never reused. `progress.md` keeps a one-line pointer. D16: nextjs and
   angular article/recipe templates omit `description` (reintroduces D5); react and
   nestjs have no templates. Session 3 listing slice opened D17–D26 (corpus gates,
   POC a11y, site CI, Shiki, Pagefind, SEO residue, render-mode verification
   (D23 now closed), interactive layer, `/en/license`, accounts/progress sync).
+  D27: all 289 live edges are intra-corpus, so the §5.4 concept map is unbuildable.
+  D28: `--cool` is used in both POCs and home `.tag.concept` but is not a design token.
 
 ---
 

@@ -77,6 +77,11 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **debt-d27-d28 (2026-08-19):** opened D27 (all 289 catalog edges are
+  intra-corpus; concept graph has nothing to draw) and D28 (`--cool`
+  used in both POCs and home `.tag.concept` but untokenized). Highest
+  ID issued D26 → D28. `docs/DEBT.md` and `.agents/summary.md` edited
+  in place. Do not auto-merge.
 - **phase-0-dns-cutover (2026-08-19):** Phase 0 item 5 complete. `nxhhuy.tech`
   cut over to Vercel: apex 200, `www` 308 to apex, canonicals point at the
   apex. Verified with curl. Gate met with 181 articles and a twelve-lesson
