@@ -275,6 +275,12 @@ session.
 
 ## 5. Rendering
 
+**Prerequisite:** `catalog.json` is produced at build time via `//#build:catalog` in
+`turbo.json`, which `@corpus/web#build` depends on. This was wired on 2026-08-19 and did
+not exist before — the session-1 spike survived without it only because it hardcodes one
+param and reads MDX through fumadocs. If a route prerenders zero pages, check the artifact
+before the route code.
+
 §6.2 is the Cache Components strategy. Both article routes are cached static shells and
 nothing above them reads `cookies()`, `headers()`, or `searchParams`. This is now
 straightforward — course context is a URL segment, so there is nothing to read.
