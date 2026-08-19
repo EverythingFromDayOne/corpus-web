@@ -54,7 +54,7 @@ the current pins: **197 selected, 181 adapting** — nextjs 10/10, react 58/73, 
 | 13 | Corpus landing at `/en` + `/en/license` (roadmap §15.1) | ⚪ | |
 | 14 | SEO baseline: metadata, OG, sitemap, JSON-LD | ⚪ | |
 | 15 | Cache Components strategy, verified via `.next/server/app/**.html` | ⚪ | |
-| 16 | `description` frontmatter pass, four framework corpora (197 files) | 🟡 | **Debt D5, no longer blocking item 7.** The pass has landed in all four: `nextjs@v0.3.0` 10/10, `react@v0.5.0` 58/73, `angular@v0.3.0` 93/94, `nestjs@v0.3.1` 20/20 — 181 of 197 adapt. Two named residues remain, both corpus-side: the 15 untitled `react` articles the pass deliberately skipped (D11) and `angular`'s duplicate `widget-deployment.md` (D15). `nestjs@v0.3.1` recovered `dtos-and-class-validator` (D12 closed), which is the +1 selected / +1 adapting |
+| 16 | `description` frontmatter pass, four framework corpora (197 files) | 🟡 | **Debt D5, no longer blocking item 7.** The pass has landed in all four: `nextjs@v0.3.0` 10/10, `react@v0.5.0` 58/73, `angular@v0.3.0` 93/94, `nestjs@v0.3.2` 20/20 — 181 of 197 adapt. Two named residues remain, both corpus-side: the 15 untitled `react` articles the pass deliberately skipped (D11) and `angular`'s duplicate `widget-deployment.md` (D15). `nestjs@v0.3.1` recovered `dtos-and-class-validator` (D12 closed), which is the +1 selected / +1 adapting |
 
 **Gate:** a complete, shippable, useful site with zero backend.
 
@@ -77,6 +77,21 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **debt-d6-skill (2026-08-19):** `.claude/skills/corpus-nest-module/SKILL.md`
+  no longer calls `forbidUnknownValues` a Nest "reversal". Description and body
+  now match the rule files (seeded overridable default). `AGENTS.md`
+  regenerated. D6 already closed; census unchanged. Do not auto-merge.
+- **debt-d6-rules (2026-08-19):** `.cursor/rules/20-never-violate.mdc` and
+  `50-api-nestjs.mdc` no longer say Nest "forces" `forbidUnknownValues: false`.
+  `AGENTS.md` regenerated. D6 already closed; census unchanged. Do not auto-merge.
+- **promote-nestjs-v0.3.2 (2026-08-19):** pinned `content/nestjs` from
+  `nestjs-concepts@v0.3.1` to `@v0.3.2`. Closes Debt D6 (ValidationPipe
+  `forbidUnknownValues` claim corrected in the corpus). Census unchanged at
+  **197 selected / 181 adapting**. Verified `pnpm build:catalog`: 181 articles,
+  289 edges, 16 excluded, 44 unresolved. No article added, removed or renamed.
+  Three `content_hash` changes: `validationpipe-in-depth`,
+  `dtos-and-class-validator`, `typescript-for-nest`. D13 stays at 44 refs / 33
+  targets. Do not auto-merge.
 - **authoring-stage-not-publication (2026-08-18):** `status` removed from the publication
   decision. `Article.status: 'draft' | 'complete'` renamed to
   `Article.authoringStage: string`, carrying the corpus's raw value through (trimmed

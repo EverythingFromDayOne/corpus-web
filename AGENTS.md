@@ -375,8 +375,9 @@ prompts/                  session prompts, committed
   The key never leaves the server.
 - **NEVER skip `@nestjs/swagger` decorators.** `packages/api-client` is generated from the
   OpenAPI document; an undecorated endpoint is an invisible endpoint.
-- Note: Nest forces `forbidUnknownValues: false` on `ValidationPipe`, reversing what
-  `class-validator` does standalone. Do not assume the standalone behaviour.
+- Note: since `@nestjs/common` 9.3.2, `ValidationPipe` seeds `forbidUnknownValues: false`
+  as an overridable default — `new ValidationPipe({ forbidUnknownValues: true })` restores
+  the library (`true` since class-validator 0.14.0, unconditional since 0.14.2).
 
 ## Personal content boundary
 
@@ -698,8 +699,9 @@ is in the wrong service.
 
 - Every request body has a DTO with `class-validator` decorators.
 - `ValidationPipe` with `whitelist: true`, `transform: true`.
-- **Nest forces `forbidUnknownValues: false`**, which reverses `class-validator`'s
-  standalone default. Do not write tests that assume the standalone behaviour.
+- **Since `@nestjs/common` 9.3.2, `ValidationPipe` seeds `forbidUnknownValues: false`**
+  as an overridable default — `new ValidationPipe({ forbidUnknownValues: true })` restores
+  class-validator (`true` since 0.14.0, unconditional since 0.14.2).
 
 ## Persistence
 
@@ -750,7 +752,7 @@ constraints; skills are how-to, loaded when the task matches. Read the full
 - **`corpus-mdx-component`** — How to build interactive components for the article reading experience — quizzes, flashcard decks, runnable code playgrounds, stepped simulators, and code blocks. Use when adding or editing anything in packages/mdx-components or packages/ui, or when a task asks for an interactive explainer inside an article. Covers the two playground tiers, component registration, and the design token discipline.
   → `.claude/skills/corpus-mdx-component/SKILL.md`
 
-- **`corpus-nest-module`** — Conventions for apps/api, the NestJS 11 service. Use when adding or editing a module, controller, service, DTO, guard, entity, or TypeORM migration, and when deciding whether a piece of functionality belongs in the API at all. Covers answer-key custody, the forbidUnknownValues reversal, and why lessons rows are archived rather than deleted.
+- **`corpus-nest-module`** — Conventions for apps/api, the NestJS 11 service. Use when adding or editing a module, controller, service, DTO, guard, entity, or TypeORM migration, and when deciding whether a piece of functionality belongs in the API at all. Covers answer-key custody, the forbidUnknownValues seeded default, and why lessons rows are archived rather than deleted.
   → `.claude/skills/corpus-nest-module/SKILL.md`
 
 - **`corpus-next-caching`** — Caching, rendering and verification rules for Next.js 16.3 with Cache Components enabled. Use when adding or editing any route, page, layout, loading boundary, Suspense boundary, server component, or data fetch in apps/web, and when verifying prerender output. Covers 'use cache', cacheLife, the client boundary, and why curl and next dev both under-report failures.

@@ -1713,3 +1713,155 @@ added, with `_none_` only for lists that genuinely did not change.
 - Do not auto-merge
 
 ---
+
+## Session debt-d6 — close D6 on nestjs-concepts@v0.3.2 — 2026-08-19
+
+**Branch:** `content/nestjs-v0.3.2`
+
+**Files changed:**
+- `content/nestjs` — gitlink already bumped `v0.3.1` → `v0.3.2` on this PR (`abae66f`); this commit is the tracker close-out
+- `docs/DEBT.md` — D6 moved from Open to Closed; Item is the corrected ValidationPipe claim, not the old "forced by Nest" wording
+- `progress.md` — v0.3.2 promotion entry; item 16 pin citation `nestjs@v0.3.1` → `v0.3.2` (20/20 left alone)
+- `.agents/summary.md` — D6 known-false headline removed; Nest `forbidUnknownValues` key fact replaced with the corrected claim; pin `v0.3.1` → `v0.3.2`
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this task
+
+**Why:** `nestjs-concepts@v0.3.2` already landed the corpus-side correction on this
+promotion PR. D6 stayed open because the in-place trackers still described the claim as
+false and still said Nest "forces" `forbidUnknownValues: false` — the same error the
+corpus just stopped making. Closing the row without rewriting it would have left the
+false claim in the register. The three in-place files (`docs/DEBT.md`, `progress.md`,
+`.agents/summary.md`) were edited in place; `.gitattributes` covers only SESSION-LOG
+and CHANGELOG.
+
+Census re-verified with `pnpm build:catalog` on this branch: 181 articles, 289 edges,
+16 excluded, 44 unresolved. No article added, removed, or renamed. Three `content_hash`
+changes on `validationpipe-in-depth`, `dtos-and-class-validator`, and
+`typescript-for-nest`. D5 and D13 left untouched: D5's `nestjs@v0.3.1` is when the
+description pass landed, and this fix changed no `related` refs.
+
+**Invented decisions:**
+- Inserted the closed D6 row after D3 so closed IDs stay in numeric order (D2, D3, D6,
+  D12, D14)
+- Item 16's pin citation updated to `v0.3.2`; the same row's D12 recovery sentence still
+  names `v0.3.1` as the tag that recovered the article
+- Did not edit `.cursor/rules/20-never-violate.mdc` / `50-api-nestjs.mdc` (or regenerate
+  `AGENTS.md`) which still say Nest forces the default — out of the named-file scope
+- Did not author `prompts/session-N+1.md`. This is a named Slack task, not a numbered
+  session. Close-out lands on existing PR #18; no second PR
+
+The fix prompt suggested a `verify/` directory for the probe, but `nestjs-concepts`
+already had a `scripts/` convention via its `check:links` script — the probe landed
+beside the article (`validation/forbid-unknown-values.mjs`) instead, and the next
+corpus-fix prompt should check for an existing convention rather than proposing one.
+
+**Known issues / next steps:**
+- `verify-frontmatter` still fails on 16 files (D11 + D15). `verify-links` still fails
+  on 44 unresolved refs (D13). Expected, corpus-side, unchanged
+- Three `content_hash` changes are the user's cosmetic-versus-substantive call; this
+  close-out does not decide invalidation
+- Rule files still carry the pre-correction Nest wording until a later session updates
+  them
+- Do not auto-merge
+
+---
+
+## Session debt-d6 — claim wording — 2026-08-19
+
+**Branch:** `content/nestjs-v0.3.2`
+
+**Files changed:**
+- `docs/DEBT.md` — closed D6 Item uses the instructed "has defaulted" phrasing
+- `.agents/summary.md` — key fact aligned to the same sentence
+- `CHANGELOG.md` — Fixed bullet aligned to the same sentence
+- `.agents/SESSION-LOG.md` — this entry
+
+**Why:** The D6 close-out was already on this branch. The instructed closed-row claim
+was "has defaulted … since 0.14.0"; the landed row said "defaults". Aligning the
+register, snapshot, and changelog so they carry one sentence.
+
+**Invented decisions:** none beyond the wording alignment.
+
+**Known issues / next steps:** unchanged from the previous `debt-d6` entry. Do not
+auto-merge.
+
+---
+
+## Session debt-d6 — rule files seed, not force — 2026-08-19
+
+**Branch:** `content/nestjs-v0.3.2`
+
+**Files changed:**
+- `.cursor/rules/20-never-violate.mdc` — Nest "forces" `forbidUnknownValues: false` replaced with seeded overridable default
+- `.cursor/rules/50-api-nestjs.mdc` — same correction on the Validation section
+- `AGENTS.md` — regenerated; former "forces" hits at lines 378 and 701 are gone
+- `CLAUDE.md` — unchanged (pointer file; not a rule-body projection)
+- `.cursor/rules/60-skills.mdc` — unchanged (generated from skill descriptions, not these two rules)
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this task
+- `.agents/summary.md` — Last updated notes that `.cursor/rules` now matches the corpus correction
+- `progress.md` — session-log bullet for the rule-file alignment
+
+**Why:** Closing D6 in the trackers left the false "forces" wording in the canonical
+rule files. Every future agent run projects those files into `AGENTS.md`, so the
+corpus correction would be undone in context the next time an agent opened the
+repo. The two named lines now match `nestjs-concepts@v0.3.2`: since
+`@nestjs/common` 9.3.2, `ValidationPipe` seeds `forbidUnknownValues: false` as an
+overridable default.
+
+**Invented decisions:**
+- Kept each replacement to three wrapped lines rather than the original two so the
+  9.3.2 / 0.14.0 / 0.14.2 pins and the override constructor fit without becoming
+  an article
+- Did not edit `.claude/skills/corpus-nest-module/SKILL.md`, which still says Nest
+  "forces" the option and indexes as a "forbidUnknownValues reversal" at
+  `AGENTS.md` ~755. Out of the named two-file scope
+- `CLAUDE.md` is a pointer by design (`renderClaude()` in `scripts/build-agent-docs.mjs`);
+  zero hits there is not a projection-sync bug
+
+**Known issues / next steps:**
+- `.claude/skills/corpus-nest-module/SKILL.md` still restates the pre-correction claim
+- Do not auto-merge
+
+---
+
+## Session debt-d6 — nest-module skill seed, not reversal — 2026-08-19
+
+**Branch:** `content/nestjs-v0.3.2`
+
+**Files changed:**
+- `.claude/skills/corpus-nest-module/SKILL.md` — description and Validation section: "forces" / "reversal" replaced with seeded overridable default
+- `AGENTS.md` — regenerated; former "reversal" index at line 755 is gone
+- `.cursor/rules/60-skills.mdc` — regenerated from the skill description
+- `CLAUDE.md` — regenerated if the generator rewrote it; no rule-body projection
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this task
+- `.agents/summary.md` — Last updated notes the skill matches the corpus correction
+- `progress.md` — session-log bullet for the skill alignment
+
+**Why:** The canonical rule files were corrected on the previous push, but the
+`corpus-nest-module` skill still said Nest "forces" `forbidUnknownValues` and its
+description still projected a "reversal" into `AGENTS.md`. Skill descriptions are
+the source for the generated skill index, so leaving that wording would keep
+teaching every future agent the claim D6 closed.
+
+**Invented decisions:**
+- Description replacement is length-matched: "the forbidUnknownValues reversal" →
+  "the forbidUnknownValues seeded default"
+- Body heading "a reversal that breaks assumptions" → "a seeded default that
+  breaks assumptions"; the mechanism sentence now matches the rule files
+  (`@nestjs/common` 9.3.2, seeded overridable default) without adding the
+  constructor example the rules already carry
+- Did not restyle the Avoid bullet "Never assume standalone `class-validator`
+  defaults" — that warning remains true and does not claim Nest forces the option
+
+**Known issues / next steps:**
+- Live "Nest forces / reverses this option" wording is gone from `.claude/`,
+  `.cursor/`, `docs/`, `scripts/`, `AGENTS.md`, and `CLAUDE.md`. Remaining
+  hits quote the old claim as the error being fixed: `prompts/d6-forbid-unknown-values.md`
+  (lines 54, 60, 187, 238, 268) and historical SESSION-LOG / CHANGELOG /
+  `progress.md` entries. The skill's Avoid bullet still says "Never assume
+  standalone `class-validator` defaults" — true, not a forces-claim
+- Do not auto-merge
+
+---

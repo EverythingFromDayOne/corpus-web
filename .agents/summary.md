@@ -6,8 +6,9 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-18 (`status` removed from the publication decision —
-> renamed `authoringStage`, draft gating deleted, catalog now writes 289 edges)
+> Last updated: 2026-08-19 (`nestjs@v0.3.2` closes Debt D6 — ValidationPipe
+> `forbidUnknownValues` claim corrected in the corpus, `.cursor/rules`, and
+> `corpus-nest-module`; catalog census unchanged)
 
 ---
 
@@ -83,7 +84,7 @@ Do not duplicate the version table here.
 - [x] **fumadocs-mdx × Next 16.3 × Cache Components spike** — all four exit criteria passed
       against `cache-components-model`
 - [x] Content submodules wired, four mounts, pinned to tags — `nextjs` `v0.3.0`,
-      `react` `v0.5.0`, `angular` `v0.3.0`, `nestjs` `v0.3.1`
+      `react` `v0.5.0`, `angular` `v0.3.0`, `nestjs` `v0.3.2`
 - [ ] Design tokens applied
 - [ ] `nxhhuy.tech` DNS cutover
 
@@ -122,8 +123,11 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
   `.next/server/app/<route>.html`.
 - `next dev` under-reports prerender severity: some failures show HTTP 200 in dev and are
   fatal at build.
-- Nest forces `forbidUnknownValues: false` on `ValidationPipe`, reversing the standalone
-  `class-validator` default.
+- `class-validator` has defaulted `forbidUnknownValues` to `true` since 0.14.0,
+  unconditionally since 0.14.2; from `@nestjs/common` 9.3.2 `ValidationPipe` seeds
+  it back to `false` as an overridable default, so an undecorated DTO that
+  `validate()` rejects passes silently through the pipe. Corrected in
+  `nestjs-concepts@v0.3.2` (Debt D6 closed).
 - `AngularDemos` is a **separate repo** at `ng21.` / `ng15.nxhhuy.tech`. Not a submodule.
   Integration approach is an open decision — see "Open decisions" below.
 - No personal or identifying content ships. The only carve-out is licence attribution
@@ -187,11 +191,11 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
   "unresolved" failures and burying the refs that point at nothing. Refs to a planned
   corpus or a demo app still warn separately. `verify-links` therefore no longer fails on
   adaptation failures; `verify-frontmatter` owns those.
-- **A real catalog now writes 289 edges, not 0.** Measured 2026-08-18 against the current
-  pins (`nestjs@v0.3.1`), after the `authoringStage` change: 181 of 197 adapt, **289 refs
-  resolve to a live edge**, 79 refs hit an excluded article across 14 distinct targets
-  (warn), 0 draft-target warnings, 6 hit a demo app (warn), and **44 refs across 33
-  distinct targets** resolve to nothing. Before the fix, the 289 that are now edges were
+- **A real catalog now writes 289 edges, not 0.** Re-verified 2026-08-19 against
+  `nestjs@v0.3.2` (census unchanged from the 2026-08-18 `authoringStage` measurement):
+  181 of 197 adapt, **289 refs resolve to a live edge**, 79 refs hit an excluded
+  article across 14 distinct targets (warn), 0 draft-target warnings, 6 hit a demo
+  app (warn), and **44 refs across 33 distinct targets** resolve to nothing. Before the fix, the 289 that are now edges were
   bucketed as `draftTargets` warnings instead, because every adapting article normalised to
   `status: 'draft'` — see the key fact above. `build-catalog` writes all of that into
   `catalog.json` and exits 0; `verify-links` still fails on the unrelated 44 unresolved
@@ -203,10 +207,9 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
   Every one of the 181 adapting articles carries some raw authoring-stage label (`draft`,
   `review`, `needs-upgrade`, or an object shape), and none of that gates rendering anymore.
   `NEXT_PUBLIC_SHOW_DRAFTS` still exists but now controls only whether a future UI surfaces
-  that label as a badge — it has no consumer yet. See Debt **D6**: the one known-false
-  headline claim in the corpus (`nestjs/dtos-and-class-validator`) was previously hidden by
-  draft gating regardless of `NEXT_PUBLIC_SHOW_DRAFTS`; it now renders in every build, which
-  raises the urgency of the corpus-side correction.
+  that label as a badge — it has no consumer yet. Debt **D6** is closed:
+  `nestjs-concepts@v0.3.2` corrects the `nestjs/dtos-and-class-validator` headline
+  claim (`forbidUnknownValues` is a seeded overridable default).
 - **The debt register lives in `docs/DEBT.md`**, not in `progress.md`. IDs D1–D16,
   append-only, never reused. `progress.md` keeps a one-line pointer. D16: nextjs and
   angular article/recipe templates omit `description` (reintroduces D5); react and
@@ -238,6 +241,7 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
    longer stop `build-catalog` from writing — the artifact records them in
    `catalog.unresolvedTargets`. All corpus-side; itemised per ref in
    `docs/audit/unresolved-refs-2026-08-16.md`. Debt D12 is closed (`nestjs@v0.3.1`).
+   Debt D6 is closed (`nestjs@v0.3.2`).
    The cheapest remaining Group 1 fix is publishing the two staged `nextjs` articles
    (`cache-lifetimes`, `use-cache-directive`), which closes 4 of the 44.
 3. Wire `apps/web` routes + sidebar to `catalog.json` (Phase 1 items 7–8). The

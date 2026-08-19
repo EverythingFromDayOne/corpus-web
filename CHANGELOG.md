@@ -5,6 +5,49 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-19] — content/nestjs-v0.3.2 — debt-d6: nest-module skill seed, not reversal
+
+**Changed**
+- `.claude/skills/corpus-nest-module/SKILL.md` — ValidationPipe
+  `forbidUnknownValues: false` is a seeded overridable default since `@nestjs/common` 9.3.2
+- `AGENTS.md` and `.cursor/rules/60-skills.mdc` regenerated from that description
+
+**Fixed**
+- Skill description no longer indexes a `forbidUnknownValues` "reversal" into `AGENTS.md`
+
+### [2026-08-19] — content/nestjs-v0.3.2 — debt-d6: rule files seed, not force
+
+**Changed**
+- `.cursor/rules/20-never-violate.mdc` and `.cursor/rules/50-api-nestjs.mdc` — ValidationPipe
+  `forbidUnknownValues: false` is a seeded overridable default since `@nestjs/common` 9.3.2
+- `AGENTS.md` regenerated from those rules
+
+**Fixed**
+- Canonical rule files no longer say Nest forces `forbidUnknownValues: false`
+
+### [2026-08-19] — content/nestjs-v0.3.2 — debt-d6: close D6 on nestjs v0.3.2
+
+**Added**
+- Nothing in this repo. `nestjs-concepts@v0.3.2` corrects the ValidationPipe
+  `forbidUnknownValues` claim in `dtos-and-class-validator`, `validationpipe-in-depth`,
+  and `typescript-for-nest`
+
+**Changed**
+- `content/nestjs` gitlink `v0.3.1` → `v0.3.2`
+- Census unchanged: **197 selected / 181 adapting**; catalog 181 articles, 289 edges,
+  16 excluded, 44 unresolved
+- Three `content_hash` changes: `validationpipe-in-depth`, `dtos-and-class-validator`,
+  `typescript-for-nest`
+
+**Removed**
+- The D6 known-false headline from `.agents/summary.md`
+
+**Fixed**
+- Debt **D6** closed. The register now carries the corrected claim: class-validator
+  has defaulted forbidUnknownValues to true since 0.14.0, unconditionally since 0.14.2;
+  from @nestjs/common 9.3.2 ValidationPipe seeds it back to false as an overridable
+  default, so an undecorated DTO that validate() rejects passes silently through the pipe
+
 ### [2026-08-18] — cursor/authoring-stage-not-publication-cac7 — `status` removed from the publication decision
 
 **Added**
