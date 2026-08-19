@@ -5,6 +5,29 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-19] — content/nestjs-v0.3.2 — debt-d6: close D6 on nestjs v0.3.2
+
+**Added**
+- Nothing in this repo. `nestjs-concepts@v0.3.2` corrects the ValidationPipe
+  `forbidUnknownValues` claim in `dtos-and-class-validator`, `validationpipe-in-depth`,
+  and `typescript-for-nest`
+
+**Changed**
+- `content/nestjs` gitlink `v0.3.1` → `v0.3.2`
+- Census unchanged: **197 selected / 181 adapting**; catalog 181 articles, 289 edges,
+  16 excluded, 44 unresolved
+- Three `content_hash` changes: `validationpipe-in-depth`, `dtos-and-class-validator`,
+  `typescript-for-nest`
+
+**Removed**
+- The D6 known-false headline from `.agents/summary.md`
+
+**Fixed**
+- Debt **D6** closed. The register now carries the corrected claim: class-validator
+  defaults forbidUnknownValues to true since 0.14.0, unconditionally since 0.14.2;
+  from @nestjs/common 9.3.2 ValidationPipe seeds it back to false as an overridable
+  default, so an undecorated DTO that validate() rejects passes silently through the pipe
+
 ### [2026-08-18] — cursor/authoring-stage-not-publication-cac7 — `status` removed from the publication decision
 
 **Added**

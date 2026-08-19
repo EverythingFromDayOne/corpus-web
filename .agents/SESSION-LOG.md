@@ -1713,3 +1713,55 @@ added, with `_none_` only for lists that genuinely did not change.
 - Do not auto-merge
 
 ---
+
+## Session debt-d6 — close D6 on nestjs-concepts@v0.3.2 — 2026-08-19
+
+**Branch:** `content/nestjs-v0.3.2`
+
+**Files changed:**
+- `content/nestjs` — gitlink already bumped `v0.3.1` → `v0.3.2` on this PR (`abae66f`); this commit is the tracker close-out
+- `docs/DEBT.md` — D6 moved from Open to Closed; Item is the corrected ValidationPipe claim, not the old "forced by Nest" wording
+- `progress.md` — v0.3.2 promotion entry; item 16 pin citation `nestjs@v0.3.1` → `v0.3.2` (20/20 left alone)
+- `.agents/summary.md` — D6 known-false headline removed; Nest `forbidUnknownValues` key fact replaced with the corrected claim; pin `v0.3.1` → `v0.3.2`
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this task
+
+**Why:** `nestjs-concepts@v0.3.2` already landed the corpus-side correction on this
+promotion PR. D6 stayed open because the in-place trackers still described the claim as
+false and still said Nest "forces" `forbidUnknownValues: false` — the same error the
+corpus just stopped making. Closing the row without rewriting it would have left the
+false claim in the register. The three in-place files (`docs/DEBT.md`, `progress.md`,
+`.agents/summary.md`) were edited in place; `.gitattributes` covers only SESSION-LOG
+and CHANGELOG.
+
+Census re-verified with `pnpm build:catalog` on this branch: 181 articles, 289 edges,
+16 excluded, 44 unresolved. No article added, removed, or renamed. Three `content_hash`
+changes on `validationpipe-in-depth`, `dtos-and-class-validator`, and
+`typescript-for-nest`. D5 and D13 left untouched: D5's `nestjs@v0.3.1` is when the
+description pass landed, and this fix changed no `related` refs.
+
+**Invented decisions:**
+- Inserted the closed D6 row after D3 so closed IDs stay in numeric order (D2, D3, D6,
+  D12, D14)
+- Item 16's pin citation updated to `v0.3.2`; the same row's D12 recovery sentence still
+  names `v0.3.1` as the tag that recovered the article
+- Did not edit `.cursor/rules/20-never-violate.mdc` / `50-api-nestjs.mdc` (or regenerate
+  `AGENTS.md`) which still say Nest forces the default — out of the named-file scope
+- Did not author `prompts/session-N+1.md`. This is a named Slack task, not a numbered
+  session. Close-out lands on existing PR #18; no second PR
+
+The fix prompt suggested a `verify/` directory for the probe, but `nestjs-concepts`
+already had a `scripts/` convention via its `check:links` script — the probe landed
+beside the article (`validation/forbid-unknown-values.mjs`) instead, and the next
+corpus-fix prompt should check for an existing convention rather than proposing one.
+
+**Known issues / next steps:**
+- `verify-frontmatter` still fails on 16 files (D11 + D15). `verify-links` still fails
+  on 44 unresolved refs (D13). Expected, corpus-side, unchanged
+- Three `content_hash` changes are the user's cosmetic-versus-substantive call; this
+  close-out does not decide invalidation
+- Rule files still carry the pre-correction Nest wording until a later session updates
+  them
+- Do not auto-merge
+
+---
