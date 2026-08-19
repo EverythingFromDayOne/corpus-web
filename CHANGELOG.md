@@ -5,6 +5,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-19] — cursor/session-3-listing-routes-9394 — Tailwind v4 exact pin corrected to 4.3.3
+
+**Changed**
+- `apps/web/package.json` — `tailwindcss` and `@tailwindcss/postcss` exact pin `4.1.0` → `4.3.3`
+- `pnpm-lock.yaml` — re-resolved for the new pin
+
+**Fixed**
+- The prior pin (`4.1.0`) was the lowest version satisfying `roadmap.md` §3's "v4, no patch specified" constraint, not a chosen one, and it silently downgraded away from the `4.3.3` the lockfile had already resolved and the Vercel preview was built against
+
 ### [2026-08-19] — cursor/session-3-listing-routes-9394 — catalog-driven listing routes
 
 **Added**

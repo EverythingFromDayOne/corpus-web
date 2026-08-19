@@ -2065,3 +2065,43 @@ layout attempts.
 - Do not auto-merge.
 
 ---
+
+## Session 4 — Tailwind v4 exact pin corrected to 4.3.3 — 2026-08-19
+
+**Branch:** `cursor/session-3-listing-routes-9394`
+
+**Files changed:**
+- `apps/web/package.json` — `tailwindcss` and `@tailwindcss/postcss` exact pin
+  `4.1.0` → `4.3.3`
+- `pnpm-lock.yaml` — re-resolved for the new pin
+
+**Why:** The previous commit on this branch (`fix(web): pin Tailwind v4 PostCSS
+plugin so pnpm dev compiles CSS`) pinned both packages to exact `4.1.0` and said
+so explicitly in its own invented-decisions block: "4.1.0 exact, matching the
+previous specifier floor, not lockfile 4.3.3." `roadmap.md` §3 constrains
+Tailwind to major `v4` only — it names no patch. `4.1.0` is simply the lowest
+version satisfying that constraint, not a chosen one, and it silently downgraded
+away from `4.3.3`, which `pnpm-lock.yaml` had already resolved from the prior
+caret range (`^4.1.0`) and which is what the Vercel preview built against. This
+session restores the exact pin to `4.3.3` on both packages so the local
+toolchain matches the deployed one, ran `pnpm install` to regenerate the
+lockfile, rebuilt `catalog.json` (`pnpm build:catalog` — gitignored, not
+committed; needed for the listing routes to render at all, unrelated to the
+Tailwind change), and confirmed `pnpm dev` serves all four listing routes
+(`/en`, `/en/courses`, `/en/courses/react-render-cycle`, `/en/blog`) at `200`
+with compiled CSS (`/_next/static/chunks/[root-of-the-server]*.css`, Tailwind
+utility classes present in the rendered HTML).
+
+**Invented decisions:**
+- none — `roadmap.md` §3 constrains only the major; `4.3.3` is this session's
+  explicit patch choice, matching the version the lockfile had already resolved
+  and the Vercel preview was built against, per the task instruction.
+
+**Known issues / next steps:**
+- Unrelated: a stray `apps/web/next-env.d.ts` diff (`.next/types` →
+  `.next/dev/types`) appeared after running `pnpm dev` and was reverted before
+  commit — a Next.js dev-server regeneration artifact, not part of this change.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side,
+  unaffected by this change.
+
+---
