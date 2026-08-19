@@ -31,8 +31,8 @@ the current pins: **197 selected, 181 adapting** — nextjs 10/10, react 58/73, 
 | 1 | Monorepo scaffold (pnpm + Turborepo) | ✅ | Session 1 |
 | 2 | **fumadocs × Next 16.3 × Cache Components spike** | ✅ | Session 1. All four exit criteria passed on `cache-components-model` |
 | 3 | Content submodules + `sync-content.mjs` + `verify-submodules` | ✅ | Four mounts, pinned to tags. Gate proven dirty→fail; session 2 added an exact-count-of-4 check |
-| 4 | Design tokens in `packages/ui` | 🟢 | `DESIGN.md` + `tokens.css` authored; unapplied |
-| 5 | DNS cutover `nxhhuy.tech` → Vercel | ⚪ | |
+| 4 | Design tokens in `packages/ui` | 🟢 | `DESIGN.md` + `tokens.css` authored; listing chrome applies them; article shell still unbuilt |
+| 5 | DNS cutover `nxhhuy.tech` → Vercel | ⚪ | Vercel already deploys from `main`; not touched in the listing-routes slice |
 
 **Gate:** one real article renders at a live URL.
 
@@ -44,15 +44,15 @@ the current pins: **197 selected, 181 adapting** — nextjs 10/10, react 58/73, 
 |---|---|---|---|
 | 6 | Frontmatter adapters + zod union, four mounted repos | ✅ | Session 2: run for real against every file in all four corpora and corrected (`docs/audit/frontmatter-2026-08-16.md`). Directory-shape, `title`, and `status` mismatches fixed. Session 2 follow-up: `deriveTitle` rewritten as an mdast walk — the regex was matching inside code fences — with tests in `packages/content-schema/test/`, typechecked as of the `@types/node` (`^22`, the lowest consumer) addition |
 | 6b | Section extraction (`extractSections()`) | ✅ | Session 2: mdast-based, GitHub-slug anchors verified against real `react-concepts` cross-references. Session 2 follow-up: accepts a pre-parsed tree so title derivation and section extraction share one parse per file |
-| 7 | `build-catalog.mjs` → routes + sidebar tree | 🟡 | Session 2: real implementation, all logic proven (incl. via synthetic fixtures for `verify-catalog`). Follow-up c: emit-with-exclusions — an unadaptable file lands in `catalog.failures` instead of aborting the write. Follow-up d: the link report is classified four ways and only a ref resolving to nothing is fatal (D14 closed). **`status` removed from the publication decision (2026-08-18):** renamed `Article.status` → `authoringStage`, deleted draft gating from the link report and from path validation. Re-measured: `build-catalog` writes — 181 of 197 articles, **289 edges** (was 0 — every one of them was previously a `draftTargets` warning because all 181 adapting articles normalised `status` to `draft`), 16 excluded (D11 + D15), 0 draft-target warnings (bucket now vestigial), 44 unresolved refs recorded in `catalog.unresolvedTargets` (D13, unchanged). `verify-links` still fails on the 44. Routes and sidebar are the remaining work. |
+| 7 | `build-catalog.mjs` → routes + sidebar tree | 🟡 | Session 3 listing slice: `/en`, `/en/courses`, `/en/courses/[course]`, `/en/blog` generate from `catalog.json` (181 articles, 289 edges, one path `react-render-cycle`). Article sidebar and the two article wrappers remain. Session 2: real implementation, emit-with-exclusions, four-way link report. Re-measured: `build-catalog` writes — 181 of 197 articles, **289 edges**, 16 excluded (D11 + D15), 44 unresolved refs recorded (D13). `verify-links` still fails on the 44. |
 | 7b | `verify-frontmatter.mjs` / `verify-links.mjs` / `verify-catalog.mjs` gates | ✅ | Session 2; `verify-catalog`'s four checks (dup uid, missing/draft path target, `root`-folder sentinel) proven against synthetic fixtures. Follow-up c added a fifth: non-empty `catalog.failures` exits 1. Follow-up d: `verify-links`'s only fatal condition is `unresolvedTargets`; excluded/draft/planned/demo targets warn, and adaptation failures warn there because `verify-frontmatter` owns them. `verify-catalog` gained two structural checks (every edge resolves; every excluded target names a file in `failures`), both proven by tampering with a built artifact. All three still correctly fail on current content |
-| 8 | Full route tree, every completed article renders | ⚪ | Blocked on item 7 |
+| 8 | Full route tree, every completed article renders | ⚪ | Listing routes exist. Canonical `/en/blog/[corpus]/[slug]` and lesson `/en/courses/[course]/lessons/[slug]` are a separate session-3 invocation. The session-1 `/concepts` spike was deleted, not extended. |
 | 9 | Chrome: sidebar, breadcrumb, TOC rail, prev/next | ⚪ | The contract is `docs/design/article-layout-poc.html`. Its two grid defects are corrected there as of 2026-08-19, so the desktop template, the explicit child placement, and the `.view.nosb` collapse are all breakpoint-scoped and nothing has to out-specify anything to be undone. The other POC defects listed in `prompts/session-3.md` §3 (heading order, `.lang` badge, `#mk`, the mock provenance strip, the two breadcrumbs) are still to be corrected during implementation |
-| 10 | Shiki code blocks (copy / download / expand) | ⚪ | |
-| 11 | Pagefind search + ⌘K dialog | ⚪ | |
+| 10 | Shiki code blocks (copy / download / expand) | ⚪ | Debt D20 |
+| 11 | Pagefind search + ⌘K dialog | ⚪ | Inert "Search coming soon" on listing chrome. Debt D21 |
 | 12 | Mobile layout | ⚪ | The POC's ≤1000px block now declares one track and places `.sb`, `main`, and `.rail` in it. Verified in headless Chrome at exact 1000px and 390px viewports, default and collapsed. **Headless Chrome clamps its window to roughly 500px**, so a `--window-size=390,900` run silently measures 500px and reports the 390px case as passing; measure inside a fixed-width iframe |
-| 13 | Corpus landing at `/en` + `/en/license` (roadmap §15.1) | ⚪ | |
-| 14 | SEO baseline: metadata, OG, sitemap, JSON-LD | ⚪ | |
+| 13 | Corpus landing at `/en` + `/en/license` (roadmap §15.1) | 🟡 | `/en` ships in the listing slice (live counts, graph teaser, featured course, reading conventions). `/en/license` is Debt D25 |
+| 14 | SEO baseline: metadata, OG, sitemap, JSON-LD | 🟡 | Listing pages ship metadata + WebSite/Organization/ItemList JSON-LD. Sitemap, robots.txt, OG images are Debt D22 |
 | 15 | Cache Components strategy, verified via `.next/server/app/**.html` | ⚪ | |
 | 16 | `description` frontmatter pass, four framework corpora (197 files) | 🟡 | **Debt D5, no longer blocking item 7.** The pass has landed in all four: `nextjs@v0.3.0` 10/10, `react@v0.5.0` 58/73, `angular@v0.3.0` 93/94, `nestjs@v0.3.2` 20/20 — 181 of 197 adapt. Two named residues remain, both corpus-side: the 15 untitled `react` articles the pass deliberately skipped (D11) and `angular`'s duplicate `widget-deployment.md` (D15). `nestjs@v0.3.1` recovered `dtos-and-class-validator` (D12 closed), which is the +1 selected / +1 adapting |
 
@@ -77,6 +77,10 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **session-3-listing-routes (2026-08-19):** catalog-driven `/en`,
+  `/en/courses`, `/en/courses/[course]`, `/en/blog`. Spike at
+  `/[locale]/concepts/[repo]/[...slug]` deleted. Article component and both
+  article wrappers out of scope. Debt **D17–D26** opened. Do not auto-merge.
 - **poc-grid-review (2026-08-19):** reviewed the article component against
   `docs/design/article-layout-poc.html`. The component does not exist — `apps/web`
   is still the session-1 spike, and there is no `/en/blog` or

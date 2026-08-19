@@ -6,10 +6,9 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-19 (the article-layout POC's two grid defects corrected —
-> placement and the sidebar collapse are now breakpoint-scoped; `nestjs@v0.3.2` closes
-> Debt D6 — ValidationPipe `forbidUnknownValues` claim corrected in the corpus,
-> `.cursor/rules`, and `corpus-nest-module`; catalog census unchanged)
+> Last updated: 2026-08-19 (session 3 listing routes: `/en`, `/en/courses`,
+> `/en/courses/[course]`, `/en/blog` read `catalog.json`; the session-1
+> `/concepts` spike is gone; article routes are a separate invocation)
 
 ---
 
@@ -86,15 +85,27 @@ Do not duplicate the version table here.
       against `cache-components-model`
 - [x] Content submodules wired, four mounts, pinned to tags — `nextjs` `v0.3.0`,
       `react` `v0.5.0`, `angular` `v0.3.0`, `nestjs` `v0.3.2`
-- [ ] Design tokens applied
+- [ ] Design tokens applied to the article shell (listing chrome uses them)
 - [ ] `nxhhuy.tech` DNS cutover
 
-Application code now exists: `apps/web` renders one real nextjs-concepts article;
-`apps/api` is an empty Nest bootstrap.
+Application code now exists: `apps/web` serves catalog-driven listing routes at
+`/en`, `/en/courses`, `/en/courses/react-render-cycle`, and `/en/blog` (181
+articles, one path). The session-1 spike at `/[locale]/concepts/[repo]/[...slug]`
+is removed. Article and lesson routes are not in this tree yet. `apps/api` is
+an empty Nest bootstrap.
 
 ---
 
 ## Key facts that are easy to get wrong
+- Canonical article URL is `/en/blog/[corpus]/[slug]`; courses live at
+  `/en/courses/*`. Listing routes (`/en`, `/en/courses`, `/en/courses/[course]`,
+  `/en/blog`) already generate from `catalog.json`. The session-1 spike at
+  `/en/concepts/…` is gone and must not be revived.
+- **`apps/web` does not import `@corpus/content-schema`.** Next's Turbopack build
+  cannot resolve that package's NodeNext `.js` specifiers to `.ts` sources, and
+  a client corpus filter must not pull remark/zod adapters. The listing loader
+  parses a local subset of `catalog.json`. `relatedHref` returns null unless the
+  uid adapted — excluded and unresolved refs must render as plain text.
 - There are **four** corpora: `nextjs`, `react`, `angular`, `nestjs`. The React repo is
   `react-concepts`, mounted at `content/react`.
 - `auth`, `authz`, `websec` are **runnable demo apps, not corpora** — no `docs/`, no
@@ -226,10 +237,12 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
   that label as a badge — it has no consumer yet. Debt **D6** is closed:
   `nestjs-concepts@v0.3.2` corrects the `nestjs/dtos-and-class-validator` headline
   claim (`forbidUnknownValues` is a seeded overridable default).
-- **The debt register lives in `docs/DEBT.md`**, not in `progress.md`. IDs D1–D16,
+- **The debt register lives in `docs/DEBT.md`**, not in `progress.md`. IDs D1–D26,
   append-only, never reused. `progress.md` keeps a one-line pointer. D16: nextjs and
   angular article/recipe templates omit `description` (reintroduces D5); react and
-  nestjs have no templates.
+  nestjs have no templates. Session 3 listing slice opened D17–D26 (corpus gates,
+  POC a11y, site CI, Shiki, Pagefind, SEO residue, render-mode verification,
+  interactive layer, `/en/license`, accounts/progress sync).
 
 ---
 
@@ -260,7 +273,10 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
    Debt D6 is closed (`nestjs@v0.3.2`).
    The cheapest remaining Group 1 fix is publishing the two staged `nextjs` articles
    (`cache-lifetimes`, `use-cache-directive`), which closes 4 of the 44.
-3. Wire `apps/web` routes + sidebar to `catalog.json` (Phase 1 items 7–8). The
-   artifact now exists: 181 articles, 16 exclusions, 44 unresolved refs recorded.
-4. Design tokens applied in `packages/ui`.
+3. Listing routes now read `catalog.json` (`/en`, `/en/courses`,
+   `/en/courses/[course]`, `/en/blog`). Remaining session-3 work is the article
+   component and the two article wrappers — `/en/blog/[corpus]/[slug]` (canonical)
+   and `/en/courses/[course]/lessons/[slug]` — plus the article chrome. Do not
+   revive `/en/concepts/…`.
+4. Design tokens applied to the article shell (listing chrome already uses them).
 5. DNS cutover: `nxhhuy.tech` -> Vercel.

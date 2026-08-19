@@ -5,6 +5,26 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-19] — cursor/session-3-listing-routes-9394 — catalog-driven listing routes
+
+**Added**
+- `/en` corpus landing from `catalog.json` — live counts, graph teaser, featured course, reading conventions
+- `/en/courses` index and `/en/courses/[course]` detail with `#curriculum` and per-item `note`
+- `/en/blog` article index — 181 adapting articles, grouped by corpus and folder, client corpus filter
+- `apps/web/messages/en.json` message catalogue and `t()` helper
+- Tailwind v4 + `@corpus/ui/tokens.css` on listing chrome
+- Debt **D17–D26** (corpus gates, POC a11y, site CI, Shiki, Pagefind, SEO residue, render-mode verification, interactive layer, `/en/license`, accounts/progress sync)
+
+**Changed**
+- Listing pages are static (`○` for `/en`, `/en/blog`, `/en/courses`, `/en/courses/react-render-cycle`)
+- Site nav omits sign-in; search is a disabled "coming soon" control
+
+**Removed**
+- Session-1 spike route `/[locale]/concepts/[repo]/[...slug]` and `apps/web/lib/source.ts`
+
+**Fixed**
+- Nothing corpus-side. `verify-links` still fails on D13's 44 refs by design
+
 ### [2026-08-19] — cursor/poc-grid-placement-every-breakpoint-1a80 — article layout grid placement at every breakpoint
 
 **Changed**
