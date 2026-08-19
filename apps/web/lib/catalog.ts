@@ -64,6 +64,7 @@ const ListingCatalog = z
       }),
     ),
     edges: z.array(z.object({ from: z.string(), to: z.string() })),
+    unresolvedTargets: z.array(z.unknown()).optional().default([]),
   })
   .passthrough();
 
@@ -145,12 +146,20 @@ export type GraphSummary = {
   edges: Array<{ from: RepoId; to: RepoId; count: number }>;
 };
 
+export type Census = {
+  articles: number;
+  edges: number;
+  corpora: number;
+  unresolved: number;
+};
+
 export type CatalogView = {
   articles: ArticleListItem[];
   byUid: Record<string, ArticleListItem>;
   corpora: CorpusStats[];
   courses: CourseView[];
   graph: GraphSummary;
+  census: Census;
   liveUids: string[];
 };
 
@@ -300,6 +309,12 @@ function loadCatalogView(): CatalogView {
     graph: {
       nodes: corpora.map((corpus) => ({ repo: corpus.repo, count: corpus.adapting })),
       edges: [...edgeCounts.values()],
+    },
+    census: {
+      articles: catalog.articles.length,
+      edges: catalog.edges.length,
+      corpora: REPOS.length,
+      unresolved: catalog.unresolvedTargets.length,
     },
     liveUids: catalog.articles.map((article) => article.uid),
   };

@@ -51,7 +51,7 @@ the current pins: **197 selected, 181 adapting** — nextjs 10/10, react 58/73, 
 | 10 | Shiki code blocks (copy / download / expand) | ⚪ | Debt D20. Copy/download/expand ship unhighlighted. |
 | 11 | Pagefind search + ⌘K dialog | ⚪ | Disabled top-bar search matches the listing POC: `Search` label, `Coming soon` placeholder, `⌘K` hint, one line inside `--tb`. Debt D21 |
 | 12 | Mobile layout | 🟢 | Article/lesson mobile is a drawer, not a stacked curriculum. 390px visual pass is still human. **Headless Chrome clamps its window to roughly 500px**, so a `--window-size=390,900` run silently measures 500px; measure inside a fixed-width iframe |
-| 13 | Corpus landing at `/en` + `/en/license` (roadmap §15.1) | 🟡 | `/en` ships live counts, corpus cards with POC one-liners, featured course, and the listing-POC graph coming-soon card (all 289 catalog edges are intra-corpus). `/en/license` is Debt D25 |
+| 13 | Corpus landing at `/en` + `/en/license` (roadmap §15.1) | 🟡 | `/en` transcribes listing-POC `#p-home`: census readout from `catalog.json`, two CTAs, hero band, corpus ratio bars + adapting/version footer, split "Three ways in" with the demo panel as aside, tag-legend reading conventions. `/en/license` is Debt D25 |
 | 14 | SEO baseline: metadata, OG, sitemap, JSON-LD | 🟡 | Listing and article pages ship metadata + WebSite/Organization/TechArticle/BreadcrumbList JSON-LD. Sitemap, robots.txt, OG images are Debt D22 |
 | 15 | Cache Components strategy, verified via `.next/server/app/**.html` | 🟡 | Nothing above the article/lesson pages reads `cookies()`, `headers()`, or `searchParams`. Inspected prerender HTML (181 blog + 12 lesson files). Build table groups generated article/lesson paths as `◐` with leftover `[slug]` templates; listing concretes stay `○`. No `ƒ`. `dynamicParams` is incompatible with Cache Components. D23 |
 | 16 | `description` frontmatter pass, four framework corpora (197 files) | 🟡 | **Debt D5, no longer blocking item 7.** The pass has landed in all four: `nextjs@v0.3.0` 10/10, `react@v0.5.0` 58/73, `angular@v0.3.0` 93/94, `nestjs@v0.3.2` 20/20 — 181 of 197 adapt. Two named residues remain, both corpus-side: the 15 untitled `react` articles the pass deliberately skipped (D11) and `angular`'s duplicate `widget-deployment.md` (D15). `nestjs@v0.3.1` recovered `dtos-and-class-validator` (D12 closed), which is the +1 selected / +1 adapting |
@@ -77,6 +77,10 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **session-3-article-routes home POC (2026-08-19):** `/en` transcribed from
+  `docs/design/listing-pages-poc.html` `#p-home`. Census readout, two CTAs,
+  hero band, corpus ratio bars, split "Three ways in", tag-legend
+  conventions. Demo-labs row removed (not in `#p-home`). Do not auto-merge.
 - **session-3-article-routes chrome (2026-08-19):** five listing/article chrome
   defects on PR #21. Home graph SVG dropped (all 289 catalog edges are
   intra-corpus) for the listing-POC coming-soon card. Top bar locked to

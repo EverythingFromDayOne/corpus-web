@@ -2214,3 +2214,52 @@ select sat under the bar; the CORPUS row was never sticky.
 - Do not auto-merge.
 
 ---
+
+## Session 3 follow-up — home page POC transcription — 2026-08-19
+
+**Branch:** `cursor/session-3-article-routes-f628`
+
+**Files changed:**
+- `apps/web/app/[locale]/page.tsx` — `/en` structure matches listing-POC `#p-home`
+- `apps/web/components/home/home.css` — transcribed `#p-home` CSS (hero band, readout, cards, split, conventions)
+- `apps/web/components/home/corpus-cards.tsx` — census readout; ratio bar; adapting/version footer; POC blurbs
+- `apps/web/components/home/entry-points.tsx` — "Three ways in" split with demo `aside`; tag-legend conventions
+- `apps/web/components/chrome/site-header.tsx` — `PageShell` `bleed` so the hero can be full-bleed
+- `apps/web/lib/catalog.ts` — `census` from `catalog.json` (articles, edges, corpora, unresolved)
+- `apps/web/messages/en.json` — `#p-home` copy (census labels, CTAs, blurbs, tag legend)
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased home-POC bullets
+- `.agents/summary.md` — `/en` transcribes `#p-home`
+- `progress.md` — item 13 notes; session bullet
+
+**Why:** `/en` was a paraphrase of `docs/design/listing-pages-poc.html` `#p-home`.
+The lesson route had already been held to a transcription standard; the landing
+page was not. The missing census readout is the element that makes the page
+argue its own thesis — four figures from `catalog.json`, including the 44
+unresolved refs in `--stale`. The rest of the mismatch (no CTAs, flat hero,
+prose counts instead of a ratio bar, demo panel beside the hero, bullet-list
+conventions) followed from the same paraphrase. The POC wins where the two
+disagree.
+
+**Invented decisions:**
+- Home CSS is prefixed `ls-*` and rooted on `.ls-home` so `.grid` cannot collide with Tailwind's `grid` utility (same pattern as article `av-*`)
+- `--cool` is not in `DESIGN.md` / `tokens.css`; `.ls-home` carries the POC's `--cool` locally (`#6aa9d8` dark / `#2b6f9e` light) so `.tag.concept` matches without opening a second design system
+- Primary CTA uses `--color-signal` fill as the POC specifies, against `DESIGN.md`'s "signal is not a button colour" discipline — the listing POC is the contract for `/en`
+- Primary CTA text uses `--color-ink` (dark) / `--color-display` (light) so it stays the POC's `#0e141b` in both themes without a raw hex on the rule
+- Ratio-bar width is a `--ls-bar` custom property on the track, not `style="width:N%"` on the fill
+- Home wrap is the POC's 76rem (`--page`); the shared top bar still uses 72rem
+- `PageShell` gained a `bleed` prop; other listing routes stay padded
+- Census is `articles.length`, `edges.length`, `REPOS.length`, `unresolvedTargets.length`
+- Demo-labs row removed from `/en` because `#p-home` does not include it
+- Course CTA copy is the POC string "Start the render cycle course", linked to `courses[0]`, not derived from the course title
+- Dek measure is the listing POC's 60rem, not `--measure-prose` (68ch)
+- Branch stays `cursor/session-3-article-routes-f628` (PR #21) rather than a new cloud-agent branch
+
+**Known issues / next steps:**
+- Shared `SiteFooter` is still wordmark + org link, not the POC footer's Licence / Source / CC BY 4.0 row. That footer is shared chrome, not `#p-home`; `/en/license` remains D25
+- Home wrap (76rem) is 4rem wider than the existing top bar (72rem). Matching the top bar to `--page` was out of scope
+- Class names are `ls-*`, not the POC's unprefixed names; the DOM structure and visual treatment match
+- `--cool` is local to `home.css` rather than an `@theme` token
+- Do not auto-merge
+
+---

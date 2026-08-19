@@ -45,12 +45,24 @@ export function SiteFooter({ messages }: { messages: Messages }) {
   );
 }
 
-export function PageShell({ children, messages }: { children: ReactNode; messages: Messages }) {
+export function PageShell({
+  children,
+  messages,
+  bleed = false,
+}: {
+  children: ReactNode;
+  messages: Messages;
+  bleed?: boolean;
+}) {
   return (
     <>
-      <div className="mx-auto max-w-page px-5 py-10">
+      {bleed ? (
         <div id="content">{children}</div>
-      </div>
+      ) : (
+        <div className="mx-auto max-w-page px-5 py-10">
+          <div id="content">{children}</div>
+        </div>
+      )}
       <SiteFooter messages={messages} />
     </>
   );

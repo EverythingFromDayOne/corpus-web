@@ -6,8 +6,7 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-19 (PR #21 chrome: home graph is the listing-POC
-> coming-soon card; top bar is locked to `--tb`)
+> Last updated: 2026-08-19 (PR #21: `/en` transcribes listing-POC `#p-home`)
 
 ---
 
@@ -234,7 +233,9 @@ bootstrap.
   `docs/audit/unresolved-refs-2026-08-16.md` — see Debt D13. **All 289 live edges are
   intra-corpus** (measured 2026-08-19): there is no inter-corpus link to draw, so
   `/en` uses the listing-POC coming-soon card rather than an SVG of four unlinked
-  nodes.
+  nodes. `/en` itself is a transcription of `docs/design/listing-pages-poc.html`
+  `#p-home`: census readout, two CTAs, hero band, corpus ratio bars, split
+  "Three ways in" with the demo panel as `aside`.
 - **`authoringStage` (formerly `status`) is no longer a publication gate — adaptation is.**
   Every one of the 181 adapting articles carries some raw authoring-stage label (`draft`,
   `review`, `needs-upgrade`, or an object shape), and none of that gates rendering anymore.

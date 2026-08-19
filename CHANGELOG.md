@@ -5,6 +5,28 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-19] — cursor/session-3-article-routes-f628 — home page matches listing POC #p-home
+
+**Added**
+- `/en` census readout from `catalog.json` — articles, cross-links, corpora, unresolved (last in `--stale`)
+- Hero CTAs: `Start the render cycle course` (primary) and `Browse all articles`
+- Hero band: full-bleed 80px hairline grid plus surface-to-transparent gradient
+- Corpus-card ratio bar (adapting/selected) and footer `N / M adapting` plus baseline version chip
+- "How to read this corpus" tag legend (Concept / Recipe / Baseline / Provenance)
+
+**Changed**
+- `/en` transcribed from `docs/design/listing-pages-poc.html` `#p-home` rather than paraphrased
+- "Three ways in" is a two-column split; the coming-soon demo panel is its `aside`, not beside the hero
+- "The corpora" header includes a right-aligned `All articles →` link
+- `.sec` blocks are separated by a top border
+
+**Removed**
+- Demo-labs row from `/en` (not in `#p-home`)
+- Hero-adjacent demo placeholder
+
+**Fixed**
+- Nothing corpus-side. `verify-links` still fails on D13's 44 refs by design
+
 ### [2026-08-19] — cursor/session-3-article-routes-f628 — listing chrome defects
 
 **Added**
