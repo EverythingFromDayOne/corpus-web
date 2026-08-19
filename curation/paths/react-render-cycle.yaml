@@ -1,0 +1,66 @@
+schema: 1
+slug: react-render-cycle
+title: The React render cycle
+description: >-
+  Twelve articles from react-concepts in reading order, covering JSX compilation, the
+  render and commit phases, state and context as the things that schedule work, memoization,
+  and where effects sit relative to render. Concept articles are interleaved with the
+  symptom-first recipes that exercise them.
+rationale: >-
+  The corpus holds concept articles and symptom-first recipes in separate trees, and read
+  separately each half is weaker than it should be. A concept article explains a mechanism
+  with no bug in front of it; a recipe diagnoses a bug and points back at a mechanism the
+  reader has not met yet. This sequence alternates them.
+
+  The order is bottom-up. It starts with what JSX becomes, because everything after it is
+  about when that output is recomputed. Rendering and keys come before state, so that when
+  state arrives there is already a render to talk about. The Rules of React sit after the
+  render model rather than before it, because the constraints only make sense once you know
+  what they protect.
+
+  Three positions pay off the ones before them. Context re-rendering follows Context.
+  The typing-lag recipe follows Memoization and the Compiler. The Escape Hatches audit
+  closes the sequence by asking which of the previous eleven mechanisms the reader has been
+  stepping around.
+
+  Nothing here asserts how React behaves. Every claim in this course lives in an article
+  under the corpus gates.
+items:
+  - article: react/jsx-and-rendering
+    note: >-
+      Start here because every later article is about when this output gets recomputed.
+  - article: react/how-react-renders
+    note: >-
+      The render model itself. Read before anything that schedules a render.
+  - article: react/rendering-lists-and-keys
+    note: >-
+      Identity across renders — the first place the model becomes observable.
+  - article: react/state-and-usestate
+    note: >-
+      The first thing that schedules the work described in the previous three articles.
+  - article: react/rules-of-react
+    note: >-
+      Placed after the render model rather than before it: the constraints read as
+      arbitrary until you know what they protect.
+  - article: react/usereducer-and-state-structure
+    note: >-
+      Shaping state, once you have seen what changing it costs.
+  - article: react/context
+    note: >-
+      Sharing state across the tree. Read the next article immediately after this one.
+  - article: react/context-rerenders-the-whole-tree
+    note: >-
+      The recipe that pays off the previous article.
+  - article: react/memoization-and-the-compiler
+    note: >-
+      When to intervene, and when the compiler has already done it.
+  - article: react/typing-lag-rerender-storm
+    note: >-
+      The same subject as the previous article, arriving as a symptom instead of a concept.
+  - article: react/effects-and-synchronization
+    note: >-
+      Stepping outside render. Everything before this happens during one.
+  - article: react/escape-hatches-audit
+    note: >-
+      Closes the sequence: which of the preceding eleven mechanisms have you been working
+      around rather than with.
