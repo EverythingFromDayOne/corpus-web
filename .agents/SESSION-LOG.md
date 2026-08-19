@@ -1824,3 +1824,44 @@ overridable default.
 - Do not auto-merge
 
 ---
+
+## Session debt-d6 — nest-module skill seed, not reversal — 2026-08-19
+
+**Branch:** `content/nestjs-v0.3.2`
+
+**Files changed:**
+- `.claude/skills/corpus-nest-module/SKILL.md` — description and Validation section: "forces" / "reversal" replaced with seeded overridable default
+- `AGENTS.md` — regenerated; former "reversal" index at line 755 is gone
+- `.cursor/rules/60-skills.mdc` — regenerated from the skill description
+- `CLAUDE.md` — regenerated if the generator rewrote it; no rule-body projection
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — this task
+- `.agents/summary.md` — Last updated notes the skill matches the corpus correction
+- `progress.md` — session-log bullet for the skill alignment
+
+**Why:** The canonical rule files were corrected on the previous push, but the
+`corpus-nest-module` skill still said Nest "forces" `forbidUnknownValues` and its
+description still projected a "reversal" into `AGENTS.md`. Skill descriptions are
+the source for the generated skill index, so leaving that wording would keep
+teaching every future agent the claim D6 closed.
+
+**Invented decisions:**
+- Description replacement is length-matched: "the forbidUnknownValues reversal" →
+  "the forbidUnknownValues seeded default"
+- Body heading "a reversal that breaks assumptions" → "a seeded default that
+  breaks assumptions"; the mechanism sentence now matches the rule files
+  (`@nestjs/common` 9.3.2, seeded overridable default) without adding the
+  constructor example the rules already carry
+- Did not restyle the Avoid bullet "Never assume standalone `class-validator`
+  defaults" — that warning remains true and does not claim Nest forces the option
+
+**Known issues / next steps:**
+- Live "Nest forces / reverses this option" wording is gone from `.claude/`,
+  `.cursor/`, `docs/`, `scripts/`, `AGENTS.md`, and `CLAUDE.md`. Remaining
+  hits quote the old claim as the error being fixed: `prompts/d6-forbid-unknown-values.md`
+  (lines 54, 60, 187, 238, 268) and historical SESSION-LOG / CHANGELOG /
+  `progress.md` entries. The skill's Avoid bullet still says "Never assume
+  standalone `class-validator` defaults" — true, not a forces-claim
+- Do not auto-merge
+
+---

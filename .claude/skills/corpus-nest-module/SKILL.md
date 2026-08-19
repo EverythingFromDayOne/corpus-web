@@ -1,6 +1,6 @@
 ---
 name: corpus-nest-module
-description: "Conventions for apps/api, the NestJS 11 service. Use when adding or editing a module, controller, service, DTO, guard, entity, or TypeORM migration, and when deciding whether a piece of functionality belongs in the API at all. Covers answer-key custody, the forbidUnknownValues reversal, and why lessons rows are archived rather than deleted."
+description: "Conventions for apps/api, the NestJS 11 service. Use when adding or editing a module, controller, service, DTO, guard, entity, or TypeORM migration, and when deciding whether a piece of functionality belongs in the API at all. Covers answer-key custody, the forbidUnknownValues seeded default, and why lessons rows are archived rather than deleted."
 ---
 
 # apps/api — NestJS 11
@@ -14,12 +14,12 @@ build-time and never passes through it.
 `apps/web/app/api/` is a BFF for session cookie proxying only. Zero business logic. If
 adding logic there feels faster, you are building two backends.
 
-## Validation — a reversal that breaks assumptions
+## Validation — a seeded default that breaks assumptions
 
-**Nest forces `forbidUnknownValues: false` on `ValidationPipe`**, which reverses what
-`class-validator` does standalone. Tests written against standalone behaviour will pass for
-the wrong reason. This was found by article 17 invalidating article 16's headline claim in
-`nestjs-concepts`; do not rediscover it.
+**Since `@nestjs/common` 9.3.2, `ValidationPipe` seeds `forbidUnknownValues: false`** as
+an overridable default. Tests written against standalone `class-validator` behaviour will
+pass for the wrong reason. This was found by article 17 invalidating article 16's headline
+claim in `nestjs-concepts`; do not rediscover it.
 
 Every request body gets a DTO with `class-validator` decorators. `whitelist: true`,
 `transform: true`.

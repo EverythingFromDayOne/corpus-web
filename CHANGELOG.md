@@ -5,6 +5,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-19] — content/nestjs-v0.3.2 — debt-d6: nest-module skill seed, not reversal
+
+**Changed**
+- `.claude/skills/corpus-nest-module/SKILL.md` — ValidationPipe
+  `forbidUnknownValues: false` is a seeded overridable default since `@nestjs/common` 9.3.2
+- `AGENTS.md` and `.cursor/rules/60-skills.mdc` regenerated from that description
+
+**Fixed**
+- Skill description no longer indexes a `forbidUnknownValues` "reversal" into `AGENTS.md`
+
 ### [2026-08-19] — content/nestjs-v0.3.2 — debt-d6: rule files seed, not force
 
 **Changed**

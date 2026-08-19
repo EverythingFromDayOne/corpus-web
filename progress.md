@@ -77,6 +77,10 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **debt-d6-skill (2026-08-19):** `.claude/skills/corpus-nest-module/SKILL.md`
+  no longer calls `forbidUnknownValues` a Nest "reversal". Description and body
+  now match the rule files (seeded overridable default). `AGENTS.md`
+  regenerated. D6 already closed; census unchanged. Do not auto-merge.
 - **debt-d6-rules (2026-08-19):** `.cursor/rules/20-never-violate.mdc` and
   `50-api-nestjs.mdc` no longer say Nest "forces" `forbidUnknownValues: false`.
   `AGENTS.md` regenerated. D6 already closed; census unchanged. Do not auto-merge.
