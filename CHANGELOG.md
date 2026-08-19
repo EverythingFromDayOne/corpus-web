@@ -20,6 +20,21 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 **Fixed**
 - Apex CNAME description: previously `angular-demos.pages.dev`, now Vercel; demos remain at `ng21.` / `ng15.`
+### [2026-08-19] — cursor/debt-d27-d28-70c9 — Debt D27–D28: empty concept graph; `--cool` untokenized
+
+**Added**
+- Debt **D27** in `docs/DEBT.md` — all 289 `related` edges are intra-corpus, so the §5.4 concept map and `/en` teaser have nothing to draw
+- Debt **D28** in `docs/DEBT.md` — `--cool` is used in both layout POCs and home `.tag.concept` but is absent from `packages/ui`
+
+**Changed**
+- Highest ID issued D26 → D28
+- `.agents/summary.md` — debt ID range D1–D28
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Nothing. Fix for D27 is corpus-side authoring; D28 is promote-or-remove the colour
 
 ### [2026-08-19] — cursor/verify-prerender-aa14 — prerender HTML gate
 

@@ -3,7 +3,7 @@
 Known gaps. IDs are **append-only and never reused** — a closed item keeps its
 number and its row, marked closed.
 
-**Highest ID issued: D26**
+**Highest ID issued: D28**
 
 ## Open
 
@@ -29,6 +29,8 @@ number and its row, marked closed.
 | D24 | **Interactive layer** — session 4: build-output tab group, quiz, flashcards, drag-or-tap exercise, mechanism player, home-page simulator. The POC's tab group has `role="tablist"` with no `aria-controls`, no `tabpanel` roles and no roving tabindex; the exercise chips are `div`s unreachable by keyboard. Fix when built. The home demo panel is an inert placeholder. | Home and lesson pages show coming-soon slots instead of interactives. | Session 4 | 2026-08-19 |
 | D25 | **`/en/license`** — item 13's second half. The sole carve-out to the no-personal-content rule, since CC BY 4.0 requires naming a copyright holder. | No licence page yet. | Phase 1 item 13 | 2026-08-19 |
 | D26 | **Accounts and progress sync.** Progress is anonymous `localStorage` (article routes). Migrating it into a real account on first sign-up is roadmap §10 and needs the Nest backend. Sign-in is omitted from the nav. | No cross-device progress. | Phase 2 | 2026-08-19 |
+| D27 | **The concept graph has nothing to draw.** All 289 `related` edges in `catalog.json` are intra-corpus; no article in any corpus references an article in another. Roadmap §5.4's cross-corpus concept map and the `/en` concept-graph teaser both depend on links that were never authored. Discovered 2026-08-19 while building the teaser: an SVG drawing four unlinked nodes was dropped for the coming-soon card because inter-corpus edges would have rendered as nothing. | The map is unbuildable, and `/en` shows a placeholder where the corpus's most distinctive artefact should be. | Corpus-side authoring of `related` refs that cross repos — not a rendering task | 2026-08-19 |
+| D28 | **`--cool` is used but untokenized.** Defined in the token block of both `docs/design/article-layout-poc.html` and `docs/design/listing-pages-poc.html`, and duplicated locally in `apps/web`'s home styles for `.tag.concept`, but absent from `packages/ui/DESIGN.md` and `tokens.css`. | A colour in shipped UI that the design system does not define, with one copy already made. | Promote `--cool` to a token, or remove it and use an existing one | 2026-08-19 |
 
 ## Closed
 
