@@ -2263,3 +2263,45 @@ disagree.
 - Do not auto-merge
 
 ---
+
+## Session 3 follow-up — rail hover labels — 2026-08-19
+
+**Branch:** `cursor/session-3-article-routes-f628`
+
+**Files changed:**
+- `apps/web/components/article/toc-rail.tsx` — ticks are `<button>`s over part-level sections only; label markup unchanged
+- `apps/web/components/article/article-view.tsx` — passes `railParts()` into the rail
+- `apps/web/lib/rail-parts.ts` — `catalog.sections` filtered to `depth === 2`
+- `apps/web/components/article/article.css` — rail `overflow: visible`; tick 18×2px; hover and `:focus-visible` reveal
+- `apps/web/messages/en.json` — `article.partEyebrow` (`Part {n}`)
+- `docs/design/listing-pages-poc.html` — `.lrail` `overflow: hidden` → `visible` so `.tk .l` can paint
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased rail-label bullets
+- `.agents/summary.md` — rail ticks are depth-2 parts; overflow:hidden clips labels
+- `progress.md` — item 9 note
+
+**Why:** Hover labels on the article/lesson rail did not appear. The label element
+was already in the markup with text, and `.av-tk:hover .av-tk-l` /
+`.av-tk:focus-visible .av-tk-l` already set `opacity: 1`. The labels sit at
+`right: 38px`, entirely to the left of the 3.5rem rail track, and
+`overflow: hidden` on `.av-view > .av-rail` (copied from listing-POC `.lrail`)
+clipped them. The article-layout POC rail has no overflow clip, which is why
+labels work there. The same transcription also mapped every `catalog.sections`
+entry (h2 and h3) onto ticks, so a lesson such as `jsx-and-rendering` showed
+28 ticks instead of 13 parts.
+
+**Invented decisions:**
+- "Part-level" means `catalog.sections` with `depth === 2`, not a `/^Part/` regex and not h3s
+- Eyebrow is the heading's `Part N` prefix when present, else i18n `Part {n}` from the 1-based index among those parts
+- Ticks are `<button type="button">` as both POCs specify, jumping via `scrollIntoView` + `history.replaceState` hash
+- Rail `overflow: visible` plus `z-index: 4` so labels overlay the article without sitting above the top bar
+- Listing POC `.lrail` overflow corrected to `visible` so the contract matches `.tk .l`
+- Branch stays `cursor/session-3-article-routes-f628` (PR #21)
+
+**Known issues / next steps:**
+- 18×2px ticks remain; D18/D19 target-size tension is unchanged
+- Focus-visible reveal is in place (the D18 hover-only concern); the rest of D18 is untouched
+- Do not auto-merge
+
+---
+

@@ -8,6 +8,7 @@ import { isRepoId, type RepoId } from '@/lib/repos';
 import { corpusTree } from '@/lib/catalog';
 import { REPOS } from '@/lib/repos';
 import { renderArticleMarkdown, countExtracts, hoistExtractComments } from '@/lib/article-markdown';
+import { railParts } from '@/lib/rail-parts';
 import { ArticleProgressBar, ArticleScrim } from './article-shell';
 import { CorpusSidebar, CurriculumSidebar } from './sidebars';
 import { TocRail } from './toc-rail';
@@ -191,10 +192,14 @@ export async function ArticleView({
         </main>
         <TocRail
           uid={article.uid}
-          sections={article.sections.map((section) => ({
-            ...section,
-            jumpLabel: t(messages, 'article.jumpTo', { heading: section.heading }),
-          }))}
+          parts={railParts(article.sections, (n) => t(messages, 'article.partEyebrow', { n })).map(
+            (part) => ({
+              ...part,
+              jumpLabel: t(messages, 'article.jumpTo', {
+                heading: `${part.eyebrow} ${part.partTitle}`,
+              }),
+            }),
+          )}
         />
       </div>
       <ArticleScrim label={t(messages, 'article.closeSidebar')} />

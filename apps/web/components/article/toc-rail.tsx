@@ -1,24 +1,33 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import type { ArticleSectionView } from '@/lib/catalog';
+import { useEffect, useState } from 'react';
+import type { RailPart } from '@/lib/rail-parts';
 import { markComplete, markSeen, readProgress } from '@/lib/progress';
 import { useArticleChrome } from './article-shell';
 
 const CIRCUMFERENCE = 2 * Math.PI * 13;
 
+function seenPartCount(seen: Set<string>, parts: Array<{ anchor: string }>): number {
+  return parts.reduce((count, part) => (seen.has(part.anchor) ? count + 1 : count), 0);
+}
+
+function jumpToPart(anchor: string) {
+  document.getElementById(anchor)?.scrollIntoView({ block: 'start' });
+  const url = new URL(window.location.href);
+  url.hash = anchor;
+  history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+}
+
 export function TocRail({
   uid,
-  sections,
+  parts,
 }: {
   uid: string;
-  sections: Array<ArticleSectionView & { jumpLabel: string }>;
+  parts: Array<RailPart & { jumpLabel: string }>;
 }) {
   const { setPercent } = useArticleChrome();
-  const [active, setActive] = useState<string | null>(sections[0]?.anchor ?? null);
+  const [active, setActive] = useState<string | null>(parts[0]?.anchor ?? null);
   const [seen, setSeen] = useState<Set<string>>(new Set());
-  const seenRef = useRef(seen);
-  seenRef.current = seen;
 
   useEffect(() => {
     const initial = new Set(readProgress().seen[uid] ?? []);
@@ -26,18 +35,18 @@ export function TocRail({
   }, [uid]);
 
   useEffect(() => {
-    if (sections.length === 0) {
+    if (parts.length === 0) {
       setPercent(0);
       return;
     }
-    const percent = Math.round((seen.size / sections.length) * 100);
-    setPercent(percent);
-    if (seen.size === sections.length) markComplete(uid);
-  }, [seen, sections.length, setPercent, uid]);
+    const counted = seenPartCount(seen, parts);
+    setPercent(Math.round((counted / parts.length) * 100));
+    if (counted === parts.length) markComplete(uid);
+  }, [seen, parts, setPercent, uid]);
 
   useEffect(() => {
-    const nodes = sections
-      .map((section) => document.getElementById(section.anchor))
+    const nodes = parts
+      .map((part) => document.getElementById(part.anchor))
       .filter((node): node is HTMLElement => node != null);
     if (nodes.length === 0) return;
 
@@ -64,34 +73,33 @@ export function TocRail({
 
     for (const node of nodes) observer.observe(node);
     return () => observer.disconnect();
-  }, [sections, uid]);
+  }, [parts, uid]);
 
-  const percent = sections.length === 0 ? 0 : Math.round((seen.size / sections.length) * 100);
+  const counted = seenPartCount(seen, parts);
+  const percent = parts.length === 0 ? 0 : Math.round((counted / parts.length) * 100);
   const offset = CIRCUMFERENCE * (1 - percent / 100);
-  const done = percent === 100 && sections.length > 0;
+  const done = percent === 100 && parts.length > 0;
 
   return (
     <div className="av-rail">
       <div className="av-stick">
-        {sections.map((section) => {
-          const marker =
-            /^(part\s+\d+)/i.exec(section.heading)?.[1] ?? String(section.ordinal + 1).padStart(2, '0');
-          const title = section.heading.replace(/^(part\s+\d+)\s+/i, '');
+        {parts.map((part) => {
           const classes = ['av-tk'];
-          if (seen.has(section.anchor)) classes.push('seen');
-          if (active === section.anchor) classes.push('on');
+          if (seen.has(part.anchor)) classes.push('seen');
+          if (active === part.anchor) classes.push('on');
           return (
-            <a
-              key={section.anchor}
-              href={`#${section.anchor}`}
+            <button
+              key={part.anchor}
+              type="button"
               className={classes.join(' ')}
-              aria-label={section.jumpLabel}
+              aria-label={part.jumpLabel}
+              onClick={() => jumpToPart(part.anchor)}
             >
               <span className="av-tk-l">
-                <b>{marker}</b>
-                {title}
+                <b>{part.eyebrow}</b>
+                {part.partTitle}
               </span>
-            </a>
+            </button>
           );
         })}
         <div className={`av-ring${done ? ' done' : ''}`}>

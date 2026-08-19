@@ -254,7 +254,8 @@ a.card:hover{border-color:var(--muted);background:var(--raised)}
      The shell reserves their width with padding. */
   .lview{display:block;padding-left:19rem;padding-right:3.5rem}
   .lview > .lsb{position:fixed;top:var(--tb);left:0;width:19rem;height:calc(100vh - var(--tb));overflow-y:auto;overscroll-behavior:contain}
-  .lview > .lrail{position:fixed;top:var(--tb);right:0;width:3.5rem;height:calc(100vh - var(--tb));overflow:hidden}
+  /* overflow:visible so `.tk .l` (right:38px, outside the 3.5rem track) can paint */
+  .lview > .lrail{position:fixed;top:var(--tb);right:0;width:3.5rem;height:calc(100vh - var(--tb));overflow:visible}
   .lview > .lmain{min-height:calc(100vh - var(--tb))}
   .lrail .stick{height:100%}
   /* Collapse is a desktop-only state and is declared inside this range,

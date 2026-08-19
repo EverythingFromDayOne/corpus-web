@@ -651,7 +651,9 @@
 }
 
 .av-tk {
+  appearance: none;
   position: relative;
+  flex-shrink: 0;
   width: 18px;
   height: 2px;
   background: var(--color-graphite);
@@ -660,6 +662,10 @@
   cursor: pointer;
   display: block;
   border-radius: 2px;
+  overflow: visible;
+  transition:
+    width var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
 }
 
 .av-tk.seen {
@@ -696,6 +702,7 @@
   text-align: left;
   opacity: 0;
   pointer-events: none;
+  transition: opacity var(--duration-fast) var(--ease-out);
   box-shadow: 0 4px 14px color-mix(in srgb, var(--color-ink) 38%, transparent);
 }
 
@@ -837,7 +844,9 @@
     right: 0;
     width: 3.5rem;
     height: calc(100vh - var(--tb, 3.6rem));
-    overflow: hidden;
+    /* Labels sit at right: 38px, outside this 3.5rem track. hidden clips them. */
+    overflow: visible;
+    z-index: 4;
   }
 
   .av-view > .av-main {

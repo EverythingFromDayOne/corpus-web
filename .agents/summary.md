@@ -6,7 +6,7 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-19 (PR #21: `/en` transcribes listing-POC `#p-home`)
+> Last updated: 2026-08-19 (PR #21: rail hover labels; part-level ticks)
 
 ---
 
@@ -102,6 +102,11 @@ bootstrap.
   session-1 spike at `/en/concepts/…` is gone and must not be revived.
 - Lesson pages set `rel=canonical` (and `og:url`) to the matching `/en/blog/…`
   URL. Unresolved and excluded `related` refs render as plain text.
+- **Rail ticks are one per `catalog.sections` entry with `depth === 2` (h2 /
+  part), not h3.** `jsx-and-rendering` is 13 parts / 28 headings. Each tick is
+  a `<button>` containing `.av-tk-l` at `right: 38px`, revealed on `:hover` and
+  `:focus-visible`. The rail must be `overflow: visible` — `overflow: hidden`
+  on the 3.5rem track clips the labels (that was the missing-hover-label bug).
 - **`apps/web` does not import `@corpus/content-schema`.** Next's Turbopack build
   cannot resolve that package's NodeNext `.js` specifiers to `.ts` sources, and
   a client corpus filter must not pull remark/zod adapters. The listing loader

@@ -5,6 +5,22 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-19] — cursor/session-3-article-routes-f628 — rail hover labels and part-level ticks
+
+**Added**
+- `article.partEyebrow` message (`Part {n}`) for rail labels when a heading has no `Part N` prefix
+- `apps/web/lib/rail-parts.ts` — catalog sections filtered to `depth === 2`
+
+**Changed**
+- Article/lesson rail ticks are `<button>`s, one per part (h2), not per h2/h3
+- Listing-POC `.lrail` overflow is `visible` so `.tk .l` can paint outside the 3.5rem track
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Rail hover/focus-visible labels were present in markup with text and the reveal rule matched, but `overflow: hidden` on the 3.5rem rail clipped them
+
 ### [2026-08-19] — cursor/session-3-article-routes-f628 — home page matches listing POC #p-home
 
 **Added**
