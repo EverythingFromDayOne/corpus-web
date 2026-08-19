@@ -1765,3 +1765,24 @@ corpus-fix prompt should check for an existing convention rather than proposing 
 - Do not auto-merge
 
 ---
+
+## Session debt-d6 — claim wording — 2026-08-19
+
+**Branch:** `content/nestjs-v0.3.2`
+
+**Files changed:**
+- `docs/DEBT.md` — closed D6 Item uses the instructed "has defaulted" phrasing
+- `.agents/summary.md` — key fact aligned to the same sentence
+- `CHANGELOG.md` — Fixed bullet aligned to the same sentence
+- `.agents/SESSION-LOG.md` — this entry
+
+**Why:** The D6 close-out was already on this branch. The instructed closed-row claim
+was "has defaulted … since 0.14.0"; the landed row said "defaults". Aligning the
+register, snapshot, and changelog so they carry one sentence.
+
+**Invented decisions:** none beyond the wording alignment.
+
+**Known issues / next steps:** unchanged from the previous `debt-d6` entry. Do not
+auto-merge.
+
+---

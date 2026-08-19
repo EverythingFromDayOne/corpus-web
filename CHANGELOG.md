@@ -24,7 +24,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 **Fixed**
 - Debt **D6** closed. The register now carries the corrected claim: class-validator
-  defaults forbidUnknownValues to true since 0.14.0, unconditionally since 0.14.2;
+  has defaulted forbidUnknownValues to true since 0.14.0, unconditionally since 0.14.2;
   from @nestjs/common 9.3.2 ValidationPipe seeds it back to false as an overridable
   default, so an undecorated DTO that validate() rejects passes silently through the pipe
 

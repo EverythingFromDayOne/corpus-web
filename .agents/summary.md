@@ -122,7 +122,7 @@ Application code now exists: `apps/web` renders one real nextjs-concepts article
   `.next/server/app/<route>.html`.
 - `next dev` under-reports prerender severity: some failures show HTTP 200 in dev and are
   fatal at build.
-- `class-validator` defaults `forbidUnknownValues` to `true` since 0.14.0,
+- `class-validator` has defaulted `forbidUnknownValues` to `true` since 0.14.0,
   unconditionally since 0.14.2; from `@nestjs/common` 9.3.2 `ValidationPipe` seeds
   it back to `false` as an overridable default, so an undecorated DTO that
   `validate()` rejects passes silently through the pipe. Corrected in
