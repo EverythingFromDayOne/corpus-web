@@ -6,7 +6,7 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-19 (PR #21: rail hover labels; part-level ticks)
+> Last updated: 2026-08-19 (verify:prerender HTML gate; D23 closed)
 
 ---
 
@@ -138,7 +138,10 @@ bootstrap.
   runs on either runtime. `^24` would let a Node-24-only API pass and fail on web.
 - `'use cache: private'` gives zero server-side caching — request memoization only.
 - Prerendered shell content cannot be verified with `curl` or view-source. Inspect
-  `.next/server/app/<route>.html`.
+  `.next/server/app/<route>.html`. `pnpm verify:prerender` is the gate: every
+  adapting article and every path lesson must emit that file with a non-empty
+  `<body>`. Bracketed `[param]` shells for Cache Components ◐ rows are excluded
+  (D23, closed).
 - `next dev` under-reports prerender severity: some failures show HTTP 200 in dev and are
   fatal at build.
 - **Every rule that places a child of the article shell's grid is breakpoint-scoped, and
@@ -252,8 +255,8 @@ bootstrap.
   append-only, never reused. `progress.md` keeps a one-line pointer. D16: nextjs and
   angular article/recipe templates omit `description` (reintroduces D5); react and
   nestjs have no templates. Session 3 listing slice opened D17–D26 (corpus gates,
-  POC a11y, site CI, Shiki, Pagefind, SEO residue, render-mode verification,
-  interactive layer, `/en/license`, accounts/progress sync).
+  POC a11y, site CI, Shiki, Pagefind, SEO residue, render-mode verification
+  (D23 now closed), interactive layer, `/en/license`, accounts/progress sync).
 
 ---
 
@@ -285,7 +288,8 @@ bootstrap.
    The cheapest remaining Group 1 fix is publishing the two staged `nextjs` articles
    (`cache-lifetimes`, `use-cache-directive`), which closes 4 of the 44.
 3. Article and lesson routes now read `catalog.json` (`/en/blog/[corpus]/[slug]`,
-   `/en/courses/[course]/lessons/[slug]`). Remaining Phase 1: Shiki (D20),
-   Pagefind (D21), `/en/license` (D25), SEO residue (D22), render-mode gate
-   (D23), a11y (D18/D19). Do not revive `/en/concepts/…`.
+  `/en/courses/[course]/lessons/[slug]`). Remaining Phase 1: Shiki (D20),
+  Pagefind (D21), `/en/license` (D25), SEO residue (D22), a11y (D18/D19).
+  Render-mode gate (D23) is `pnpm verify:prerender`. Do not revive
+  `/en/concepts/…`.
 4. DNS cutover: `nxhhuy.tech` -> Vercel.
