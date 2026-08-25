@@ -5,6 +5,20 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-25] — cursor/workspace-map-91ce — apply pasted workspace-map purposes
+
+**Added**
+- Nothing
+
+**Changed**
+- `docs/workspace-map.md` Purpose fields for the six present repos, taken from the Slack list; When to look here derived from those Purpose texts
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Nothing
+
 ### [2026-08-25] — cursor/workspace-map-91ce — fill workspace-map purposes
 
 **Added**

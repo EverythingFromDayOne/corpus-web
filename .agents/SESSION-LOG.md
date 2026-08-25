@@ -2493,3 +2493,38 @@ rather than inferred from directory names.
 
 ---
 
+## Task — workspace-map purposes from Slack list — 2026-08-25
+
+**Branch:** `cursor/workspace-map-91ce`
+
+**Files changed:**
+- `docs/workspace-map.md` — replaced the six present Purpose fields with the Slack list; derived When to look here from those texts; drafted-from line already absent
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased bullet for the pasted-list fill
+- `progress.md` — session-log line
+
+**Why:** The previous fill used this repo's own docs because the Slack purpose
+list had not arrived. The list is now in the thread. Purpose is copied from
+that list; When to look here is derived from Purpose, as instructed. Fields
+that the list marks TODO are not present in the truncated file, so they were
+not added.
+
+**Invented decisions:**
+- When to look here wording is derived from each Purpose, not copied from the
+  earlier repo-doc fill.
+- Missing sections (mfe-*, nestjs-concepts, nextjs-concepts, react-concepts,
+  Relationships, Rules) left unrestored — "change nothing else". Purposes
+  supplied for those repos were not applied because those Purpose fields do
+  not exist in the file.
+- Session log id `workspace-map purposes from Slack list` rather than a
+  sequential session number. No `prompts/session-N+1.md` authored.
+- `.agents/summary.md` left unchanged.
+
+**Known issues / next steps:**
+- The map is still truncated relative to the earlier full draft in the same
+  Slack thread.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side.
+- Do not auto-merge.
+
+---
+
