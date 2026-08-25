@@ -2528,3 +2528,61 @@ not added.
 
 ---
 
+## Task — apply prompts/roadmap-patch-2026-08-20.md — 2026-08-25
+
+**Branch:** `cursor/docs-roadmap-patch-2026-08-20-a6a1`
+
+**Files changed:**
+- `roadmap.md` — all seven roadmap edits from the 2026-08-20 patch: §0.0 inventory + Q8 email entries; §7.1 tier column and two corrections; §7.3 sidecar deferral; §7.4 rewritten as local scoring; new §7.5 code assembly exercise; §14 struck-features table; §16 Q3/Q5/Q8 status lines
+- `docs/DEBT.md` — Highest ID D28 → D36; D17 per-repo CI detail; D24 split to tier 1; new rows D29–D35; D36 tier-2 simulators
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased roadmap-patch bullet
+- `.agents/summary.md` — debt range D1–D36; Q8 email carve-out; interactive-tier key fact; monetization dropped from open decisions
+- `progress.md` — session-log line
+
+**Why:** The patch reconciles a reference-site feature inventory against the
+already-approved roadmap rather than adopting that site wholesale. §7 already
+specified most of the interactive layer and §14 already set the take-vs-avoid
+rule; the missing pieces were a tier distinction, one new component (§7.5),
+the Q3/Q5/Q8 consequences written into the inventory, and per-article gaps
+pushed into the debt register. This is an approved scope change to
+`roadmap.md`, which is otherwise stable.
+
+`pnpm build:catalog` was run against the current pins (`nextjs@v0.3.1`,
+`angular@v0.3.1`, `react@v0.5.0`, `nestjs@v0.3.2`) before writing D32. The
+catalog still reports **289 edges**, so the patch's number was kept.
+
+**Invented decisions:**
+- Branch named `cursor/docs-roadmap-patch-2026-08-20-a6a1` per the cloud-agent
+  template, not the example `docs/roadmap-patch-2026-08-20`.
+- Edit 7 Q3/Q5/Q8 wording: the patch gave instructions, not replacement
+  paragraphs. Q3 received the full §14 struck table; Q5's "Open, recommendation
+  standing" became "DECIDED 2026-08-20"; Q8 gained the contact-email carve-out
+  and kept the trade-off paragraph verbatim.
+- D29–D36 Impact/Blocks cells: the patch specified only the Item column.
+- D24/D36 split wording: D24 keeps the POC a11y findings and becomes tier 1;
+  D36 takes the per-mechanism simulators. D24's original "drag-or-tap exercise,
+  mechanism player, home-page simulator" items moved into §7.5 / D36 / D31
+  rather than remaining as unnamed lumps.
+- `.cursor/rules/20-never-violate.mdc` was not updated for the email carve-out.
+  The patch listed eight edits and did not include the rule file. The
+  contradiction is recorded here rather than silently resolved.
+- §8's quiz-module line still says "Answer key must never reach the client
+  (§7.4)" and Phase 3 item 24 still says `mode: 'local' | 'server'` from day
+  one. Neither was in the patch; left as-is.
+- Approval checklist Q5 line left unchecked. The patch updated §16, not the
+  checklist.
+- Session log id `apply prompts/roadmap-patch-2026-08-20.md` rather than a
+  sequential session number. No `prompts/session-N+1.md` authored.
+
+**Known issues / next steps:**
+- Personal-content rule file still forbids contact details; roadmap §0.0 / §16
+  Q8 now permit an email. Reconcile on an explicit rule-file task, not here.
+- §8 quiz module and Phase 3 item 24 still describe the pre-Q3 server-scoring
+  design.
+- Approval checklist still lists Q5 as open.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side.
+- Do not auto-merge.
+
+---
+

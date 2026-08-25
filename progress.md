@@ -77,6 +77,11 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **roadmap-patch-2026-08-20 (2026-08-25):** applied all eight edits from
+  `prompts/roadmap-patch-2026-08-20.md`. Catalog re-verified at 289 edges
+  against `nextjs@v0.3.1` / `angular@v0.3.1`. D29–D36 opened; D24 split
+  (tier 1 keeps D24, tier 2 is D36); D17 amended with per-repo CI detail.
+  Feature branch PR; not pushed to `main`. Do not auto-merge.
 - **workspace-map purposes from Slack list (2026-08-25):** replaced the six
   present Purpose fields in `docs/workspace-map.md` with the Slack list and
   derived When to look here from those texts. Missing mfe-* / remaining

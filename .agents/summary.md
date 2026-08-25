@@ -6,7 +6,7 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-19 (D27–D28 opened; `nxhhuy.tech` on Vercel)
+> Last updated: 2026-08-25 (roadmap patch 2026-08-20 applied; D29–D36 opened)
 
 ---
 
@@ -168,8 +168,11 @@ bootstrap.
   `nestjs-concepts@v0.3.2` (Debt D6 closed).
 - `AngularDemos` is a **separate repo** at `ng21.` / `ng15.nxhhuy.tech`. Not a submodule.
   Integration approach is an open decision — see "Open decisions" below.
-- No personal or identifying content ships. The only carve-out is licence attribution
-  (`LICENSE`, `/en/license`), because CC BY 4.0 requires naming a copyright holder.
+- No personal or identifying content ships. Carve-outs: licence attribution
+  (`LICENSE`, `/en/license`), because CC BY 4.0 requires naming a copyright holder;
+  and `nxhhuy@gmail.com` in the site footer and on `/en/license` (roadmap §0.0 /
+  §16 Q8, 2026-08-20). Bylines remain excluded. Attribution of adapted work is
+  `isBasedOn` / `citation`, never `author` (D33).
 - An empty About page is not an oversight. Do not fill it.
 - **`react` and `nestjs` have no `docs/` wrapper.** Concept categories are top-level
   directories in the repo root (`architecture/`, `foundations/`, ...); recipes live at
@@ -253,7 +256,7 @@ bootstrap.
   that label as a badge — it has no consumer yet. Debt **D6** is closed:
   `nestjs-concepts@v0.3.2` corrects the `nestjs/dtos-and-class-validator` headline
   claim (`forbidUnknownValues` is a seeded overridable default).
-- **The debt register lives in `docs/DEBT.md`**, not in `progress.md`. IDs D1–D28,
+- **The debt register lives in `docs/DEBT.md`**, not in `progress.md`. IDs D1–D36,
   append-only, never reused. `progress.md` keeps a one-line pointer. D16: nextjs and
   angular article/recipe templates omit `description` (reintroduces D5); react and
   nestjs have no templates. Session 3 listing slice opened D17–D26 (corpus gates,
@@ -261,6 +264,15 @@ bootstrap.
   (D23 now closed), interactive layer, `/en/license`, accounts/progress sync).
   D27: all 289 live edges are intra-corpus, so the §5.4 concept map is unbuildable.
   D28: `--cool` is used in both POCs and home `.tag.concept` but is not a design token.
+  Roadmap patch 2026-08-20 opened D29–D36: inert category filters, course FAQ/timeline,
+  sticky-scroll showcase, related-articles section (289 edges verified 2026-08-25),
+  adapted-content attribution schema, testimonials blocked on readers, sidecar
+  deferral, and the D24 split (tier 1 keeps D24; tier 2 is D36).
+- **Interactive layer is tiered** (roadmap §7.1, 2026-08-20). Tier 1 is corpus-agnostic
+  and blocking (D24); tier 2 is per-mechanism simulators, incremental (D36). Quiz
+  scoring is `mode: 'local'` only (§7.4). Sidecars are the documented future;
+  `curation/overrides/` is the working mechanism until D17 closes (D35). §7.5 specifies
+  the code-assembly exercise. Video is struck (§16 Q5 decided: SVG plus motion).
 
 ---
 
@@ -274,8 +286,11 @@ bootstrap.
    corpus site attaches to those hosts is still Q7: link out, iframe under
    `/demos/*`, or load Angular 21 as a cross-framework federated remote? Not
    decided. Default assumption until decided: **link out**.
-3. **Monetization.** Gates whether `entitlements` is built at all, whether Vercel Hobby is
-   permissible, and whether quiz scoring must be server-side.
+
+Q3 monetization is resolved non-commercial (2026-08-19); quiz scoring is local-only
+(§7.4, 2026-08-20). Q5 media is decided: SVG plus motion (2026-08-20). Q8 remains
+no personal content, narrowed to permit a contact email in the footer and on
+`/en/license`.
 
 ---
 
