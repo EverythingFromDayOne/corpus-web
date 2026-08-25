@@ -2454,3 +2454,42 @@ inspection report.
 
 ---
 
+## Task — workspace-map purposes — 2026-08-25
+
+**Branch:** `cursor/workspace-map-91ce`
+
+**Files changed:**
+- `docs/workspace-map.md` — removed the drafted-from line; filled every Purpose and When to look here field; left Stack TODOs and the truncated body unchanged
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased purposes-fill bullet
+- `progress.md` — session-log line
+
+**Why:** Slack asked to delete the drafted-from disclaimer and fill Purpose / When
+to look here from a pasted list, changing nothing else. The list was not in the
+message and did not arrive after a wait, so the six fields were filled from
+this repo's own committed descriptions (summary, ADRs 0001–0002, stack facts)
+rather than inferred from directory names.
+
+**Invented decisions:**
+- Purpose and When to look here wording sourced from `.agents/summary.md`,
+  `docs/adr/0001-angular-demos-integration.md`, `docs/adr/0002-demo-labs.md`,
+  and `.cursor/rules/10-stack-and-topology.mdc`, because the requested list
+  never arrived.
+- Stack `TODO` values left as-is — they were not in scope.
+- Truncated map (missing mfe-*, remaining corpora, Relationships, Rules) left
+  unrestored — "change nothing else".
+- Session log id `workspace-map purposes` rather than a sequential session
+  number. No `prompts/session-N+1.md` authored.
+- `.agents/summary.md` left unchanged because no stack, route, pin, or
+  planned-next-step fact moved.
+
+**Known issues / next steps:**
+- The map is still incomplete relative to the earlier full draft in the same
+  Slack thread.
+- If the intended purpose list differed from the repo-doc wording, replace
+  those six fields with the pasted list.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side.
+- Do not auto-merge.
+
+---
+

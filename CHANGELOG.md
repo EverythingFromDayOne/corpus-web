@@ -5,6 +5,20 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-25] — cursor/workspace-map-91ce — fill workspace-map purposes
+
+**Added**
+- Nothing
+
+**Changed**
+- `docs/workspace-map.md` Purpose and When to look here fields for AngularDemos, angular-concepts, corpus-web, demo-attacked-web, demo-auth-concepts, and demo-authz-concepts
+
+**Removed**
+- Drafted-from disclaimer line in `docs/workspace-map.md`
+
+**Fixed**
+- Nothing
+
 ### [2026-08-25] — cursor/workspace-map-91ce — Self workspace map
 
 **Added**

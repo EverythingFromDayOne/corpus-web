@@ -77,6 +77,11 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **workspace-map purposes (2026-08-25):** removed the drafted-from line in
+  `docs/workspace-map.md` and filled Purpose / When to look here for the six
+  listed repos from this repo's own docs (the Slack list did not arrive).
+  Stack TODOs and the truncated body left unchanged. Feature branch PR; not
+  pushed to `main`. Do not auto-merge.
 - **workspace-map (2026-08-25):** added `docs/workspace-map.md` with the
   Slack-pasted Self workspace AGENTS.md draft, unchanged. Feature branch
   PR; not pushed to `main`. Do not auto-merge.
