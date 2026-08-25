@@ -220,7 +220,7 @@ tab group and exercise chips.
 **Amend the corpus-gates row** with what the scan actually found, since "some corpora lack
 CI" is less actionable than naming which and what each needs:
 
-- `react-concepts` — no `package.json`, no CI, nothing. Largest corpus at 73 files, holds
+- `react-concepts` — no `package.json`, no CI, nothing. Largest corpus at 77 markdown files, holds
   all 15 of D11's untitled articles, and is the source of the first course. Every fix
   there has been verified by hand. **Urgent.**
 - `nestjs-concepts` — manifest and one verify script, no workflow. `verify:forbid-unknown-values`
