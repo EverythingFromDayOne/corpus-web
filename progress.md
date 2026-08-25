@@ -77,6 +77,9 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **workspace-map (2026-08-25):** added `docs/workspace-map.md` with the
+  Slack-pasted Self workspace AGENTS.md draft, unchanged. Feature branch
+  PR; not pushed to `main`. Do not auto-merge.
 - **debt-d27-d28 (2026-08-19):** opened D27 (all 289 catalog edges are
   intra-corpus; concept graph has nothing to draw) and D28 (`--cool`
   used in both POCs and home `.tag.concept` but untokenized). Highest

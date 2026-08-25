@@ -5,6 +5,20 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-25] — cursor/workspace-map-91ce — Self workspace map
+
+**Added**
+- `docs/workspace-map.md` with the Slack-pasted Self workspace AGENTS.md draft, unchanged
+
+**Changed**
+- Nothing
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Nothing
+
 ### [2026-08-19] — cursor/phase-0-dns-cutover-1094 — Phase 0 DNS cutover recorded
 
 **Added**

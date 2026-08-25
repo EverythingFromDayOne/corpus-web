@@ -2419,3 +2419,38 @@ union-merged.
 
 ---
 
+## Task — workspace-map.md from Slack paste — 2026-08-25
+
+**Branch:** `cursor/workspace-map-91ce`
+
+**Files changed:**
+- `docs/workspace-map.md` — verbatim Slack paste of the Self workspace AGENTS.md draft
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased workspace-map bullet
+- `progress.md` — session-log line
+
+**Why:** Slack asked for `docs/workspace-map.md` with the pasted body unchanged
+and a PR off a feature branch, not `main`. The paste is a flattened, truncated
+draft of an AGENTS.md for `/Users/huynguyen/Documents/Self`; it was written
+byte-for-byte as instructed rather than reconstructed from the earlier
+inspection report.
+
+**Invented decisions:**
+- Session log id `workspace-map` rather than a sequential session number —
+  this is a named Slack task, not a `prompts/session-N.md` run. No
+  `prompts/session-N+1.md` authored.
+- Branch named `cursor/workspace-map-91ce` per the cloud-agent template,
+  not `docs/` from `corpus-commit`.
+- File contents match the Slack fence, including the missing Relationships
+  / Rules sections and the repos that were cut off. Not restored.
+- Protocol four-doc updates still applied; `.agents/summary.md` left
+  unchanged because no stack, route, pin, or planned-next-step fact moved.
+
+**Known issues / next steps:**
+- The map is incomplete relative to the earlier full draft in the same
+  Slack thread (mfe-*, remaining corpora, Relationships, Rules).
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side.
+- Do not auto-merge.
+
+---
+
