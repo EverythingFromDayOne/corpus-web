@@ -2419,3 +2419,112 @@ union-merged.
 
 ---
 
+## Task — workspace-map.md from Slack paste — 2026-08-25
+
+**Branch:** `cursor/workspace-map-91ce`
+
+**Files changed:**
+- `docs/workspace-map.md` — verbatim Slack paste of the Self workspace AGENTS.md draft
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased workspace-map bullet
+- `progress.md` — session-log line
+
+**Why:** Slack asked for `docs/workspace-map.md` with the pasted body unchanged
+and a PR off a feature branch, not `main`. The paste is a flattened, truncated
+draft of an AGENTS.md for `/Users/huynguyen/Documents/Self`; it was written
+byte-for-byte as instructed rather than reconstructed from the earlier
+inspection report.
+
+**Invented decisions:**
+- Session log id `workspace-map` rather than a sequential session number —
+  this is a named Slack task, not a `prompts/session-N.md` run. No
+  `prompts/session-N+1.md` authored.
+- Branch named `cursor/workspace-map-91ce` per the cloud-agent template,
+  not `docs/` from `corpus-commit`.
+- File contents match the Slack fence, including the missing Relationships
+  / Rules sections and the repos that were cut off. Not restored.
+- Protocol four-doc updates still applied; `.agents/summary.md` left
+  unchanged because no stack, route, pin, or planned-next-step fact moved.
+
+**Known issues / next steps:**
+- The map is incomplete relative to the earlier full draft in the same
+  Slack thread (mfe-*, remaining corpora, Relationships, Rules).
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side.
+- Do not auto-merge.
+
+---
+
+## Task — workspace-map purposes — 2026-08-25
+
+**Branch:** `cursor/workspace-map-91ce`
+
+**Files changed:**
+- `docs/workspace-map.md` — removed the drafted-from line; filled every Purpose and When to look here field; left Stack TODOs and the truncated body unchanged
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased purposes-fill bullet
+- `progress.md` — session-log line
+
+**Why:** Slack asked to delete the drafted-from disclaimer and fill Purpose / When
+to look here from a pasted list, changing nothing else. The list was not in the
+message and did not arrive after a wait, so the six fields were filled from
+this repo's own committed descriptions (summary, ADRs 0001–0002, stack facts)
+rather than inferred from directory names.
+
+**Invented decisions:**
+- Purpose and When to look here wording sourced from `.agents/summary.md`,
+  `docs/adr/0001-angular-demos-integration.md`, `docs/adr/0002-demo-labs.md`,
+  and `.cursor/rules/10-stack-and-topology.mdc`, because the requested list
+  never arrived.
+- Stack `TODO` values left as-is — they were not in scope.
+- Truncated map (missing mfe-*, remaining corpora, Relationships, Rules) left
+  unrestored — "change nothing else".
+- Session log id `workspace-map purposes` rather than a sequential session
+  number. No `prompts/session-N+1.md` authored.
+- `.agents/summary.md` left unchanged because no stack, route, pin, or
+  planned-next-step fact moved.
+
+**Known issues / next steps:**
+- The map is still incomplete relative to the earlier full draft in the same
+  Slack thread.
+- If the intended purpose list differed from the repo-doc wording, replace
+  those six fields with the pasted list.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side.
+- Do not auto-merge.
+
+---
+
+## Task — workspace-map purposes from Slack list — 2026-08-25
+
+**Branch:** `cursor/workspace-map-91ce`
+
+**Files changed:**
+- `docs/workspace-map.md` — replaced the six present Purpose fields with the Slack list; derived When to look here from those texts; drafted-from line already absent
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased bullet for the pasted-list fill
+- `progress.md` — session-log line
+
+**Why:** The previous fill used this repo's own docs because the Slack purpose
+list had not arrived. The list is now in the thread. Purpose is copied from
+that list; When to look here is derived from Purpose, as instructed. Fields
+that the list marks TODO are not present in the truncated file, so they were
+not added.
+
+**Invented decisions:**
+- When to look here wording is derived from each Purpose, not copied from the
+  earlier repo-doc fill.
+- Missing sections (mfe-*, nestjs-concepts, nextjs-concepts, react-concepts,
+  Relationships, Rules) left unrestored — "change nothing else". Purposes
+  supplied for those repos were not applied because those Purpose fields do
+  not exist in the file.
+- Session log id `workspace-map purposes from Slack list` rather than a
+  sequential session number. No `prompts/session-N+1.md` authored.
+- `.agents/summary.md` left unchanged.
+
+**Known issues / next steps:**
+- The map is still truncated relative to the earlier full draft in the same
+  Slack thread.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side.
+- Do not auto-merge.
+
+---
+
