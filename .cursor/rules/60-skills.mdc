@@ -37,7 +37,7 @@ Read: `.claude/skills/corpus-mdx-component/SKILL.md`
 
 ## `corpus-nest-module`
 
-Conventions for apps/api, the NestJS 11 service. Use when adding or editing a module, controller, service, DTO, guard, entity, or TypeORM migration, and when deciding whether a piece of functionality belongs in the API at all. Covers answer-key custody, the forbidUnknownValues seeded default, and why lessons rows are archived rather than deleted.
+Conventions for apps/api, the NestJS 11 service. Use when adding or editing a module, controller, service, DTO, guard, entity, or TypeORM migration, and when deciding whether a piece of functionality belongs in the API at all. Covers local-only quiz scoring, the forbidUnknownValues seeded default, and why lessons rows are archived rather than deleted.
 
 Read: `.claude/skills/corpus-nest-module/SKILL.md`
 

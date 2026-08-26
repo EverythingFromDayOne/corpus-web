@@ -18,10 +18,9 @@ Module inventory:
 | `users` | profile, preferences (theme, sidebar, locale) |
 | `catalog` | ingests `catalog.json`; owns `lessons`, `lesson_sections`, `paths` |
 | `progress` | lesson + section completion, streaks |
-| `quiz` | question bank, attempt scoring, **answer key custody** |
+| `quiz` | question bank, recorded attempts |
 | `srs` | flashcard scheduling (FSRS), due queues |
 | `notes` | highlights, bookmarks, per-article notes |
-| `entitlements` | free vs paid access |
 | `analytics` | event ingest -> BullMQ -> aggregates |
 | `admin` | catalog inspection, attempt review |
 
@@ -59,11 +58,13 @@ is in the wrong service.
   `refresh-storm` recipe.
 - `@nestjs/throttler` + Redis on login, register, and refresh.
 
-## Quiz answer keys
+## Quiz scoring is local-only
 
-`quiz_options.is_correct` is never serialized to a client in `server` mode. The response
-carries the verdict and the explanation, never the key. Add a serialization test that
-asserts this — it is the kind of leak that survives review.
+Scoring is `mode: 'local'` only (roadmap §7.4). The answer key ships in the client
+bundle by design; scores are advisory. There is no `'server'` mode and no key-hiding
+path. Do not add a serialization test that asserts the key is absent from the client —
+that was the dropped server-scoring design. The `quiz` module records attempts; it
+does not score them.
 
 ## OpenAPI
 

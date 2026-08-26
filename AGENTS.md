@@ -371,8 +371,9 @@ prompts/                  session prompts, committed
 - **NEVER return an entity from a controller.** DTOs only.
 - **NEVER hard-delete a `lessons` row.** Archive it. `lesson_progress` points at it and
   articles get renamed and moved.
-- **NEVER include a quiz answer key in a response DTO** when the quiz is in `server` mode.
-  The key never leaves the server.
+- **NEVER add a `'server'` quiz-scoring mode.** Scoring is `mode: 'local'` only
+  (roadmap §7.4). The answer key ships in the client bundle by design; scores are
+  advisory.
 - **NEVER skip `@nestjs/swagger` decorators.** `packages/api-client` is generated from the
   OpenAPI document; an undecorated endpoint is an invisible endpoint.
 - Note: since `@nestjs/common` 9.3.2, `ValidationPipe` seeds `forbidUnknownValues: false`
@@ -685,10 +686,9 @@ Module inventory:
 | `users` | profile, preferences (theme, sidebar, locale) |
 | `catalog` | ingests `catalog.json`; owns `lessons`, `lesson_sections`, `paths` |
 | `progress` | lesson + section completion, streaks |
-| `quiz` | question bank, attempt scoring, **answer key custody** |
+| `quiz` | question bank, recorded attempts |
 | `srs` | flashcard scheduling (FSRS), due queues |
 | `notes` | highlights, bookmarks, per-article notes |
-| `entitlements` | free vs paid access |
 | `analytics` | event ingest -> BullMQ -> aggregates |
 | `admin` | catalog inspection, attempt review |
 
@@ -726,11 +726,13 @@ is in the wrong service.
   `refresh-storm` recipe.
 - `@nestjs/throttler` + Redis on login, register, and refresh.
 
-## Quiz answer keys
+## Quiz scoring is local-only
 
-`quiz_options.is_correct` is never serialized to a client in `server` mode. The response
-carries the verdict and the explanation, never the key. Add a serialization test that
-asserts this — it is the kind of leak that survives review.
+Scoring is `mode: 'local'` only (roadmap §7.4). The answer key ships in the client
+bundle by design; scores are advisory. There is no `'server'` mode and no key-hiding
+path. Do not add a serialization test that asserts the key is absent from the client —
+that was the dropped server-scoring design. The `quiz` module records attempts; it
+does not score them.
 
 ## OpenAPI
 
@@ -758,7 +760,7 @@ constraints; skills are how-to, loaded when the task matches. Read the full
 - **`corpus-mdx-component`** — How to build interactive components for the article reading experience — quizzes, flashcard decks, runnable code playgrounds, stepped simulators, and code blocks. Use when adding or editing anything in packages/mdx-components or packages/ui, or when a task asks for an interactive explainer inside an article. Covers the two playground tiers, component registration, and the design token discipline.
   → `.claude/skills/corpus-mdx-component/SKILL.md`
 
-- **`corpus-nest-module`** — Conventions for apps/api, the NestJS 11 service. Use when adding or editing a module, controller, service, DTO, guard, entity, or TypeORM migration, and when deciding whether a piece of functionality belongs in the API at all. Covers answer-key custody, the forbidUnknownValues seeded default, and why lessons rows are archived rather than deleted.
+- **`corpus-nest-module`** — Conventions for apps/api, the NestJS 11 service. Use when adding or editing a module, controller, service, DTO, guard, entity, or TypeORM migration, and when deciding whether a piece of functionality belongs in the API at all. Covers local-only quiz scoring, the forbidUnknownValues seeded default, and why lessons rows are archived rather than deleted.
   → `.claude/skills/corpus-nest-module/SKILL.md`
 
 - **`corpus-next-caching`** — Caching, rendering and verification rules for Next.js 16.3 with Cache Components enabled. Use when adding or editing any route, page, layout, loading boundary, Suspense boundary, server component, or data fetch in apps/web, and when verifying prerender output. Covers 'use cache', cacheLife, the client boundary, and why curl and next dev both under-report failures.

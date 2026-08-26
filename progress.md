@@ -77,6 +77,11 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **quiz-entitlements-stale-refs-round-2 (2026-08-26):** remaining live
+  entitlements / server-scoring leftovers in `roadmap.md` §0, §4.1, §9,
+  `.cursor/rules/50-api-nestjs.mdc`, `.cursor/rules/20-never-violate.mdc`,
+  and the nest/mdx skills aligned with §7.4 / Q3. Agent docs regenerated.
+  Feature branch PR; not pushed to `main`. Do not auto-merge.
 - **roadmap-quiz-entitlements-cleanup (2026-08-26):** §8 `quiz` row and
   Phase 3 item 24 aligned with §7.4 local-only scoring; §8 `entitlements`
   row removed per the 2026-08-19 Q3 resolution. Feature branch PR; not

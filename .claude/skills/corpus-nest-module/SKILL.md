@@ -1,6 +1,6 @@
 ---
 name: corpus-nest-module
-description: "Conventions for apps/api, the NestJS 11 service. Use when adding or editing a module, controller, service, DTO, guard, entity, or TypeORM migration, and when deciding whether a piece of functionality belongs in the API at all. Covers answer-key custody, the forbidUnknownValues seeded default, and why lessons rows are archived rather than deleted."
+description: "Conventions for apps/api, the NestJS 11 service. Use when adding or editing a module, controller, service, DTO, guard, entity, or TypeORM migration, and when deciding whether a piece of functionality belongs in the API at all. Covers local-only quiz scoring, the forbidUnknownValues seeded default, and why lessons rows are archived rather than deleted."
 ---
 
 # apps/api — NestJS 11
@@ -8,7 +8,7 @@ description: "Conventions for apps/api, the NestJS 11 service. Use when adding o
 ## Does this belong here at all
 
 **If the API were down, would reading break?** If yes, it is in the wrong service. The API
-owns state — auth, progress, quiz scoring, SRS scheduling, entitlements. Content is
+owns state — auth, progress, quiz attempt records, SRS scheduling. Content is
 build-time and never passes through it.
 
 `apps/web/app/api/` is a BFF for session cookie proxying only. Zero business logic. If
@@ -24,14 +24,13 @@ claim in `nestjs-concepts`; do not rediscover it.
 Every request body gets a DTO with `class-validator` decorators. `whitelist: true`,
 `transform: true`.
 
-## Answer-key custody
+## Quiz scoring is local-only
 
-`quiz_options.is_correct` never reaches a client in `server` mode. The response carries the
-verdict and the explanation, never the key.
-
-Route every client payload through `toClientQuiz()` in `@corpus/content-schema`, and add a
-serialisation test asserting no `correct` key appears in any client-bound object. This is
-exactly the kind of leak that survives code review.
+Scoring is `mode: 'local'` only (roadmap §7.4). The answer key ships in the client bundle
+by design; scores are advisory. There is no `'server'` mode and no key-hiding path. Do
+not add a serialisation test that asserts the key is absent from the client — that was
+the dropped server-scoring design. The `quiz` module records attempts; it does not score
+them.
 
 ## Persistence
 

@@ -5,6 +5,28 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-26] — cursor/docs-quiz-entitlements-stale-refs-ed75 — remaining entitlements and server-scoring leftovers
+
+**Added**
+- Nothing
+
+**Changed**
+- `roadmap.md` §0 verdict — Nest list drops entitlements; quiz scoring is local-only
+- `roadmap.md` §4.1 layout — `entitlements` dropped from `apps/api/src/modules/`
+- `roadmap.md` §9 `quiz_options` comment — key ships in the client bundle (§7.4)
+- `.cursor/rules/50-api-nestjs.mdc` — `quiz` row is recorded attempts; local-only scoring section
+- `.cursor/rules/20-never-violate.mdc` — NEVER is no `'server'` quiz-scoring mode
+- `.claude/skills/corpus-nest-module/SKILL.md` — local-only scoring; entitlements dropped
+- `.claude/skills/corpus-mdx-component/SKILL.md` — `mode: 'local'` is permanent per §7.4
+- `AGENTS.md` and `.cursor/rules/60-skills.mdc` regenerated
+
+**Removed**
+- `roadmap.md` §9 `entitlements` table
+- `.cursor/rules/50-api-nestjs.mdc` `entitlements` inventory row
+
+**Fixed**
+- Nothing
+
 ### [2026-08-26] — cursor/docs-roadmap-quiz-entitlements-cleanup-0b53 — align §8 quiz and entitlements with §7.4 / Q3
 
 **Added**

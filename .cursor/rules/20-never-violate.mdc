@@ -49,8 +49,9 @@ alwaysApply: true
 - **NEVER return an entity from a controller.** DTOs only.
 - **NEVER hard-delete a `lessons` row.** Archive it. `lesson_progress` points at it and
   articles get renamed and moved.
-- **NEVER include a quiz answer key in a response DTO** when the quiz is in `server` mode.
-  The key never leaves the server.
+- **NEVER add a `'server'` quiz-scoring mode.** Scoring is `mode: 'local'` only
+  (roadmap §7.4). The answer key ships in the client bundle by design; scores are
+  advisory.
 - **NEVER skip `@nestjs/swagger` decorators.** `packages/api-client` is generated from the
   OpenAPI document; an undecorated endpoint is an invisible endpoint.
 - Note: since `@nestjs/common` 9.3.2, `ValidationPipe` seeds `forbidUnknownValues: false`
