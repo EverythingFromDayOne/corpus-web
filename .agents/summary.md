@@ -6,7 +6,7 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-25 (roadmap patch 2026-08-20 applied; D29–D36 opened)
+> Last updated: 2026-08-26 (personal-content rule matches Q8 email carve-out)
 
 ---
 
@@ -22,8 +22,9 @@ magnitude only.
 **It is not a place where content is authored.** The four corpus repos stay canonical.
 
 **It is not a personal site.** Despite the domain, there is no About page, bio, photo,
-employer, client, or contact content anywhere. `/en` is a corpus landing page. This is a
-hard rule — see `.cursor/rules/20-never-violate.mdc` § "Personal content boundary".
+employer, or client content. `/en` is a corpus landing page. The only contact surface
+is `nxhhuy@gmail.com` in the footer and on `/en/license`. This is a hard rule — see
+`.cursor/rules/20-never-violate.mdc` § "Personal content boundary".
 
 Reference for layout structure only: `sydexa.com`. Structure is a convention; visual
 identity, palette, illustrations, and copy are deliberately our own.
@@ -170,9 +171,10 @@ bootstrap.
   Integration approach is an open decision — see "Open decisions" below.
 - No personal or identifying content ships. Carve-outs: licence attribution
   (`LICENSE`, `/en/license`), because CC BY 4.0 requires naming a copyright holder;
-  and `nxhhuy@gmail.com` in the site footer and on `/en/license` (roadmap §0.0 /
-  §16 Q8, 2026-08-20). Bylines remain excluded. Attribution of adapted work is
-  `isBasedOn` / `citation`, never `author` (D33).
+  and `nxhhuy@gmail.com` in the site footer and on `/en/license` only (roadmap
+  §16 Q8 as amended 2026-08-20; `.cursor/rules/20-never-violate.mdc`). Phone,
+  social links, and physical address remain forbidden. Bylines remain excluded.
+  Attribution of adapted work is `isBasedOn` / `citation`, never `author` (D33).
 - An empty About page is not an oversight. Do not fill it.
 - **`react` and `nestjs` have no `docs/` wrapper.** Concept categories are top-level
   directories in the repo root (`architecture/`, `foundations/`, ...); recipes live at
@@ -290,7 +292,7 @@ bootstrap.
 Q3 monetization is resolved non-commercial (2026-08-19); quiz scoring is local-only
 (§7.4, 2026-08-20). Q5 media is decided: SVG plus motion (2026-08-20). Q8 remains
 no personal content, narrowed to permit a contact email in the footer and on
-`/en/license`.
+`/en/license` — now enforced in `.cursor/rules/20-never-violate.mdc`.
 
 ---
 

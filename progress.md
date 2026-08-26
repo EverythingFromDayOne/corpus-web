@@ -77,6 +77,10 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **rule-email-carveout (2026-08-26):** added the Q8 contact-email carve-out
+  to `.cursor/rules/20-never-violate.mdc` Personal content boundary
+  (`nxhhuy@gmail.com` in the footer and on `/en/license` only). Regenerated
+  agent docs. Feature branch PR; not pushed to `main`. Do not auto-merge.
 - **roadmap-patch-2026-08-20 (2026-08-25):** applied all eight edits from
   `prompts/roadmap-patch-2026-08-20.md`. Catalog re-verified at 289 edges
   against `nextjs@v0.3.1` / `angular@v0.3.1`. D29–D36 opened; D24 split

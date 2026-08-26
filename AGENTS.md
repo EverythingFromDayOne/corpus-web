@@ -403,6 +403,12 @@ page must name the copyright holder, because CC BY 4.0 is an attribution licence
 attribution has to be to someone. That is a legal requirement, not a bio. Keep it to the
 licence text and nothing more — no linked profile, no "about the author" block beside it.
 
+**Carve-out — one contact email is not a contact page.** `nxhhuy@gmail.com` may appear
+in the site footer and on `/en/license` only. Roadmap §16 Q8 as amended 2026-08-20.
+That is the entire contact surface — not a phone number, social links, a physical
+address, or any other contact detail, on those two surfaces or anywhere else. Those
+remain forbidden by the bullets above.
+
 If a task seems to require personal content, stop and ask. Do not infer that an empty
 About page is an oversight to be helpfully filled.
 
