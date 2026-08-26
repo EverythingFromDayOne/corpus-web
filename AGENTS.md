@@ -373,7 +373,15 @@ prompts/                  session prompts, committed
   articles get renamed and moved.
 - **NEVER add a `'server'` quiz-scoring mode.** Scoring is `mode: 'local'` only
   (roadmap §7.4). The answer key ships in the client bundle by design; scores are
-  advisory.
+  advisory. Do not add a serialization test that asserts the key is absent from
+  the client — that was the dropped server-scoring design.
+  **Narrowed 2026-08-26:** this forbids reintroducing persisted, authoritative
+  server-side scoring (a database-backed anti-cheat mode). It does not forbid
+  stripping the answer key from a client component's initial payload purely to
+  prevent it appearing in view-source before a reader submits — that's UX
+  spoiler-prevention, not scoring, and does not touch `apps/api` or persist
+  anything. See `.agents/SESSION-LOG.md`'s PR #32 leak-fix entry for the full
+  reasoning.
 - **NEVER skip `@nestjs/swagger` decorators.** `packages/api-client` is generated from the
   OpenAPI document; an undecorated endpoint is an invisible endpoint.
 - Note: since `@nestjs/common` 9.3.2, `ValidationPipe` seeds `forbidUnknownValues: false`

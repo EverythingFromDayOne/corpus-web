@@ -5,6 +5,21 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-26] — cursor/feat-quiz-primitive-mechanism-7957 — quiz scoring rule narrowing
+
+**Added**
+- Nothing
+
+**Changed**
+- `.cursor/rules/20-never-violate.mdc` — `'server'` quiz-scoring NEVER narrowed: forbids persisted anti-cheat scoring, not UX spoiler-prevention of the answer key in the initial client payload
+- `AGENTS.md` — regenerated from rules
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Nothing
+
 ### [2026-08-26] — cursor/feat-quiz-primitive-mechanism-7957 — quiz answer-key leak fix (review-caught)
 
 **Added**

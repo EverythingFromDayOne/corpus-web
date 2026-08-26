@@ -3029,3 +3029,43 @@ confirmation to proceed was given before implementing.
 
 ---
 
+## Session — quiz scoring rule narrowing (PR #32 addendum) — 2026-08-26
+
+**Branch:** `cursor/feat-quiz-primitive-mechanism-7957`
+
+**Files changed:**
+- `.cursor/rules/20-never-violate.mdc` — added a 2026-08-26 narrowing on the
+  `'server'` quiz-scoring NEVER: it forbids persisted, authoritative
+  anti-cheat scoring, not UX spoiler-prevention of the answer key in a
+  client component's initial payload
+- `AGENTS.md` — regenerated from rules
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — Unreleased Changed bullets for the rule narrowing
+
+**Why:** The PR #32 leak-fix commit added `apps/web/test/article-widgets.test.ts`,
+which asserts `correct` is absent from the client-bound quiz payload. A reader
+of `.cursor/rules/20-never-violate.mdc` on its own would still see the NEVER
+against a `'server'` quiz-scoring mode (and the matching "do not add a
+serialization test that asserts the key is absent from the client" line) and
+treat that test as a contradiction. The leak-fix reasoning — that the NEVER
+blocks persisted, database-backed anti-cheat scoring, not view-source
+spoiler-prevention — lived only in the previous SESSION-LOG entry. This
+addendum puts the same clause next to the rule itself. No code change; not a
+re-litigation of §7.4.
+
+**Invented decisions:**
+- The verbatim "do not add a serialization test..." sentence lived in
+  `.cursor/rules/50-api-nestjs.mdc`, not in `20-never-violate.mdc`. Copied it
+  onto the always-applied NEVER so the narrowing sits next to the line the
+  addendum was written against; did not edit `50-api-nestjs.mdc` (one-clause
+  instruction named only `20-never-violate.mdc`).
+- Folded the narrowing into the same bullet rather than a section-level
+  carve-out, so the API NEVER list stays a single list.
+
+**Known issues / next steps:**
+- `.cursor/rules/50-api-nestjs.mdc` still carries the un-narrowed
+  serialization-test sentence. Out of this addendum's named file scope.
+- Do not auto-merge.
+
+---
+
