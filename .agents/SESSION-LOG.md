@@ -2633,3 +2633,41 @@ This task is that reconciliation.
 
 ---
 
+## Task — refresh D16 pin references to v0.3.1 — 2026-08-26
+
+**Branch:** `cursor/docs-d16-pin-refresh-8096`
+
+**Files changed:**
+- `docs/DEBT.md` — D16 pin references `nextjs@v0.3.0` / `angular@v0.3.0` → `@v0.3.1`; re-verified 2026-08-26. Description-key defect text unchanged
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased bullet for the D16 pin refresh
+- `progress.md` — session-log line
+
+**Why:** D16 still recorded the nextjs and angular pins at `v0.3.0`, which
+was true when the row opened on 2026-08-18. The gitlinks on `main` now point
+at `v0.3.1` (`a19616f` for nextjs, `bdef6ae` for angular). The template
+`description`-key defect is independent of those pin numbers; only the
+recorded pins and a re-verification date needed updating so the register
+matches the repo.
+
+**Invented decisions:**
+- Branch named `cursor/docs-d16-pin-refresh-8096` per the cloud-agent
+  template, not the example `docs/d16-pin-refresh`.
+- Re-verification date inserted in the existing "current pins" parenthetical
+  (`re-verified 2026-08-26`) rather than rewriting the 2026-08-18 confirmation
+  sentence, so the original finding date stays.
+- `.agents/summary.md` left unchanged. Other `v0.3.0` pin mentions (D5,
+  census bullets, planned next steps) were out of scope; this task only
+  refreshes D16.
+- Session log id `refresh D16 pin references to v0.3.1` rather than a
+  sequential session number. No `prompts/session-N+1.md` authored.
+
+**Known issues / next steps:**
+- D5, summary, and progress item 16 still cite `nextjs@v0.3.0` /
+  `angular@v0.3.0` for the description-pass census. Those are historical
+  pass-landed-at tags, not this row's "current pins".
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side.
+- Do not auto-merge.
+
+---
+

@@ -5,6 +5,20 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-26] — cursor/docs-d16-pin-refresh-8096 — D16 pin references refreshed to v0.3.1
+
+**Added**
+- Nothing
+
+**Changed**
+- Debt **D16** pin references `nextjs@v0.3.0` / `angular@v0.3.0` → `@v0.3.1`; re-verified 2026-08-26
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Nothing
+
 ### [2026-08-26] — cursor/docs-rule-email-carveout-a1b5 — Q8 contact-email carve-out in the personal-content rule
 
 **Added**
