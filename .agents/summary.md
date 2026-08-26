@@ -6,8 +6,9 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-26 (Quiz primitive mechanism: component + override/sidecar
-> injection; RSC answer-key leak fix — grading moved to a Server Action)
+> Last updated: 2026-08-26 (TOC rail scroll-spy: last heading above the 20%
+> reading line, plus a page-bottom fallback so the last part and 100% can
+> actually land)
 
 ---
 
@@ -111,6 +112,13 @@ bootstrap.
   a `<button>` containing `.av-tk-l` at `right: 38px`, revealed on `:hover` and
   `:focus-visible`. The rail must be `overflow: visible` — `overflow: hidden`
   on the 3.5rem track clips the labels (that was the missing-hover-label bug).
+  **Active is not `visible[0]` from the 20%–40% IntersectionObserver band.**
+  That band is only the trigger. The picker is last heading whose top is at
+  or above 20% of the viewport, overridden to the last part when the page is
+  at max scroll or `.av-pnav` is on screen (otherwise the last short headings
+  share the band and the highlight freezes one behind, and the ring never
+  reaches 100%). Click sets `active` immediately; `jumpToPart`'s
+  `scrollIntoView` already lands on the clicked heading.
 - **`apps/web` does not import `@corpus/content-schema`.** Next's Turbopack build
   cannot resolve that package's NodeNext `.js` specifiers to `.ts` sources, and
   a client corpus filter must not pull remark/zod adapters. The listing loader
