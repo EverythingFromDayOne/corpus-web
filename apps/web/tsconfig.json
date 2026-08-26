@@ -12,6 +12,7 @@
     "components/**/*.tsx",
     "lib/**/*.ts",
     "lib/**/*.tsx",
+    "test/**/*.ts",
     "messages/**/*.json",
     "next-env.d.ts",
     ".next/types/**/*.ts"

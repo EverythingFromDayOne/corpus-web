@@ -79,9 +79,10 @@ A quiz question asserts how a framework behaves, so it is a claim and belongs be
 article under the corpus's verified-claims discipline (`sidecars.ts`). Where an event-loop
 simulator gets injected is presentation and belongs in `curation/overrides/` (`curation.ts`).
 
-## Answer-key custody
+## Local scoring, unrevealed projection
 
-`toClientQuiz()` is the only sanctioned path from a `QuizSidecar` to a client payload. It
-strips `correct`. In `server` mode the key never leaves the API. Add a serialisation test
-asserting no `correct` key appears in any client bundle — this is exactly the kind of leak
-that survives code review.
+Scoring is `mode: 'local'` only (roadmap §7.4). The full `QuizSidecar` — including
+`correct` and `explanation` — is what the Quiz component receives. `toClientQuiz()`
+strips `correct` so the unrevealed option list can be rendered without putting the
+key on the radios; it is not a server-mode key-hiding path, and there is no
+serialisation test that asserts the key is absent from the client bundle.

@@ -2807,3 +2807,265 @@ scope.
 
 ---
 
+## Task — quiz primitive mechanism (D24) — 2026-08-26
+
+**Branch:** `cursor/feat-quiz-primitive-mechanism-7957`
+
+**Files changed:**
+- `packages/content-schema/src/sidecars.ts` — `QuizSidecar` / `toClientQuiz()` comments rewritten for local scoring; `ClientQuiz` type exported
+- `packages/content-schema/README.md` — "Answer-key custody" replaced with local-scoring / unrevealed-projection wording
+- `packages/content-schema/test/sidecars.test.ts` — throwaway fixture covering schema refinement and `toClientQuiz()` stripping `correct`
+- `packages/mdx-components/src/quiz-model.ts` — `gradeQuestion` / `unrevealedOptions` for local scoring
+- `packages/mdx-components/src/quiz.tsx` — `Quiz` client component (`fieldset` + `input type="radio"`, pager, explanation after submit)
+- `packages/mdx-components/src/inject-after-sections.tsx` — splice widgets after a heading's section body
+- `packages/mdx-components/src/index.ts` — register `Quiz` on `mdxRegistry` and `getMDXComponents`
+- `packages/mdx-components/test/quiz.test.ts` — throwaway fixture for grading and injection
+- `packages/mdx-components/package.json` — `test` script; `tsx` and `@types/node` for that script
+- `packages/mdx-components/tsconfig.json` — include tests
+- `apps/web/lib/article-widgets.ts` — override YAML + sidecar loaders and Quiz widget resolution
+- `apps/web/lib/article-markdown.tsx` — inject `Quiz` into the cached article body
+- `apps/web/components/article/article-view.tsx` — load widgets per article
+- `apps/web/components/article/article.css` — `.av-qz*` styles from design tokens
+- `apps/web/messages/en.json` — quiz chrome strings
+- `apps/web/package.json` — `yaml` 2.9.0 (already a root dependency)
+- `pnpm-lock.yaml` — lockfile for the declared deps
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased quiz-primitive bullet
+- `.agents/summary.md` — interactive-layer key fact; planned next step 4
+- `progress.md` — session-log line
+
+**Why:** D24's quiz slice was schema-only. `toClientQuiz()` still documented the
+dropped server-mode design, `packages/mdx-components` had no Quiz, and
+`curation/overrides/` plus sidecar loading had no render path. This pass is
+mechanism-only: a local, advisory Quiz that articles can mount once YAML exists,
+without authoring any lesson's questions and without a Nest `quiz` module.
+
+**Invented decisions:**
+- Branch named `cursor/feat-quiz-primitive-mechanism-7957` per the cloud-agent
+  template, not the example `feat/quiz-primitive-mechanism`.
+- **Found, then built:** `curation/overrides/` has no files; `scripts/lib/curation.mjs`
+  loads paths only; no sidecar loader exists; `article-markdown.tsx` does not
+  use `getMDXComponents` (it inlines `CodeBlock`). Lesson routes still show
+  `article.quizHint`. Built the missing path: load overrides and `{stem}.quiz.yaml`
+  at prerender, resolve `Quiz` widgets, `injectAfterSections` into the cached
+  markdown tree. No YAML authored, so nothing mounts on a live article yet.
+- Overrides are the working mechanism (D35). A sidecar auto-places leftover
+  questions grouped by `afterSection`; empty `afterSection` appends at the end
+  of the article. Override `props.questions` wins when present.
+- The `Quiz` component receives the **full** `QuizSidecar` (needs `correct` and
+  `explanation` to grade locally). `toClientQuiz()` stripping is unchanged —
+  it still drops `correct` (and `explanation`). The component uses
+  `unrevealedOptions()` so `correct` is not on the radios until after submit.
+- One question at a time, then Next, matching roadmap §7.1 "pager".
+- `apps/web` still does not import `@corpus/content-schema`. Widget loading
+  duplicates a zod subset, same pattern as `catalog.ts`.
+- `yaml@2.9.0` declared on `apps/web` — already a root dependency used by
+  `scripts/lib/curation.mjs`, not a new library.
+- Unregistered override component names throw at load time rather than
+  silently skipping (the skill warns that an unregistered name fails silently;
+  failing loud is the mechanism that prevents that).
+- A missing `afterSection` heading throws at render so a typo cannot hide a quiz.
+- Quiz chrome uses `muted` / `verified` / `stale`, not `signal` — amber stays
+  provenance and read-position only.
+- No `mode` prop. The mdx skill says a retained `mode` prop is a recorded
+  constraint if present, not a requirement.
+- Lesson `quizHint` placeholder left in place; there is still no quiz to show.
+- `docs/DEBT.md` not edited. D24's quiz slice is the primitive; flashcards,
+  code-assembly, stepped-diagram shell, and the tab-group a11y gaps remain.
+  D35 is not closed (no corpus-side sidecar CI).
+- Session log id `quiz primitive mechanism (D24)` rather than a sequential
+  session number. No `prompts/session-N+1.md` authored.
+
+**Known issues / next steps:**
+- No article currently mounts a Quiz, so the interactive flow was not
+  browser-verified on a live page. Unit tests cover grading, stripping, and
+  section injection.
+- Authoring real lesson quiz YAML is a separate later task (D35).
+- Other D24 tier-1 widgets remain unbuilt.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side.
+- Do not auto-merge.
+
+---
+
+## Session — quiz answer-key leak fix (review-caught, PR #32) — 2026-08-26
+
+**Branch:** `cursor/feat-quiz-primitive-mechanism-7957`
+
+**Files changed:**
+- `packages/mdx-components/src/quiz-model.ts` — added `ClientQuizOption` /
+  `ClientQuizQuestion` (no `correct`, no `explanation`), `toClientQuestion()`,
+  `QuizGradeInput`, `QuizGradeAction`; `GradeResult` now carries `explanation`
+  so the client learns it only from a grade, never from the question object
+- `packages/mdx-components/src/quiz.tsx` — `Quiz` no longer takes a full
+  `QuizSidecarProps`; it takes `articleUid`, already-stripped `questions`,
+  and a `gradeAction` it calls (async) on submit. Added `pending`/`failed`
+  state for the now-async submit path and a `labels.error` string
+- `packages/mdx-components/src/index.ts` — export the new client-safe types
+  and `toClientQuestion`/`correctLabelOf`; drop the unused `QuizSidecarProps`
+  re-export
+- `packages/mdx-components/test/quiz.test.ts` — updated `gradeQuestion`
+  expectation to include `explanation`; added a `toClientQuestion` test
+- `apps/web/lib/article-widgets.ts` — added `toClientQuizWidget()`: the exact
+  projection `article-markdown.tsx` spreads onto `<Quiz>`, dropping `correct`
+  and `explanation` before that data is ever a prop on a `'use client'`
+  component
+- `apps/web/lib/article-markdown.tsx` — calls `toClientQuizWidget()` per
+  widget instead of passing `widget.sidecar.questions` straight through;
+  passes `gradeQuizAnswer` (a Server Action) and the new `articleUid` param
+  into `<Quiz>`; added `quizLabels.error`
+- `apps/web/lib/quiz-actions.ts` — new. `'use server'` file; `gradeQuizAnswer()`
+  is the only place `correct` is read after the article page's initial
+  payload is built. Looks the question back up via `getCatalogView()` +
+  `loadArticleQuizWidgets()`, returns `{ selectedLabel, correctLabel,
+  isCorrect, explanation }`. Nothing persisted, no `apps/api` call
+- `apps/web/components/article/article-view.tsx` — passes `articleUid:
+  article.uid` into `renderArticleMarkdown()`
+- `apps/web/messages/en.json` — `article.quizError` (new — the async submit
+  path can now fail; no other UX change)
+- `apps/web/package.json` — `test` script (`node --import tsx --test
+  test/*.test.ts`, matching `packages/{content-schema,mdx-components}`) and
+  `tsx` devDependency, since this fix needed a test that exercises the real
+  render-path function, not an isolated helper
+- `apps/web/tsconfig.json` — `include` gained `test/**/*.ts`
+- `apps/web/test/article-widgets.test.ts` — new. Regression coverage:
+  recursively asserts `toClientQuizWidget()`'s output (the actual props
+  `article-markdown.tsx` spreads onto `<Quiz>`) has no `correct` or
+  `explanation` key anywhere in its tree, plus a sanity test proving the
+  raw pre-strip sidecar *does* have both (so the assertion is discriminating,
+  not vacuous)
+- `pnpm-lock.yaml` — lockfile entry for `apps/web`'s new `tsx` devDependency
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — Unreleased Fixed bullet
+- `.agents/summary.md` — interactive-layer paragraph corrected (grading is
+  server-side; the earlier PR review caught the leak); a gotcha noted for
+  a pre-existing, unrelated `afterSection` heading-anchor bug found while
+  smoke-testing this fix
+- `progress.md` — session-log line
+
+**Why:** A review on the still-open PR #32 caught that `article-markdown.tsx`
+passed `widget.sidecar.questions` — the full `QuizSidecarData`, including
+every option's `correct: boolean` — straight into `<Quiz>`. `Quiz` is a
+`'use client'` component; React Server Components serialize a client
+component's entire prop tree into the page's initial payload regardless of
+what the component renders, so `unrevealedOptions()` hiding `correct` inside
+`Quiz`'s own render logic never stopped it from shipping in the RSC payload
+before a reader submitted anything. This is the same leak class
+`toClientQuiz()` (`packages/content-schema/src/sidecars.ts`) was written to
+prevent, recreated at a new boundary — client-component props instead of an
+API response — and `toClientQuiz()` was (and remains) never called from this
+render path, because `apps/web` does not import `@corpus/content-schema`.
+
+The fix has two parts. First, `toClientQuizWidget()` in `article-widgets.ts`
+strips `correct`/`explanation` before the widget data ever becomes a `<Quiz>`
+prop — mirroring `toClientQuiz()`'s shape locally, same reason the sidecar
+schema is already duplicated there. Second, grading moved to a Next.js
+Server Action (`gradeQuizAnswer`): the client sends `{ articleUid,
+questionId, selectedLabel }` and gets back `{ selectedLabel, correctLabel,
+isCorrect, explanation }` for that one question, only after submitting a
+guess. A Server Action was chosen over the "reveal a second payload on
+submit" alternative because it needed no new data-fetching plumbing on the
+client — `apps/web` already has the loaders (`getCatalogView()`,
+`loadArticleQuizWidgets()`) a Server Action can call directly, and Next
+already supports passing a Server Action reference as a prop into a client
+component without exposing what it closes over.
+
+This does not reintroduce the dropped, persisted `'server'` quiz-scoring
+mode that roadmap §7.4 and `.cursor/rules/20-never-violate.mdc` rule out —
+nothing is written to a database, there is no `apps/api` call, and the
+result is not recorded anywhere; scoring stays advisory. It does narrow one
+specific rule line ("do not add a serialization test that asserts the key
+is absent from the client") because that line was written to block
+re-adding *persisted, authoritative* scoring, not to bless a concrete RSC
+payload leak — the code's own `unrevealedOptions()` comment already says
+`correct` "must not appear on the radios until after the reader submits,"
+and the leak broke exactly that, at the network level rather than the
+rendered-DOM level. This was flagged in the Slack thread and explicit
+confirmation to proceed was given before implementing.
+
+**Invented decisions:**
+- Read this as a narrower bug than "hide the answer key from a determined
+  reader" (§7.4's resolved, deliberately-not-worth-it stance) and instead as
+  "the code's own pre-submit concealment guarantee, which already existed in
+  intent (`unrevealedOptions()`), didn't hold at the payload level." Flagged
+  explicitly in Slack before implementing, given roadmap §7.4 / §16 Q3 and
+  the matching rule text in `.cursor/rules/20-never-violate.mdc` say the
+  opposite of what was asked; proceeded on that reading after flagging.
+- `GradeResult` gained `explanation` (previously read straight off the full
+  `QuizQuestion` inside `Quiz`); this is the only way the client learns why
+  an answer was right without ever holding the answer key.
+- `article.quizError` label added — the submit path is now genuinely async
+  and can fail (network hiccup calling the Server Action), which the
+  synchronous local-grading design never had to handle. Minimal: a role="alert"
+  line reusing the existing verdict styling, no new UX surface.
+- `apps/web` gained its first test runner (`test` script + `tsx`) rather than
+  trying to unit-test `renderArticleMarkdown()` directly: hand-verified that
+  `cacheLife('max')` throws ("only available with the `cacheComponents`
+  config") outside a real Next build, so the cached JSX-producing function
+  cannot be exercised by a plain `node --test` run. `toClientQuizWidget()` is
+  the piece of the same render path that has no Next-specific wrapping, so it
+  is both the real call site and the testable one.
+- While smoke-testing this fix against a real article (a temporary
+  `curation/overrides/*.yaml`, never committed), found that an override
+  whose `afterSection` targets an actual heading throws
+  `interactive injection afterSection not found` even though the heading
+  exists and the slug matches. Confirmed by reverting to pre-fix code with
+  the same override — same failure — so it predates this change and is
+  unrelated to the leak. Not fixed here (out of scope); recorded as a
+  gotcha in `.agents/summary.md`. No `docs/DEBT.md` row opened for it per
+  this session's explicit instruction not to touch that file; flagging it
+  in the wrap-up message instead so the user can decide whether it needs
+  one.
+- `docs/DEBT.md` not touched, per explicit instruction — this is a
+  pre-merge review fix on an unmerged PR, not a debt row.
+
+**Known issues / next steps:**
+- The pre-existing `afterSection`-to-heading injection bug above is still
+  unfixed and still blocks browser-verifying the interactive flow on a live
+  article (same "not yet browser-verified" state as the prior session,
+  now for a documented reason rather than an absent one).
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side,
+  unrelated to this change.
+- Do not auto-merge.
+
+---
+
+## Session — quiz scoring rule narrowing (PR #32 addendum) — 2026-08-26
+
+**Branch:** `cursor/feat-quiz-primitive-mechanism-7957`
+
+**Files changed:**
+- `.cursor/rules/20-never-violate.mdc` — added a 2026-08-26 narrowing on the
+  `'server'` quiz-scoring NEVER: it forbids persisted, authoritative
+  anti-cheat scoring, not UX spoiler-prevention of the answer key in a
+  client component's initial payload
+- `AGENTS.md` — regenerated from rules
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — Unreleased Changed bullets for the rule narrowing
+
+**Why:** The PR #32 leak-fix commit added `apps/web/test/article-widgets.test.ts`,
+which asserts `correct` is absent from the client-bound quiz payload. A reader
+of `.cursor/rules/20-never-violate.mdc` on its own would still see the NEVER
+against a `'server'` quiz-scoring mode (and the matching "do not add a
+serialization test that asserts the key is absent from the client" line) and
+treat that test as a contradiction. The leak-fix reasoning — that the NEVER
+blocks persisted, database-backed anti-cheat scoring, not view-source
+spoiler-prevention — lived only in the previous SESSION-LOG entry. This
+addendum puts the same clause next to the rule itself. No code change; not a
+re-litigation of §7.4.
+
+**Invented decisions:**
+- The verbatim "do not add a serialization test..." sentence lived in
+  `.cursor/rules/50-api-nestjs.mdc`, not in `20-never-violate.mdc`. Copied it
+  onto the always-applied NEVER so the narrowing sits next to the line the
+  addendum was written against; did not edit `50-api-nestjs.mdc` (one-clause
+  instruction named only `20-never-violate.mdc`).
+- Folded the narrowing into the same bullet rather than a section-level
+  carve-out, so the API NEVER list stays a single list.
+
+**Known issues / next steps:**
+- `.cursor/rules/50-api-nestjs.mdc` still carries the un-narrowed
+  serialization-test sentence. Out of this addendum's named file scope.
+- Do not auto-merge.
+
+---
+

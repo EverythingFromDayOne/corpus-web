@@ -5,6 +5,58 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-26] — cursor/feat-quiz-primitive-mechanism-7957 — quiz scoring rule narrowing
+
+**Added**
+- Nothing
+
+**Changed**
+- `.cursor/rules/20-never-violate.mdc` — `'server'` quiz-scoring NEVER narrowed: forbids persisted anti-cheat scoring, not UX spoiler-prevention of the answer key in the initial client payload
+- `AGENTS.md` — regenerated from rules
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Nothing
+
+### [2026-08-26] — cursor/feat-quiz-primitive-mechanism-7957 — quiz answer-key leak fix (review-caught)
+
+**Added**
+- `apps/web/lib/quiz-actions.ts` — `gradeQuizAnswer()`, a Next.js Server Action that grades one question server-side and returns `{ isCorrect, correctLabel, explanation }`
+- `apps/web/lib/article-widgets.ts` — `toClientQuizWidget()`, the answer-key-stripping projection `article-markdown.tsx` spreads onto `<Quiz>`
+- `packages/mdx-components/src/quiz-model.ts` — `toClientQuestion()`, `ClientQuizQuestion`/`ClientQuizOption`, `QuizGradeInput`/`QuizGradeAction`
+- `apps/web/test/article-widgets.test.ts` and `apps/web` `test` script/`tsx` devDependency — regression coverage asserting the actual render-path function never emits `correct`/`explanation`
+
+**Changed**
+- `packages/mdx-components/src/quiz.tsx` — `Quiz` now takes an already-stripped question list plus a `gradeAction` it calls on submit, instead of the full sidecar with `correct`
+- `apps/web/lib/article-markdown.tsx` — builds `<Quiz>` props via `toClientQuizWidget()` and passes `gradeQuizAnswer` as `gradeAction`, instead of spreading `widget.sidecar.questions` directly
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Answer-key leak: `article-markdown.tsx` was passing every option's `correct: boolean` (and `explanation`) into the `'use client'` `Quiz` component, so it shipped in the page's RSC payload before any reader submitted an answer. Grading now happens server-side; the client never holds the answer key.
+
+### [2026-08-26] — cursor/feat-quiz-primitive-mechanism-7957 — tier-1 Quiz primitive mechanism
+
+**Added**
+- `packages/mdx-components` `Quiz` component — one question at a time, native `fieldset`/`radio`, immediate correct/incorrect plus explanation, no persistence
+- `packages/mdx-components` `mdxRegistry` with `Quiz`, plus `injectAfterSections` for override/sidecar placement
+- `apps/web/lib/article-widgets.ts` — loads `curation/overrides/*.yaml` and `{stem}.quiz.yaml` sidecars; resolves Quiz widgets for an article
+- Article/lesson render path mounts `Quiz` after the matching `afterSection` (or at the end of the article)
+- `packages/content-schema/test/sidecars.test.ts` and `packages/mdx-components/test/quiz.test.ts` — throwaway fixtures only, no corpus YAML
+
+**Changed**
+- `toClientQuiz()` and `QuizSidecar` comments, plus `packages/content-schema/README.md`, describe local scoring and an unrevealed-options projection rather than server-mode key hiding
+- Lesson `article.quizHint` placeholder left in place; no lesson has a quiz sidecar yet
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Nothing
+
 ### [2026-08-26] — cursor/docs-sydexa-blueprint-reconciliation-00e1 — Sydexa feature blueprint reviewed
 
 **Added**

@@ -149,6 +149,14 @@
     "expand": "Expand",
     "extracted": "extracted",
     "lead": "Lead",
-    "quizHint": "Warm-up quiz ships later. This panel is a placeholder."
+    "quizHint": "Warm-up quiz ships later. This panel is a placeholder.",
+    "quizEyebrow": "Recall check",
+    "quizProgress": "{current} / {total}",
+    "quizSubmit": "Check answer",
+    "quizNext": "Next question",
+    "quizCorrect": "Correct",
+    "quizIncorrect": "Not quite",
+    "quizExplanation": "Explanation",
+    "quizError": "Couldn't check that answer. Try again."
   }
 }
