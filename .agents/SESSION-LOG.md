@@ -2586,3 +2586,50 @@ catalog still reports **289 edges**, so the patch's number was kept.
 
 ---
 
+## Task — contact-email carve-out in personal-content rule — 2026-08-26
+
+**Branch:** `cursor/docs-rule-email-carveout-a1b5`
+
+**Files changed:**
+- `.cursor/rules/20-never-violate.mdc` — added the Q8 contact-email carve-out under Personal content boundary, immediately below the licensing carve-out
+- `AGENTS.md` — regenerated via `pnpm agents:build`
+- `CLAUDE.md` — regenerated via `pnpm agents:build`
+- `.cursor/rules/60-skills.mdc` — regenerated via `pnpm agents:build`
+- `.agents/summary.md` — opening boundary, key-fact carve-outs, and Q8 open-decision line now match the rule
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased bullet for the rule carve-out
+- `progress.md` — session-log line
+
+**Why:** Roadmap §16 Q8 as amended 2026-08-20 permits `nxhhuy@gmail.com` in the site
+footer and on `/en/license`. The enforced personal-content rule still forbade every
+contact detail, so an agent following `.cursor/rules/20-never-violate.mdc` would
+reject a footer or licence email that the roadmap already decided. The rule is the
+canonical constraint; the roadmap is the decision. They have to say the same thing.
+
+The previous roadmap-patch session recorded this contradiction and deferred it.
+This task is that reconciliation.
+
+**Invented decisions:**
+- Branch named `cursor/docs-rule-email-carveout-a1b5` per the cloud-agent template,
+  not the example `docs/rule-email-carveout`.
+- Carve-out wording names phone, social links, and physical address as still
+  forbidden, so the email exception cannot be read as a general contact-detail
+  exception. The licensing carve-out was left verbatim.
+- `.agents/summary.md` opening paragraph no longer says "or contact content
+  anywhere"; the key-fact carve-out list now cites the rule file as well as the
+  roadmap.
+- Session log id `contact-email carve-out in personal-content rule` rather than a
+  sequential session number. No `prompts/session-N+1.md` authored.
+- `docs/DEBT.md` D25 still says "the sole carve-out" (licensing). Left as-is:
+  D25 tracks the missing `/en/license` page, not the carve-out inventory.
+
+**Known issues / next steps:**
+- D25's "sole carve-out" wording is stale relative to Q8; update when the licence
+  page is built, not here.
+- Footer and `/en/license` still do not render the email — this change is the
+  rule only.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side.
+- Do not auto-merge.
+
+---
+

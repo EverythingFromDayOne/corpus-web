@@ -5,6 +5,21 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-26] — cursor/docs-rule-email-carveout-a1b5 — Q8 contact-email carve-out in the personal-content rule
+
+**Added**
+- Contact-email carve-out in `.cursor/rules/20-never-violate.mdc` Personal content boundary: `nxhhuy@gmail.com` may appear in the site footer and on `/en/license` only
+
+**Changed**
+- `.agents/summary.md` — personal-site opening, key-fact carve-outs, and Q8 line now match the rule
+- `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/60-skills.mdc` — regenerated from rules
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Personal-content rule no longer contradicts roadmap §16 Q8 as amended 2026-08-20
+
 ### [2026-08-25] — cursor/docs-roadmap-patch-2026-08-20-a6a1 — apply 2026-08-20 roadmap patch
 
 **Added**
