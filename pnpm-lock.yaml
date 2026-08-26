@@ -85,6 +85,9 @@ importers:
       react-dom:
         specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
+      yaml:
+        specifier: 2.9.0
+        version: 2.9.0
       zod:
         specifier: ^4.0.0
         version: 4.4.3
@@ -162,9 +165,15 @@ importers:
       '@types/mdx':
         specifier: ^2.0.13
         version: 2.0.14
+      '@types/node':
+        specifier: ^22.19.0
+        version: 22.20.1
       '@types/react':
         specifier: ^19.2.0
         version: 19.2.18
+      tsx:
+        specifier: 4.23.12
+        version: 4.23.12
       typescript:
         specifier: 5.9.3
         version: 5.9.3

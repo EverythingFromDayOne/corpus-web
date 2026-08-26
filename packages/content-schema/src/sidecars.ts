@@ -34,6 +34,14 @@ export const QuizQuestion = z.object({
   afterSection: z.string().optional(),
 });
 
+/**
+ * Full quiz payload, including `correct` and `explanation`. Scoring is
+ * `mode: 'local'` only (roadmap §7.4) — there is no server mode. The Quiz
+ * component takes this shape and decides when to reveal the answer; the
+ * network layer does not.
+ *
+ * `toClientQuiz()` is only the unrevealed-options projection (no `correct`).
+ */
 export const QuizSidecar = z
   .object({
     schema: z.literal(1),
@@ -91,12 +99,14 @@ export const DeckSidecar = z
 export type DeckSidecar = z.infer<typeof DeckSidecar>;
 
 /**
- * Client-safe projection. `correct` is stripped.
+ * Unrevealed-options projection for the Quiz component. `correct` is stripped.
  *
- * In `server` mode the answer key never leaves the API. Build the client payload
- * through this function only — a serialisation test asserts no `correct` key
- * appears in any client bundle, because this is exactly the kind of leak that
- * survives review.
+ * Scoring is `mode: 'local'` only (roadmap §7.4). There is no server mode and
+ * no untrusted API response to hide the key from. This function shapes the
+ * option list the component renders before submit; the component itself
+ * decides when to reveal the answer, using the full `QuizSidecar` it already
+ * holds. The strip stays useful even with no server boundary — `correct` must
+ * not appear on the radios until after the reader submits.
  */
 export function toClientQuiz(sidecar: QuizSidecar) {
   return {
@@ -111,3 +121,4 @@ export function toClientQuiz(sidecar: QuizSidecar) {
     })),
   };
 }
+export type ClientQuiz = ReturnType<typeof toClientQuiz>;

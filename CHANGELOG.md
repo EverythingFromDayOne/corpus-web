@@ -5,6 +5,25 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-26] — cursor/feat-quiz-primitive-mechanism-7957 — tier-1 Quiz primitive mechanism
+
+**Added**
+- `packages/mdx-components` `Quiz` component — one question at a time, native `fieldset`/`radio`, immediate correct/incorrect plus explanation, no persistence
+- `packages/mdx-components` `mdxRegistry` with `Quiz`, plus `injectAfterSections` for override/sidecar placement
+- `apps/web/lib/article-widgets.ts` — loads `curation/overrides/*.yaml` and `{stem}.quiz.yaml` sidecars; resolves Quiz widgets for an article
+- Article/lesson render path mounts `Quiz` after the matching `afterSection` (or at the end of the article)
+- `packages/content-schema/test/sidecars.test.ts` and `packages/mdx-components/test/quiz.test.ts` — throwaway fixtures only, no corpus YAML
+
+**Changed**
+- `toClientQuiz()` and `QuizSidecar` comments, plus `packages/content-schema/README.md`, describe local scoring and an unrevealed-options projection rather than server-mode key hiding
+- Lesson `article.quizHint` placeholder left in place; no lesson has a quiz sidecar yet
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Nothing
+
 ### [2026-08-26] — cursor/docs-sydexa-blueprint-reconciliation-00e1 — Sydexa feature blueprint reviewed
 
 **Added**

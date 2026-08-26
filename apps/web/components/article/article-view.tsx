@@ -8,6 +8,7 @@ import { isRepoId, type RepoId } from '@/lib/repos';
 import { corpusTree } from '@/lib/catalog';
 import { REPOS } from '@/lib/repos';
 import { renderArticleMarkdown, countExtracts, hoistExtractComments } from '@/lib/article-markdown';
+import { loadArticleQuizWidgets, widgetsCacheKey } from '@/lib/article-widgets';
 import { railParts } from '@/lib/rail-parts';
 import { ArticleProgressBar, ArticleScrim } from './article-shell';
 import { CorpusSidebar, CurriculumSidebar } from './sidebars';
@@ -67,6 +68,7 @@ export async function ArticleView({
   nextLabel,
   lead,
 }: ArticleViewProps) {
+  const widgets = loadArticleQuizWidgets(article);
   const body = await renderArticleMarkdown({
     contentHash: article.contentHash,
     markdown,
@@ -75,6 +77,8 @@ export async function ArticleView({
     liveUids: view.liveUids,
     messages,
     sourceUrl: article.sourceUrl,
+    widgets,
+    widgetsKey: widgetsCacheKey(widgets),
   });
   const extractCount = countExtracts(hoistExtractComments(markdown));
   const collapseLabel = t(messages, 'article.collapseSidebar');

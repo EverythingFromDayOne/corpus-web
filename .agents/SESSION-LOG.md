@@ -2807,3 +2807,83 @@ scope.
 
 ---
 
+## Task — quiz primitive mechanism (D24) — 2026-08-26
+
+**Branch:** `cursor/feat-quiz-primitive-mechanism-7957`
+
+**Files changed:**
+- `packages/content-schema/src/sidecars.ts` — `QuizSidecar` / `toClientQuiz()` comments rewritten for local scoring; `ClientQuiz` type exported
+- `packages/content-schema/README.md` — "Answer-key custody" replaced with local-scoring / unrevealed-projection wording
+- `packages/content-schema/test/sidecars.test.ts` — throwaway fixture covering schema refinement and `toClientQuiz()` stripping `correct`
+- `packages/mdx-components/src/quiz-model.ts` — `gradeQuestion` / `unrevealedOptions` for local scoring
+- `packages/mdx-components/src/quiz.tsx` — `Quiz` client component (`fieldset` + `input type="radio"`, pager, explanation after submit)
+- `packages/mdx-components/src/inject-after-sections.tsx` — splice widgets after a heading's section body
+- `packages/mdx-components/src/index.ts` — register `Quiz` on `mdxRegistry` and `getMDXComponents`
+- `packages/mdx-components/test/quiz.test.ts` — throwaway fixture for grading and injection
+- `packages/mdx-components/package.json` — `test` script; `tsx` and `@types/node` for that script
+- `packages/mdx-components/tsconfig.json` — include tests
+- `apps/web/lib/article-widgets.ts` — override YAML + sidecar loaders and Quiz widget resolution
+- `apps/web/lib/article-markdown.tsx` — inject `Quiz` into the cached article body
+- `apps/web/components/article/article-view.tsx` — load widgets per article
+- `apps/web/components/article/article.css` — `.av-qz*` styles from design tokens
+- `apps/web/messages/en.json` — quiz chrome strings
+- `apps/web/package.json` — `yaml` 2.9.0 (already a root dependency)
+- `pnpm-lock.yaml` — lockfile for the declared deps
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased quiz-primitive bullet
+- `.agents/summary.md` — interactive-layer key fact; planned next step 4
+- `progress.md` — session-log line
+
+**Why:** D24's quiz slice was schema-only. `toClientQuiz()` still documented the
+dropped server-mode design, `packages/mdx-components` had no Quiz, and
+`curation/overrides/` plus sidecar loading had no render path. This pass is
+mechanism-only: a local, advisory Quiz that articles can mount once YAML exists,
+without authoring any lesson's questions and without a Nest `quiz` module.
+
+**Invented decisions:**
+- Branch named `cursor/feat-quiz-primitive-mechanism-7957` per the cloud-agent
+  template, not the example `feat/quiz-primitive-mechanism`.
+- **Found, then built:** `curation/overrides/` has no files; `scripts/lib/curation.mjs`
+  loads paths only; no sidecar loader exists; `article-markdown.tsx` does not
+  use `getMDXComponents` (it inlines `CodeBlock`). Lesson routes still show
+  `article.quizHint`. Built the missing path: load overrides and `{stem}.quiz.yaml`
+  at prerender, resolve `Quiz` widgets, `injectAfterSections` into the cached
+  markdown tree. No YAML authored, so nothing mounts on a live article yet.
+- Overrides are the working mechanism (D35). A sidecar auto-places leftover
+  questions grouped by `afterSection`; empty `afterSection` appends at the end
+  of the article. Override `props.questions` wins when present.
+- The `Quiz` component receives the **full** `QuizSidecar` (needs `correct` and
+  `explanation` to grade locally). `toClientQuiz()` stripping is unchanged —
+  it still drops `correct` (and `explanation`). The component uses
+  `unrevealedOptions()` so `correct` is not on the radios until after submit.
+- One question at a time, then Next, matching roadmap §7.1 "pager".
+- `apps/web` still does not import `@corpus/content-schema`. Widget loading
+  duplicates a zod subset, same pattern as `catalog.ts`.
+- `yaml@2.9.0` declared on `apps/web` — already a root dependency used by
+  `scripts/lib/curation.mjs`, not a new library.
+- Unregistered override component names throw at load time rather than
+  silently skipping (the skill warns that an unregistered name fails silently;
+  failing loud is the mechanism that prevents that).
+- A missing `afterSection` heading throws at render so a typo cannot hide a quiz.
+- Quiz chrome uses `muted` / `verified` / `stale`, not `signal` — amber stays
+  provenance and read-position only.
+- No `mode` prop. The mdx skill says a retained `mode` prop is a recorded
+  constraint if present, not a requirement.
+- Lesson `quizHint` placeholder left in place; there is still no quiz to show.
+- `docs/DEBT.md` not edited. D24's quiz slice is the primitive; flashcards,
+  code-assembly, stepped-diagram shell, and the tab-group a11y gaps remain.
+  D35 is not closed (no corpus-side sidecar CI).
+- Session log id `quiz primitive mechanism (D24)` rather than a sequential
+  session number. No `prompts/session-N+1.md` authored.
+
+**Known issues / next steps:**
+- No article currently mounts a Quiz, so the interactive flow was not
+  browser-verified on a live page. Unit tests cover grading, stripping, and
+  section injection.
+- Authoring real lesson quiz YAML is a separate later task (D35).
+- Other D24 tier-1 widgets remain unbuilt.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side.
+- Do not auto-merge.
+
+---
+

@@ -6,7 +6,7 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-26 (Sydexa feature blueprint reviewed; no roadmap change required)
+> Last updated: 2026-08-26 (Quiz primitive mechanism: component + override/sidecar injection)
 
 ---
 
@@ -272,9 +272,14 @@ bootstrap.
   deferral, and the D24 split (tier 1 keeps D24; tier 2 is D36).
 - **Interactive layer is tiered** (roadmap §7.1, 2026-08-20). Tier 1 is corpus-agnostic
   and blocking (D24); tier 2 is per-mechanism simulators, incremental (D36). Quiz
-  scoring is `mode: 'local'` only (§7.4). Sidecars are the documented future;
-  `curation/overrides/` is the working mechanism until D17 closes (D35). §7.5 specifies
-  the code-assembly exercise. Video is struck (§16 Q5 decided: SVG plus motion).
+  scoring is `mode: 'local'` only (§7.4). The Quiz **component and render path exist**:
+  `packages/mdx-components` `Quiz` (fieldset/radio, one question at a time), registered
+  as `Quiz`, injected after `afterSection` from `curation/overrides/*.yaml` and/or a
+  `{stem}.quiz.yaml` sidecar beside the article. No lesson YAML is authored yet —
+  nothing mounts on a live article until that later pass. Sidecars remain the
+  documented future; overrides remain the working mechanism until D17 closes (D35).
+  §7.5 specifies the code-assembly exercise. Video is struck (§16 Q5 decided: SVG plus
+  motion).
 
 ---
 
@@ -316,3 +321,6 @@ no personal content, narrowed to permit a contact email in the footer and on
   Pagefind (D21), `/en/license` (D25), SEO residue (D22), a11y (D18/D19).
   Render-mode gate (D23) is `pnpm verify:prerender`. Do not revive
   `/en/concepts/…`.
+4. Quiz primitive mechanism exists (D24 slice). Do not author real lesson quiz
+  YAML until a lesson needs it (D35). Other tier-1 widgets (flashcards,
+  code-assembly, stepped-diagram shell, tab group) are still unbuilt.

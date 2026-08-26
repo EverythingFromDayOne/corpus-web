@@ -2,7 +2,8 @@ import type { ReactNode } from 'react';
 import { cacheLife } from 'next/cache';
 import { createMarkdownRenderer } from 'fumadocs-core/content/md';
 import { remarkGfm } from 'fumadocs-core/mdx-plugins';
-import { CodeBlock, type CodeBlockLabels } from '@corpus/mdx-components';
+import { CodeBlock, type CodeBlockLabels, Quiz, type QuizLabels, injectAfterSections } from '@corpus/mdx-components';
+import type { QuizWidget } from '@/lib/article-widgets';
 import type { Locale } from '@/lib/locales';
 import { articlePath } from '@/lib/routes';
 import { isRepoId } from '@/lib/repos';
@@ -106,6 +107,8 @@ export async function renderArticleMarkdown({
   liveUids,
   messages,
   sourceUrl,
+  widgets = [],
+  widgetsKey = '',
 }: {
   contentHash: string;
   markdown: string;
@@ -114,10 +117,13 @@ export async function renderArticleMarkdown({
   liveUids: string[];
   messages: Messages;
   sourceUrl: string | null;
+  widgets?: QuizWidget[];
+  widgetsKey?: string;
 }): Promise<ReactNode> {
   'use cache';
   cacheLife('max');
   void contentHash;
+  void widgetsKey;
   const slug = createSlugger();
   const labels: CodeBlockLabels = {
     copy: t(messages, 'article.copy'),
@@ -128,72 +134,100 @@ export async function renderArticleMarkdown({
   };
   const blobBase = githubBlobBase(sourceUrl);
   const leadLabel = t(messages, 'article.lead');
+  const quizLabels: QuizLabels = {
+    eyebrow: t(messages, 'article.quizEyebrow'),
+    progress: t(messages, 'article.quizProgress'),
+    submit: t(messages, 'article.quizSubmit'),
+    next: t(messages, 'article.quizNext'),
+    correct: t(messages, 'article.quizCorrect'),
+    incorrect: t(messages, 'article.quizIncorrect'),
+    explanation: t(messages, 'article.quizExplanation'),
+  };
 
-  return MarkdownServer({
-    children: hoistExtractComments(markdown),
-    components: {
-      h1: () => null,
-      h2: (props) => {
-        const text = flatten(props.children);
-        const id = slug(text);
-        const part = /^(Part\s+\d+)\s+(.*)$/i.exec(text);
-        if (part?.[1] && part[2]) {
+  const body = await Promise.resolve(
+    MarkdownServer({
+      children: hoistExtractComments(markdown),
+      components: {
+        h1: () => null,
+        h2: (props) => {
+          const text = flatten(props.children);
+          const id = slug(text);
+          const part = /^(Part\s+\d+)\s+(.*)$/i.exec(text);
+          if (part?.[1] && part[2]) {
+            return (
+              <h2 id={id}>
+                <span className="av-pn">{part[1]}</span>
+                {part[2]}
+              </h2>
+            );
+          }
+          return <h2 id={id}>{props.children}</h2>;
+        },
+        h3: (props) => {
+          const text = flatten(props.children);
+          return <h3 id={slug(text)}>{props.children}</h3>;
+        },
+        a: (props) => {
+          const href = typeof props.href === 'string' ? props.href : '';
+          const resolved = resolveMarkdownHref(href, repo, locale, liveUids);
+          if (!resolved) return <span>{props.children}</span>;
+          return <a href={resolved}>{props.children}</a>;
+        },
+        blockquote: (props) => {
+          const text = flatten(props.children);
+          const lead = /^\s*Lead with this/i.test(text);
           return (
-            <h2 id={id}>
-              <span className="av-pn">{part[1]}</span>
-              {part[2]}
-            </h2>
+            <div className={lead ? 'av-hook' : 'av-co'}>
+              {lead ? <div className="av-lab">{leadLabel}</div> : null}
+              {props.children}
+            </div>
           );
-        }
-        return <h2 id={id}>{props.children}</h2>;
-      },
-      h3: (props) => {
-        const text = flatten(props.children);
-        return <h3 id={slug(text)}>{props.children}</h3>;
-      },
-      a: (props) => {
-        const href = typeof props.href === 'string' ? props.href : '';
-        const resolved = resolveMarkdownHref(href, repo, locale, liveUids);
-        if (!resolved) return <span>{props.children}</span>;
-        return <a href={resolved}>{props.children}</a>;
-      },
-      blockquote: (props) => {
-        const text = flatten(props.children);
-        const lead = /^\s*Lead with this/i.test(text);
-        return (
-          <div className={lead ? 'av-hook' : 'av-co'}>
-            {lead ? <div className="av-lab">{leadLabel}</div> : null}
-            {props.children}
+        },
+        img: (props) => (
+          <figure className="av-fig">
+            <img alt={typeof props.alt === 'string' ? props.alt : ''} src={props.src} />
+            {props.alt ? <figcaption className="av-cap">{String(props.alt)}</figcaption> : null}
+          </figure>
+        ),
+        table: (props) => (
+          <div className="av-tw">
+            <table>{props.children}</table>
           </div>
-        );
+        ),
+        pre: (props) => {
+          const extractValue = (props as { 'data-extract'?: unknown })['data-extract'];
+          const extract = typeof extractValue === 'string' ? extractValue : undefined;
+          const path = extract?.split('#')[0];
+          const extractHref = blobBase && path ? `${blobBase}/${path}` : null;
+          return (
+            <CodeBlock
+              className={props.className}
+              labels={labels}
+              extract={extract}
+              extractHref={extractHref}
+            >
+              {props.children}
+            </CodeBlock>
+          );
+        },
       },
-      img: (props) => (
-        <figure className="av-fig">
-          <img alt={typeof props.alt === 'string' ? props.alt : ''} src={props.src} />
-          {props.alt ? <figcaption className="av-cap">{String(props.alt)}</figcaption> : null}
-        </figure>
+    }),
+  );
+
+  if (widgets.length === 0) return body;
+
+  return injectAfterSections(
+    body,
+    widgets.map((widget) => ({
+      afterSection: widget.afterSection,
+      node: (
+        <Quiz
+          schema={widget.sidecar.schema}
+          article_id={widget.sidecar.article_id}
+          questions={widget.sidecar.questions}
+          labels={quizLabels}
+        />
       ),
-      table: (props) => (
-        <div className="av-tw">
-          <table>{props.children}</table>
-        </div>
-      ),
-      pre: (props) => {
-        const extractValue = (props as { 'data-extract'?: unknown })['data-extract'];
-        const extract = typeof extractValue === 'string' ? extractValue : undefined;
-        const path = extract?.split('#')[0];
-        const extractHref = blobBase && path ? `${blobBase}/${path}` : null;
-        return (
-          <CodeBlock
-            className={props.className}
-            labels={labels}
-            extract={extract}
-            extractHref={extractHref}
-          >
-            {props.children}
-          </CodeBlock>
-        );
-      },
-    },
-  });
+    })),
+  );
 }

@@ -77,6 +77,13 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **quiz-primitive-mechanism (2026-08-26):** D24 quiz slice — `toClientQuiz`
+  comments rewritten for local scoring; `Quiz` component in
+  `packages/mdx-components` (fieldset/radio, one question at a time,
+  advisory only); override/sidecar injection wired into article render.
+  No lesson YAML authored. `docs/DEBT.md` left for review (D24 partial,
+  D35 not closed). Feature branch PR; not pushed to `main`. Do not
+  auto-merge.
 - **sydexa-blueprint-reconciliation (2026-08-26):** recorded a third-party
   BA breakdown of Sydexa as a §0.0 reconciliation entry. No debt rows
   opened, no other roadmap sections changed. Confirms current direction
