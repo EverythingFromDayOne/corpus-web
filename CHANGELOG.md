@@ -5,6 +5,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-26] — fix/av-rail-dev-origin-hydration — av-rail hydration fix
+
+**Fixed**
+- `apps/web/next.config.mjs` — added `127.0.2.2` to `allowedDevOrigins` so the `TocRail` (`av-rail`) client component's JS chunk isn't blocked and can hydrate when the dev server is reached via that loopback alias
+
 ### [2026-08-26] — cursor/feat-quiz-primitive-mechanism-7957 — quiz scoring rule narrowing
 
 **Added**
