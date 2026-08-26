@@ -2768,3 +2768,42 @@ path.
 
 ---
 
+## Task — Sydexa feature blueprint reconciliation — 2026-08-26
+
+**Branch:** `cursor/docs-sydexa-blueprint-reconciliation-00e1`
+
+**Files changed:**
+- `roadmap.md` — new §0.0 entry at the top of the decisions log; no other sections changed
+- `.agents/summary.md` — Last updated line notes the review and its no-change conclusion
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased bullet for the reconciliation
+- `progress.md` — session-log line
+
+**Why:** A BA-style feature blueprint of Sydexa (external screencast analysis, not
+part of this repo) was reviewed against already-committed decisions. The 2026-08-20
+inventory already reconciled that site's feature groups; this pass is a second,
+more detailed check, not new scope. Structural parity that is not yet shipped is
+already D24 and D29–D35. Commercial, personal-content, video, OAuth, and SQL-sandbox
+surfaces are already struck by §16 Q3/Q5/Q8, D26, and the §14 struck table. Recording
+the review in §0.0 prevents a later session from treating the blueprint as unreviewed
+scope.
+
+**Invented decisions:**
+- Branch named `cursor/docs-sydexa-blueprint-reconciliation-00e1` per the
+  cloud-agent template, not the example `docs/sydexa-blueprint-reconciliation`.
+- Findings transcribed from the task instruction rather than re-derived from
+  the screencasts. This session did not re-analyse Sydexa.
+- The 2026-08-20 inventory entry is left in place; this entry sits above it
+  as a later confirmation, not a replacement.
+- `docs/DEBT.md` was not touched — no rows opened or closed.
+- Session log id `Sydexa feature blueprint reconciliation` rather than a
+  sequential session number. No `prompts/session-N+1.md` authored.
+
+**Known issues / next steps:**
+- Remaining structural parity stays on D24 and D29–D35; this review did not
+  change those rows.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side.
+- Do not auto-merge.
+
+---
+

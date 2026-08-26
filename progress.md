@@ -77,6 +77,11 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **sydexa-blueprint-reconciliation (2026-08-26):** recorded a third-party
+  BA breakdown of Sydexa as a §0.0 reconciliation entry. No debt rows
+  opened, no other roadmap sections changed. Confirms current direction
+  (D24, D26, D29–D35, §16 Q3/Q5/Q8). Feature branch PR; not pushed to
+  `main`. Do not auto-merge.
 - **quiz-entitlements-stale-refs-round-2 (2026-08-26):** remaining live
   entitlements / server-scoring leftovers in `roadmap.md` §0, §4.1, §9,
   `.cursor/rules/50-api-nestjs.mdc`, `.cursor/rules/20-never-violate.mdc`,

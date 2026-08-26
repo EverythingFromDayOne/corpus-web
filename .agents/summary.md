@@ -6,7 +6,7 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-26 (remaining entitlements / server-scoring leftovers in §0, §4.1, §9, Nest rule, and skills aligned with §7.4 / Q3)
+> Last updated: 2026-08-26 (Sydexa feature blueprint reviewed; no roadmap change required)
 
 ---
 
