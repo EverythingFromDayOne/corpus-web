@@ -11,8 +11,10 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   isScrolledToBottom,
+  remainingScrollPx,
   seenHeadingIds,
   selectActiveHeadingId,
+  shouldForceLastHeading,
 } from '../lib/toc-spy';
 
 // Measured on /en/courses/react-render-cycle/lessons/how-react-renders
@@ -27,6 +29,7 @@ const READING_LINE = Math.round(1411 * 0.2); // 282, top of the existing band
 test('isScrolledToBottom is true only within slack of max scroll', () => {
   assert.equal(isScrolledToBottom(17964, 1411, 19375), true);
   assert.equal(isScrolledToBottom(17900, 1411, 19375), false);
+  assert.equal(remainingScrollPx(17964, 1411, 19375), 0);
 });
 
 test('at page bottom, the last heading is active even if it shares the band', () => {
@@ -35,18 +38,47 @@ test('at page bottom, the last heading is active even if it shares the band', ()
   assert.equal(
     selectActiveHeadingId(BOTTOM_HEADINGS, {
       readingLinePx: READING_LINE,
-      atBottom: true,
+      remainingScroll: 0,
     }),
     'demo-source',
   );
 });
 
-test('without the bottom fallback, the last heading above the reading line wins', () => {
+test('without being stuck, the last heading above the reading line wins', () => {
   assert.equal(
     selectActiveHeadingId(BOTTOM_HEADINGS, {
       readingLinePx: READING_LINE,
-      atBottom: false,
+      remainingScroll: 2000,
     }),
+    'see-also',
+  );
+});
+
+test('a leftover shorter than the last heading needs to reach the line forces last', () => {
+  // last at 459, line 282, needs 177px more scroll. 80px leftover → stuck.
+  assert.equal(shouldForceLastHeading(459, READING_LINE, 80), true);
+  assert.equal(
+    selectActiveHeadingId(BOTTOM_HEADINGS, {
+      readingLinePx: READING_LINE,
+      remainingScroll: 80,
+    }),
+    'demo-source',
+  );
+});
+
+test('clicking See also near the end does not steal the highlight for Demo source', () => {
+  // After jumpToPart, leftover 255px is enough to still bring demo-source
+  // (470) up to the 282px line (needs 188). Must keep See also.
+  assert.equal(shouldForceLastHeading(470, READING_LINE, 255), false);
+  assert.equal(
+    selectActiveHeadingId(
+      [
+        { id: 'see-also', top: 72 },
+        { id: 'references', top: 300 },
+        { id: 'demo-source', top: 470 },
+      ],
+      { readingLinePx: READING_LINE, remainingScroll: 255 },
+    ),
     'see-also',
   );
 });
@@ -62,7 +94,7 @@ test('a clicked heading parked under the sticky header stays active', () => {
         { id: 'references', top: 300 },
         { id: 'demo-source', top: 470 },
       ],
-      { readingLinePx: READING_LINE, atBottom: false },
+      { readingLinePx: READING_LINE, remainingScroll: 2000 },
     ),
     'see-also',
   );
@@ -75,7 +107,7 @@ test('a long section after a click does not jump the highlight forward', () => {
         { id: 'walkthrough-one-keystroke-end-to-end', top: 52 },
         { id: 'real-world-patterns', top: 3633 },
       ],
-      { readingLinePx: READING_LINE, atBottom: false },
+      { readingLinePx: READING_LINE, remainingScroll: 9000 },
     ),
     'walkthrough-one-keystroke-end-to-end',
   );
@@ -88,7 +120,7 @@ test('at page top, with every heading below the line, the first heading is activ
         { id: 'what-it-is', top: 400 },
         { id: 'how-it-works-under-the-hood', top: 1200 },
       ],
-      { readingLinePx: READING_LINE, atBottom: false },
+      { readingLinePx: READING_LINE, remainingScroll: 17000 },
     ),
     'what-it-is',
   );
@@ -98,7 +130,7 @@ test('at page bottom, every heading is counted seen so progress can reach 100', 
   assert.deepEqual(
     seenHeadingIds(BOTTOM_HEADINGS, {
       readingLinePx: READING_LINE,
-      atBottom: true,
+      remainingScroll: 0,
     }),
     ['see-also', 'references', 'demo-source'],
   );
@@ -108,7 +140,7 @@ test('mid-page, only headings that have passed the reading line are seen', () =>
   assert.deepEqual(
     seenHeadingIds(BOTTOM_HEADINGS, {
       readingLinePx: READING_LINE,
-      atBottom: false,
+      remainingScroll: 2000,
     }),
     ['see-also'],
   );
@@ -116,11 +148,11 @@ test('mid-page, only headings that have passed the reading line are seen', () =>
 
 test('an empty heading list yields null / empty seen', () => {
   assert.equal(
-    selectActiveHeadingId([], { readingLinePx: READING_LINE, atBottom: true }),
+    selectActiveHeadingId([], { readingLinePx: READING_LINE, remainingScroll: 0 }),
     null,
   );
   assert.deepEqual(
-    seenHeadingIds([], { readingLinePx: READING_LINE, atBottom: true }),
+    seenHeadingIds([], { readingLinePx: READING_LINE, remainingScroll: 0 }),
     [],
   );
 });

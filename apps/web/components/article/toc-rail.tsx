@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RailPart } from '@/lib/rail-parts';
 import { markComplete, markSeen, readProgress } from '@/lib/progress';
 import {
   TOC_BAND_TOP_RATIO,
-  isScrolledToBottom,
+  TOC_BOTTOM_SLACK_PX,
+  remainingScrollPx,
   seenHeadingIds,
   selectActiveHeadingId,
 } from '@/lib/toc-spy';
@@ -27,6 +28,7 @@ export function TocRail({
   const { setPercent } = useArticleChrome();
   const [active, setActive] = useState<string | null>(parts[0]?.anchor ?? null);
   const [seen, setSeen] = useState<Set<string>>(new Set());
+  const pinnedAnchor = useRef<string | null>(null);
 
   useEffect(() => {
     const initial = new Set(readProgress().seen[uid] ?? []);
@@ -48,25 +50,38 @@ export function TocRail({
       .map((part) => document.getElementById(part.anchor))
       .filter((node): node is HTMLElement => node != null);
     if (nodes.length === 0) return;
-
-    let endVisible = false;
+    pinnedAnchor.current = null;
 
     const sync = () => {
-      const atBottom =
-        endVisible ||
-        isScrolledToBottom(
-          window.scrollY,
-          window.innerHeight,
-          document.documentElement.scrollHeight,
-        );
+      const remaining = remainingScrollPx(
+        window.scrollY,
+        window.innerHeight,
+        document.documentElement.scrollHeight,
+      );
       const readingLinePx = window.innerHeight * TOC_BAND_TOP_RATIO;
       const headings = nodes.map((node) => ({
         id: node.id,
         top: node.getBoundingClientRect().top,
       }));
-      const nextActive = selectActiveHeadingId(headings, { readingLinePx, atBottom });
+      let nextActive = selectActiveHeadingId(headings, {
+        readingLinePx,
+        remainingScroll: remaining,
+      });
+      if (pinnedAnchor.current) {
+        if (
+          remaining <= TOC_BOTTOM_SLACK_PX ||
+          nextActive === pinnedAnchor.current
+        ) {
+          pinnedAnchor.current = null;
+        } else {
+          nextActive = pinnedAnchor.current;
+        }
+      }
       if (nextActive) setActive(nextActive);
-      const newlySeen = seenHeadingIds(headings, { readingLinePx, atBottom });
+      const newlySeen = seenHeadingIds(headings, {
+        readingLinePx,
+        remainingScroll: remaining,
+      });
       if (newlySeen.length === 0) return;
       setSeen((current) => {
         const next = new Set(current);
@@ -92,11 +107,12 @@ export function TocRail({
 
     // Last headings can sit in the band together, or skip it entirely on a
     // jump-to-bottom, so the band observer may not fire again. The page-nav
-    // at the end of the article is a sentinel: when it is on screen, the
-    // reader has reached the outro and the last part should be active.
-    const endObserver = new IntersectionObserver((entries) => {
-      endVisible = entries.some((entry) => entry.isIntersecting);
-      sync();
+    // at the end of the article is a sentinel that *triggers* a recompute as
+    // more of the outro comes into view (thresholds, not a scroll listener).
+    // The picker still uses leftover scroll vs the last heading's distance
+    // to the reading line — pnav being visible is not itself "at bottom".
+    const endObserver = new IntersectionObserver(sync, {
+      threshold: [0, 0.1, 0.25, 0.5, 0.75, 1],
     });
     const end = document.querySelector('.av-pnav');
     if (end) endObserver.observe(end);
@@ -109,6 +125,7 @@ export function TocRail({
   }, [parts, uid]);
 
   const jumpToPart = useCallback((anchor: string) => {
+    pinnedAnchor.current = anchor;
     setActive(anchor);
     document.getElementById(anchor)?.scrollIntoView({ block: 'start' });
     const url = new URL(window.location.href);

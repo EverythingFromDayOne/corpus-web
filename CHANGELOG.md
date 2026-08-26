@@ -12,7 +12,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `apps/web/test/toc-spy.test.ts` — picker coverage from measured lesson-page heading tops
 
 **Changed**
-- `TocRail` still observes with `rootMargin: '-20% 0px -60% 0px'`; that band is now only the trigger. Active/seen are derived from heading tops, with `.av-pnav` as a bottom sentinel
+- `TocRail` still observes with `rootMargin: '-20% 0px -60% 0px'`; that band is now only the trigger. Active/seen are derived from heading tops. `.av-pnav` retriggers the picker; leftover scroll vs the last heading's distance to the 20% line is the page-bottom override. Click pins `active` until the picker agrees or max scroll.
 - Rail tick click sets `active` to the clicked anchor before `scrollIntoView`
 
 **Removed**

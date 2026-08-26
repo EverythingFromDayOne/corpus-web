@@ -3118,13 +3118,15 @@ picker then lights N+1 even though the scroll target was N.
 The band width itself is fine — it is a trigger, not a picker. Left
 `rootMargin: '-20% 0px -60% 0px'` and `threshold: [0, 0.25, 1]`
 unchanged. Active is now the last heading whose top is at or above 20%
-of the viewport, overridden to the last heading when the page is at
-max scroll *or* `.av-pnav` (the prev/next nav after the body) is
-intersecting, which also marks every part seen so the ring can hit 100%.
-A second observer on `.av-pnav` supplies the callback the band observer
-misses when nothing new enters the 20%–40% slice. Click sets `active`
-immediately so the rail cannot disagree with the tick the reader just
-pressed.
+of the viewport, overridden to the last heading when leftover scroll is
+too short to bring that heading up to the reading line (including max
+scroll). That also marks every part seen so the ring can hit 100%.
+`.av-pnav` is observed with several thresholds so the picker reruns as
+the outro comes into view — it is not itself "at bottom", because a
+click on a late short part (See also) leaves that nav visible and would
+otherwise steal the highlight for Demo source. Click sets `active`
+immediately and pins it until the picker agrees or the page hits max
+scroll.
 
 A DOM/scroll unit test is not practical in `apps/web`'s `node --test`
 runner (no layout). The picker is extracted and tested with the measured
@@ -3134,23 +3136,21 @@ tops from the repro instead.
 - Did not change `rootMargin`/`threshold`. The band is still the
   IntersectionObserver trigger; the bug was `visible[0]` among entries
   in that band, not the band's size.
-- Used `.av-pnav` as a bottom sentinel instead of a scroll listener
-  (forbidden on the TOC rail) or a injected 1px element. When that nav
-  is on screen the reader has reached the article outro, which is the
-  "end of the article" the ring should treat as 100% / last part. The
-  geometric `scrollY + innerHeight >= scrollHeight - 2` check runs on
-  the same sync so a max-scroll without a pnav still works.
+- Used leftover-scroll vs last-heading distance to the reading line as
+  the page-bottom override, not "`.av-pnav` is intersecting". The nav
+  is only a sentinel that retriggers the picker (thresholds 0–1) so we
+  still get a callback in the last screenful without a scroll listener.
 - Reading line is 20% of `innerHeight`, matching the *top* of the
   existing band, so mid-page behaviour stays "heading that has reached
   the band" rather than "first heading still inside it".
-- Optimistic `setActive` on click even though the new picker would
-  usually agree after layout; the instruction was to never let the
-  highlight visibly disagree with the click.
+- Click pins `active` until the picker agrees or remaining scroll is 0,
+  so a late-part click cannot be overwritten by the bottom override.
 - No `docs/DEBT.md` / `roadmap.md` / quiz-file edits, per instruction.
 
 **Known issues / next steps:**
-- Post-fix browser check still to run on the same lesson (bottom +
-  click) after this lands in the running dev server.
+- Re-verified after the leftover-scroll / click-pin tightening: bottom
+  of `how-react-renders` should be Demo source + 100%; Walkthrough and
+  See also clicks should keep their own ticks.
 - Content gates remain red on D11, D13, D15 — pre-existing, corpus-side,
   unrelated.
 - Do not auto-merge.

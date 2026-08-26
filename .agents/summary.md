@@ -114,10 +114,12 @@ bootstrap.
   on the 3.5rem track clips the labels (that was the missing-hover-label bug).
   **Active is not `visible[0]` from the 20%–40% IntersectionObserver band.**
   That band is only the trigger. The picker is last heading whose top is at
-  or above 20% of the viewport, overridden to the last part when the page is
-  at max scroll or `.av-pnav` is on screen (otherwise the last short headings
-  share the band and the highlight freezes one behind, and the ring never
-  reaches 100%). Click sets `active` immediately; `jumpToPart`'s
+  or above 20% of the viewport, overridden to the last part when leftover
+  scroll is too short to bring that heading up to the line (or the page is
+  at max scroll). `.av-pnav` is a sentinel that retriggers the picker, not
+  itself "at bottom" — otherwise a click on a late short part (See also)
+  would steal the highlight for the last part. Click pins `active` until
+  the picker agrees or the page hits max scroll. `jumpToPart`'s
   `scrollIntoView` already lands on the clicked heading.
 - **`apps/web` does not import `@corpus/content-schema`.** Next's Turbopack build
   cannot resolve that package's NodeNext `.js` specifiers to `.ts` sources, and
