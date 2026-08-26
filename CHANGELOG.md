@@ -5,6 +5,20 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-26] — cursor/docs-sydexa-blueprint-reconciliation-00e1 — Sydexa feature blueprint reviewed
+
+**Added**
+- `roadmap.md` §0.0 entry recording the Sydexa BA blueprint review as a no-change reconciliation
+
+**Changed**
+- `.agents/summary.md` Last updated line notes the review and its no-change conclusion
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Nothing
+
 ### [2026-08-26] — cursor/docs-quiz-entitlements-stale-refs-ed75 — remaining entitlements and server-scoring leftovers
 
 **Added**

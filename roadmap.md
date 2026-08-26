@@ -10,6 +10,38 @@
 
 ## 0.0 Decisions log
 
+**2026-08-26 — Sydexa feature blueprint reviewed; no roadmap change required.**
+A third-party BA breakdown of a commercial course platform's full feature set
+(navigation, quizzes, drag-and-drop labs, SQL sandbox, paid access, OAuth login,
+video, personal/social content, testimonials) was compared against this project's
+committed decisions. This is a reconciliation record, not new scope.
+
+Findings:
+
+- **Structural/interactive-layer parity already shipped:** sticky navbar, theme
+  toggle (cookie-persisted), course catalog, numbered curriculum modules,
+  three-column lesson layout, scroll-spy ToC, code blocks with copy/expand, blog
+  hub, article layout, breadcrumbs, sidebar collapse.
+- **Remaining structural parity** (tier-1 primitives, category filters,
+  course-overview FAQ/timeline, sticky-scroll showcase, related-articles
+  rendering, attribution schema, testimonials) was already tracked as D24 and
+  D29–D35 before this review; nothing new was added.
+- **The commercial and personal-content surface** (pricing/paywalls/soft-locks/
+  coupons, OAuth login, live SQL sandbox with WASM Postgres, embedded
+  instructional video, author bio/avatar/social icons/phone number, testimonials
+  authored before real readers exist) is explicitly rejected, consistent with
+  §16 Q3 (non-commercial), §16 Q5 (no video), §16 Q8 (email-only contact), and
+  D26 (accounts deferred to Phase 2, no backend deployed). These are Sydexa's
+  business model and reference-site content, not this project's.
+- **No SQL corpus exists** in this project (per the existing struck table's
+  reasoning for database simulators), so SQL-specific interactive features
+  (race simulator, B+Tree calculator, drag-and-drop SQL builder) have no analog
+  here — the tier-2 equivalents are framework mechanics (render/commit, request
+  lifecycle, cache boundary), already specified.
+
+Conclusion: this review confirms current direction: no debt rows opened, no
+roadmap sections changed beyond this log entry.
+
 **2026-08-20 — reference-site feature inventory reconciled.** An analysis of the
 reference site produced roughly nineteen feature groups. Reconciled against this
 document rather than adopted: §7 already specified most of the interactive layer, and
