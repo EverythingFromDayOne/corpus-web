@@ -2671,3 +2671,48 @@ matches the repo.
 
 ---
 
+## Task — align roadmap §8 quiz and entitlements with §7.4 / Q3 — 2026-08-26
+
+**Branch:** `cursor/docs-roadmap-quiz-entitlements-cleanup-0b53`
+
+**Files changed:**
+- `roadmap.md` — §8 `quiz` row rewritten for local-only scoring; Phase 3 item 24 drops `'server'` mode; §8 `entitlements` row removed
+- `.agents/summary.md` — architecture paragraph no longer lists entitlements or server-side quiz scoring
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased bullet for the leftover cleanup
+- `progress.md` — session-log line
+
+**Why:** The 2026-08-20 roadmap patch rewrote §7.4 to local-only quiz scoring, and
+the 2026-08-19 Q3 resolution already said `entitlements` leaves the §8 Nest
+module inventory. Both leftovers in §8 and Phase 3 item 24 were recorded as
+known issues of that patch and were not in its edit list. This task closes
+those three missed edits so the inventory matches the decisions log.
+
+**Invented decisions:**
+- Branch named `cursor/docs-roadmap-quiz-entitlements-cleanup-0b53` per the
+  cloud-agent template, not the example `docs/roadmap-quiz-entitlements-cleanup`.
+- §8 `quiz` Owns cell is "Question bank, recorded attempts" rather than
+  dropping the module. Phase 3 item 24 still names a `quiz` module; scoring
+  moved to the client, attempt records did not.
+- §8 `quiz` Why cell states the local-only fact instead of inventing a new
+  "why not Next" rationale. The old answer-key-custody sentence is gone.
+- Other leftovers left untouched because they were not in the task: §0
+  verdict still lists "quiz scoring" and "entitlements" as Nest's job; §4.1
+  layout still names `entitlements`; §9 still has an `entitlements` table
+  and `quiz_options.is_correct` "never serialized to client";
+  `.cursor/rules/50-api-nestjs.mdc`, `AGENTS.md`, and
+  `.claude/skills/corpus-nest-module/SKILL.md` still list entitlements and
+  answer-key custody; `.claude/skills/corpus-mdx-component/SKILL.md` still
+  says `mode: 'local' | 'server'`.
+- Session log id `align roadmap §8 quiz and entitlements with §7.4 / Q3`
+  rather than a sequential session number. No `prompts/session-N+1.md`
+  authored.
+
+**Known issues / next steps:**
+- The leftovers listed under invented decisions still describe the pre-Q3
+  design. Reconcile on an explicit rules/skills/data-model task, not here.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side.
+- Do not auto-merge.
+
+---
+

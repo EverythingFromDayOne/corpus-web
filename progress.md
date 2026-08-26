@@ -77,6 +77,10 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **roadmap-quiz-entitlements-cleanup (2026-08-26):** §8 `quiz` row and
+  Phase 3 item 24 aligned with §7.4 local-only scoring; §8 `entitlements`
+  row removed per the 2026-08-19 Q3 resolution. Feature branch PR; not
+  pushed to `main`. Do not auto-merge.
 - **d16-pin-refresh (2026-08-26):** D16 pin references refreshed
   `nextjs@v0.3.0` / `angular@v0.3.0` → `@v0.3.1` after confirming
   `git submodule status` SHAs `a19616f` / `bdef6ae` match those tags.

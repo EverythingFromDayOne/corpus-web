@@ -6,7 +6,7 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-26 (personal-content rule matches Q8 email carve-out)
+> Last updated: 2026-08-26 (personal-content rule matches Q8 email carve-out; Nest inventory drops entitlements and server-side quiz scoring)
 
 ---
 
@@ -35,7 +35,7 @@ identity, palette, illustrations, and copy are deliberately our own.
 
 Content is build-time. Next.js 16.3 with Cache Components owns rendering; Postgres never
 sits in the read path for an article body. NestJS 11 owns everything user-specific — auth,
-progress, quiz scoring, flashcard scheduling, entitlements. The test for any endpoint: if
+progress, quiz attempt records, flashcard scheduling. The test for any endpoint: if
 the API were down, would reading break? If yes, it is in the wrong service. An API outage
 degrades the site to a read-only corpus, never to a blank page.
 
