@@ -3148,9 +3148,12 @@ tops from the repro instead.
 - No `docs/DEBT.md` / `roadmap.md` / quiz-file edits, per instruction.
 
 **Known issues / next steps:**
-- Re-verified after the leftover-scroll / click-pin tightening: bottom
-  of `how-react-renders` should be Demo source + 100%; Walkthrough and
-  See also clicks should keep their own ticks.
+- Re-verified in Chrome at 1259px on the same lesson after the
+  leftover-scroll / click-pin tightening. Absolute bottom: remaining 0,
+  tick 12 (Demo source) `on`, ring 100%. Walkthrough click: hash
+  `#walkthrough-one-keystroke-end-to-end`, tick 3 `on`, heading top 72.
+  See also click (short section): hash `#see-also`, tick 10 `on`,
+  References and Demo source `on: false`, heading top 72.
 - Content gates remain red on D11, D13, D15 — pre-existing, corpus-side,
   unrelated.
 - Do not auto-merge.
