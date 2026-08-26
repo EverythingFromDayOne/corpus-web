@@ -4,8 +4,15 @@ import { Quiz } from './quiz';
 
 export { CodeBlock, type CodeBlockLabels } from './code-block';
 export { Quiz, type QuizLabels, type QuizProps } from './quiz';
-export type { QuizQuestion, QuizSidecarProps } from './quiz-model';
-export { gradeQuestion, unrevealedOptions } from './quiz-model';
+export type {
+  QuizQuestion,
+  ClientQuizOption,
+  ClientQuizQuestion,
+  GradeResult,
+  QuizGradeInput,
+  QuizGradeAction,
+} from './quiz-model';
+export { gradeQuestion, correctLabelOf, unrevealedOptions, toClientQuestion } from './quiz-model';
 export {
   END_OF_ARTICLE,
   injectAfterSections,

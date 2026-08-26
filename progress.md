@@ -77,6 +77,18 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **quiz-answer-key-leak-fix (2026-08-26):** review-caught RSC leak on PR #32 —
+  `article-markdown.tsx` was passing the full sidecar (`correct` on every
+  option) into the `'use client'` `Quiz` component, so it shipped in the
+  page's initial payload before any reader interaction. Fixed by stripping
+  `correct`/`explanation` server-side (`toClientQuizWidget()` in
+  `article-widgets.ts`) and moving grading to a Next.js Server Action
+  (`apps/web/lib/quiz-actions.ts`, `gradeQuizAnswer`) — no persistence, no
+  `apps/api` involvement, scoring stays `mode: 'local'` advisory per §7.4.
+  New regression tests assert the actual render-path function's output has
+  no `correct`/`explanation` key anywhere in its tree. Same feature branch
+  as `quiz-primitive-mechanism`, additional commit on PR #32; not pushed to
+  `main`. Do not auto-merge.
 - **quiz-primitive-mechanism (2026-08-26):** D24 quiz slice — `toClientQuiz`
   comments rewritten for local scoring; `Quiz` component in
   `packages/mdx-components` (fieldset/radio, one question at a time,

@@ -78,6 +78,49 @@ export type QuizWidget = {
   sidecar: QuizSidecarData;
 };
 
+export type ClientQuizOption = { label: string; body: string };
+
+export type ClientQuizQuestion = {
+  id: string;
+  prompt: string;
+  code?: string;
+  language: string;
+  options: ClientQuizOption[];
+};
+
+export type ClientQuizWidget = {
+  articleUid: string;
+  schema: 1;
+  questions: ClientQuizQuestion[];
+};
+
+/**
+ * The exact projection `article-markdown.tsx` spreads onto `<Quiz>`. This is
+ * the real render-path function, not an isolated helper — `correct` and
+ * `explanation` are dropped here, before any widget data becomes a prop on
+ * the `'use client'` `Quiz` component. RSC serializes a client component's
+ * entire prop tree into the initial payload regardless of what it renders,
+ * so stripping inside `Quiz` itself (as `unrevealedOptions()` alone does)
+ * is too late — the leak this fixes shipped `correct` in that payload.
+ *
+ * Mirrors `toClientQuiz()` in `packages/content-schema/src/sidecars.ts`,
+ * duplicated locally for the same reason the sidecar schema above is:
+ * `apps/web` does not import `@corpus/content-schema`.
+ */
+export function toClientQuizWidget(articleUid: string, widget: QuizWidget): ClientQuizWidget {
+  return {
+    articleUid,
+    schema: widget.sidecar.schema,
+    questions: widget.sidecar.questions.map((question) => ({
+      id: question.id,
+      prompt: question.prompt,
+      code: question.code,
+      language: question.language,
+      options: question.options.map((option) => ({ label: option.label, body: option.body })),
+    })),
+  };
+}
+
 function sidecarPathFor(article: ArticleListItem): string {
   return articleFilePath(article).replace(/\.mdx?$/, '.quiz.yaml');
 }

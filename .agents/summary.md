@@ -6,7 +6,8 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-26 (Quiz primitive mechanism: component + override/sidecar injection)
+> Last updated: 2026-08-26 (Quiz primitive mechanism: component + override/sidecar
+> injection; RSC answer-key leak fix — grading moved to a Server Action)
 
 ---
 
@@ -275,9 +276,21 @@ bootstrap.
   scoring is `mode: 'local'` only (§7.4). The Quiz **component and render path exist**:
   `packages/mdx-components` `Quiz` (fieldset/radio, one question at a time), registered
   as `Quiz`, injected after `afterSection` from `curation/overrides/*.yaml` and/or a
-  `{stem}.quiz.yaml` sidecar beside the article. No lesson YAML is authored yet —
-  nothing mounts on a live article until that later pass. Sidecars remain the
-  documented future; overrides remain the working mechanism until D17 closes (D35).
+  `{stem}.quiz.yaml` sidecar beside the article. Grading is server-side only:
+  `apps/web/lib/quiz-actions.ts` (`gradeQuizAnswer`, a Next.js Server Action) is the
+  only place `correct` is read after the article page's initial payload is built.
+  `article-markdown.tsx` passes `Quiz` the output of `toClientQuizWidget()`
+  (`article-widgets.ts`) — `correct` and `explanation` never cross into a `Quiz` prop;
+  a review on PR #32 caught an earlier version that shipped the full sidecar (with
+  `correct`) straight into the client component, which RSC would have serialized into
+  the initial payload regardless of the component's own render logic. No lesson YAML
+  is authored yet — nothing mounts on a live article until that later pass. Sidecars
+  remain the documented future; overrides remain the working mechanism until D17
+  closes (D35). Gotcha for whoever authors the first real widget: an override whose
+  `afterSection` targets an actual article heading currently throws at prerender
+  ("afterSection not found") even when the heading exists and slugs match — verified
+  pre-existing on `main`-equivalent code, unrelated to the leak fix; `afterSection: ''`
+  (end-of-article) does not hit this. Root cause not yet diagnosed.
   §7.5 specifies the code-assembly exercise. Video is struck (§16 Q5 decided: SVG plus
   motion).
 

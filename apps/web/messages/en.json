@@ -156,6 +156,7 @@
     "quizNext": "Next question",
     "quizCorrect": "Correct",
     "quizIncorrect": "Not quite",
-    "quizExplanation": "Explanation"
+    "quizExplanation": "Explanation",
+    "quizError": "Couldn't check that answer. Try again."
   }
 }

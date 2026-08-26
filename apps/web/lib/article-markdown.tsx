@@ -3,7 +3,8 @@ import { cacheLife } from 'next/cache';
 import { createMarkdownRenderer } from 'fumadocs-core/content/md';
 import { remarkGfm } from 'fumadocs-core/mdx-plugins';
 import { CodeBlock, type CodeBlockLabels, Quiz, type QuizLabels, injectAfterSections } from '@corpus/mdx-components';
-import type { QuizWidget } from '@/lib/article-widgets';
+import { toClientQuizWidget, type QuizWidget } from '@/lib/article-widgets';
+import { gradeQuizAnswer } from '@/lib/quiz-actions';
 import type { Locale } from '@/lib/locales';
 import { articlePath } from '@/lib/routes';
 import { isRepoId } from '@/lib/repos';
@@ -103,6 +104,7 @@ export async function renderArticleMarkdown({
   contentHash,
   markdown,
   repo,
+  articleUid,
   locale,
   liveUids,
   messages,
@@ -113,6 +115,7 @@ export async function renderArticleMarkdown({
   contentHash: string;
   markdown: string;
   repo: string;
+  articleUid: string;
   locale: Locale;
   liveUids: string[];
   messages: Messages;
@@ -142,6 +145,7 @@ export async function renderArticleMarkdown({
     correct: t(messages, 'article.quizCorrect'),
     incorrect: t(messages, 'article.quizIncorrect'),
     explanation: t(messages, 'article.quizExplanation'),
+    error: t(messages, 'article.quizError'),
   };
 
   const body = await Promise.resolve(
@@ -218,16 +222,24 @@ export async function renderArticleMarkdown({
 
   return injectAfterSections(
     body,
-    widgets.map((widget) => ({
-      afterSection: widget.afterSection,
-      node: (
-        <Quiz
-          schema={widget.sidecar.schema}
-          article_id={widget.sidecar.article_id}
-          questions={widget.sidecar.questions}
-          labels={quizLabels}
-        />
-      ),
-    })),
+    widgets.map((widget) => {
+      // `correct` and `explanation` are dropped right here, before this ever
+      // becomes a prop on the `'use client'` Quiz component — see
+      // `toClientQuizWidget()` for why that has to happen on this side of
+      // the boundary, not inside Quiz's own render logic.
+      const client = toClientQuizWidget(articleUid, widget);
+      return {
+        afterSection: widget.afterSection,
+        node: (
+          <Quiz
+            schema={client.schema}
+            articleUid={client.articleUid}
+            questions={client.questions}
+            labels={quizLabels}
+            gradeAction={gradeQuizAnswer}
+          />
+        ),
+      };
+    }),
   );
 }

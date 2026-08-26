@@ -5,6 +5,24 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-26] — cursor/feat-quiz-primitive-mechanism-7957 — quiz answer-key leak fix (review-caught)
+
+**Added**
+- `apps/web/lib/quiz-actions.ts` — `gradeQuizAnswer()`, a Next.js Server Action that grades one question server-side and returns `{ isCorrect, correctLabel, explanation }`
+- `apps/web/lib/article-widgets.ts` — `toClientQuizWidget()`, the answer-key-stripping projection `article-markdown.tsx` spreads onto `<Quiz>`
+- `packages/mdx-components/src/quiz-model.ts` — `toClientQuestion()`, `ClientQuizQuestion`/`ClientQuizOption`, `QuizGradeInput`/`QuizGradeAction`
+- `apps/web/test/article-widgets.test.ts` and `apps/web` `test` script/`tsx` devDependency — regression coverage asserting the actual render-path function never emits `correct`/`explanation`
+
+**Changed**
+- `packages/mdx-components/src/quiz.tsx` — `Quiz` now takes an already-stripped question list plus a `gradeAction` it calls on submit, instead of the full sidecar with `correct`
+- `apps/web/lib/article-markdown.tsx` — builds `<Quiz>` props via `toClientQuizWidget()` and passes `gradeQuizAnswer` as `gradeAction`, instead of spreading `widget.sidecar.questions` directly
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Answer-key leak: `article-markdown.tsx` was passing every option's `correct: boolean` (and `explanation`) into the `'use client'` `Quiz` component, so it shipped in the page's RSC payload before any reader submitted an answer. Grading now happens server-side; the client never holds the answer key.
+
 ### [2026-08-26] — cursor/feat-quiz-primitive-mechanism-7957 — tier-1 Quiz primitive mechanism
 
 **Added**

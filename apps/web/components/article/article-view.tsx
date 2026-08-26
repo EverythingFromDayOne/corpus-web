@@ -73,6 +73,7 @@ export async function ArticleView({
     contentHash: article.contentHash,
     markdown,
     repo: article.repo,
+    articleUid: article.uid,
     locale,
     liveUids: view.liveUids,
     messages,

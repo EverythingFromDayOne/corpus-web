@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { createElement, Fragment } from 'react';
 import { test } from 'node:test';
-import { gradeQuestion, unrevealedOptions } from '../src/quiz-model';
+import { gradeQuestion, toClientQuestion, unrevealedOptions } from '../src/quiz-model';
 import { END_OF_ARTICLE, injectAfterSections } from '../src/inject-after-sections';
 
 const question = {
@@ -17,11 +17,12 @@ const question = {
   explanation: 'Cache Components made caching opt-in.',
 };
 
-test('gradeQuestion accepts the correct label and rejects others', () => {
+test('gradeQuestion accepts the correct label and rejects others, and carries the explanation', () => {
   assert.deepEqual(gradeQuestion(question, 'B'), {
     selectedLabel: 'B',
     correctLabel: 'B',
     isCorrect: true,
+    explanation: question.explanation,
   });
   assert.equal(gradeQuestion(question, 'A').isCorrect, false);
 });
@@ -37,6 +38,24 @@ test('unrevealedOptions drops `correct`', () => {
   for (const option of options) {
     assert.equal('correct' in option, false);
   }
+});
+
+test('toClientQuestion drops `correct` and `explanation` off the whole question', () => {
+  const client = toClientQuestion(question);
+  assert.equal('explanation' in client, false);
+  for (const option of client.options) {
+    assert.equal('correct' in option, false);
+  }
+  assert.deepEqual(client, {
+    id: 'q1',
+    prompt: 'Which default did Next 16 invert?',
+    code: undefined,
+    language: undefined,
+    options: [
+      { label: 'A', body: 'Cached by default' },
+      { label: 'B', body: 'Uncached by default' },
+    ],
+  });
 });
 
 test('injectAfterSections places a node after the matching section body', () => {
