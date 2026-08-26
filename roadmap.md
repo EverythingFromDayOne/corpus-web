@@ -551,10 +551,9 @@ Explicit inventory, because "I added a backend" is not an architecture:
 | `users` | Profile, preferences (theme, sidebar state, locale) | — |
 | `catalog` | Ingests `catalog.json`; owns `lessons`, `paths` | Gives every other module a stable FK target for content. |
 | `progress` | Lesson completion, section-level scroll progress, streaks | Write-heavy, needs transactions and dedup. |
-| `quiz` | Question bank, attempt scoring, answer key custody | Answer key must never reach the client (§7.4). |
+| `quiz` | Question bank, recorded attempts | Scoring is `mode: 'local'` only (§7.4). There is no server-side check, so there is no answer key to keep off the client. |
 | `srs` | Flashcard scheduling (SM-2 / FSRS), due queues | Real algorithmic work; the most interesting thing in the API. |
 | `notes` | Highlights, bookmarks, per-article notes | — |
-| `entitlements` | Free vs. paid access, if you ever gate | Isolated so gating is one policy, not scattered guards. |
 | `analytics` | Event ingest → BullMQ → aggregates | Batched writes; a bad fit for edge/serverless handlers. |
 | `admin` | Catalog inspection, attempt review, user admin | — |
 
@@ -757,7 +756,7 @@ Explicitly absent: name, photo, bio, work history, employers, clients, testimoni
 
 ### Phase 3 — Retention loop *(target: 3 weeks)*
 23. `content-schema` for quiz + deck sidecars; authoring pass over the highest-traffic articles.
-24. Quiz component + `quiz` module; `mode: 'local' | 'server'` from day one.
+24. Quiz component + `quiz` module; `mode: 'local'` only (§7.4).
 25. Flashcards + `srs` module (FSRS over SM-2 — better retention, and more interesting to write about).
 26. Tier-1 worker playground.
 27. Notes + bookmarks + a `/review` dashboard: due cards, streaks, path progress.

@@ -5,6 +5,22 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-26] — cursor/docs-roadmap-quiz-entitlements-cleanup-0b53 — align §8 quiz and entitlements with §7.4 / Q3
+
+**Added**
+- Nothing
+
+**Changed**
+- `roadmap.md` §8 `quiz` row — local-only scoring; answer-key custody dropped
+- `roadmap.md` Phase 3 item 24 — `mode: 'local'` only; `'server'` dropped
+- `.agents/summary.md` — Nest inventory no longer lists entitlements or server-side quiz scoring
+
+**Removed**
+- `roadmap.md` §8 `entitlements` row (Q3 already struck it on 2026-08-19)
+
+**Fixed**
+- Nothing
+
 ### [2026-08-26] — cursor/docs-d16-pin-refresh-8096 — D16 pin references refreshed to v0.3.1
 
 **Added**
