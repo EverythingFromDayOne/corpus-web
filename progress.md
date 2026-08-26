@@ -77,6 +77,11 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **d16-pin-refresh (2026-08-26):** D16 pin references refreshed
+  `nextjs@v0.3.0` / `angular@v0.3.0` → `@v0.3.1` after confirming
+  `git submodule status` SHAs `a19616f` / `bdef6ae` match those tags.
+  Re-verified 2026-08-26. Description-key defect unchanged. Feature
+  branch PR; not pushed to `main`. Do not auto-merge.
 - **rule-email-carveout (2026-08-26):** added the Q8 contact-email carve-out
   to `.cursor/rules/20-never-violate.mdc` Personal content boundary
   (`nxhhuy@gmail.com` in the footer and on `/en/license` only). Regenerated
