@@ -5,6 +5,29 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-25] — cursor/docs-roadmap-patch-2026-08-20-a6a1 — apply 2026-08-20 roadmap patch
+
+**Added**
+- `roadmap.md` §0.0 entries for the 2026-08-20 reference-site inventory and the Q8 contact-email carve-out
+- `roadmap.md` §7.1 Tier column, code-assembly row, and concept-simulator row
+- `roadmap.md` §7.5 code assembly exercise
+- `roadmap.md` §14 struck-features table
+- Debt **D29–D36** in `docs/DEBT.md` (inert filters, course FAQ/timeline, sticky-scroll showcase, related-articles section, attribution schema, testimonials, sidecar deferral, tier-2 simulators)
+
+**Changed**
+- `roadmap.md` §7.3 records sidecar deferral; preference order kept
+- `roadmap.md` §7.4 rewritten: heading is now "Quiz scoring is local, and stays local"
+- `roadmap.md` §16 Q3 appends the struck list; Q5 marked decided (SVG plus motion); Q8 narrowed to permit a contact email
+- Debt **D24** is now the tier-1 interactive-layer row; D17 carries per-repo CI detail
+- Highest ID issued D28 → D36
+- `.agents/summary.md` — debt ID range D1–D36; Q8 email carve-out; monetization dropped from open decisions
+
+**Removed**
+- `roadmap.md` §7.1 video/animation-player row (struck)
+
+**Fixed**
+- Nothing
+
 ### [2026-08-25] — cursor/workspace-map-91ce — apply pasted workspace-map purposes
 
 **Added**
