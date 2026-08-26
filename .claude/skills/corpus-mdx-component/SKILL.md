@@ -23,12 +23,10 @@ Reaching for Sandpack first is the most common mistake here.
 
 ## Quizzes
 
-The component takes `mode: 'local' | 'server'` from the start, even while only `local` is
-implemented. Retrofitting server scoring later means rewriting the component; accepting the
-prop now costs nothing.
-
-In `local` mode the answer key is in the bundle and scores are advisory. In `server` mode
-the key never leaves the API — see the `corpus-nest-module` skill.
+Scoring is `mode: 'local'` only. Roadmap §7.4 made this permanent — it is not a
+placeholder for a future `'server'` mode. The answer key ships in the client bundle by
+design; scores are advisory. The `mode` prop, if present, is a recorded constraint
+rather than a planned feature.
 
 ## Styling
 

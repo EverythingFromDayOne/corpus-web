@@ -159,7 +159,7 @@ You have four corpora, ~200 articles of verified reference prose, with no reader
 Three decisions carry the whole plan:
 
 1. **Content is build-time, not database-backed.** Next.js owns rendering. Postgres never sits in the read path for an article body.
-2. **NestJS earns its place on state, not content.** Progress, quiz scoring, flashcard scheduling, auth, entitlements. If Nest were only serving markdown it would be decoration on your CV, and reviewers can tell.
+2. **NestJS earns its place on state, not content.** Progress, local-only quiz scoring, flashcard scheduling, auth. If Nest were only serving markdown it would be decoration on your CV, and reviewers can tell.
 3. **Use `fumadocs-core` as a library; write your own UI.** The MDX pipeline, page tree, and TOC extraction are solved problems with zero portfolio value. The course chrome and the interactive widgets are where the differentiation lives.
 
 ---
@@ -270,7 +270,7 @@ corpus-web/
 │   │   └── lib/source.ts       fumadocs loader
 │   └── api/                    NestJS 11
 │       └── src/modules/        auth, users, progress, quiz, srs, catalog,
-│                               notes, entitlements, analytics, admin
+│                               notes, analytics, admin
 ├── packages/
 │   ├── content-schema/         zod schemas — frontmatter, quiz, deck, path
 │   ├── ui/                     design tokens + primitives (shadcn-style, owned)
@@ -587,7 +587,7 @@ path_progress         user_id, path_id, current_ordinal, completed_at
 
 quizzes               id, lesson_id, ordinal
 quiz_questions        id, quiz_id, prompt, code_snippet, explanation
-quiz_options          id, question_id, label, body, is_correct    -- never serialized to client
+quiz_options          id, question_id, label, body, is_correct    -- ships in the client bundle by design (§7.4)
 quiz_attempts         id, user_id, quiz_id, score, submitted_at
 quiz_answers          attempt_id, question_id, option_id, is_correct
 
@@ -599,7 +599,6 @@ card_reviews          user_id, card_id, ease, interval_days, due_at,
 
 notes                 id, user_id, lesson_id, anchor, quoted_text, body, created_at
 bookmarks             user_id, lesson_id, created_at
-entitlements          user_id, scope, granted_at, expires_at
 events                id, user_id?, name, props jsonb, occurred_at    -- partitioned monthly
 ```
 

@@ -2716,3 +2716,55 @@ those three missed edits so the inventory matches the decisions log.
 
 ---
 
+## Task — remaining quiz/entitlements stale refs (round 2) — 2026-08-26
+
+**Branch:** `cursor/docs-quiz-entitlements-stale-refs-ed75`
+
+**Files changed:**
+- `roadmap.md` — §0 drops entitlements and names local-only quiz scoring; §4.1 drops entitlements from the Nest modules listing; §9 drops the `entitlements` table and notes `quiz_options.is_correct` ships in the client bundle
+- `.cursor/rules/50-api-nestjs.mdc` — `entitlements` inventory row removed; `quiz` row is recorded attempts; "Quiz answer keys" rewritten as local-only scoring
+- `.cursor/rules/20-never-violate.mdc` — server-mode key-hiding NEVER replaced with no `'server'` quiz-scoring mode
+- `.claude/skills/corpus-nest-module/SKILL.md` — description, state list, and scoring section match local-only / no entitlements
+- `.claude/skills/corpus-mdx-component/SKILL.md` — Quizzes section states `mode: 'local'` is permanent per §7.4
+- `AGENTS.md` — regenerated via `pnpm agents:build`
+- `.cursor/rules/60-skills.mdc` — regenerated via `pnpm agents:build`
+- `.agents/summary.md` — last-updated line for this leftover pass
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased bullet for the leftover pass
+- `progress.md` — session-log line
+
+**Why:** Round 1 (PR #29) aligned §8 and Phase 3 item 24 and recorded the remaining
+live-inventory leftovers rather than expanding that task. Those leftovers still
+described entitlements as a live Nest module and quiz scoring as a server-mode
+key-hiding design, which contradicts §7.4 and the 2026-08-19 Q3 resolution. This
+pass closes that list so agents reading the verdict, layout, data model, Nest
+rule, or skills do not reintroduce the dropped module or a `'server'` scoring
+path.
+
+**Invented decisions:**
+- Branch named `cursor/docs-quiz-entitlements-stale-refs-ed75` per the
+  cloud-agent template, not the example `docs/quiz-entitlements-stale-refs-round-2`.
+- `.cursor/rules/50-api-nestjs.mdc` `quiz` Owns cell matches the already-fixed
+  §8 wording ("question bank, recorded attempts") rather than keeping
+  "attempt scoring" after dropping answer-key custody.
+- "Quiz answer keys" / "Answer-key custody" headings renamed to "Quiz scoring
+  is local-only" so the old custody framing does not survive as a section title.
+- `.cursor/rules/20-never-violate.mdc` was not in the Slack list. It still
+  described server-mode key-hiding and regenerates into `AGENTS.md`, so it was
+  updated rather than left to re-teach the dropped design.
+- MDX Quizzes section notes that a retained `mode` prop is a recorded
+  constraint per §7.4, not a planned `'server'` feature.
+- `packages/content-schema` `toClientQuiz()` comment and README still describe
+  server-mode key stripping. Left as-is: that is schema code, not in this
+  task's file list.
+- Session log id `remaining quiz/entitlements stale refs (round 2)` rather
+  than a sequential session number. No `prompts/session-N+1.md` authored.
+
+**Known issues / next steps:**
+- `packages/content-schema/src/sidecars.ts` `toClientQuiz()` and
+  `packages/content-schema/README.md` still describe server-mode key stripping.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side.
+- Do not auto-merge.
+
+---
+
