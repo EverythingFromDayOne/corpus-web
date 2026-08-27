@@ -6,8 +6,8 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-27 (drag-drop widget Part 1: schema, primitive,
-> leak-safe client projection, `gradeDragDrop` server action; no sample sidecar)
+> Last updated: 2026-08-27 (drag-drop Part 2: sample sidecar on
+> `react/jsx-and-rendering`; primitive and leak path unchanged)
 
 ---
 
@@ -293,8 +293,9 @@ bootstrap.
   block or an array of blocks (each with its own `afterSection`); the PR #32
   top-level `questions` list still parses. `Flashcard` (front/back strip) and
   `Callout` (`info`/`success`/`warn`/`error`) are also registered and inject the
-  same way. `DragDrop` (fill-in-the-blank chip/slot) is registered too — Part 1
-  infrastructure only, no live sample yet (`prompts/sydexa-dragdrop-part2.md`).
+  same way.   `DragDrop` (fill-in-the-blank chip/slot) is registered too. The live
+  sample is on `curation/overrides/react-jsx-and-rendering.yaml`
+  (`jsx-to-createelement` after `how-it-works-under-the-hood`).
   `article-markdown.tsx` passes `DragDrop` the output of `toClientDragDropWidget()`;
   `accepts` and `correctSlots` stay on the server and are read only by
   `apps/web/lib/dragdrop-actions.ts` (`gradeDragDrop`). Grading is server-side only:
@@ -363,8 +364,7 @@ no personal content, narrowed to permit a contact email in the footer and on
   Render-mode gate (D23) is `pnpm verify:prerender`. Do not revive
   `/en/concepts/…`.
 4. Quiz, flashcard, callout, and drag-drop primitives exist (D24 slice).
-  Sample usage for the first three is
+  Sample usage (2 quizzes, 1 flashcard, 2 callouts, 1 drag-drop) is
   `curation/overrides/react-jsx-and-rendering.yaml` — not a corpus sidecar
-  (content-boundary; D35 still open). Drag-drop has no sample in this
-  pass; that is `prompts/sydexa-dragdrop-part2.md`. Remaining tier-1
-  widgets: code-assembly, stepped-diagram shell, tab group.
+  (content-boundary; D35 still open). Remaining tier-1 widgets:
+  code-assembly, stepped-diagram shell, tab group.

@@ -173,7 +173,7 @@ test('sample override YAML parses (quoted braces are not compact mappings)', () 
     inject: unknown[];
   };
   assert.equal(raw.article, 'react/jsx-and-rendering');
-  assert.equal(raw.inject.length, 5);
+  assert.equal(raw.inject.length, 6);
 });
 
 const dragdropWidget: DragDropWidget = {

@@ -77,6 +77,11 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **sydexa-dragdrop-part2 (2026-08-27):** Appended the drag-drop sample
+  to `curation/overrides/react-jsx-and-rendering.yaml` (existing
+  quiz/flashcard/callout blocks unchanged). No primitive/code changes
+  except the YAML-length fixture 5 → 6. Feature branch PR; not pushed
+  to `main`. Do not auto-merge.
 - **sydexa-dragdrop-part1 (2026-08-27):** Drag-and-drop fill-in-the-blank
   primitive (schema, client widget, leak-safe projection, `gradeDragDrop`
   server action). No sample sidecar — that is Part 2. Quiz / Flashcard /
