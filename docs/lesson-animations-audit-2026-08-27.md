@@ -1,15 +1,17 @@
 # Lesson surface animation/UX audit + ship plan
 
 **Date:** 2026-08-27
-**Scope:** Decide which Sydexa animation/UX patterns from the 48-second
-reference video are worth shipping into `corpus-web`'s lesson surface, which
-are not, and the order to ship them in.
+**Scope:** Decide which animation/UX patterns from the 48-second
+reference video of a modern lesson platform are worth shipping into
+`corpus-web`'s lesson surface, which are not, and the order to ship
+them in. The reference platform is referred to throughout as **"the
+reference lesson platform"** — patterns are borrowed where they fit,
+not cloned wholesale.
 
-The video is a scroll-through of
-`sydexa.com/courses/basic-sql/lessons/select-basics`. Patterns were extracted
-from five strategic frames (10s, 20s, 37s, 45s) and the dense-frame motion
-analysis (191/193 frames unique = essentially continuous motion, mostly
-scroll-driven).
+The video is a scroll-through of a public lesson page on the reference
+platform. Patterns were extracted from five strategic frames (10s, 20s,
+37s, 45s) and the dense-frame motion analysis (191/193 frames unique =
+essentially continuous motion, mostly scroll-driven).
 
 ---
 
@@ -36,8 +38,9 @@ scroll-driven).
   - `.av-dd` — drag-drop (static classes for ok/no states, no transitions on
     those classes)
 - **Design constraints:** calm neutrals + one saturated accent (purple in
-  Sydexa, `--color-signal` here). Lesson surface stays scoped to
-  `.lesson-surface`. App chrome stays on app tokens (PR #37 lock).
+  the reference lesson platform, `--color-signal` here). Lesson surface
+  stays scoped to `.lesson-surface`. App chrome stays on app tokens
+  (PR #37 lock).
 
 ---
 
@@ -142,7 +145,7 @@ not a glitch. The verdict reveal (`.av-qz-ex` + `.av-qz-verdict`) should
 fade in from below 8px to give the user a moment to read before the
 explanation lands.
 
-**Sydexa's treatment:** Option A has a faint tonal lift on hover, options
+**Reference platform's treatment:** Option A has a faint tonal lift on hover, options
 gain colored backgrounds (green/red) on submit with no explicit animation
 in the static frames but a smooth feel. Our implementation: same goal,
 CSS transitions on the existing classes.
@@ -156,9 +159,9 @@ register" without distracting. IntersectionObserver ensures it only fires
 when actually entering the viewport (so readers who scroll past quickly
 don't get a busy animation chain).
 
-**Sydexa's treatment:** Callouts appear static in the screenshots; the
+**Reference platform's treatment:** Callouts appear static in the screenshots; the
 "wow" effect comes from the colored left border and tinted background,
-not motion. We're adding motion *only* because the Sydexa effect comes
+not motion. We're adding motion *only* because the reference platform's effect comes
 from typography — ours comes from motion-on-scroll.
 
 ### 4. Flashcard flip
@@ -169,10 +172,10 @@ works but feels web-1.0. A 3D flip (600ms) is the universally-recognized
 effort: one new keyframes block, one CSS rule change. All users with
 `prefers-reduced-motion: reduce` get the existing instant toggle.
 
-**Sydexa's treatment:** Front card has soft purple gradient + shadow
-layering. We don't need the visual layering (Sydexa's flashcard deck
-shows 5-7 stacked cards behind the front — we have one card per track
-slot). The flip alone is the high-impact part.
+**Reference platform's treatment:** Front card has soft purple gradient + shadow
+layering. We don't need the visual layering (the reference platform's
+flashcard deck shows 5-7 stacked cards behind the front — we have one
+card per track slot). The flip alone is the high-impact part.
 
 ### 5. Drag-drop hover polish
 
@@ -183,10 +186,11 @@ drag-target, smooth ok/no transitions on submit. Existing `.is-ok` /
 `.is-no` classes already exist (PR #38); we just need transitions on
 them.
 
-**Sydexa's treatment:** Draggable chip with subtle drop shadow + the
+**Reference platform's treatment:** Draggable chip with subtle drop shadow + the
 "Bắt đầu" (Start) button hover state. Our implementation mirrors the
-shadow via translateY and adds the slot-target state Sydexa does not have
-explicitly (because their slots are positionally fixed).
+shadow via translateY and adds the slot-target state the reference
+platform does not have explicitly (because their slots are positionally
+fixed).
 
 ### 19. Copy button toast
 
@@ -194,7 +198,7 @@ explicitly (because their slots are positionally fixed).
 `.done` class with green text. Adding a brief scale pulse makes the
 "Copied!" feel acknowledged. Trivial CSS, high perceived polish.
 
-**Sydexa's treatment:** "Sao chép mã" button (Copy code) is muted until
+**Reference platform's treatment:** "Sao chép mã" button (Copy code) is muted until
 clicked, then flips to green text — exactly what we already do. Adding
 motion to the transition is purely additive polish.
 
@@ -471,31 +475,24 @@ kept; new tokens slot between.)
 
 ---
 
-## Open questions for you before I draft the Cursor prompt
+## Decisions (locked 2026-08-27)
 
-Plain numbered (not buttons):
-
-1. **Single PR vs. multi-PR split?** I propose single PR — all CSS-only
-   changes plus 4 small component tweaks; total ~6 files, ~250 lines
-   delta. Easy to review as a unit. If you prefer splitting (CSS in
-   one, components in another), say so.
-
+1. **Single PR.** All CSS-only changes plus 4 small component tweaks;
+   total ~6 files, ~250 lines delta. Easy to review as a unit.
 2. **Animation file location:** `lesson-animations.css` as a sibling
-   to `lesson-tokens.css`, or fold into `lesson-tokens.css` itself? I'd
-   suggest separate file — `lesson-tokens.css` is 580 lines and growing;
-   animations are a separable concern.
-
+   to `lesson-tokens.css`. (`lesson-tokens.css` is 580 lines and
+   growing; animations are a separable concern.)
 3. **Callout reveal trigger:** IntersectionObserver per element (more
-   component code, works perfectly), or a single root-level observer
-   that toggles classes on all `.av-callout` elements (less code, but
-   requires a global client component). I'd suggest per-element for
-   SSR purity.
+   component code, works perfectly), over a single root-level observer.
+   Per-element keeps SSR purity.
+4. **Phase 2 items:** Later. Review Phase 1 first, see if it lands
+   well, then add the gentler polish in a separate PR.
+5. **Drag-drop chip shake on incorrect placement:** Defer to Phase 2
+   if reviewers want it. Not in Phase 1 scope.
 
-4. **Phase 2 items in same PR or later?** I'd suggest later — review
-   Phase 1 first, see if it lands well, then add the gentler polish.
+---
 
-5. **Should the CSS also handle drag-drop chip's "shake" on incorrect
-   placement?** Sydexa doesn't do this, but it's a common UX pattern.
-   Adds maybe 10 lines. Your call.
+## Status
 
-Just say which and I'll write the prompt to match.
+Phase 1 prompt committed alongside this audit doc at
+`prompts/lesson-animations-phase1.md`. Both files on `origin/main`.

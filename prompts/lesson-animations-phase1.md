@@ -1,4 +1,4 @@
-# Lesson surface animations — Phase 1 (polish + UX, sydexa-clone informed)
+# Lesson surface animations — Phase 1 (polish + UX, informed by reference video)
 
 **Base branch:** `origin/main` at the latest commit at task time (should
 include PR #39 + the draft PR #40 if merged).
@@ -27,15 +27,16 @@ Read these files first — they are the analysis you will be implementing:
 
 Add **six animation/UX polish patterns** (all CSS-only or 2-line component
 additions, all gated behind `prefers-reduced-motion`) to the lesson
-surface so it stops feeling static next to a sydexa-style page. **No
-new primitives, no new sidecar types, no schema changes.** This is pure
-polish on top of the existing Quiz / Flashcard / Callout / DragDrop
-primitives shipped in PRs #37-39.
+surface so it stops feeling static next to a modern lesson platform's
+page. **No new primitives, no new sidecar types, no schema changes.**
+This is pure polish on top of the existing Quiz / Flashcard / Callout /
+DragDrop primitives shipped in PRs #37-39.
 
 Reference: `docs/lesson-animations-audit-2026-08-27.md` ranks 22 patterns
-from the sydexa video. Phase 1 ships patterns #1, #2, #3, #4, #5, #6,
-#19, #20 (the high-fit, high-payoff, low-effort ones). Phase 2 will
-cover patterns #7, #8, #9, #12 in a separate prompt.
+extracted from a 48-second reference video. Phase 1 ships patterns #1,
+#2, #3, #4, #5, #6, #19, #20 (the high-fit, high-payoff, low-effort
+ones). Phase 2 will cover patterns #7, #8, #9, #12 in a separate
+prompt.
 
 ## Strict constraints (must hold)
 
