@@ -5,14 +5,17 @@ import { remarkGfm } from 'fumadocs-core/mdx-plugins';
 import {
   Callout,
   CodeBlock,
+  DragDrop,
   Flashcard,
   Quiz,
   injectAfterSections,
   type CodeBlockLabels,
+  type DragDropLabels,
   type FlashcardLabels,
   type QuizLabels,
 } from '@corpus/mdx-components';
-import { toClientQuizWidget, type LessonWidget } from '@/lib/article-widgets';
+import { toClientDragDropWidget, toClientQuizWidget, type LessonWidget } from '@/lib/article-widgets';
+import { gradeDragDrop } from '@/lib/dragdrop-actions';
 import { gradeQuizAnswer } from '@/lib/quiz-actions';
 import type { Locale } from '@/lib/locales';
 import { articlePath } from '@/lib/routes';
@@ -163,6 +166,18 @@ export async function renderArticleMarkdown({
     front: t(messages, 'article.flashcardFront'),
     back: t(messages, 'article.flashcardBack'),
   };
+  const dragdropLabels: DragDropLabels = {
+    eyebrow: t(messages, 'article.dragdropEyebrow'),
+    submit: t(messages, 'article.dragdropSubmit'),
+    reset: t(messages, 'article.dragdropReset'),
+    correct: t(messages, 'article.dragdropCorrect'),
+    incorrect: t(messages, 'article.dragdropIncorrect'),
+    explanation: t(messages, 'article.dragdropExplanation'),
+    error: t(messages, 'article.dragdropError'),
+    pool: t(messages, 'article.dragdropPool'),
+    slotEmpty: t(messages, 'article.dragdropSlotEmpty'),
+    slotFilled: t(messages, 'article.dragdropSlotFilled'),
+  };
 
   const body = await Promise.resolve(
     MarkdownServer({
@@ -261,6 +276,26 @@ export async function renderArticleMarkdown({
               variant={widget.sidecar.variant}
               title={widget.sidecar.title}
               body={widget.sidecar.body}
+            />
+          ),
+        };
+      }
+      if (widget.kind === 'dragdrop') {
+        const client = toClientDragDropWidget(articleUid, widget);
+        return {
+          afterSection: widget.afterSection,
+          node: (
+            <DragDrop
+              articleUid={client.articleUid}
+              sidecarId={client.sidecarId}
+              title={client.title}
+              prompt={client.prompt}
+              explanation={client.explanation}
+              fallbackLine={client.fallbackLine}
+              slots={client.slots}
+              chips={client.chips}
+              labels={dragdropLabels}
+              gradeAction={gradeDragDrop}
             />
           ),
         };

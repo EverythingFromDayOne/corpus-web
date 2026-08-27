@@ -4,6 +4,7 @@ export * from './sections.js';
 export * from './sidecars.js';
 export * from './flashcard-sidecar.js';
 export * from './callout-sidecar.js';
+export * from './dragdrop-sidecar.js';
 export * from './curation.js';
 export * from './catalog.js';
 export * from './adapters/index.js';

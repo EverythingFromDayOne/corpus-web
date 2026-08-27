@@ -22,7 +22,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 import YAML from 'yaml';
-import { toClientQuizWidget, resolveLessonWidgets, type QuizWidget } from '../lib/article-widgets';
+import { toClientQuizWidget, toClientDragDropWidget, resolveLessonWidgets, type QuizWidget, type DragDropWidget } from '../lib/article-widgets';
 
 const OVERRIDE_SAMPLE = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -174,4 +174,45 @@ test('sample override YAML parses (quoted braces are not compact mappings)', () 
   };
   assert.equal(raw.article, 'react/jsx-and-rendering');
   assert.equal(raw.inject.length, 5);
+});
+
+const dragdropWidget: DragDropWidget = {
+  kind: 'dragdrop',
+  afterSection: 'how-it-works-under-the-hood',
+  sidecar: {
+    id: 'jsx-to-createelement',
+    title: 'Compose the JSX mapping',
+    afterSection: 'how-it-works-under-the-hood',
+    slots: [
+      { id: 'type-slot', label: 'type', accepts: ['jsx-component-ref', 'jsx-component-string'] },
+      { id: 'props-slot', label: 'props', accepts: ['props-object'] },
+    ],
+    chips: [
+      { id: 'jsx-component-ref', text: 'Card', correctSlots: ['type-slot'] },
+      { id: 'jsx-component-string', text: "'card'", correctSlots: [] },
+      { id: 'props-object', text: "{ title: 'Hi' }", correctSlots: ['props-slot'] },
+    ],
+  },
+};
+
+test('sanity: the raw drag-drop sidecar does contain `accepts` and `correctSlots`', () => {
+  assert.equal(hasKeyDeep(dragdropWidget.sidecar, 'accepts'), true);
+  assert.equal(hasKeyDeep(dragdropWidget.sidecar, 'correctSlots'), true);
+});
+
+test('toClientDragDropWidget never emits `accepts` or `correctSlots`', () => {
+  const client = toClientDragDropWidget('react/jsx-and-rendering', dragdropWidget);
+  assert.equal(hasKeyDeep(client, 'accepts'), false);
+  assert.equal(hasKeyDeep(client, 'correctSlots'), false);
+  assert.match(client.fallbackLine, /^Answer:/);
+  assert.deepEqual(
+    client.slots.map((slot) => Object.keys(slot).sort()),
+    [
+      ['id', 'label'],
+      ['id', 'label'],
+    ],
+  );
+  for (const chip of client.chips) {
+    assert.deepEqual(Object.keys(chip).sort(), ['id', 'text']);
+  }
 });

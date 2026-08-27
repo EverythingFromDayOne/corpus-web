@@ -5,6 +5,26 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-27] — cursor/feat-sydexa-drag-drop-widget-b884 — drag-and-drop widget primitive (Part 1)
+
+**Added**
+- `packages/content-schema/src/dragdrop-sidecar.ts` — fill-in-the-blank sidecar (`exact` / `ordered`, slots, chips)
+- `packages/mdx-components` `DragDrop` — chip pool, typed slots, keyboard + HTML5 drag, no-JS `Answer:` fallback
+- `apps/web/lib/dragdrop-actions.ts` — `gradeDragDrop` Server Action; `accepts` / `correctSlots` never cross the client boundary
+- `toClientDragDropWidget()` in `apps/web/lib/article-widgets.ts`
+- Drag-drop styles on `.av-dd` in `apps/web/components/article/lesson-tokens.css`
+- Message keys `article.dragdrop*` in `apps/web/messages/en.json`
+
+**Changed**
+- `mdxRegistry` / `getMDXComponents` / `injectAfterSections` callers include `DragDrop`
+- `LessonWidget` union includes `kind: 'dragdrop'`
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Nothing
+
 ### [2026-08-27] — cursor/feat-sydexa-clone-inline-quizzes-4d82 — inline quiz, flashcard, callout, lesson tokens
 
 **Added**

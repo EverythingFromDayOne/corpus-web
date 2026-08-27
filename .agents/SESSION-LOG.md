@@ -3451,3 +3451,78 @@ live under `content/` (submodule / content-boundary), so it is an override.
 
 ---
 
+## Session — sydexa-dragdrop-part1 — 2026-08-27
+
+**Branch:** cursor/feat-sydexa-drag-drop-widget-b884
+
+**Files changed:**
+- `.agents/SESSION-LOG.md` — this entry
+- `.agents/summary.md` — interactive-layer gotcha and planned-next-step 4
+- `CHANGELOG.md` — Unreleased Part 1 drag-drop bullets
+- `progress.md` — session-log bullet for this pass
+- `packages/content-schema/src/dragdrop-sidecar.ts` — sidecar schema, unique-id and key-ref checks, exact-mode trim
+- `packages/content-schema/src/sidecars.ts` — comment that DragDrop lives in its own file
+- `packages/content-schema/src/index.ts` — export the new sidecar types
+- `packages/content-schema/README.md` — table row for the drag-drop sidecar
+- `packages/content-schema/test/dragdrop-sidecar.test.ts` — well-formed, unknown chip, unknown slot, exact-mode warn
+- `packages/mdx-components/src/dragdrop-model.ts` — board, shuffle, place/return, keyboard, grade, fallback line
+- `packages/mdx-components/src/dragdrop.tsx` — `'use client'` DragDrop + hook-free DragDropView
+- `packages/mdx-components/test/dragdrop.test.ts` — fill-correct, one-wrong, return-to-pool, keyboard, noscript fallback
+- `packages/mdx-components/src/index.ts` — register DragDrop / injectDragDrop
+- `packages/mdx-components/src/inject-after-sections.tsx` — injectDragDrop alias of injectAfterSections
+- `apps/web/lib/article-widgets.ts` — DragDropItem, toClientDragDropWidget (strips accepts/correctSlots), loaders
+- `apps/web/lib/dragdrop-actions.ts` — `'use server'` gradeDragDrop
+- `apps/web/lib/article-markdown.tsx` — mount DragDrop with stripped props + grade action
+- `apps/web/messages/en.json` — article.dragdrop* keys
+- `apps/web/components/article/lesson-tokens.css` — `.av-dd*` using `--lesson-*` tokens
+- `apps/web/test/article-widgets.test.ts` — leak tests that accepts/correctSlots never reach client props
+
+**Why:** Part 1 of the sydexa fill-in-the-blank widget. The primitive has to
+exist and be leak-safe before a sample sidecar can land in Part 2. Answer
+keys stay on the server (`gradeDragDrop`); the client only sees chip text,
+slot ids, labels, and a noscript fallback line. No override YAML and no
+persistence, matching PR #37's "no user-state" bar.
+
+**Invented decisions:**
+- Branch suffix `-b884`.
+- Empty `correctSlots` is allowed (distractors). Part 1 asked to reject
+  empty arrays; Part 2's sample already uses `correctSlots: []`. Schema
+  still rejects unknown slot ids.
+- `injectDragDrop` is an alias of `injectAfterSections`, not a second walker.
+- `DragDropView` is a hook-free inner so unit tests can call it as a
+  function without `react-dom` (no new packages).
+- `gradeDragDrop` takes one object (`submission`, `sidecarId`,
+  `articleUid`) like the quiz action, not three positional args.
+- Grade result adds `wrongSlotIds` so the client can flash/empty without
+  the key. Prompt's return type had only correct/filled/total.
+- `explanation` stays on the client payload; the grade return has no
+  field for it, so hiding it until submit is a client reveal, not a
+  server fetch.
+- Slot `aria-label` uses the sidecar `label`, not the correct chip text
+  (that would leak the key). Prompt said "describing expected chip".
+- No-JS fallback lives in `<noscript>` so JS users are not spoiled; the
+  string is still in HTML (same class of leak as any noscript answer).
+- Chip shuffle is seeded from the sidecar id so SSR and first client
+  paint match.
+- `exact` grades each chip's (trimmed) `correctSlots`; `ordered` grades
+  against the slot's `accepts` list.
+- CSS classes live in `lesson-tokens.css` (`.av-dd*`), `color-mix` on
+  tokens, no inline styles or raw hex.
+- No re-export from `sidecars.ts` (would duplicate `export *` from index).
+- No sample sidecar; `curation/overrides/react-jsx-and-rendering.yaml`
+  untouched. `docs/DEBT.md` / `roadmap.md` / `.cursor/rules/` untouched;
+  D24 not closed.
+
+**Known issues / next steps:**
+- Part 2 (`prompts/sydexa-dragdrop-part2.md`) appends the sample sidecar
+  and runs the live-widget curl checks.
+- Prompt verification (a)–(c) said expect 0 quizzes/flashcards/callouts
+  on `jsx-and-rendering` because "sample ships in Part 2". That page
+  already has 2/1/2 from PR #37. Treat (a)–(c) as no-regression vs #37;
+  (d) still expects 0 `.av-dd`.
+- D24 remaining: code-assembly, stepped-diagram shell, tab-group a11y.
+- D35 / D17 still open (override sample vs corpus sidecar CI).
+- Content gates remain red on D11, D13, D15.
+
+---
+

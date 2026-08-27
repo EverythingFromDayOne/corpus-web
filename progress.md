@@ -77,6 +77,11 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **sydexa-dragdrop-part1 (2026-08-27):** Drag-and-drop fill-in-the-blank
+  primitive (schema, client widget, leak-safe projection, `gradeDragDrop`
+  server action). No sample sidecar — that is Part 2. Quiz / Flashcard /
+  Callout untouched except registry alongside. Feature branch PR; not
+  pushed to `main`. Do not auto-merge.
 - **sydexa-clone-inline-quizzes (2026-08-27):** Spec A plus flashcard,
   callout, lesson tokens, and quiz glow. `QuizSidecar` accepts `quiz:`
   as one block or an array (legacy `questions` kept). Sample lives in

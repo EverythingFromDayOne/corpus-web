@@ -85,6 +85,11 @@ function wrapLike(original: ReactNode, children: ReactNode[]): ReactNode {
 
 export const END_OF_ARTICLE = '';
 
+/** Alias so callers can compose drag-drop injections by name. Same walk. */
+export function injectDragDrop(body: ReactNode, injections: readonly SectionInjection[]): ReactNode {
+  return injectAfterSections(body, injections);
+}
+
 export function injectAfterSections(body: ReactNode, injections: readonly SectionInjection[]): ReactNode {
   if (injections.length === 0) return body;
 
