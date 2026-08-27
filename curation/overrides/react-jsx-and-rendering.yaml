@@ -25,20 +25,48 @@ inject:
     props:
       schema: 1
       article_id: jsx-and-rendering
+      title: "Quick check — JSX is sugar"
       questions:
-        - id: jsx-emits-elements
-          prompt: "What does the JSX compiler emit for a host element like `<button>`?"
+        - id: jsx-as-sugar-call
+          prompt: "What does `<Card title=\"Hi\" />` actually compile to under React 19's automatic JSX runtime?"
           options:
             - label: A
-              body: An HTML string assigned to innerHTML
+              body: "A direct call to React.createElement('Card', { title: 'Hi' })"
               correct: false
             - label: B
-              body: A call to jsx('button', props) that returns a React element object
-              correct: true
-            - label: C
-              body: A DOM node created with document.createElement
+              body: "jsx('Card', { title: 'Hi' }) — Card passed as a string"
               correct: false
-          explanation: JSX is compiled away at build time. The automatic runtime emits jsx() calls that return element objects; the DOM does not exist yet.
+            - label: C
+              body: "jsx(Card, { title: 'Hi' }) — Card passed by reference as the type"
+              correct: true
+            - label: D
+              body: "A lazy proxy that defers evaluation until reconciliation"
+              correct: false
+          explanation: |
+            Capitalization is semantic, not stylistic. JSX's compile target is `jsx(type, props)`:
+            lowercase `<card>` would compile to `jsx('card', ...)` (a string — a host DOM tag),
+            but `<Card>` compiles to `jsx(Card, ...)` where the function itself is passed by reference.
+            The runtime decides "is this an HTML tag (string) or a user component (function)" at render time.
+
+        - id: jsxs-vs-jsx
+          prompt: "Why does `<ul><li>a</li><li>b</li></ul>` compile to `jsxs()` while `<ul>{items.map(...)}</ul>` compiles to `jsx()`?"
+          options:
+            - label: A
+              body: "The compiler always uses jsxs() for `<ul>` regardless of children"
+              correct: false
+            - label: B
+              body: "jsxs is the older name; jsx is its alias kept for back-compat"
+              correct: false
+            - label: C
+              body: "jsxs marks children the compiler built from source as static (can never reorder), so the missing-key warning is suppressed; dynamic arrays from .map (can reorder) go through jsx()"
+              correct: true
+            - label: D
+              body: "jsxs is only emitted in production builds to reduce bundle size"
+              correct: false
+          explanation: |
+            The `s` means *static children*. The compiler is vouching it built the array from your
+            source, so it can never reorder, so React skips the key check. Dynamic arrays from `.map`
+            (runtime-built, possibly reordered) need the warning and go through plain `jsx()`.
   - afterSection: element--component--instance
     component: Callout
     props:
@@ -51,20 +79,90 @@ inject:
     props:
       schema: 1
       article_id: jsx-and-rendering
+      title: "Three bugs you'll write today"
       questions:
+        - id: cart-zero-bug
+          prompt: "Why does `{cart.items.length && <CartBadge />}` render a literal `0` on the page when the cart is empty?"
+          options:
+            - label: A
+              body: "0 is a special reserved React value and must be coerced"
+              correct: false
+            - label: B
+              body: "The && operator coerces 0 to the string \"0\" before React sees it"
+              correct: false
+            - label: C
+              body: "0 is falsy but still a renderable number in JSX, so an empty cart renders the number 0 instead of nothing"
+              correct: true
+            - label: D
+              body: "This only happens in development; production minification strips it"
+              correct: false
+          explanation: |
+            `children` accepts elements, arrays, strings, and numbers. `null` / `undefined` /
+            `true` / `false` are the "render nothing" family and are flattened away — but numbers
+            render. The convention: comparisons, not truthiness, whenever the left side can be a
+            number — `{cart.items.length > 0 && <CartBadge />}`. Same failure mode with `NaN`.
+
+        - id: key-not-in-props
+          prompt: "Where does `key` actually live on a React element, and what happens if a component tries to read `props.key`?"
+          options:
+            - label: A
+              body: "Inside props.key; reading it returns the same value"
+              correct: false
+            - label: B
+              body: "Inside props.key, but React hides it from console.log"
+              correct: false
+            - label: C
+              body: "Outside props, on the element itself; reading props.key warns and returns undefined"
+              correct: true
+            - label: D
+              body: "Inside props.key for arrays, outside props for fragments"
+              correct: false
+          explanation: |
+            The transform emits `key` as a separate argument to `jsx(Item, props, key)`, and React
+            stores it on the element, never in `props`. By the time your function runs, reconciliation
+            already spent it. That is why reading `props.key` inside a component logs a warning and
+            yields `undefined`.
+
+        - id: inline-component-focus-loss
+          prompt: "Why does an input lose focus on every keystroke when its wrapping component is defined inside another component's render?"
+          options:
+            - label: A
+              body: "React's event system detaches focus when state updates from inside the same component"
+              correct: false
+            - label: B
+              body: "Every parent re-render creates a new function identity for the inner component; reconciliation treats it as a different type, so it unmounts and remounts, killing focus"
+              correct: true
+            - label: C
+              body: "Inputs always lose focus when nested inside fragments"
+              correct: false
+            - label: D
+              body: "React 19's StrictMode forces a re-mount on every state change for development"
+              correct: false
+          explanation: |
+            Reconciliation matches positions by `type` reference. A new function identity each render
+            means "different component", so React unmounts the old and mounts the new, destroying all
+            state including focus. The fix is always the same: hoist the inner component to module
+            scope and pass data via props.
+
         - id: element-not-yet-called
           prompt: "When you write `<Card title=\"Hi\" />`, which of these is true of Card at that moment?"
           options:
             - label: A
-              body: React has already called the Card function
+              body: "React has already called the Card function"
               correct: false
             - label: B
-              body: An element object exists; the Card function has not been called yet
+              body: "An element object exists; the Card function has not been called yet"
               correct: true
             - label: C
-              body: Your code has constructed a fiber instance
+              body: "Your code has constructed a fiber instance"
               correct: false
-          explanation: An element is a description. The function has not been called yet. React calls it later, during render, against its own instance.
+            - label: D
+              body: "The component instance from the last render has been reused"
+              correct: false
+          explanation: |
+            An element is a description — `{ type: Card, props: { title: 'Hi' }, key: ... }` sitting
+            in memory. The function has not been called yet. React calls it later, during render,
+            against its own instance (the fiber) that tracks its position in the tree.
   - afterSection: how-it-works-under-the-hood
     component: DragDrop
     props:
