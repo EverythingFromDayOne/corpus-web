@@ -3,11 +3,17 @@ import { CodeBlock } from './code-block';
 import { Quiz } from './quiz';
 import { Flashcard } from './flashcard';
 import { Callout } from './callout';
+import { DragDrop } from './dragdrop';
 
 export { CodeBlock, type CodeBlockLabels } from './code-block';
 export { Quiz, type QuizLabels, type QuizProps } from './quiz';
 export { Flashcard, type FlashcardLabels, type FlashcardProps } from './flashcard';
 export { Callout, type CalloutProps, type CalloutVariant, calloutClassName, renderInlineMarkdown } from './callout';
+export {
+  DragDrop,
+  type DragDropLabels,
+  type DragDropProps,
+} from './dragdrop';
 export {
   nextCardIndex,
   prevCardIndex,
@@ -23,9 +29,25 @@ export type {
   QuizGradeAction,
 } from './quiz-model';
 export { gradeQuestion, correctLabelOf, unrevealedOptions, toClientQuestion } from './quiz-model';
+export type {
+  DragDropGradeAction,
+  DragDropGradeInput,
+  DragDropGradeResult,
+  DragDropExercise,
+  ClientDragDropChip,
+  ClientDragDropSlot,
+} from './dragdrop-model';
+export {
+  FLASH_MS,
+  fallbackAnswerLine,
+  gradeSubmission,
+  toClientChips,
+  toClientSlots,
+} from './dragdrop-model';
 export {
   END_OF_ARTICLE,
   injectAfterSections,
+  injectDragDrop,
   type SectionInjection,
 } from './inject-after-sections';
 
@@ -38,6 +60,7 @@ export const mdxRegistry = {
   Quiz,
   Flashcard,
   Callout,
+  DragDrop,
 } as const;
 
 export type MdxRegistryName = keyof typeof mdxRegistry;
@@ -56,6 +79,7 @@ export function getMDXComponents(components: MDXComponents = {}): MDXComponents 
     Quiz,
     Flashcard,
     Callout,
+    DragDrop,
     ...components,
   };
 }

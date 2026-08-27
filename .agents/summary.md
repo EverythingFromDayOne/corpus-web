@@ -6,9 +6,8 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-27 (inline quizzes/flashcards/callouts: `quiz:`
-> is a block or an array of blocks; `.lesson-surface` lesson tokens;
-> sample override on `react/jsx-and-rendering`)
+> Last updated: 2026-08-27 (drag-drop widget Part 1: schema, primitive,
+> leak-safe client projection, `gradeDragDrop` server action; no sample sidecar)
 
 ---
 
@@ -294,7 +293,11 @@ bootstrap.
   block or an array of blocks (each with its own `afterSection`); the PR #32
   top-level `questions` list still parses. `Flashcard` (front/back strip) and
   `Callout` (`info`/`success`/`warn`/`error`) are also registered and inject the
-  same way. Grading is server-side only:
+  same way. `DragDrop` (fill-in-the-blank chip/slot) is registered too — Part 1
+  infrastructure only, no live sample yet (`prompts/sydexa-dragdrop-part2.md`).
+  `article-markdown.tsx` passes `DragDrop` the output of `toClientDragDropWidget()`;
+  `accepts` and `correctSlots` stay on the server and are read only by
+  `apps/web/lib/dragdrop-actions.ts` (`gradeDragDrop`). Grading is server-side only:
   `apps/web/lib/quiz-actions.ts` (`gradeQuizAnswer`, a Next.js Server Action) is the
   only place `correct` is read after the article page's initial payload is built.
   `article-markdown.tsx` passes `Quiz` the output of `toClientQuizWidget()`
@@ -359,8 +362,9 @@ no personal content, narrowed to permit a contact email in the footer and on
   Pagefind (D21), `/en/license` (D25), SEO residue (D22), a11y (D18/D19).
   Render-mode gate (D23) is `pnpm verify:prerender`. Do not revive
   `/en/concepts/…`.
-4. Quiz, flashcard, and callout primitives exist (D24 slice). Sample
-  usage is `curation/overrides/react-jsx-and-rendering.yaml` — not a
-  corpus sidecar (content-boundary; D35 still open). Remaining tier-1
-  widgets: code-assembly, stepped-diagram shell, tab group. Drag-and-drop
-  is explicitly out of this pass.
+4. Quiz, flashcard, callout, and drag-drop primitives exist (D24 slice).
+  Sample usage for the first three is
+  `curation/overrides/react-jsx-and-rendering.yaml` — not a corpus sidecar
+  (content-boundary; D35 still open). Drag-drop has no sample in this
+  pass; that is `prompts/sydexa-dragdrop-part2.md`. Remaining tier-1
+  widgets: code-assembly, stepped-diagram shell, tab group.

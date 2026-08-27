@@ -4,7 +4,7 @@
  * `apps/web` does not import `@corpus/content-schema` (Turbopack cannot
  * resolve that package's NodeNext `.js` specifiers), so the zod shapes
  * here are a local subset of sidecars.ts / flashcard-sidecar.ts /
- * callout-sidecar.ts / curation.ts.
+ * callout-sidecar.ts / dragdrop-sidecar.ts / curation.ts.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import YAML from 'yaml';
 import { z } from 'zod';
-import { isRegisteredComponent } from '@corpus/mdx-components';
+import { isRegisteredComponent, fallbackAnswerLine } from '@corpus/mdx-components';
 import { articleFilePath, type ArticleListItem } from './catalog';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
@@ -113,6 +113,67 @@ export const CalloutSidecarData = z.object({
 });
 export type CalloutSidecarData = z.infer<typeof CalloutSidecarData>;
 
+const DragDropSlot = z.object({
+  id: Slug,
+  label: z.string().min(1).optional(),
+  accepts: z.array(Slug).min(1),
+});
+
+const DragDropChip = z.object({
+  id: Slug,
+  text: z.string().min(1),
+  correctSlots: z.array(Slug),
+});
+
+export const DragDropSidecarData = z
+  .object({
+    id: Slug,
+    title: z.string().min(1),
+    afterSection: z.string(),
+    mode: z.enum(['exact', 'ordered']).optional(),
+    prompt: z.string().min(1).optional(),
+    explanation: z.string().min(1).optional(),
+    slots: z.array(DragDropSlot).min(1),
+    chips: z.array(DragDropChip).min(1),
+  })
+  .superRefine((sidecar, ctx) => {
+    const slotIds = sidecar.slots.map((slot) => slot.id);
+    const chipIds = sidecar.chips.map((chip) => chip.id);
+    const allIds = [...slotIds, ...chipIds];
+    if (new Set(allIds).size !== allIds.length) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['slots'],
+        message: 'slot ids and chip ids must be unique within the sidecar',
+      });
+    }
+    const slotSet = new Set(slotIds);
+    const chipSet = new Set(chipIds);
+    sidecar.slots.forEach((slot, index) => {
+      for (const chipId of slot.accepts) {
+        if (!chipSet.has(chipId)) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['slots', index, 'accepts'],
+            message: `slot "${slot.id}" accepts unknown chip "${chipId}"`,
+          });
+        }
+      }
+    });
+    sidecar.chips.forEach((chip, index) => {
+      for (const slotId of chip.correctSlots) {
+        if (!slotSet.has(slotId)) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['chips', index, 'correctSlots'],
+            message: `chip "${chip.id}" lists unknown slot "${slotId}"`,
+          });
+        }
+      }
+    });
+  });
+export type DragDropSidecarData = z.infer<typeof DragDropSidecarData>;
+
 const OverrideInjection = z.object({
   afterSection: z.string(),
   component: z.string().regex(/^[A-Z][A-Za-z0-9]*$/),
@@ -144,7 +205,16 @@ export type CalloutWidget = {
   sidecar: CalloutSidecarData;
 };
 
-export type LessonWidget = QuizWidget | FlashcardWidget | CalloutWidget;
+export type DragDropWidget = {
+  kind: 'dragdrop';
+  afterSection: string;
+  sidecar: DragDropSidecarData;
+};
+
+/** Prompt name for the ArticleWidget union member. */
+export type DragDropItem = DragDropWidget;
+
+export type LessonWidget = QuizWidget | FlashcardWidget | CalloutWidget | DragDropWidget;
 
 export type ClientQuizOption = { label: string; body: string };
 
@@ -160,6 +230,17 @@ export type ClientQuizWidget = {
   articleUid: string;
   schema: 1;
   questions: ClientQuizQuestion[];
+};
+
+export type ClientDragDropWidget = {
+  articleUid: string;
+  sidecarId: string;
+  title: string;
+  prompt?: string;
+  explanation?: string;
+  fallbackLine: string;
+  slots: { id: string; label?: string }[];
+  chips: { id: string; text: string }[];
 };
 
 function questionsOf(sidecar: {
@@ -227,6 +308,30 @@ export function toClientQuizWidget(articleUid: string, widget: QuizWidget): Clie
   };
 }
 
+/**
+ * The projection `article-markdown.tsx` spreads onto `<DragDrop>`.
+ * `accepts` and `correctSlots` are the answer key — dropped here, before
+ * they can become props on the `'use client'` component. RSC serializes
+ * the whole prop tree into the initial payload; stripping inside DragDrop
+ * itself is too late.
+ */
+export function toClientDragDropWidget(articleUid: string, widget: DragDropWidget): ClientDragDropWidget {
+  const sidecar = widget.sidecar;
+  return {
+    articleUid,
+    sidecarId: sidecar.id,
+    title: sidecar.title,
+    prompt: sidecar.prompt,
+    explanation: sidecar.explanation,
+    fallbackLine: fallbackAnswerLine({
+      slots: sidecar.slots,
+      chips: sidecar.chips,
+    }),
+    slots: sidecar.slots.map((slot) => ({ id: slot.id, label: slot.label })),
+    chips: sidecar.chips.map((chip) => ({ id: chip.id, text: chip.text })),
+  };
+}
+
 function sidecarPathFor(article: ArticleListItem, ext: string): string {
   return articleFilePath(article).replace(/\.mdx?$/, ext);
 }
@@ -288,6 +393,25 @@ export function loadCalloutSidecars(article: ArticleListItem): CalloutSidecarDat
   return envelope.data.callouts;
 }
 
+export function loadDragDropSidecars(article: ArticleListItem): DragDropSidecarData[] {
+  const path = sidecarPathFor(article, '.dragdrop.yaml');
+  if (!existsSync(path)) return [];
+  const raw = parseYamlFile(path);
+  const single = DragDropSidecarData.safeParse(raw);
+  if (single.success) return [single.data];
+  const envelope = z
+    .object({
+      schema: z.literal(1),
+      article_id: Slug,
+      dragdrop: z.union([DragDropSidecarData, z.array(DragDropSidecarData).min(1)]),
+    })
+    .safeParse(raw);
+  if (!envelope.success) {
+    throw new Error(`${path}: dragdrop sidecar failed schema validation`);
+  }
+  return Array.isArray(envelope.data.dragdrop) ? envelope.data.dragdrop : [envelope.data.dragdrop];
+}
+
 export function loadArticleOverrides(articleUid: string): OverrideFileData[] {
   if (!existsSync(OVERRIDES_DIR)) return [];
   const files = readdirSync(OVERRIDES_DIR).filter(
@@ -329,6 +453,10 @@ function looksLikeCallout(props: Record<string, unknown>): boolean {
   return typeof props.body === 'string' && typeof props.variant === 'string';
 }
 
+function looksLikeDragDrop(props: Record<string, unknown>): boolean {
+  return Array.isArray(props.slots) && Array.isArray(props.chips);
+}
+
 function quizWidgetsFromSidecar(sidecar: QuizSidecarData): QuizWidget[] {
   return normaliseQuizBlocks(sidecar).map((block) => ({
     kind: 'quiz' as const,
@@ -351,11 +479,13 @@ export function resolveLessonWidgets(
   flashcards: FlashcardSidecarData[],
   callouts: CalloutSidecarData[],
   overrides: OverrideFileData[],
+  dragdrops: DragDropSidecarData[] = [],
 ): LessonWidget[] {
   const widgets: LessonWidget[] = [];
   const usedQuestions = new Set<string>();
   const usedFlashcards = new Set<string>();
   const usedCallouts = new Set<string>();
+  const usedDragDrops = new Set<string>();
 
   for (const file of overrides) {
     for (const injection of file.inject) {
@@ -440,6 +570,32 @@ export function resolveLessonWidgets(
           sidecar: note,
         });
         usedCallouts.add(note.id);
+      } else if (injection.component === 'DragDrop') {
+        let exercise: DragDropSidecarData;
+        if (looksLikeDragDrop(injection.props)) {
+          const parsed = DragDropSidecarData.safeParse({
+            afterSection: injection.afterSection,
+            ...injection.props,
+          });
+          if (!parsed.success) {
+            throw new Error(`${article.uid}: DragDrop override props failed schema validation`);
+          }
+          exercise = parsed.data;
+        } else {
+          const match = dragdrops.find((item) => item.afterSection === injection.afterSection);
+          if (!match) {
+            throw new Error(
+              `${article.uid}: DragDrop override after "${injection.afterSection}" has neither props.slots nor a sidecar`,
+            );
+          }
+          exercise = match;
+        }
+        widgets.push({
+          kind: 'dragdrop',
+          afterSection: injection.afterSection,
+          sidecar: exercise,
+        });
+        usedDragDrops.add(exercise.id);
       } else {
         throw new Error(
           `${article.uid}: override component "${injection.component}" has no render path yet`,
@@ -471,6 +627,14 @@ export function resolveLessonWidgets(
       sidecar: note,
     });
   }
+  for (const exercise of dragdrops) {
+    if (usedDragDrops.has(exercise.id)) continue;
+    widgets.push({
+      kind: 'dragdrop',
+      afterSection: exercise.afterSection,
+      sidecar: exercise,
+    });
+  }
 
   return widgets;
 }
@@ -498,12 +662,19 @@ export function loadArticleLessonWidgets(article: ArticleListItem): LessonWidget
   const quizSidecar = loadQuizSidecar(article);
   const flashcards = loadFlashcardSidecars(article);
   const callouts = loadCalloutSidecars(article);
+  const dragdrops = loadDragDropSidecars(article);
   const overrides = loadArticleOverrides(article.uid);
-  return resolveLessonWidgets(article, quizSidecar, flashcards, callouts, overrides);
+  return resolveLessonWidgets(article, quizSidecar, flashcards, callouts, overrides, dragdrops);
 }
 
 export function loadArticleQuizWidgets(article: ArticleListItem): QuizWidget[] {
   return loadArticleLessonWidgets(article).filter(
     (widget): widget is QuizWidget => widget.kind === 'quiz',
+  );
+}
+
+export function loadArticleDragDropWidgets(article: ArticleListItem): DragDropWidget[] {
+  return loadArticleLessonWidgets(article).filter(
+    (widget): widget is DragDropWidget => widget.kind === 'dragdrop',
   );
 }

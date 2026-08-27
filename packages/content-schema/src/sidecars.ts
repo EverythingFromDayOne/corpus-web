@@ -217,3 +217,9 @@ export function toClientQuiz(sidecar: QuizSidecar) {
   };
 }
 export type ClientQuiz = ReturnType<typeof toClientQuiz>;
+
+/**
+ * Sibling sidecars — Flashcard, Callout, DragDrop — live in their own
+ * files and are re-exported from `index.ts`. Quiz stays here because the
+ * legacy `questions` / `quiz` envelope is this file's original contract.
+ */

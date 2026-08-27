@@ -163,6 +163,16 @@
     "flashcardNext": "Next card",
     "flashcardProgress": "{current} / {total}",
     "flashcardFront": "Show back",
-    "flashcardBack": "Show front"
+    "flashcardBack": "Show front",
+    "dragdropEyebrow": "Assemble",
+    "dragdropSubmit": "Check answer",
+    "dragdropReset": "Reset assembly",
+    "dragdropCorrect": "Correct",
+    "dragdropIncorrect": "Not quite",
+    "dragdropExplanation": "Explanation",
+    "dragdropError": "Couldn't check that assembly. Try again.",
+    "dragdropPool": "Chip pool",
+    "dragdropSlotEmpty": "Empty slot",
+    "dragdropSlotFilled": "Filled with"
   }
 }
