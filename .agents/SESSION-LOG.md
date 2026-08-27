@@ -3731,3 +3731,58 @@ answer-key path edits.
 
 ---
 
+## Session — lesson-animations phase 2 — 2026-08-27
+
+**Branch:** `cursor/lesson-animations-phase2-5842`
+
+**Files changed:**
+- `apps/web/components/article/lesson-animations.css` — `lesson-glow-breath` keyframe; quiz `:focus-within` pulse; hover lift on `.av-qz-go` / `.av-dd-go` / `.av-cbcopy`; reduced-motion resets
+- `apps/web/components/article/article.css` — `lesson-progress-fill` on `.av-pbar rect`; prev/next hover lift; TOC tick/label `--duration-base`; chrome reduced-motion resets
+- `apps/web/test/lesson-animations.test.ts` — three Phase 2 CSS-hook tests (glow, lift, progress/TOC)
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased Phase 2 motion bullets
+- `.agents/summary.md` — glow/lift/fill/easing gotcha; planned next step 4
+- `progress.md` — session-log line
+
+**Why:** Phase 1 shipped the high-payoff widget motion. Phase 2 is the
+gentler polish the audit deferred: a slow quiz glow that only runs while
+the question is focused, a 1px hover lift on actionable controls, a
+one-shot fill of the curriculum progress bar, and a slightly longer TOC
+tick ease so the active swap reads as one motion. CSS-only; no schema,
+no new primitives, no answer-key path.
+
+**Invented decisions:**
+- Chrome motion (progress fill, TOC ticks, prev/next lift) lives in
+  `article.css` because `.av-pbar`, `.av-tk`, and `.av-pnav` sit outside
+  `.lesson-surface`. Lesson-surface rules stay in `lesson-animations.css`.
+- Progress fill targets `.av-pbar rect` with `scaleX(0→1)` and
+  `transform-box: fill-box`. The live bar is an SVG `width={ratio}`
+  attribute, not the leftover `.av-pbar i { width: 0% }` rule the
+  prompt assumed. CSS `width` on an SVG rect would be px, not viewBox
+  units.
+- No `--lesson-shadow-hover` token (none exists, and `--shadow-sm`
+  does not either). Hover shadow reuses Phase 1's
+  `color-mix(..., var(--lesson-purple-accent) 14%)` on lesson buttons
+  and the existing chrome `color-mix(..., var(--color-ink) 38%)` on
+  `.av-pnav`.
+- Hover lift is `@media (hover: hover)` so touch devices skip it, and
+  `:not(:disabled)` so disabled submit buttons stay flat. `.av-cbb` is
+  excluded as specified; in this repo it is the code-block
+  download/expand control, not a sidebar pill.
+- TOC transitions only properties that actually change (`width`,
+  `background-color`, label `opacity`). No unused `color` transition.
+  Glow period stays 3s as specified.
+- Tests assert CSS source (keyframes, tokens, reduced-motion resets).
+  Tautology: renaming `lesson-glow-breath` / `lesson-progress-fill` /
+  the `.av-qz-go:not(:disabled):hover` selector each failed the matching
+  test; restoring each passed.
+- `docs/DEBT.md` / `roadmap.md` / `.cursor/rules/` / widget TS /
+  sidecar schemas / `messages/en.json` untouched. D24 not closed.
+  No Phase 3 prompt (remaining audit rows are skip/defer).
+
+**Known issues / next steps:**
+- `.av-pbar i` CSS is leftover from before the SVG bar; not deleted.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side.
+- Do not auto-merge.
+
+---

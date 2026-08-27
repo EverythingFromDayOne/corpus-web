@@ -38,6 +38,13 @@
   100% { transform: scale(1);    opacity: 1; }
 }
 
+/* ---- Quiz glow spotlight pulse (focus-within only) ---- */
+
+@keyframes lesson-glow-breath {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1; }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   /* ---- Quiz option color transitions (existing classes) ---- */
 
@@ -137,11 +144,36 @@
   /* ---- Copy button toast ---- */
 
   .lesson-surface .av-cbcopy {
-    transition: color var(--duration-base) var(--ease-out);
+    transition:
+      color var(--duration-base) var(--ease-out),
+      transform var(--duration-fast) var(--ease-out),
+      box-shadow var(--duration-fast) var(--ease-out);
   }
 
   .lesson-surface .av-cbcopy.done {
     animation: lesson-toast-pulse var(--duration-slow) var(--ease-out);
+  }
+
+  /* ---- Quiz glow spotlight pulse on focus-within ---- */
+
+  .lesson-surface .av-qz:focus-within::before {
+    animation: lesson-glow-breath 3s var(--ease-in-out) infinite;
+  }
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .lesson-surface .av-qz-go:not(:disabled),
+  .lesson-surface .av-dd-go:not(:disabled) {
+    transition:
+      transform var(--duration-fast) var(--ease-out),
+      box-shadow var(--duration-fast) var(--ease-out);
+  }
+
+  .lesson-surface .av-qz-go:not(:disabled):hover,
+  .lesson-surface .av-dd-go:not(:disabled):hover,
+  .lesson-surface .av-cbcopy:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--lesson-purple-accent) 14%, transparent);
   }
 }
 
@@ -196,6 +228,23 @@
 
   .lesson-surface .av-cbcopy.done {
     animation: none;
+  }
+
+  .lesson-surface .av-qz:focus-within::before {
+    animation: none;
+  }
+
+  .lesson-surface .av-qz-go,
+  .lesson-surface .av-dd-go,
+  .lesson-surface .av-cbcopy {
+    transition: none;
+  }
+
+  .lesson-surface .av-qz-go:hover,
+  .lesson-surface .av-dd-go:hover,
+  .lesson-surface .av-cbcopy:hover {
+    transform: none;
+    box-shadow: none;
   }
 
   .lesson-surface [data-mounted='false'] {

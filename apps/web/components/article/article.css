@@ -93,6 +93,19 @@
   width: 0%;
 }
 
+@keyframes lesson-progress-fill {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .av-pbar rect {
+    transform-box: fill-box;
+    transform-origin: 0 50%;
+    animation: lesson-progress-fill var(--duration-graph) var(--ease-out) both;
+  }
+}
+
 .av-lsn {
   list-style: none;
   margin: 0;
@@ -619,6 +632,20 @@
   border-color: var(--color-muted);
 }
 
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .av-pnav a {
+    transition:
+      transform var(--duration-fast) var(--ease-out),
+      box-shadow var(--duration-fast) var(--ease-out),
+      border-color var(--duration-fast) var(--ease-out);
+  }
+
+  .av-pnav a:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--color-ink) 38%, transparent);
+  }
+}
+
 .av-pnav .av-pnav-l {
   font-family: var(--font-mono);
   font-size: 0.6875rem;
@@ -666,8 +693,8 @@
   border-radius: 2px;
   overflow: visible;
   transition:
-    width var(--duration-fast) var(--ease-out),
-    background-color var(--duration-fast) var(--ease-out);
+    width var(--duration-base) var(--ease-out),
+    background-color var(--duration-base) var(--ease-out);
 }
 
 .av-tk.seen {
@@ -704,7 +731,7 @@
   text-align: left;
   opacity: 0;
   pointer-events: none;
-  transition: opacity var(--duration-fast) var(--ease-out);
+  transition: opacity var(--duration-base) var(--ease-out);
   box-shadow: 0 4px 14px color-mix(in srgb, var(--color-ink) 38%, transparent);
 }
 
@@ -1103,5 +1130,23 @@
 
   .av-inner h1 {
     font-size: clamp(1.55rem, 7vw, 2rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .av-pbar rect {
+    animation: none;
+    transform: none;
+  }
+
+  .av-tk,
+  .av-tk .av-tk-l,
+  .av-pnav a {
+    transition: none;
+  }
+
+  .av-pnav a:hover {
+    transform: none;
+    box-shadow: none;
   }
 }
