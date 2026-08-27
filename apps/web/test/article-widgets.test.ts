@@ -17,10 +17,20 @@
  * in isolation from Next.
  */
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
-import { toClientQuizWidget, type QuizWidget } from '../lib/article-widgets';
+import YAML from 'yaml';
+import { toClientQuizWidget, resolveLessonWidgets, type QuizWidget } from '../lib/article-widgets';
+
+const OVERRIDE_SAMPLE = join(
+  dirname(fileURLToPath(import.meta.url)),
+  '../../../curation/overrides/react-jsx-and-rendering.yaml',
+);
 
 const widget: QuizWidget = {
+  kind: 'quiz',
   afterSection: 'warm-up',
   sidecar: {
     schema: 1,
@@ -103,4 +113,65 @@ test('toClientQuizWidget preserves the non-secret question content', () => {
     { label: 'A', body: 'Cached by default' },
     { label: 'B', body: 'Uncached by default' },
   ]);
+});
+
+test('resolveLessonWidgets mounts quiz blocks at mixed empty and heading afterSection', () => {
+  const article = {
+    uid: 'react/fixture',
+    repo: 'react' as const,
+    articleId: 'fixture',
+    folder: 'foundations',
+    title: 'Fixture',
+    description: 'Fixture article',
+    kind: 'concept' as const,
+    minutes: 1,
+    wave: null,
+    difficulty: null,
+    baseline: { framework: 'react', version: '19' },
+    sourcePath: 'foundations/fixture.md',
+    sourceUrl: null,
+    contentHash: 'abc',
+    sections: [],
+    related: [],
+  };
+  const question = (
+    id: string,
+    prompt: string,
+  ): QuizWidget['sidecar']['questions'][number] => ({
+    id,
+    prompt,
+    language: 'ts',
+    options: [
+      { label: 'A', body: 'No', correct: false },
+      { label: 'B', body: 'Yes', correct: true },
+    ],
+    explanation: 'Because.',
+  });
+  const widgets = resolveLessonWidgets(
+    article,
+    {
+      schema: 1,
+      article_id: 'fixture',
+      quiz: [
+        { id: 'inline', afterSection: 'warm-up', questions: [question('q-inline', 'Inline')] },
+        { id: 'end', afterSection: '', questions: [question('q-end', 'End')] },
+      ],
+    },
+    [],
+    [],
+    [],
+  );
+  const quizzes = widgets.filter((item) => item.kind === 'quiz');
+  assert.equal(quizzes.length, 2);
+  assert.equal(quizzes[0]?.afterSection, 'warm-up');
+  assert.equal(quizzes[1]?.afterSection, '');
+});
+
+test('sample override YAML parses (quoted braces are not compact mappings)', () => {
+  const raw = YAML.parse(readFileSync(OVERRIDE_SAMPLE, 'utf8')) as {
+    article: string;
+    inject: unknown[];
+  };
+  assert.equal(raw.article, 'react/jsx-and-rendering');
+  assert.equal(raw.inject.length, 5);
 });

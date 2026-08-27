@@ -55,8 +55,11 @@ export type PathDefinition = z.infer<typeof PathDefinition>;
  * only reader.
  */
 export const OverrideInjection = z.object({
-  /** Insert immediately after the section with this anchor. */
-  afterSection: z.string().min(1),
+  /**
+   * Insert immediately after the section with this anchor.
+   * Empty string = end of article (same as a quiz sidecar `afterSection: ''`).
+   */
+  afterSection: z.string(),
   /** Component name, resolved against the packages/mdx-components registry. */
   component: z.string().regex(/^[A-Z][A-Za-z0-9]*$/, 'must be a PascalCase component name'),
   props: z.record(z.string(), z.unknown()).default({}),

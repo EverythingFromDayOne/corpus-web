@@ -3355,3 +3355,99 @@ References) that PR #34 was protecting.
 
 ---
 
+## Session — inline quiz + flashcard + callout primitives — 2026-08-27
+
+**Branch:** `cursor/feat-sydexa-clone-inline-quizzes-4d82`
+
+**Files changed:**
+- `packages/content-schema/src/sidecars.ts` — `QuizBlock`, `quiz:` as object or array, `normaliseQuizBlocks()`; legacy `questions` kept
+- `packages/content-schema/src/flashcard-sidecar.ts` — inline flashcard strip schema (`front`/`back` only)
+- `packages/content-schema/src/callout-sidecar.ts` — callout schema (`info`/`success`/`warn`/`error`)
+- `packages/content-schema/src/curation.ts` — override `afterSection` may be empty (end of article)
+- `packages/content-schema/src/index.ts` — re-export the new sidecar modules
+- `packages/content-schema/README.md` — inventory rows for quiz blocks / flashcard / callout
+- `packages/content-schema/test/sidecars.test.ts` — array, single object, mixed `''` + slug, reject both fields
+- `packages/content-schema/test/flashcard-sidecar.test.ts` — front/back pairs; file envelope
+- `packages/content-schema/test/callout-sidecar.test.ts` — four variants; `callouts[]` envelope
+- `packages/mdx-components/src/flashcard.tsx` — scroll-snap strip, flip via native button + `aria-pressed`
+- `packages/mdx-components/src/flashcard-model.ts` — next/prev/flip helpers
+- `packages/mdx-components/src/callout.tsx` — left-bar note + inline `**bold**` / `` `code` ``
+- `packages/mdx-components/src/index.ts` — register `Flashcard` and `Callout`
+- `packages/mdx-components/test/quiz.test.ts` — three `.av-qz` at three anchors; mix of `''` and a slug
+- `packages/mdx-components/test/flashcard.test.ts` — clamp and keyboard-flip contract
+- `packages/mdx-components/test/callout.test.ts` — variant class names and inline markdown
+- `apps/web/lib/article-widgets.ts` — `LessonWidget` union; multi-block quiz; flashcard/callout loaders; `loadArticleQuizWidgets` still quiz-only for `gradeQuizAnswer`
+- `apps/web/lib/article-markdown.tsx` — inject Quiz / Flashcard / Callout; still strips via `toClientQuizWidget`
+- `apps/web/components/article/article-view.tsx` — `.lesson-surface` around title/dek and around prose/related; `loadArticleLessonWidgets`
+- `apps/web/components/article/lesson-tokens.css` — lesson token namespace, prose remap, quiz glow, flashcard, callout
+- `apps/web/components/article/article.css` — `@import` the lesson token file
+- `apps/web/messages/en.json` — flashcard chrome strings
+- `apps/web/test/article-widgets.test.ts` — `kind: 'quiz'` on the leak fixture; mixed-anchor `resolveLessonWidgets`; sample override YAML.parse regression
+- `curation/overrides/react-jsx-and-rendering.yaml` — live sample (2 quizzes, 1 flashcard, 2 callouts)
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased feature bullets
+- `.agents/summary.md` — interactive-layer snapshot; planned next step 4
+- `progress.md` — session-log line
+
+**Why:** PR #36 unblocked heading-anchored `afterSection`. This pass ships the
+inline-lesson foundation: N quiz cards per article, plus flashcard and
+callout primitives, plus a body-scoped token layer and a quiz glow, without
+reimplementing Quiz or touching the PR #32 leak path. Sample usage cannot
+live under `content/` (submodule / content-boundary), so it is an override.
+
+**Invented decisions:**
+- Branch named `cursor/feat-sydexa-clone-inline-quizzes-4d82` per the
+  cloud-agent template, not `feat/sydexa-clone-inline-quizzes`.
+- Wrapper class is `.lesson-surface`. Applied to the title/dek block and
+  to prose+related; breadcrumbs, metadata row, page nav, sidebar, rail,
+  and footer stay on app tokens.
+- `--lesson-purple-*` keeps the requested names; values alias Instrument
+  `--color-display` / `--color-graphite` mixes, not a new purple hex.
+  Warn callout border mixes `--color-stale` with `--color-muted` so
+  `--color-signal` stays provenance/read-position only.
+- `quiz:` XOR `questions`. A single `quiz:` object is valid, not only an
+  array. Legacy questions group by `afterSection` into synthetic
+  `quiz-1`… ids (slug-safe; heading slugs like `element--component--instance`
+  are not valid `Slug`s).
+- `DeckSidecar` in `sidecars.ts` is unchanged (SRS). Inline review is
+  `FlashcardSidecar` — different shape, different file.
+- Sample is `curation/overrides/react-jsx-and-rendering.yaml`, not
+  `content/react/foundations/jsx-and-rendering.quiz.yaml`. Writing the
+  submodule would fail `verify-submodules` and violate the content
+  boundary. D35 stays open.
+- Flashcard `afterSection` is `what-it-is` (the JSX-as-sugar vs
+  `createElement` section). Callout then quiz at each of the two named
+  headings. Callout titles are "Tip" / "Watch out"; bodies are the
+  requested sentences. Quiz stems paraphrase the article (element object
+  vs DOM; element exists before the component function is called).
+- Native `<button aria-pressed>` for flip, not `div role="button"`.
+  Content swap rather than a 3D rotate. Desktop: one-card scroll-snap
+  with arrows; `width <= 1000px` stacks and hides arrows (same
+  breakpoint as the article grid).
+- Variant `success` maps to `--lesson-callout-ok-border`. Inline
+  markdown is `**bold**` and `` `code` `` only.
+- Glow is an inner radial on `.av-qz::before`, static except opacity on
+  hover/focus when `prefers-reduced-motion: no-preference`.
+- `loadArticleQuizWidgets` remains quiz-only so `quiz-actions.ts` can
+  keep `.sidecar.questions` without edits. `loadArticleLessonWidgets` is
+  the render-path loader.
+- Flashcard `back` strings that contain `{ className: ... }` are quoted
+  in the override YAML. An unquoted `React.createElement(..., { ... })`
+  failed prerender with `YAMLParseError: Nested mappings are not allowed
+  in compact mappings`.
+- `docs/DEBT.md` / `roadmap.md` / `.cursor/rules/` / `slug.ts` /
+  `sections.ts` / `quiz-actions.ts` / TOC rail / article-shell /
+  av-mbar untouched, per instruction. No drag-and-drop.
+- Session log id rather than a sequential session number. No
+  `prompts/session-N+1.md` authored.
+
+**Known issues / next steps:**
+- D35 is not closed: the sample is an override, not a corpus sidecar,
+  and corpus CI still cannot validate sidecars (D17).
+- Remaining D24: code-assembly, stepped-diagram shell, tab-group a11y.
+  Drag-and-drop is a follow-on, explicitly out of this PR.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side.
+- Do not auto-merge.
+
+---
+

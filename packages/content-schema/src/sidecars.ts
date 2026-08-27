@@ -30,9 +30,62 @@ export const QuizQuestion = z.object({
    * why is a scoring mechanism, not a teaching one.
    */
   explanation: z.string().min(1),
-  /** Anchor of the section this question tests. Places it correctly in the article. */
+  /**
+   * Anchor of the section this question tests. Used only by the legacy
+   * top-level `questions` list (grouped into blocks). Ignored when the
+   * question sits inside a `quiz` block — that block's `afterSection` wins.
+   */
   afterSection: z.string().optional(),
 });
+export type QuizQuestion = z.infer<typeof QuizQuestion>;
+
+/**
+ * One mounted quiz card. `afterSection: ''` means end of article; any other
+ * string is a heading slug (`h2` or `h3`).
+ */
+export const QuizBlock = z.object({
+  id: Slug,
+  title: z.string().min(1).optional(),
+  afterSection: z.string(),
+  questions: z.array(QuizQuestion).min(1),
+});
+export type QuizBlock = z.infer<typeof QuizBlock>;
+
+const QuizField = z.union([QuizBlock, z.array(QuizBlock).min(1)]);
+
+function refineQuestion(
+  q: QuizQuestion,
+  ctx: z.RefinementCtx,
+  path: (string | number)[],
+) {
+  const correct = q.options.filter((o) => o.correct).length;
+  if (correct !== 1) {
+    ctx.addIssue({
+      code: 'custom',
+      path: [...path, 'options'],
+      message: `question "${q.id}" has ${correct} correct options — exactly one required`,
+    });
+  }
+  const labels = new Set(q.options.map((o) => o.label));
+  if (labels.size !== q.options.length) {
+    ctx.addIssue({
+      code: 'custom',
+      path: [...path, 'options'],
+      message: `question "${q.id}" has duplicate option labels`,
+    });
+  }
+}
+
+function questionsOf(sidecar: {
+  questions?: QuizQuestion[];
+  quiz?: QuizBlock | QuizBlock[];
+}): QuizQuestion[] {
+  if (sidecar.questions) return sidecar.questions;
+  if (!sidecar.quiz) return [];
+  return Array.isArray(sidecar.quiz)
+    ? sidecar.quiz.flatMap((block) => block.questions)
+    : sidecar.quiz.questions;
+}
 
 /**
  * Full quiz payload, including `correct` and `explanation`. Scoring is
@@ -40,40 +93,82 @@ export const QuizQuestion = z.object({
  * component takes this shape and decides when to reveal the answer; the
  * network layer does not.
  *
+ * Back-compat: PR #32 fixtures use top-level `questions`. New sidecars may
+ * instead set `quiz` to one block or an array of blocks, each with its own
+ * `afterSection`. Exactly one of `questions` / `quiz` is required.
+ *
  * `toClientQuiz()` is only the unrevealed-options projection (no `correct`).
  */
 export const QuizSidecar = z
   .object({
     schema: z.literal(1),
     article_id: Slug,
-    questions: z.array(QuizQuestion).min(1),
+    questions: z.array(QuizQuestion).min(1).optional(),
+    quiz: QuizField.optional(),
   })
   .superRefine((sidecar, ctx) => {
-    sidecar.questions.forEach((q, qi) => {
-      const correct = q.options.filter((o) => o.correct).length;
-      if (correct !== 1) {
+    const hasQuestions = sidecar.questions !== undefined;
+    const hasQuiz = sidecar.quiz !== undefined;
+    if (hasQuestions === hasQuiz) {
+      ctx.addIssue({
+        code: 'custom',
+        path: hasQuestions ? ['quiz'] : ['questions'],
+        message: 'provide exactly one of `questions` or `quiz`',
+      });
+      return;
+    }
+
+    if (sidecar.quiz) {
+      const blocks = Array.isArray(sidecar.quiz) ? sidecar.quiz : [sidecar.quiz];
+      const blockIds = blocks.map((block) => block.id);
+      if (new Set(blockIds).size !== blockIds.length) {
         ctx.addIssue({
           code: 'custom',
-          path: ['questions', qi, 'options'],
-          message: `question "${q.id}" has ${correct} correct options — exactly one required`,
+          path: ['quiz'],
+          message: 'duplicate quiz block ids',
         });
       }
-      const labels = new Set(q.options.map((o) => o.label));
-      if (labels.size !== q.options.length) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['questions', qi, 'options'],
-          message: `question "${q.id}" has duplicate option labels`,
-        });
-      }
+    }
+
+    const questions = questionsOf(sidecar);
+    questions.forEach((q, qi) => {
+      refineQuestion(q, ctx, ['questions', qi]);
     });
 
-    const ids = sidecar.questions.map((q) => q.id);
+    const ids = questions.map((q) => q.id);
     if (new Set(ids).size !== ids.length) {
-      ctx.addIssue({ code: 'custom', path: ['questions'], message: 'duplicate question ids' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['questions'],
+        message: 'duplicate question ids',
+      });
     }
   });
 export type QuizSidecar = z.infer<typeof QuizSidecar>;
+
+/**
+ * Collapse a sidecar into explicit quiz blocks. Legacy `questions` are
+ * grouped by `afterSection` (missing/undefined → end of article). `quiz`
+ * blocks pass through; a single object becomes a one-element array.
+ */
+export function normaliseQuizBlocks(sidecar: QuizSidecar): QuizBlock[] {
+  if (sidecar.quiz) {
+    return Array.isArray(sidecar.quiz) ? sidecar.quiz : [sidecar.quiz];
+  }
+  const questions = sidecar.questions ?? [];
+  const groups = new Map<string, QuizQuestion[]>();
+  for (const question of questions) {
+    const key = question.afterSection ?? '';
+    const list = groups.get(key) ?? [];
+    list.push(question);
+    groups.set(key, list);
+  }
+  return [...groups.entries()].map(([afterSection, grouped], index) => ({
+    id: `quiz-${index + 1}`,
+    afterSection,
+    questions: grouped,
+  }));
+}
 
 export const Flashcard = z.object({
   id: Slug,
@@ -111,7 +206,7 @@ export type DeckSidecar = z.infer<typeof DeckSidecar>;
 export function toClientQuiz(sidecar: QuizSidecar) {
   return {
     articleId: sidecar.article_id,
-    questions: sidecar.questions.map((q) => ({
+    questions: questionsOf(sidecar).map((q) => ({
       id: q.id,
       prompt: q.prompt,
       code: q.code,

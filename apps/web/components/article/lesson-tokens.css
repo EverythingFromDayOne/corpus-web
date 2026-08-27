@@ -1,0 +1,375 @@
+/*
+ * Lesson token layer — scoped to `.lesson-surface` (article body only).
+ * App chrome (header, sidebar, TOC rail, footer) stays on the existing
+ * `--color-*` tokens. Values alias `@theme` tokens from `@corpus/ui`;
+ * no raw hex.
+ *
+ * `--lesson-purple-*` keeps the sydexa-shaped names the feature asked for;
+ * the values are Instrument palette mixes, not a new purple.
+ */
+
+.lesson-surface {
+  --lesson-text-primary: var(--color-body);
+  --lesson-text-secondary: var(--color-muted);
+  --lesson-text-highlight: var(--color-display);
+  --lesson-text-placeholder: var(--color-muted);
+  --lesson-bg-primary: var(--color-ink);
+  --lesson-bg-secondary: var(--color-raised);
+  --lesson-bg-card: var(--color-surface);
+  --lesson-bg-disabled: color-mix(in srgb, var(--color-raised) 70%, var(--color-ink));
+  --lesson-border-primary: var(--color-graphite);
+  --lesson-border-secondary: color-mix(in srgb, var(--color-graphite) 70%, var(--color-muted));
+  --lesson-purple-border: color-mix(in srgb, var(--color-display) 28%, var(--color-graphite));
+  --lesson-purple-accent: var(--color-display);
+  --lesson-callout-info-border: color-mix(in srgb, var(--color-body) 45%, var(--color-graphite));
+  --lesson-callout-ok-border: var(--color-verified);
+  --lesson-callout-warn-border: color-mix(in srgb, var(--color-stale) 55%, var(--color-muted));
+  --lesson-callout-error-border: var(--color-stale);
+  --lesson-icon-success: var(--color-verified);
+  --lesson-icon-info: var(--color-body);
+  --lesson-icon-error: var(--color-stale);
+  color: var(--lesson-text-primary);
+}
+
+:root[data-theme='light'] .lesson-surface {
+  --lesson-text-primary: var(--color-body);
+  --lesson-text-secondary: var(--color-muted);
+  --lesson-text-highlight: var(--color-display);
+  --lesson-text-placeholder: var(--color-muted);
+  --lesson-bg-primary: var(--color-ink);
+  --lesson-bg-secondary: var(--color-raised);
+  --lesson-bg-card: var(--color-surface);
+  --lesson-bg-disabled: color-mix(in srgb, var(--color-raised) 80%, var(--color-ink));
+  --lesson-border-primary: var(--color-graphite);
+  --lesson-border-secondary: color-mix(in srgb, var(--color-graphite) 75%, var(--color-muted));
+  --lesson-purple-border: color-mix(in srgb, var(--color-display) 18%, var(--color-graphite));
+  --lesson-purple-accent: var(--color-display);
+  --lesson-callout-info-border: color-mix(in srgb, var(--color-body) 35%, var(--color-graphite));
+  --lesson-callout-ok-border: var(--color-verified);
+  --lesson-callout-warn-border: color-mix(in srgb, var(--color-stale) 50%, var(--color-muted));
+  --lesson-callout-error-border: var(--color-stale);
+  --lesson-icon-success: var(--color-verified);
+  --lesson-icon-info: var(--color-body);
+  --lesson-icon-error: var(--color-stale);
+}
+
+.lesson-surface h1,
+.lesson-surface h2,
+.lesson-surface h3 {
+  color: var(--lesson-text-highlight);
+}
+
+.lesson-surface p,
+.lesson-surface li {
+  color: var(--lesson-text-primary);
+}
+
+.lesson-surface .av-dek {
+  color: var(--lesson-text-secondary);
+}
+
+.lesson-surface :not(pre) > code {
+  color: var(--lesson-text-highlight);
+  background: var(--lesson-bg-secondary);
+}
+
+.lesson-surface .av-co {
+  border-left-color: var(--lesson-border-secondary);
+  background: var(--lesson-bg-card);
+  color: var(--lesson-text-secondary);
+}
+
+.lesson-surface table {
+  border-color: var(--lesson-border-primary);
+}
+
+.lesson-surface th {
+  color: var(--lesson-text-secondary);
+  border-bottom-color: var(--lesson-border-primary);
+}
+
+.lesson-surface td {
+  border-bottom-color: var(--lesson-border-primary);
+}
+
+/* ---- Quiz card + glow spotlight -------------------------------------- */
+
+.lesson-surface .av-qz {
+  position: relative;
+  isolation: isolate;
+  background: var(--lesson-bg-card);
+  border-color: var(--lesson-purple-border);
+}
+
+.lesson-surface .av-qz::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 80% 55% at 50% 0%,
+    color-mix(in srgb, var(--lesson-purple-accent) 16%, transparent),
+    transparent 70%
+  );
+}
+
+.lesson-surface .av-qz > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .lesson-surface .av-qz::before {
+    opacity: 0.82;
+    transition: opacity var(--duration-fast) var(--ease-out);
+  }
+
+  .lesson-surface .av-qz:hover::before,
+  .lesson-surface .av-qz:focus-within::before {
+    opacity: 1;
+  }
+}
+
+.lesson-surface .av-qz-hd {
+  color: var(--lesson-text-secondary);
+  border-bottom-color: var(--lesson-border-primary);
+}
+
+.lesson-surface .av-qz-q {
+  color: var(--lesson-text-highlight);
+}
+
+.lesson-surface .av-qz-code {
+  background: var(--lesson-bg-primary);
+  border-color: var(--lesson-border-primary);
+  color: var(--lesson-text-primary);
+}
+
+.lesson-surface .av-qz-opt {
+  background: var(--lesson-bg-primary);
+  border-color: var(--lesson-border-primary);
+  color: var(--lesson-text-primary);
+}
+
+.lesson-surface .av-qz-opt:hover {
+  border-color: var(--lesson-border-secondary);
+}
+
+.lesson-surface .av-qz-opt.ok {
+  border-color: var(--lesson-callout-ok-border);
+  background: color-mix(in srgb, var(--lesson-icon-success) 9%, var(--lesson-bg-primary));
+}
+
+.lesson-surface .av-qz-opt.no {
+  border-color: var(--lesson-callout-error-border);
+  background: color-mix(in srgb, var(--lesson-icon-error) 9%, var(--lesson-bg-primary));
+}
+
+.lesson-surface .av-qz-lt {
+  color: var(--lesson-text-placeholder);
+}
+
+.lesson-surface .av-qz-verdict.ok {
+  color: var(--lesson-icon-success);
+}
+
+.lesson-surface .av-qz-verdict.no {
+  color: var(--lesson-icon-error);
+}
+
+.lesson-surface .av-qz-ex {
+  border-top-color: var(--lesson-border-primary);
+  color: var(--lesson-text-secondary);
+}
+
+.lesson-surface .av-qz-ex b {
+  color: var(--lesson-text-highlight);
+}
+
+.lesson-surface .av-qz-go {
+  background: var(--lesson-bg-secondary);
+  border-color: var(--lesson-border-primary);
+  color: var(--lesson-text-highlight);
+}
+
+.lesson-surface .av-qz-go:disabled {
+  background: var(--lesson-bg-disabled);
+  color: var(--lesson-text-placeholder);
+}
+
+/* ---- Flashcard strip (no glow) --------------------------------------- */
+
+.av-flashcard {
+  margin: 1.8rem 0;
+  padding: 0.85rem 0.9rem 1rem;
+  background: var(--lesson-bg-card);
+  border: 1px solid var(--lesson-border-primary);
+  border-radius: var(--radius-md);
+}
+
+.av-flashcard-hd {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lesson-text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.av-flashcard-nav {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  margin-bottom: 0.65rem;
+}
+
+.av-flashcard-arrow {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  line-height: 1;
+  width: 2rem;
+  height: 2rem;
+  background: var(--lesson-bg-secondary);
+  border: 1px solid var(--lesson-border-primary);
+  color: var(--lesson-text-highlight);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.av-flashcard-arrow:disabled {
+  background: var(--lesson-bg-disabled);
+  color: var(--lesson-text-placeholder);
+  cursor: not-allowed;
+}
+
+.av-flashcard-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.av-flashcard-track::-webkit-scrollbar {
+  display: none;
+}
+
+.av-flashcard-card {
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+  min-height: 10rem;
+  text-align: left;
+  padding: 1.1rem 1.2rem;
+  background: var(--lesson-bg-primary);
+  border: 1px solid var(--lesson-border-primary);
+  border-radius: var(--radius-md);
+  color: var(--lesson-text-primary);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.av-flashcard-card.is-flipped {
+  border-color: var(--lesson-border-secondary);
+  background: var(--lesson-bg-secondary);
+}
+
+.av-flashcard-front,
+.av-flashcard-back {
+  display: none;
+  color: var(--lesson-text-primary);
+}
+
+.av-flashcard-card:not(.is-flipped) .av-flashcard-front,
+.av-flashcard-card.is-flipped .av-flashcard-back {
+  display: block;
+}
+
+.av-flashcard-card.is-flipped .av-flashcard-back {
+  color: var(--lesson-text-highlight);
+}
+
+@media (width <= 1000px) {
+  .av-flashcard-nav {
+    display: none;
+  }
+
+  .av-flashcard-track {
+    flex-direction: column;
+    overflow-x: visible;
+    scroll-snap-type: none;
+    gap: 0.75rem;
+  }
+
+  .av-flashcard-card {
+    flex: none;
+    width: 100%;
+  }
+}
+
+/* ---- Callout --------------------------------------------------------- */
+
+.av-callout {
+  position: relative;
+  margin: 1.3rem 0;
+  padding: 0.9rem 1.1rem 0.9rem 1.25rem;
+  background: var(--lesson-bg-card);
+  border: 1px solid var(--lesson-border-primary);
+  border-left-width: 4px;
+  border-radius: var(--radius-md);
+}
+
+.av-callout-title {
+  font-weight: 600;
+  color: var(--lesson-text-highlight);
+  margin: 0 0 0.35rem;
+}
+
+.av-callout-body {
+  margin: 0;
+  color: var(--lesson-text-secondary);
+}
+
+.av-callout-body code {
+  color: var(--lesson-text-highlight);
+  background: var(--lesson-bg-secondary);
+}
+
+.av-callout::before {
+  content: '';
+  position: absolute;
+  top: 1.05rem;
+  right: 1rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--lesson-icon-info);
+}
+
+.av-callout--info {
+  border-left-color: var(--lesson-callout-info-border);
+}
+
+.av-callout--success {
+  border-left-color: var(--lesson-callout-ok-border);
+}
+
+.av-callout--success::before {
+  background: var(--lesson-icon-success);
+}
+
+.av-callout--warn {
+  border-left-color: var(--lesson-callout-warn-border);
+}
+
+.av-callout--error {
+  border-left-color: var(--lesson-callout-error-border);
+}
+
+.av-callout--error::before {
+  background: var(--lesson-icon-error);
+}

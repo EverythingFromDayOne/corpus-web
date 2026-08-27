@@ -6,10 +6,9 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-27 (afterSection heading-anchor: MarkdownServer
-> emits function-component h2/h3, so inject now reads catalog slugs from
-> `props.id` assigned at mdast; `slug.ts` / `sections.ts` githubSlug
-> bodies were already identical)
+> Last updated: 2026-08-27 (inline quizzes/flashcards/callouts: `quiz:`
+> is a block or an array of blocks; `.lesson-surface` lesson tokens;
+> sample override on `react/jsx-and-rendering`)
 
 ---
 
@@ -291,17 +290,24 @@ bootstrap.
   scoring is `mode: 'local'` only (§7.4). The Quiz **component and render path exist**:
   `packages/mdx-components` `Quiz` (fieldset/radio, one question at a time), registered
   as `Quiz`, injected after `afterSection` from `curation/overrides/*.yaml` and/or a
-  `{stem}.quiz.yaml` sidecar beside the article. Grading is server-side only:
+  `{stem}.quiz.yaml` sidecar beside the article. A sidecar may list `quiz:` as one
+  block or an array of blocks (each with its own `afterSection`); the PR #32
+  top-level `questions` list still parses. `Flashcard` (front/back strip) and
+  `Callout` (`info`/`success`/`warn`/`error`) are also registered and inject the
+  same way. Grading is server-side only:
   `apps/web/lib/quiz-actions.ts` (`gradeQuizAnswer`, a Next.js Server Action) is the
   only place `correct` is read after the article page's initial payload is built.
   `article-markdown.tsx` passes `Quiz` the output of `toClientQuizWidget()`
   (`article-widgets.ts`) — `correct` and `explanation` never cross into a `Quiz` prop;
   a review on PR #32 caught an earlier version that shipped the full sidecar (with
   `correct`) straight into the client component, which RSC would have serialized into
-  the initial payload regardless of the component's own render logic. No lesson YAML
-  is authored yet — nothing mounts on a live article until that later pass. Sidecars
-  remain the documented future; overrides remain the working mechanism until D17
-  closes (D35). Heading-anchored `afterSection` works: fumadocs `MarkdownServer`
+  the initial payload regardless of the component's own render logic. The first
+  live sample is `curation/overrides/react-jsx-and-rendering.yaml` (not a corpus
+  sidecar — content-boundary). Article body chrome uses `.lesson-surface` tokens
+  in `apps/web/components/article/lesson-tokens.css`; quizzes get a static radial
+  glow that only changes opacity on hover/focus. Sidecars remain the documented
+  future; overrides remain the working mechanism until D17 closes (D35).
+  Heading-anchored `afterSection` works: fumadocs `MarkdownServer`
   puts function components in the tree where native `h2`/`h3` would be, so
   `injectAfterSections` matches on `props.id` (the catalog slug, assigned at
   mdast by `remarkAssignHeadingIds` using `apps/web/lib/slug.ts`). Native `h2`
@@ -353,6 +359,8 @@ no personal content, narrowed to permit a contact email in the footer and on
   Pagefind (D21), `/en/license` (D25), SEO residue (D22), a11y (D18/D19).
   Render-mode gate (D23) is `pnpm verify:prerender`. Do not revive
   `/en/concepts/…`.
-4. Quiz primitive mechanism exists (D24 slice). Do not author real lesson quiz
-  YAML until a lesson needs it (D35). Other tier-1 widgets (flashcards,
-  code-assembly, stepped-diagram shell, tab group) are still unbuilt.
+4. Quiz, flashcard, and callout primitives exist (D24 slice). Sample
+  usage is `curation/overrides/react-jsx-and-rendering.yaml` — not a
+  corpus sidecar (content-boundary; D35 still open). Remaining tier-1
+  widgets: code-assembly, stepped-diagram shell, tab group. Drag-and-drop
+  is explicitly out of this pass.

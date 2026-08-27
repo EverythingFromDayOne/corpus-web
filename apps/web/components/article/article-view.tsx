@@ -8,7 +8,7 @@ import { isRepoId, type RepoId } from '@/lib/repos';
 import { corpusTree } from '@/lib/catalog';
 import { REPOS } from '@/lib/repos';
 import { renderArticleMarkdown, countExtracts, hoistExtractComments } from '@/lib/article-markdown';
-import { loadArticleQuizWidgets, widgetsCacheKey } from '@/lib/article-widgets';
+import { loadArticleLessonWidgets, widgetsCacheKey } from '@/lib/article-widgets';
 import { railParts } from '@/lib/rail-parts';
 import { ArticleProgressBar, ArticleScrim } from './article-shell';
 import { CorpusSidebar, CurriculumSidebar } from './sidebars';
@@ -68,7 +68,7 @@ export async function ArticleView({
   nextLabel,
   lead,
 }: ArticleViewProps) {
-  const widgets = loadArticleQuizWidgets(article);
+  const widgets = loadArticleLessonWidgets(article);
   const body = await renderArticleMarkdown({
     contentHash: article.contentHash,
     markdown,
@@ -131,8 +131,10 @@ export async function ArticleView({
                 ))}
               </ol>
             </nav>
-            <h1>{article.title}</h1>
-            <p className="av-dek">{article.description}</p>
+            <div className="lesson-surface">
+              <h1>{article.title}</h1>
+              <p className="av-dek">{article.description}</p>
+            </div>
             <div className="av-mr meta">
               <div>
                 {t(messages, 'article.baseline')}{' '}
@@ -167,14 +169,16 @@ export async function ArticleView({
                 </div>
               ) : null}
             </div>
-            {lead}
-            <div className="av-prose">{body}</div>
-            <RelatedList
-              locale={locale}
-              messages={messages}
-              view={view}
-              article={article}
-            />
+            <div className="lesson-surface">
+              {lead}
+              <div className="av-prose">{body}</div>
+              <RelatedList
+                locale={locale}
+                messages={messages}
+                view={view}
+                article={article}
+              />
+            </div>
             <nav className="av-pnav" aria-label={t(messages, 'article.pageNav')}>
               {prev && prevHref ? (
                 <a href={prevHref}>
