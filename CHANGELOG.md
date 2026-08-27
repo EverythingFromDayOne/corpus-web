@@ -22,6 +22,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - At the true bottom of an article the rail highlight stayed on the second-to-last part and the ring stopped short of 100% (reproduced on `how-react-renders`: Demo source visible at 459px, References still `on`, ring 68%)
 - Clicking a rail tick could light the next part: `jumpToPart` scrolled to the correct heading, but the observer then picked whichever heading sat in the 20%–40% band
 
+### [2026-08-26] — fix/av-rail-dev-origin-hydration — av-rail hydration fix
+
+**Fixed**
+- `apps/web/next.config.mjs` — added `127.0.2.2` to `allowedDevOrigins` so the `TocRail` (`av-rail`) client component's JS chunk isn't blocked and can hydrate when the dev server is reached via that loopback alias
+
 ### [2026-08-26] — cursor/feat-quiz-primitive-mechanism-7957 — quiz scoring rule narrowing
 
 **Added**

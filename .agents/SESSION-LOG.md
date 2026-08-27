@@ -3160,4 +3160,47 @@ tops from the repro instead.
 
 ---
 
+## Session — av-rail dev-origin hydration fix — 2026-08-26
 
+**Branch:** fix/av-rail-dev-origin-hydration
+
+**Files changed:**
+- `apps/web/next.config.mjs` — added `allowedDevOrigins: ['127.0.2.2', 'localhost']`
+
+**Why:** User reported `av-rail` (the article table-of-contents/progress rail,
+`toc-rail.tsx`) "not working as expected" — hover tooltips worked but the
+circular progress indicator, scroll-position highlighting, and click-to-jump
+navigation were all dead. Investigated as a possible code regression first:
+checked git history of `article.css` and the PR #32 quiz-primitive diff range
+for unintended styling changes (none found), and cross-checked `catalog.json`'s
+recorded heading anchors against the live rendered `<h2 id>`/`<h3 id>` values
+for the `jsx-and-rendering` lesson — they matched exactly, one-for-one, in
+order, ruling out an anchor-mismatch bug.
+
+The actual cause: the user accesses the local dev server via the `127.0.2.2`
+loopback alias (visible in their screenshot's URL bar), and the dev server log
+showed repeated `Blocked cross-origin request to Next.js dev resource
+/_next/hmr` and `/_next/static/chunks/...` warnings from that origin. Next.js
+16 blocks cross-origin HMR/chunk requests by default unless the origin is in
+`allowedDevOrigins`, which was unset. With those requests blocked, the JS
+bundle containing the `'use client'` `TocRail` component never loaded, so
+React never hydrated it — CSS-only behavior (`:hover` tooltips) kept working,
+every `useEffect`-driven behavior (the `IntersectionObserver` for
+active-highlight/seen-tracking, the progress-percent calculation, the
+`onClick` jump handler) silently never ran. Not a code regression in
+`toc-rail.tsx`, `article.css`, or the catalog anchors — a missing dev-only
+config entry that only manifests when the server is reached by an origin
+other than `localhost`.
+
+**Verification:** confirmed the blocked-origin warning stopped appearing in
+the dev server log, and a chunk request sent with `Origin:
+http://127.0.2.2:3000` returned 200 (previously logged as blocked) after the
+config change and a dev-server restart.
+
+**Invented decisions:** none — straightforward dev-config fix, not a scope
+or architecture decision.
+
+**Known issues / next steps:** none. This does not affect production builds
+(the block only applies to the dev server's HMR/asset endpoints).
+
+---
