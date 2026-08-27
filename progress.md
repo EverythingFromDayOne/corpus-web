@@ -47,7 +47,7 @@ the current pins: **197 selected, 181 adapting** — nextjs 10/10, react 58/73, 
 | 7 | `build-catalog.mjs` → routes + sidebar tree | ✅ | Session 3: listing routes plus article/lesson wrappers generate from `catalog.json` (181 articles, 289 edges, one path `react-render-cycle`). Session 2: real implementation, emit-with-exclusions, four-way link report. Re-measured: `build-catalog` writes — 181 of 197 articles, **289 edges**, 16 excluded (D11 + D15), 44 unresolved refs recorded (D13). `verify-links` still fails on the 44. |
 | 7b | `verify-frontmatter.mjs` / `verify-links.mjs` / `verify-catalog.mjs` gates | ✅ | Session 2; `verify-catalog`'s four checks (dup uid, missing/draft path target, `root`-folder sentinel) proven against synthetic fixtures. Follow-up c added a fifth: non-empty `catalog.failures` exits 1. Follow-up d: `verify-links`'s only fatal condition is `unresolvedTargets`; excluded/draft/planned/demo targets warn, and adaptation failures warn there because `verify-frontmatter` owns them. `verify-catalog` gained two structural checks (every edge resolves; every excluded target names a file in `failures`), both proven by tampering with a built artifact. All three still correctly fail on current content |
 | 8 | Full route tree, every completed article renders | ✅ | 181 adapting articles at `/en/blog/[corpus]/[slug]`. 16 excluded 404. Lesson pairs from `react-render-cycle` at `/en/courses/[course]/lessons/[slug]`. The session-1 `/concepts` spike stays deleted. |
-| 9 | Chrome: sidebar, breadcrumb, TOC rail, prev/next | ✅ | One `ArticleView`, two wrappers. Listing POC pinned shell + article POC body. Rail ticks are depth-2 parts only, `<button>` with hover and `:focus-visible` labels; `overflow: visible` so labels are not clipped. 18×2px ticks unchanged. D18 a11y remains debt. |
+| 9 | Chrome: sidebar, breadcrumb, TOC rail, prev/next | ✅ | One `ArticleView`, two wrappers. Listing POC pinned shell + article POC body. Rail ticks are depth-2 parts only, `<button>` with hover and `:focus-visible` labels; `overflow: visible` so labels are not clipped. 18×2px ticks unchanged. Scroll-spy is last heading above the 20% reading line plus a leftover-scroll fallback (last part / 100% when the last heading cannot reach that line). D18 a11y remains debt. |
 | 10 | Shiki code blocks (copy / download / expand) | ⚪ | Debt D20. Copy/download/expand ship unhighlighted. |
 | 11 | Pagefind search + ⌘K dialog | ⚪ | Disabled top-bar search matches the listing POC: `Search` label, `Coming soon` placeholder, `⌘K` hint, one line inside `--tb`. Debt D21 |
 | 12 | Mobile layout | 🟢 | Article/lesson mobile is a drawer, not a stacked curriculum. 390px visual pass is still human. **Headless Chrome clamps its window to roughly 500px**, so a `--window-size=390,900` run silently measures 500px; measure inside a fixed-width iframe |
@@ -77,6 +77,14 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **av-rail-scroll-spy (2026-08-26):** TocRail highlight froze one part
+  behind at page bottom and the ring stopped at 68% on
+  `how-react-renders` (Demo source visible at 459px; References stayed
+  `on`). Click scrolled to the correct heading; the observer then picked
+  the first heading in the 20%–40% band. Picker is now last heading
+  above the 20% line, with leftover scroll vs the last heading's
+  distance to that line forcing the last part and 100%. `rootMargin`
+  unchanged. Feature branch PR; not pushed to `main`. Do not auto-merge.
 - **quiz-answer-key-leak-fix (2026-08-26):** review-caught RSC leak on PR #32 —
   `article-markdown.tsx` was passing the full sidecar (`correct` on every
   option) into the `'use client'` `Quiz` component, so it shipped in the

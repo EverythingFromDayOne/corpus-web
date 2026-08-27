@@ -3069,6 +3069,96 @@ re-litigation of §7.4.
 
 ---
 
+## Session — av-rail scroll-spy — 2026-08-26
+
+**Branch:** `cursor/fix-av-rail-scroll-spy-f3b4`
+
+**Files changed:**
+- `apps/web/lib/toc-spy.ts` — pure picker: last heading above the 20%
+  reading line, last heading + all-seen at page bottom
+- `apps/web/components/article/toc-rail.tsx` — observer still uses the
+  existing `rootMargin`/`threshold` as a trigger; active/seen come from
+  `toc-spy`; `.av-pnav` is a bottom sentinel; `jumpToPart` sets `active`
+  to the clicked anchor before `scrollIntoView`
+- `apps/web/test/toc-spy.test.ts` — unit coverage of the picker using
+  heading tops measured in the browser repro
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — Unreleased Fixed bullets
+- `.agents/summary.md` — rail key fact records the picker, not
+  `visible[0]`
+- `progress.md` — session-log line
+
+**Why:** User-reported two symptoms on the TOC rail
+(`apps/web/components/article/toc-rail.tsx`): at the true bottom the
+highlight stuck on the second-to-last part and the ring never reached
+100%; clicking a tick felt like it landed on the next section. Reproduced
+in Chrome at 1209×1411 on
+`/en/courses/react-render-cycle/lessons/how-react-renders` (13 parts).
+
+At `scrollY === maxScroll` (17964): last heading `demo-source` was on
+screen at `top: 459`, `references` at 287, `see-also` at -163. Both
+`references` and `demo-source` sit inside the observer's 20%–40% band
+(282–564). The callback took `visible[0]` — the first intersecting
+entry — so the rail stayed on "Jump to Part 12 References" and the ring
+read **68%**, not 100%. Instant jump-to-bottom also skips the band for
+headings that never change intersection state, so they were never marked
+seen.
+
+Click was not a wrong-anchor bug. Clicking Part 4 (Walkthrough) set
+`hash` to `#walkthrough-one-keystroke-end-to-end` and left that heading
+at `top: 52` (scroll-margin under the sticky bar); Part 7 (Common
+mistakes) landed at `top: 72` with the matching hash. `jumpToPart`'s
+`getElementById(anchor)?.scrollIntoView({ block: 'start' })` scrolled
+to the clicked heading. The next heading on those two clicks was
+thousands of pixels below, so the highlight happened to match. The
+failure mode is a *short* next section whose heading sits in the 20%–40%
+band while the clicked heading is parked at ~72px, *above* the band: the
+picker then lights N+1 even though the scroll target was N.
+
+The band width itself is fine — it is a trigger, not a picker. Left
+`rootMargin: '-20% 0px -60% 0px'` and `threshold: [0, 0.25, 1]`
+unchanged. Active is now the last heading whose top is at or above 20%
+of the viewport, overridden to the last heading when leftover scroll is
+too short to bring that heading up to the reading line (including max
+scroll). That also marks every part seen so the ring can hit 100%.
+`.av-pnav` is observed with several thresholds so the picker reruns as
+the outro comes into view — it is not itself "at bottom", because a
+click on a late short part (See also) leaves that nav visible and would
+otherwise steal the highlight for Demo source. Click sets `active`
+immediately and pins it until the picker agrees or the page hits max
+scroll.
+
+A DOM/scroll unit test is not practical in `apps/web`'s `node --test`
+runner (no layout). The picker is extracted and tested with the measured
+tops from the repro instead.
+
+**Invented decisions:**
+- Did not change `rootMargin`/`threshold`. The band is still the
+  IntersectionObserver trigger; the bug was `visible[0]` among entries
+  in that band, not the band's size.
+- Used leftover-scroll vs last-heading distance to the reading line as
+  the page-bottom override, not "`.av-pnav` is intersecting". The nav
+  is only a sentinel that retriggers the picker (thresholds 0–1) so we
+  still get a callback in the last screenful without a scroll listener.
+- Reading line is 20% of `innerHeight`, matching the *top* of the
+  existing band, so mid-page behaviour stays "heading that has reached
+  the band" rather than "first heading still inside it".
+- Click pins `active` until the picker agrees or remaining scroll is 0,
+  so a late-part click cannot be overwritten by the bottom override.
+- No `docs/DEBT.md` / `roadmap.md` / quiz-file edits, per instruction.
+
+**Known issues / next steps:**
+- Re-verified in Chrome at 1259px on the same lesson after the
+  leftover-scroll / click-pin tightening. Absolute bottom: remaining 0,
+  tick 12 (Demo source) `on`, ring 100%. Walkthrough click: hash
+  `#walkthrough-one-keystroke-end-to-end`, tick 3 `on`, heading top 72.
+  See also click (short section): hash `#see-also`, tick 10 `on`,
+  References and Demo source `on: false`, heading top 72.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side,
+  unrelated.
+- Do not auto-merge.
+
+---
 
 ## Session — av-rail dev-origin hydration fix — 2026-08-26
 
