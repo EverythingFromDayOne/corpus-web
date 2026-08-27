@@ -1,0 +1,201 @@
+schema: 1
+article: react/thinking-in-react
+inject:
+  - afterSection: what-it-is
+    component: Flashcard
+    props:
+      id: tir-three-ideas
+      title: The three ideas behind the model
+      cards:
+        - front: "What are the three ideas that make React's model work?"
+          back: "1) Components are functions that return descriptions (elements are lightweight objects, not DOM). 2) State is the source of truth; the DOM is a projection (throw it away and recompute, your state holds everything). 3) Data flows one way (props down, changes up through callbacks)."
+        - front: "What is the trade React is making?"
+          back: "N pieces of state and M places they show up. Imperative code hand-writes every combination and transition (N×M). Declarative code writes N descriptions and lets the library handle the M×N bookkeeping. That trade is the entire product."
+        - front: "Why must calling the same component twice with the same inputs produce the same description?"
+          back: "Purity is the contract that lets React run renders twice (StrictMode), pause and discard them (concurrent), and skip them entirely (Compiler memoization). A component that returns different output on the second call breaks every one of those guarantees."
+  - afterSection: the-render-loop
+    component: Quiz
+    props:
+      schema: 1
+      article_id: thinking-in-react
+      title: "Quick check — the render loop"
+      questions:
+        - id: tir-three-steps
+          prompt: "What are the three steps in React's render loop, in order?"
+          options:
+            - label: A
+              body: "Render → Commit → Trigger"
+              correct: false
+            - label: B
+              body: "Trigger → Render → Commit"
+              correct: true
+            - label: C
+              body: "Mount → Update → Patch"
+              correct: false
+            - label: D
+              body: "Read → Write → Notify"
+              correct: false
+          explanation: |
+            (1) Trigger: a state setter enqueues a render (or it's the initial mount). (2) Render:
+            React calls your component functions top-down and collects element trees — no DOM
+            work, allowed to be interrupted, discarded, or run twice because it has no observable
+            side effects. (3) Commit: React diffs the new tree against the previous one
+            (reconciliation by element `type` and `key`) and applies the minimal set of DOM
+            mutations in one synchronous pass.
+
+        - id: tir-renders-vs-commits
+          prompt: "Your component re-renders 30 times in a minute, but produces the same description each time. How many actual DOM updates happen?"
+          options:
+            - label: A
+              body: "30 — every render means a DOM update"
+              correct: false
+            - label: B
+              body: "0 — React compares the new tree against the previous one and finds no differences, so the commit phase has no work to do"
+              correct: true
+            - label: C
+              body: "It depends on the browser"
+              correct: false
+            - label: D
+              body: "It depends on the size of the tree"
+              correct: false
+          explanation: |
+            Renders are cheap, commits are expensive — and React already minimizes commits for
+            you. The diff in the commit phase finds no element-level differences, so the DOM
+            isn't touched. This is also why the fix for slow apps is rarely 'prevent renders' —
+            it's 'make renders pure and cheap' so the Compiler can memoize them and React can
+            skip the work entirely.
+  - afterSection: what-purity-buys
+    component: Callout
+    props:
+      id: tir-purity-three-things
+      variant: info
+      title: What purity buys you, concretely
+      body: "Because the render phase is a pure computation over state, React is free to: run it twice in development (StrictMode probes for non-idempotence); interrupt and discard it (concurrent rendering can pause and restart); and skip it entirely (the React Compiler memoizes on the assumption that same inputs → same output). Your components describe; React decides when, whether, and how often to ask for the description."
+  - afterSection: step-3--find-the-minimal-state
+    component: Quiz
+    props:
+      schema: 1
+      article_id: thinking-in-react
+      title: "Quick check — minimal state"
+      questions:
+        - id: tir-three-questions
+          prompt: "What are the three questions every piece of data must survive before it gets to be state?"
+          options:
+            - label: A
+              body: "Is it fast? Is it simple? Is it mutable?"
+              correct: false
+            - label: B
+              body: "Does it change over time? Is it passed in as a prop? Is it computable from something else? Only if the answer to all three is the right one does it become state."
+              correct: true
+            - label: C
+              body: "Is it a string? Is it an object? Is it private to the component?"
+              correct: false
+            - label: D
+              body: "Does the user see it? Does it persist across renders? Does it have a default?"
+              correct: false
+          explanation: |
+            The interrogation: (1) Does it change over time? — if no, it's a constant. (2) Is it
+            passed in as a prop? — if yes, it's not state. (3) Is it computable from something
+            else? — if yes, derive it during render. The article's walkthrough table has five
+            candidate data points; only two survive all three tests. Every entry you wrongly
+            promote to state becomes a synchronization job you now own.
+
+        - id: tir-lowest-common-parent
+          prompt: "You have two components that both render from the same piece of state. Where does the state live?"
+          options:
+            - label: A
+              body: "In the topmost `App` component, for maximum reach"
+              correct: false
+            - label: B
+              body: "In their lowest common parent — the closest ancestor component above both consumers"
+              correct: true
+            - label: C
+              body: "In a global store, like context"
+              correct: false
+            - label: D
+              body: "Each component holds its own copy and they sync via effects"
+              correct: false
+          explanation: |
+            Lift only when shared, and no further than the lowest common parent. Every level you
+            lift widens the subtree that re-renders per change and couples components that didn't
+            need coupling. This is the same habit as 'colocate state; lift only when shared.'
+            The walkthrough's `FilterableProductTable` is the example: `SearchBar` displays
+            `query`/`inStockOnly`, `ProductTable` consumes them via filtering, and the lowest
+            common parent is `FilterableProductTable` — not `App`, not context.
+  - afterSection: derive-dont-store
+    component: Quiz
+    props:
+      schema: 1
+      article_id: thinking-in-react
+      title: "Quick check — derive, don't store"
+      questions:
+        - id: tir-derived-state-effect
+          prompt: "You're storing `visibleCount` in state and updating it inside a `useEffect` that watches `products`. What's wrong?"
+          options:
+            - label: A
+              body: "Nothing — effects are the right tool for syncing derived data"
+              correct: false
+            - label: B
+              body: "Two sources of truth, synced by hand — you now own a synchronization job. Compute during render instead."
+              correct: true
+            - label: C
+              body: "The effect should run in the layout phase, not the passive phase"
+              correct: false
+            - label: D
+              body: "You forgot to add the dependency to the deps array"
+              correct: false
+          explanation: |
+            The tell is `useEffect` + `setState` where the effect's only inputs are other
+            state/props. Delete the `visibleCount` state, compute it inline:
+            `const visibleCount = products.filter(p => p.inStock).length`. One source of
+            truth, one projection, no extra render. The 'but the computation is expensive'
+            objection is the Compiler-era answer: write it plainly, the Compiler caches it when
+            inputs haven't changed, and the profiler will tell you if a hotspot remains.
+  - afterSection: common-mistakes
+    component: DragDrop
+    props:
+      id: tir-classify-mistakes
+      title: Categorize the common mistakes
+      prompt: "Drag each common-mistake category into the slot for the right fix."
+      explanation: "Mutating state in place → new reference (`[...items, newItem]`). Expecting immediate update → read the snapshot or use the updater function. Storing derived data → compute it during render. Touching the DOM behind React's back → use state, or refs for focus/measurement. Side effects during render → move them to event handlers or effects. Copying props into state → render from the prop directly."
+      slots:
+        - id: tir-slot-mutate
+          label: "New reference"
+          accepts:
+            - tir-chip-push
+            - tir-chip-sort
+        - id: tir-slot-dom
+          label: "Use state or ref"
+          accepts:
+            - tir-chip-querysel
+            - tir-chip-classlist
+        - id: tir-slot-effect
+          label: "Move to handler/effect"
+          accepts:
+            - tir-chip-fetch
+            - tir-chip-localstorage
+      chips:
+        - id: tir-chip-push
+          text: "`items.push(newItem); setItems(items)`"
+          correctSlots:
+            - tir-slot-mutate
+        - id: tir-chip-sort
+          text: "`arr.sort(); setArr(arr)`"
+          correctSlots:
+            - tir-slot-mutate
+        - id: tir-chip-querysel
+          text: "`document.querySelector('.x').focus()` in render"
+          correctSlots:
+            - tir-slot-dom
+        - id: tir-chip-classlist
+          text: "`document.body.classList.add('open')` in render"
+          correctSlots:
+            - tir-slot-dom
+        - id: tir-chip-fetch
+          text: "`fetch('/api')` in render body"
+          correctSlots:
+            - tir-slot-effect
+        - id: tir-chip-localstorage
+          text: "`localStorage.setItem(...)` in render body"
+          correctSlots:
+            - tir-slot-effect

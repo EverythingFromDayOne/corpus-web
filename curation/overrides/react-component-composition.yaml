@@ -1,0 +1,163 @@
+schema: 1
+article: react/component-composition
+inject:
+  - afterSection: what-it-is
+    component: Flashcard
+    props:
+      id: cc-the-ladder
+      title: The composition ladder
+      cards:
+        - front: "List the four rungs of the composition ladder, cheapest first."
+          back: "1) `children` — one main slot. 2) Named slots — several placed regions. 3) Compound components — a family of parts sharing implicit state. 4) Render props — caller supplies a function the component invokes with data it owns. Each rung buys flexibility and costs API surface."
+        - front: "What's the discipline around climbing the ladder?"
+          back: "Refuse to climb early. A `Card` with `children` should not become compound because one caller wanted a divider."
+        - front: "What is the difference between an element's owner and its parent?"
+          back: "Owner: the component whose render created the element (whoever wrote the JSX). Parent: the component directly above it in the rendered tree (whoever emitted it via `{children}` or a slot). Usually the same, but composition makes them different on purpose."
+  - afterSection: owner-versus-parent--the-distinction-everything-rests-on
+    component: Quiz
+    props:
+      schema: 1
+      article_id: component-composition
+      title: "Quick check — owner vs parent"
+      questions:
+        - id: cc-owner-of-closure
+          prompt: "In `<Shell><Reports/></Shell>`, `Reports` reads a closure that captures state from `Page`. Whose closure is it — `Shell`'s or `Page`'s?"
+          options:
+            - label: A
+              body: "Shell's, because Shell is the parent in the rendered tree"
+              correct: false
+            - label: B
+              body: "Page's, because Page is the owner — the component whose render created the `<Reports/>` element"
+              correct: true
+            - label: C
+              body: "It depends on whether `<Reports/>` is mounted inside Shell's provider"
+              correct: false
+            - label: D
+              body: "Neither — React merges both closures into a single hybrid scope"
+              correct: false
+          explanation: |
+            Owners supply the props and closures; parents supply the slot. Since `<Reports/>` was
+            written inside `Page`'s render, the closure belongs to `Page`. Composition's whole
+            job is making this distinction matter — by choosing where elements are *created*
+            (the owner) versus where they're *emitted* (the parent), you decide whose state
+            they capture and whose re-renders they answer to.
+
+        - id: cc-slot-content
+          prompt: "An element passed as a slot to a host component reads context. Whose provider does it read from — the owner's or the parent's?"
+          options:
+            - label: A
+              body: "The owner's, because the owner is what created the element"
+              correct: false
+            - label: B
+              body: "The parent's, because context resolves against where the element is rendered in the tree, not where it was created"
+              correct: true
+            - label: C
+              body: "Whichever is nearest in the component tree"
+              correct: false
+            - label: D
+              body: "The closest provider above the call site of `useContext`"
+              correct: false
+          explanation: |
+            A slotted element lives a double life. Props and closures come from the owner
+            (captured at render-time); context comes from where it sits in the tree at render
+            position. The two are independent — and that independence is the mechanism compound
+            components are built on: the parts read the family's context because the caller
+            placed them inside it.
+  - afterSection: the-two-performance-moves--the-groundwork
+    component: Callout
+    props:
+      id: cc-push-down-lift-up
+      variant: info
+      title: Push state down, lift content up
+      body: "Two performance moves, both pure restructuring. Push state down: state consumed by a small region shouldn't live above a big one. Lift content up: when the stateful component must wrap the expensive content, accept it as `children` so its owner is someone calmer. Owner placement is the optimization — this pair is what the typing-lag recipe reaches for before any memoization API."
+  - afterSection: the-two-performance-moves--the-groundwork
+    component: Quiz
+    props:
+      schema: 1
+      article_id: component-composition
+      title: "Quick check — push state down vs lift content up"
+      questions:
+        - id: cc-lift-content-up
+          prompt: "`<ResizableSplit left={<FileTree />} right={<Editor />} />` re-renders 60×/sec while dragging the divider, but `<FileTree>` and `<Editor>` do not. Why?"
+          options:
+            - label: A
+              body: "Because the props are wrapped in `useMemo` inside ResizableSplit"
+              correct: false
+            - label: B
+              body: "Because `left` and `right` were created by the caller — they're reference-identical across renders — so React bails out of FileTree and Editor entirely"
+              correct: true
+            - label: C
+              body: "Because `memo` is automatically applied to children"
+              correct: false
+            - label: D
+              body: "Because ResizableSplit is a server component"
+              correct: false
+          explanation: |
+            `ResizableSplit` re-renders per drag frame, but its render function only emits
+            `{left}` and `{right}` — those elements were created in the *caller's* render, so they
+            keep the same reference across every ResizableSplit render. React's bailout check sees
+            identical element refs and skips the subtree entirely. The anti-version is
+            `ResizableSplit` importing `<FileTree />` itself — owner moves, bailout gone.
+  - afterSection: step-4--the-root-controlled-and-uncontrolled-the-forms-pattern-at-component-scale
+    component: Quiz
+    props:
+      schema: 1
+      article_id: component-composition
+      title: "Quick check — controlled vs uncontrolled compound roots"
+      questions:
+        - id: cc-controlled-vs-uncontrolled
+          prompt: "A `<Tabs>` exposes both `value`+`onValueChange` and `defaultValue`. When `value !== undefined`, the root is in:"
+          options:
+            - label: A
+              body: "Hybrid mode — internal state still updates, the callback is just notified"
+              correct: false
+            - label: B
+              body: "Controlled mode — the internal state must never be written; the callback fires for the caller to own"
+              correct: true
+            - label: C
+              body: "Uncontrolled mode — `value` is silently ignored"
+              correct: false
+            - label: D
+              body: "Invalid — both cannot coexist on the same component"
+              correct: false
+          explanation: |
+            The presence of `value` selects controlled mode; absence selects uncontrolled (with
+            `defaultValue` as the seed). In controlled mode, the root fires the callback but never
+            writes its own state — the caller owns the truth. In uncontrolled mode, the root owns
+            state but the callback is optional. Switching modes mid-life is the same bug it was
+            for inputs: state writes during a 'controlled' render corrupt the source of truth.
+  - afterSection: render-props-where-they-still-earn-rent-after-hooks
+    component: DragDrop
+    props:
+      id: cc-render-props-vs-hook
+      title: Render prop vs custom hook
+      prompt: "Drag each delegation pattern into the slot for when it earns rent."
+      explanation: "Custom hooks win when the caller reuses the *logic*. Render props win when the component owns per-instance data (positions, measurements, virtualized rows) and the caller owns the markup. Function-as-children is the same pattern with `children` as the function — fine, but named props like `renderRow` read better once there's more than one."
+      slots:
+        - id: cc-slot-hook
+          label: "Custom hook"
+          accepts:
+            - cc-chip-form
+            - cc-chip-validation
+        - id: cc-slot-rp
+          label: "Render prop"
+          accepts:
+            - cc-chip-vlist
+            - cc-chip-tooltip
+      chips:
+        - id: cc-chip-form
+          text: "useFormField in a form"
+          correctSlots:
+            - cc-slot-hook
+        - id: cc-chip-validation
+          text: "useDebouncedValue"
+          correctSlots:
+            - cc-slot-hook
+        - id: cc-chip-vlist
+          text: "<VirtualList renderRow=...>"
+          correctSlots:
+            - cc-slot-rp
+        - id: cc-chip-tooltip
+          text: "<Chart data renderLegend=...>"
+          correctSlots:
+            - cc-slot-rp
