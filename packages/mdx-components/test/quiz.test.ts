@@ -97,6 +97,60 @@ test('injectAfterSections throws when afterSection is missing from the tree', ()
   );
 });
 
+test('injectAfterSections mounts three .av-qz cards at three heading anchors', () => {
+  const body = createElement(Fragment, null, [
+    createElement('h2', { id: 'warm-up', key: 'a' }, 'Warm-up'),
+    createElement('p', { key: 'ap' }, 'Intro.'),
+    createElement('h2', { id: 'how-it-works-under-the-hood', key: 'b' }, 'How it works'),
+    createElement('p', { key: 'bp' }, 'Body.'),
+    createElement('h3', { id: 'element--component--instance', key: 'c' }, 'Element'),
+    createElement('p', { key: 'cp' }, 'Distinction.'),
+    createElement('h2', { id: 'basic-usage', key: 'd' }, 'Basic'),
+  ]);
+  const injected = injectAfterSections(body, [
+    { afterSection: 'warm-up', node: createElement('section', { className: 'av-qz', 'data-quiz': '1' }) },
+    {
+      afterSection: 'how-it-works-under-the-hood',
+      node: createElement('section', { className: 'av-qz', 'data-quiz': '2' }),
+    },
+    {
+      afterSection: 'element--component--instance',
+      node: createElement('section', { className: 'av-qz', 'data-quiz': '3' }),
+    },
+  ]);
+  const types = childSummary(injected);
+  assert.equal(types.filter((item) => item === 'quiz').length, 3);
+  assert.deepEqual(types, [
+    'h2#warm-up',
+    'p',
+    'quiz',
+    'h2#how-it-works-under-the-hood',
+    'p',
+    'quiz',
+    'h3#element--component--instance',
+    'p',
+    'quiz',
+    'h2#basic-usage',
+  ]);
+});
+
+test('injectAfterSections mix of afterSection empty and a heading slug', () => {
+  const body = createElement(Fragment, null, [
+    createElement('h2', { id: 'warm-up', key: 'h' }, 'Warm-up'),
+    createElement('p', { key: 'p' }, 'Intro.'),
+    createElement('h2', { id: 'next', key: 'n' }, 'Next'),
+    createElement('p', { key: 'q' }, 'End body.'),
+  ]);
+  const injected = injectAfterSections(body, [
+    { afterSection: 'warm-up', node: createElement('section', { className: 'av-qz', 'data-quiz': 'inline' }) },
+    { afterSection: END_OF_ARTICLE, node: createElement('section', { className: 'av-qz', 'data-quiz': 'end' }) },
+  ]);
+  const types = childSummary(injected);
+  assert.equal(types.filter((item) => item === 'quiz').length, 2);
+  assert.equal(types[2], 'quiz');
+  assert.equal(types.at(-1), 'quiz');
+});
+
 /**
  * fumadocs `MarkdownServer` does not emit native `h2`/`h3` nodes when those
  * tags are overridden: the tree child is the function component, and the

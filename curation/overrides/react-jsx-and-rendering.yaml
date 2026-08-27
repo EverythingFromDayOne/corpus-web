@@ -1,0 +1,67 @@
+schema: 1
+article: react/jsx-and-rendering
+inject:
+  - afterSection: what-it-is
+    component: Flashcard
+    props:
+      id: jsx-as-sugar
+      title: JSX is sugar for createElement
+      cards:
+        - front: "What does `<button className=\"primary\">Save</button>` compile to under the React 17+ automatic runtime?"
+          back: "A call to jsx('button', { className: 'primary', children: 'Save' }). The import is injected from react/jsx-runtime; there is no JSX at runtime."
+        - front: "What did the pre-17 classic transform emit instead, and what did every file need in scope?"
+          back: "React.createElement('button', { className: 'primary' }, 'Save'). Every file needed import React in scope."
+        - front: Why is there no JSX at runtime?
+          back: JSX is a build-time syntax extension. The compiler rewrites it into function calls; nothing HTML-like remains.
+  - afterSection: how-it-works-under-the-hood
+    component: Callout
+    props:
+      id: babel-plugin-syntax-jsx
+      variant: info
+      title: Tip
+      body: "`babel-plugin-syntax-jsx` is no longer needed in modern React."
+  - afterSection: how-it-works-under-the-hood
+    component: Quiz
+    props:
+      schema: 1
+      article_id: jsx-and-rendering
+      questions:
+        - id: jsx-emits-elements
+          prompt: "What does the JSX compiler emit for a host element like `<button>`?"
+          options:
+            - label: A
+              body: An HTML string assigned to innerHTML
+              correct: false
+            - label: B
+              body: A call to jsx('button', props) that returns a React element object
+              correct: true
+            - label: C
+              body: A DOM node created with document.createElement
+              correct: false
+          explanation: JSX is compiled away at build time. The automatic runtime emits jsx() calls that return element objects; the DOM does not exist yet.
+  - afterSection: element--component--instance
+    component: Callout
+    props:
+      id: numbers-are-children
+      variant: warn
+      title: Watch out
+      body: "Numbers are valid JSX children. `{cart.items.length && <CartBadge />}` renders `0` when the cart is empty."
+  - afterSection: element--component--instance
+    component: Quiz
+    props:
+      schema: 1
+      article_id: jsx-and-rendering
+      questions:
+        - id: element-not-yet-called
+          prompt: "When you write `<Card title=\"Hi\" />`, which of these is true of Card at that moment?"
+          options:
+            - label: A
+              body: React has already called the Card function
+              correct: false
+            - label: B
+              body: An element object exists; the Card function has not been called yet
+              correct: true
+            - label: C
+              body: Your code has constructed a fiber instance
+              correct: false
+          explanation: An element is a description. The function has not been called yet. React calls it later, during render, against its own instance.

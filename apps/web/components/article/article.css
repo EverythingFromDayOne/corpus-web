@@ -1,3 +1,5 @@
+@import './lesson-tokens.css';
+
 /* Article shell + body. Tokens from @corpus/ui. No raw hex.
    Shell (pinned columns, document scroll) follows listing-pages-poc.html.
    Body (prose, code, callouts, rail ticks) follows article-layout-poc.html. */

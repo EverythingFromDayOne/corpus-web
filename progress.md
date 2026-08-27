@@ -77,6 +77,12 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **sydexa-clone-inline-quizzes (2026-08-27):** Spec A plus flashcard,
+  callout, lesson tokens, and quiz glow. `QuizSidecar` accepts `quiz:`
+  as one block or an array (legacy `questions` kept). Sample lives in
+  `curation/overrides/react-jsx-and-rendering.yaml` — not under
+  `content/` (content-boundary). `quiz-actions.ts` / answer-key strip
+  untouched. Feature branch PR; not pushed to `main`. Do not auto-merge.
 - **after-section-heading-anchor (2026-08-27):** PR #32's heading-anchored
   `afterSection` threw `interactive injection afterSection not found` at
   prerender even when the slug matched `catalog.sections`. Reproduced on

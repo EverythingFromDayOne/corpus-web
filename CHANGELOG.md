@@ -5,6 +5,27 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-27] — cursor/feat-sydexa-clone-inline-quizzes-4d82 — inline quiz, flashcard, callout, lesson tokens
+
+**Added**
+- `quiz:` on `QuizSidecar` as one block or an array of blocks, each with its own `afterSection` (legacy top-level `questions` still parses)
+- `packages/content-schema/src/flashcard-sidecar.ts` — inline front/back strip schema
+- `packages/content-schema/src/callout-sidecar.ts` — info/success/warn/error note schema
+- `packages/mdx-components` `Flashcard` and `Callout`, registered on `mdxRegistry`
+- `apps/web/components/article/lesson-tokens.css` — `.lesson-surface` token layer and quiz glow
+- `curation/overrides/react-jsx-and-rendering.yaml` — two quizzes, one flashcard strip, two callouts on the JSX lesson
+
+**Changed**
+- `injectAfterSections` callers iterate a mixed widget list (quiz / flashcard / callout)
+- Article body (h1, dek, prose, related) wrapped in `.lesson-surface`; chrome stays on app tokens
+- Override `afterSection` may be empty (end of article)
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Quoted flashcard strings that contain `{ className: ... }` so the JSX-lesson override YAML parses at prerender
+
 ### [2026-08-27] — cursor/fix-after-section-heading-anchor-473e — heading-anchored afterSection injection
 
 **Added**

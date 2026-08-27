@@ -2,8 +2,17 @@ import type { ReactNode } from 'react';
 import { cacheLife } from 'next/cache';
 import { createMarkdownRenderer } from 'fumadocs-core/content/md';
 import { remarkGfm } from 'fumadocs-core/mdx-plugins';
-import { CodeBlock, type CodeBlockLabels, Quiz, type QuizLabels, injectAfterSections } from '@corpus/mdx-components';
-import { toClientQuizWidget, type QuizWidget } from '@/lib/article-widgets';
+import {
+  Callout,
+  CodeBlock,
+  Flashcard,
+  Quiz,
+  injectAfterSections,
+  type CodeBlockLabels,
+  type FlashcardLabels,
+  type QuizLabels,
+} from '@corpus/mdx-components';
+import { toClientQuizWidget, type LessonWidget } from '@/lib/article-widgets';
 import { gradeQuizAnswer } from '@/lib/quiz-actions';
 import type { Locale } from '@/lib/locales';
 import { articlePath } from '@/lib/routes';
@@ -120,7 +129,7 @@ export async function renderArticleMarkdown({
   liveUids: string[];
   messages: Messages;
   sourceUrl: string | null;
-  widgets?: QuizWidget[];
+  widgets?: LessonWidget[];
   widgetsKey?: string;
 }): Promise<ReactNode> {
   'use cache';
@@ -145,6 +154,14 @@ export async function renderArticleMarkdown({
     incorrect: t(messages, 'article.quizIncorrect'),
     explanation: t(messages, 'article.quizExplanation'),
     error: t(messages, 'article.quizError'),
+  };
+  const flashcardLabels: FlashcardLabels = {
+    eyebrow: t(messages, 'article.flashcardEyebrow'),
+    previous: t(messages, 'article.flashcardPrevious'),
+    next: t(messages, 'article.flashcardNext'),
+    progress: t(messages, 'article.flashcardProgress'),
+    front: t(messages, 'article.flashcardFront'),
+    back: t(messages, 'article.flashcardBack'),
   };
 
   const body = await Promise.resolve(
@@ -222,6 +239,32 @@ export async function renderArticleMarkdown({
   return injectAfterSections(
     body,
     widgets.map((widget) => {
+      if (widget.kind === 'flashcard') {
+        return {
+          afterSection: widget.afterSection,
+          node: (
+            <Flashcard
+              id={widget.sidecar.id}
+              title={widget.sidecar.title}
+              cards={widget.sidecar.cards}
+              labels={flashcardLabels}
+            />
+          ),
+        };
+      }
+      if (widget.kind === 'callout') {
+        return {
+          afterSection: widget.afterSection,
+          node: (
+            <Callout
+              id={widget.sidecar.id}
+              variant={widget.sidecar.variant}
+              title={widget.sidecar.title}
+              body={widget.sidecar.body}
+            />
+          ),
+        };
+      }
       // `correct` and `explanation` are dropped right here, before this ever
       // becomes a prop on the `'use client'` Quiz component — see
       // `toClientQuizWidget()` for why that has to happen on this side of

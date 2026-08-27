@@ -1,9 +1,19 @@
 import type { MDXComponents } from 'mdx/types';
 import { CodeBlock } from './code-block';
 import { Quiz } from './quiz';
+import { Flashcard } from './flashcard';
+import { Callout } from './callout';
 
 export { CodeBlock, type CodeBlockLabels } from './code-block';
 export { Quiz, type QuizLabels, type QuizProps } from './quiz';
+export { Flashcard, type FlashcardLabels, type FlashcardProps } from './flashcard';
+export { Callout, type CalloutProps, type CalloutVariant, calloutClassName, renderInlineMarkdown } from './callout';
+export {
+  nextCardIndex,
+  prevCardIndex,
+  toggleFlip,
+  shouldHandleFlipKey,
+} from './flashcard-model';
 export type {
   QuizQuestion,
   ClientQuizOption,
@@ -26,6 +36,8 @@ export {
  */
 export const mdxRegistry = {
   Quiz,
+  Flashcard,
+  Callout,
 } as const;
 
 export type MdxRegistryName = keyof typeof mdxRegistry;
@@ -42,6 +54,8 @@ export function getMDXComponents(components: MDXComponents = {}): MDXComponents 
   return {
     pre: CodeBlock as unknown as MDXComponents['pre'],
     Quiz,
+    Flashcard,
+    Callout,
     ...components,
   };
 }

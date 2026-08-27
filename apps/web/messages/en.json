@@ -157,6 +157,12 @@
     "quizCorrect": "Correct",
     "quizIncorrect": "Not quite",
     "quizExplanation": "Explanation",
-    "quizError": "Couldn't check that answer. Try again."
+    "quizError": "Couldn't check that answer. Try again.",
+    "flashcardEyebrow": "Review",
+    "flashcardPrevious": "Previous card",
+    "flashcardNext": "Next card",
+    "flashcardProgress": "{current} / {total}",
+    "flashcardFront": "Show back",
+    "flashcardBack": "Show front"
   }
 }

@@ -55,7 +55,9 @@ include globs, the `status` value set, and whether `concept_folder` is present o
 | `common.ts` | Repo ids, slugs, the `${repo}/${articleId}` uid, `related` ref shape |
 | `article.ts` | The normalised `Article` and its extracted sections |
 | `adapters/` | Per-corpus frontmatter schemas and normalisation |
-| `sidecars.ts` | Quiz and flashcard files — these live in the **corpus** repos |
+| `sidecars.ts` | Quiz files — top-level `questions` (legacy) or `quiz` as one block / an array of blocks, each with `afterSection`. Flashcard *decks* for SRS (`DeckSidecar`) also live here. |
+| `flashcard-sidecar.ts` | Inline flashcard strip (`front`/`back` only) mounted after a heading |
+| `callout-sidecar.ts` | Themed notes (`info` / `success` / `warn` / `error`) |
 | `curation.ts` | Paths and component-injection overrides — these live in the **site** repo |
 | `catalog.ts` | `catalog.json`, the only content artifact the API sees |
 
