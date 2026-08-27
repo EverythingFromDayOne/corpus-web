@@ -20,6 +20,7 @@ import {
   returnToPool,
   settleGrade,
   slotClassName,
+  nextDragTarget,
   type DragDropProps,
 } from '../src/dragdrop';
 import { injectAfterSections, injectDragDrop } from '../src/inject-after-sections';
@@ -203,4 +204,46 @@ test('injectDragDrop is injectAfterSections under the drag-drop name', () => {
   const viaAlias = injectDragDrop(body, [{ afterSection: 'how-it-works-under-the-hood', node }]);
   const viaBase = injectAfterSections(body, [{ afterSection: 'how-it-works-under-the-hood', node }]);
   assert.equal(markup(viaAlias), markup(viaBase));
+});
+
+test('is-target is added on drag enter and removed on drag leave', () => {
+  let target: string | null = null;
+  target = nextDragTarget(target, 'enter', 'type-slot');
+  assert.equal(target, 'type-slot');
+  assert.equal(slotClassName(false, undefined, true).includes('is-target'), true);
+  target = nextDragTarget(target, 'leave', 'type-slot');
+  assert.equal(target, null);
+  assert.equal(slotClassName(false, undefined, false).includes('is-target'), false);
+  target = nextDragTarget('type-slot', 'drop', 'type-slot');
+  assert.equal(target, null);
+});
+
+test('DragDropView paints is-target on the hovered slot', () => {
+  const noop = () => undefined;
+  const html = markup(
+    DragDropView({
+      uid: 'target',
+      articleUid: 'react/jsx-and-rendering',
+      sidecarId: exercise.id,
+      title: 'Compose the JSX mapping',
+      fallbackLine: fallbackAnswerLine(exercise),
+      slots: exercise.slots.map((slot) => ({ id: slot.id, label: slot.label })),
+      chips: exercise.chips.map((chip) => ({ id: chip.id, text: chip.text })),
+      labels,
+      board: createBoard(slotIds, chipIds, exercise.id),
+      pending: false,
+      failed: false,
+      onDragStart: noop,
+      onDragOver: noop,
+      onDropSlot: noop,
+      onDropPool: noop,
+      onPoolKeyDown: noop,
+      onSlotActivate: noop,
+      onChipActivate: noop,
+      onSubmit: noop,
+      onReset: noop,
+      targetSlotId: 'type-slot',
+    }),
+  );
+  assert.match(html, /is-target/);
 });

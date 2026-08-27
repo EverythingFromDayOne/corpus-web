@@ -105,3 +105,8 @@ export function toClientQuestion(question: QuizQuestion): ClientQuizQuestion {
     options: unrevealedOptions(question),
   };
 }
+
+/** `data-mounted` on the verdict/explanation: false until the grade has painted. */
+export function quizRevealMounted(hasVerdict: boolean, paintReady: boolean): 'true' | 'false' {
+  return hasVerdict && paintReady ? 'true' : 'false';
+}

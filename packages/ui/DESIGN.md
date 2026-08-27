@@ -105,7 +105,9 @@ Everything else stays quiet so this can be loud.
 ## Motion
 
 One orchestrated moment: the landing page's concept-graph teaser draws its edges on load,
-once, 900ms, then settles. Elsewhere: 120ms ease-out on hover and focus, nothing else.
+once, 900ms, then settles. Elsewhere: 120ms ease-out on hover and focus, plus lesson-surface
+widget motion at 200ms (`--duration-base`) and 400ms (`--duration-slow`) using `--ease-out`
+(and `--ease-in-out` / `--ease-spring` where an overshoot is the point).
 `prefers-reduced-motion` disables the graph draw and all transitions.
 
 ## Quality floor, unannounced

@@ -6,8 +6,8 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-27 (drag-drop Part 2: sample sidecar on
-> `react/jsx-and-rendering`; primitive and leak path unchanged)
+> Last updated: 2026-08-27 (lesson-surface Phase 1 motion: callout
+> reveal, quiz verdict, flashcard 3D flip, drag-drop hover, copy toast)
 
 ---
 
@@ -308,9 +308,13 @@ bootstrap.
   the initial payload regardless of the component's own render logic. The first
   live sample is `curation/overrides/react-jsx-and-rendering.yaml` (not a corpus
   sidecar — content-boundary). Article body chrome uses `.lesson-surface` tokens
-  in `apps/web/components/article/lesson-tokens.css`; quizzes get a static radial
-  glow that only changes opacity on hover/focus. Sidecars remain the documented
-  future; overrides remain the working mechanism until D17 closes (D35).
+  in `apps/web/components/article/lesson-tokens.css`; motion lives in
+  `lesson-animations.css` (imported first). Quiz options/verdict, callout
+  scroll-reveal, flashcard `rotateY` flip, drag-drop `is-target`/hover, and
+  copy-button pulse are gated by `prefers-reduced-motion`. Quizzes still get a
+  static radial glow that only changes opacity on hover/focus. Sidecars remain
+  the documented future; overrides remain the working mechanism until D17 closes
+  (D35).
   Heading-anchored `afterSection` works: fumadocs `MarkdownServer`
   puts function components in the tree where native `h2`/`h3` would be, so
   `injectAfterSections` matches on `props.id` (the catalog slug, assigned at
@@ -363,8 +367,11 @@ no personal content, narrowed to permit a contact email in the footer and on
   Pagefind (D21), `/en/license` (D25), SEO residue (D22), a11y (D18/D19).
   Render-mode gate (D23) is `pnpm verify:prerender`. Do not revive
   `/en/concepts/…`.
-4. Quiz, flashcard, callout, and drag-drop primitives exist (D24 slice).
-  Sample usage (2 quizzes, 1 flashcard, 2 callouts, 1 drag-drop) is
+4. Quiz, flashcard, callout, and drag-drop primitives exist (D24 slice)
+  with Phase 1 motion polish. Sample usage (2 quizzes, 1 flashcard, 2
+  callouts, 1 drag-drop) is
   `curation/overrides/react-jsx-and-rendering.yaml` — not a corpus sidecar
   (content-boundary; D35 still open). Remaining tier-1 widgets:
-  code-assembly, stepped-diagram shell, tab group.
+  code-assembly, stepped-diagram shell, tab group. Animation Phase 2
+  (quiz focus pulse, button lift, progress-bar fill, TOC easing) is a
+  later prompt.

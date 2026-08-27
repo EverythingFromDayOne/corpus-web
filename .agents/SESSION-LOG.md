@@ -3577,3 +3577,157 @@ D35 still open).
 
 ---
 
+## Session — lesson-animations phase 1 — 2026-08-27
+
+**Branch:** `cursor/lesson-animations-phase1-23ec`
+
+**Files changed:**
+- `apps/web/components/article/lesson-animations.css` — new lesson-surface motion file (keyframes, reveal, flip, hover, toast, reduced-motion resets)
+- `apps/web/components/article/lesson-tokens.css` — import animations; quiz option transition; drop flashcard `display:none`; reduced-motion callout/opt resets
+- `apps/web/test/lesson-animations.test.ts` — CSS hook smoke test; copy-button `.done` class
+- `packages/ui/src/tokens.css` — `--duration-base`, `--duration-slow`, `--ease-in-out`, `--ease-spring`
+- `packages/ui/DESIGN.md` — motion paragraph lists the new tokens
+- `packages/mdx-components/src/quiz.tsx` — `QuizVerdictBlock` + `data-mounted` after grade
+- `packages/mdx-components/src/quiz-model.ts` — `quizRevealMounted()`
+- `packages/mdx-components/src/callout.tsx` — wrap aside in `CalloutReveal`; `calloutSurfaceClass`
+- `packages/mdx-components/src/callout-reveal.tsx` — IntersectionObserver client leaf
+- `packages/mdx-components/src/flashcard.tsx` — `is-flipped` + face `aria-hidden`; smooth `scrollIntoView`
+- `packages/mdx-components/src/flashcard-model.ts` — class/aria-hidden/scroll-behavior helpers
+- `packages/mdx-components/src/dragdrop.tsx` — enter/leave `is-target` via `nextDragTarget`
+- `packages/mdx-components/src/dragdrop-model.ts` — `is-target` on `slotClassName`; `nextDragTarget`
+- `packages/mdx-components/src/code-block-controls.tsx` — `copyButtonClassName()`
+- `packages/mdx-components/src/index.ts` — export the new helpers
+- `packages/mdx-components/test/quiz.test.ts` — verdict `data-mounted` true after submit, false on first paint
+- `packages/mdx-components/test/callout.test.ts` — initial class has no `is-revealed`; observer predicate
+- `packages/mdx-components/test/flashcard.test.ts` — click toggles `is-flipped` and face `aria-hidden`
+- `packages/mdx-components/test/dragdrop.test.ts` — `is-target` on enter, gone on leave
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased Phase 1 motion bullets
+- `.agents/summary.md` — lesson-surface motion gotcha; planned next step 4
+- `progress.md` — session-log line
+
+**Why:** The lesson widgets shipped static. The 2026-08-27 audit ranked 22
+patterns from a reference lesson page; Phase 1 is the high-fit, low-effort
+set (quiz option/verdict, callout reveal, flashcard flip, drag-drop hover
+and ok/no transitions, copy toast, reduced-motion). Motion is CSS plus
+small client hooks. No new primitives, no sidecar/schema changes, no
+answer-key path edits.
+
+**Invented decisions:**
+- Branch named `cursor/lesson-animations-phase1-23ec` per the cloud-agent
+  template (prompt asked `cursor/lesson-animations-phase1-<suffix>`).
+- `@import` of `lesson-animations.css` is at the top of `lesson-tokens.css`
+  because a trailing `@import` is invalid CSS. Flashcard `display:none`
+  was deleted here so the new file does not need to override it.
+- Callouts stay visible on SSR / no-JS: CSS hides only
+  `[data-observe='true']:not(.is-revealed)` after the client wrapper
+  attaches the observer. Prompt CSS hid every `.av-callout` by default.
+- All new transitions live under `prefers-reduced-motion: no-preference`,
+  with a matching `reduce` reset (instant flashcard display swap, no
+  callout fade, no quiz/copy/drag motion).
+- Tests do not use `react-dom` / JSDOM `IntersectionObserver`. Verdict
+  and drag-target are asserted via hook-free views (`QuizVerdictBlock`,
+  `DragDropView`) and helpers (`quizRevealMounted`, `nextDragTarget`,
+  `flashcardCardClassName`). Callout IO is the `calloutShouldReveal`
+  predicate plus initial class. Tautology: `quizRevealMounted` as a
+  no-op failed the `data-mounted="true"` test; restored, it passes.
+- `copyButtonClassName()` is a two-line extract so the `.done` toast
+  hook is testable without clicking `navigator.clipboard`.
+- `scrollIntoView` on flashcard arrows now passes `behavior: 'smooth'`
+  unless `prefers-reduced-motion: reduce` (was unspecified).
+- Chip hover shadow is `color-mix` of `--lesson-purple-accent`, not a
+  new hex. `DESIGN.md` motion paragraph updated because new tokens
+  would otherwise make it false.
+- `docs/DEBT.md` / `roadmap.md` / `.cursor/rules/` / `article.css` /
+  `article-view.tsx` / sidecar schemas / `article-widgets.ts` /
+  `messages/en.json` untouched. D24 not closed.
+- Session log id rather than a sequential session number. No
+  `prompts/session-N+1.md` (Phase 2 is already `prompts/` on main).
+
+**Known issues / next steps:**
+- Callout IntersectionObserver is not driven in JSDOM; class toggle is
+  covered by the predicate + `CalloutReveal` wiring.
+- Animation Phase 2 (patterns 7, 8, 9, 12) is a later prompt.
+- Remaining D24: code-assembly, stepped-diagram shell, tab-group a11y.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side.
+- Do not auto-merge.
+
+---
+
+## Session — lesson-animations phase 1 — 2026-08-27
+
+**Branch:** `cursor/lesson-animations-phase1-23ec`
+
+**Files changed:**
+- `apps/web/components/article/lesson-animations.css` — new lesson-surface motion file (keyframes, reveal, flip, hover, toast, reduced-motion resets)
+- `apps/web/components/article/lesson-tokens.css` — import animations; quiz option transition; drop flashcard `display:none`; reduced-motion callout/opt resets
+- `apps/web/test/lesson-animations.test.ts` — CSS hook smoke test; copy-button `.done` class
+- `packages/ui/src/tokens.css` — `--duration-base`, `--duration-slow`, `--ease-in-out`, `--ease-spring`
+- `packages/ui/DESIGN.md` — motion paragraph lists the new tokens
+- `packages/mdx-components/src/quiz.tsx` — `QuizVerdictBlock` + `data-mounted` after grade
+- `packages/mdx-components/src/quiz-model.ts` — `quizRevealMounted()`
+- `packages/mdx-components/src/callout.tsx` — wrap aside in `CalloutReveal`; `calloutSurfaceClass`
+- `packages/mdx-components/src/callout-reveal.tsx` — IntersectionObserver client leaf
+- `packages/mdx-components/src/flashcard.tsx` — `is-flipped` + face `aria-hidden`; smooth `scrollIntoView`
+- `packages/mdx-components/src/flashcard-model.ts` — class/aria-hidden/scroll-behavior helpers
+- `packages/mdx-components/src/dragdrop.tsx` — enter/leave `is-target` via `nextDragTarget`
+- `packages/mdx-components/src/dragdrop-model.ts` — `is-target` on `slotClassName`; `nextDragTarget`
+- `packages/mdx-components/src/code-block-controls.tsx` — `copyButtonClassName()`
+- `packages/mdx-components/src/index.ts` — export the new helpers
+- `packages/mdx-components/test/quiz.test.ts` — verdict `data-mounted` true after submit, false on first paint
+- `packages/mdx-components/test/callout.test.ts` — initial class has no `is-revealed`; observer predicate
+- `packages/mdx-components/test/flashcard.test.ts` — click toggles `is-flipped` and face `aria-hidden`
+- `packages/mdx-components/test/dragdrop.test.ts` — `is-target` on enter, gone on leave
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased Phase 1 motion bullets
+- `.agents/summary.md` — lesson-surface motion gotcha; planned next step 4
+- `progress.md` — session-log line
+
+**Why:** The lesson widgets shipped static. The 2026-08-27 audit ranked 22
+patterns from a reference lesson page; Phase 1 is the high-fit, low-effort
+set (quiz option/verdict, callout reveal, flashcard flip, drag-drop hover
+and ok/no transitions, copy toast, reduced-motion). Motion is CSS plus
+small client hooks. No new primitives, no sidecar/schema changes, no
+answer-key path edits.
+
+**Invented decisions:**
+- Branch named `cursor/lesson-animations-phase1-23ec` per the cloud-agent
+  template (prompt asked `cursor/lesson-animations-phase1-<suffix>`).
+- `@import` of `lesson-animations.css` is at the top of `lesson-tokens.css`
+  because a trailing `@import` is invalid CSS. Flashcard `display:none`
+  was deleted here so the new file does not need to override it.
+- Callouts stay visible on SSR / no-JS: CSS hides only
+  `[data-observe='true']:not(.is-revealed)` after the client wrapper
+  attaches the observer. Prompt CSS hid every `.av-callout` by default.
+- All new transitions live under `prefers-reduced-motion: no-preference`,
+  with a matching `reduce` reset (instant flashcard display swap, no
+  callout fade, no quiz/copy/drag motion).
+- Tests do not use `react-dom` / JSDOM `IntersectionObserver`. Verdict
+  and drag-target are asserted via hook-free views (`QuizVerdictBlock`,
+  `DragDropView`) and helpers (`quizRevealMounted`, `nextDragTarget`,
+  `flashcardCardClassName`). Callout IO is the `calloutShouldReveal`
+  predicate plus initial class. Tautology: `quizRevealMounted` as a
+  no-op failed the `data-mounted="true"` test; restored, it passes.
+- `copyButtonClassName()` is a two-line extract so the `.done` toast
+  hook is testable without clicking `navigator.clipboard`.
+- `scrollIntoView` on flashcard arrows now passes `behavior: 'smooth'`
+  unless `prefers-reduced-motion: reduce` (was unspecified).
+- Chip hover shadow is `color-mix` of `--lesson-purple-accent`, not a
+  new hex. `DESIGN.md` motion paragraph updated because new tokens
+  would otherwise make it false.
+- `docs/DEBT.md` / `roadmap.md` / `.cursor/rules/` / `article.css` /
+  `article-view.tsx` / sidecar schemas / `article-widgets.ts` /
+  `messages/en.json` untouched. D24 not closed.
+- Session log id rather than a sequential session number. No
+  `prompts/session-N+1.md` (Phase 2 is already `prompts/` on main).
+
+**Known issues / next steps:**
+- Callout IntersectionObserver is not driven in JSDOM; class toggle is
+  covered by the predicate + `CalloutReveal` wiring.
+- Animation Phase 2 (patterns 7, 8, 9, 12) is a later prompt.
+- Remaining D24: code-assembly, stepped-diagram shell, tab-group a11y.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side.
+- Do not auto-merge.
+
+---
+

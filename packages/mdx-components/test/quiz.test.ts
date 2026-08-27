@@ -4,8 +4,9 @@
 import assert from 'node:assert/strict';
 import { createElement, Fragment } from 'react';
 import { test } from 'node:test';
-import { gradeQuestion, toClientQuestion, unrevealedOptions } from '../src/quiz-model';
+import { gradeQuestion, toClientQuestion, unrevealedOptions, quizRevealMounted } from '../src/quiz-model';
 import { END_OF_ARTICLE, injectAfterSections } from '../src/inject-after-sections';
+import { QuizVerdictBlock } from '../src/quiz';
 
 const question = {
   id: 'q1',
@@ -208,4 +209,60 @@ test('injectAfterSections still throws when a function-component heading has no 
       ]),
     /afterSection not found/,
   );
+});
+
+function markup(node: unknown): string {
+  if (node == null || typeof node === 'boolean') return '';
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(markup).join('');
+  if (typeof node !== 'object' || !('props' in node)) return '';
+  const el = node as {
+    type: unknown;
+    props: { children?: unknown; className?: string; 'data-mounted'?: string };
+  };
+  const tag = typeof el.type === 'string' ? el.type : 'component';
+  const cls = el.props.className ? ` class="${el.props.className}"` : '';
+  const mounted = el.props['data-mounted'] ? ` data-mounted="${el.props['data-mounted']}"` : '';
+  return `<${tag}${cls}${mounted}>${markup(el.props.children)}</${tag}>`;
+}
+
+test('quizRevealMounted is false until the verdict has painted', () => {
+  assert.equal(quizRevealMounted(false, false), 'false');
+  assert.equal(quizRevealMounted(true, false), 'false');
+  assert.equal(quizRevealMounted(true, true), 'true');
+});
+
+test('after submission the verdict element has data-mounted="true"', () => {
+  const html = markup(
+    QuizVerdictBlock({
+      ok: true,
+      statusId: 's',
+      explanationId: 'e',
+      statusLabel: 'Correct',
+      explanationLabel: 'Explanation',
+      correctLabel: 'B',
+      explanation: 'Cache Components made caching opt-in.',
+      paintReady: true,
+    }),
+  );
+  assert.match(html, /class="av-qz-verdict ok"/);
+  assert.match(html, /data-mounted="true"/);
+  assert.equal((html.match(/data-mounted="true"/g) ?? []).length, 2);
+});
+
+test('verdict SSR / first paint keeps data-mounted="false"', () => {
+  const html = markup(
+    QuizVerdictBlock({
+      ok: false,
+      statusId: 's',
+      explanationId: 'e',
+      statusLabel: 'Incorrect',
+      explanationLabel: 'Explanation',
+      correctLabel: 'B',
+      explanation: 'Cache Components made caching opt-in.',
+      paintReady: false,
+    }),
+  );
+  assert.match(html, /data-mounted="false"/);
+  assert.equal(html.includes('data-mounted="true"'), false);
 });

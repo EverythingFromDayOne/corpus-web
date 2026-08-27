@@ -357,12 +357,28 @@ export function toClientChips(chips: readonly DragDropChip[]): ClientDragDropChi
   return chips.map((chip) => ({ id: chip.id, text: chip.text }));
 }
 
-export function slotClassName(filled: boolean, flash: 'ok' | 'no' | undefined): string {
+export function slotClassName(
+  filled: boolean,
+  flash: 'ok' | 'no' | undefined,
+  isTarget = false,
+): string {
   const classes = ['av-dd-slot'];
   if (filled) classes.push('is-filled');
   if (flash === 'ok') classes.push('is-ok');
   if (flash === 'no') classes.push('is-no');
+  if (isTarget) classes.push('is-target');
   return classes.join(' ');
+}
+
+/** Slot highlight while a chip is dragged over it. `drop` always clears. */
+export function nextDragTarget(
+  current: string | null,
+  action: 'enter' | 'leave' | 'drop',
+  slotId: string,
+): string | null {
+  if (action === 'enter') return slotId;
+  if (action === 'drop') return null;
+  return current === slotId ? null : current;
 }
 
 export function prefersReducedMotion(): boolean {

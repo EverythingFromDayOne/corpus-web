@@ -6,9 +6,10 @@ import { Callout } from './callout';
 import { DragDrop } from './dragdrop';
 
 export { CodeBlock, type CodeBlockLabels } from './code-block';
+export { copyButtonClassName } from './code-block-controls';
 export { Quiz, type QuizLabels, type QuizProps } from './quiz';
 export { Flashcard, type FlashcardLabels, type FlashcardProps } from './flashcard';
-export { Callout, type CalloutProps, type CalloutVariant, calloutClassName, renderInlineMarkdown } from './callout';
+export { Callout, type CalloutProps, type CalloutVariant, calloutClassName, calloutSurfaceClass, renderInlineMarkdown } from './callout';
 export {
   DragDrop,
   type DragDropLabels,
@@ -19,6 +20,9 @@ export {
   prevCardIndex,
   toggleFlip,
   shouldHandleFlipKey,
+  flashcardCardClassName,
+  flashcardFaceAriaHidden,
+  flashcardScrollBehavior,
 } from './flashcard-model';
 export type {
   QuizQuestion,
@@ -28,7 +32,7 @@ export type {
   QuizGradeInput,
   QuizGradeAction,
 } from './quiz-model';
-export { gradeQuestion, correctLabelOf, unrevealedOptions, toClientQuestion } from './quiz-model';
+export { gradeQuestion, correctLabelOf, unrevealedOptions, toClientQuestion, quizRevealMounted } from './quiz-model';
 export type {
   DragDropGradeAction,
   DragDropGradeInput,

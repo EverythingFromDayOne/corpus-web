@@ -5,6 +5,9 @@ import {
   prevCardIndex,
   shouldHandleFlipKey,
   toggleFlip,
+  flashcardCardClassName,
+  flashcardFaceAriaHidden,
+  flashcardScrollBehavior,
 } from '../src/flashcard-model';
 
 test('nextCardIndex and prevCardIndex clamp to the strip', () => {
@@ -20,4 +23,25 @@ test('toggleFlip and Enter/Space are the flip contract', () => {
   assert.equal(shouldHandleFlipKey('Enter'), true);
   assert.equal(shouldHandleFlipKey(' '), true);
   assert.equal(shouldHandleFlipKey('Tab'), false);
+});
+
+test('clicking a card toggles is-flipped and hides the other face', () => {
+  let pressed = false;
+  function click() {
+    pressed = toggleFlip(pressed);
+  }
+  assert.equal(flashcardCardClassName(pressed).includes('is-flipped'), false);
+  assert.equal(flashcardFaceAriaHidden('front', pressed), false);
+  assert.equal(flashcardFaceAriaHidden('back', pressed), true);
+  click();
+  assert.equal(flashcardCardClassName(pressed), 'av-flashcard-card is-flipped');
+  assert.equal(flashcardFaceAriaHidden('front', pressed), true);
+  assert.equal(flashcardFaceAriaHidden('back', pressed), false);
+  click();
+  assert.equal(flashcardCardClassName(pressed).includes('is-flipped'), false);
+});
+
+test('programmatic flashcard scroll is smooth unless reduced-motion', () => {
+  assert.equal(flashcardScrollBehavior(false), 'smooth');
+  assert.equal(flashcardScrollBehavior(true), 'auto');
 });

@@ -14,6 +14,7 @@ import {
   settleGrade,
   slotClassName,
   submissionOf,
+  nextDragTarget,
   type ClientDragDropChip,
   type ClientDragDropSlot,
   type DragDropBoard,
@@ -62,6 +63,7 @@ export {
   submissionOf,
   toClientChips,
   toClientSlots,
+  nextDragTarget,
 } from './dragdrop-model';
 
 function chipText(chips: readonly ClientDragDropChip[], chipId: string | null): string {
@@ -96,6 +98,9 @@ export type DragDropViewProps = {
   onChipActivate: (chipId: string, index: number) => void;
   onSubmit: () => void;
   onReset: () => void;
+  targetSlotId?: string | null;
+  onDragEnterSlot?: (slotId: string) => void;
+  onDragLeaveSlot?: (slotId: string) => void;
 };
 
 /**
@@ -125,6 +130,9 @@ export function DragDropView({
   onChipActivate,
   onSubmit,
   onReset,
+  targetSlotId = null,
+  onDragEnterSlot,
+  onDragLeaveSlot,
 }: DragDropViewProps) {
   const slotIds = slots.map((slot) => slot.id);
   const filled = everySlotFilled(board.placement, slotIds);
@@ -162,11 +170,13 @@ export function DragDropView({
                 {slot.label ? <span className="av-dd-slot-label">{slot.label}</span> : null}
                 <button
                   type="button"
-                  className={`${slotClassName(occupant != null, board.flash[slot.id])}${focused ? ' is-focused' : ''}`}
+                  className={`${slotClassName(occupant != null, board.flash[slot.id], targetSlotId === slot.id)}${focused ? ' is-focused' : ''}`}
                   role="button"
                   aria-label={ariaLabel}
                   aria-pressed={board.heldChipId != null && focused}
                   onDragOver={onDragOver}
+                  onDragEnter={() => onDragEnterSlot?.(slot.id)}
+                  onDragLeave={() => onDragLeaveSlot?.(slot.id)}
                   onDrop={(event) => onDropSlot(event, slot.id)}
                   onClick={() => onSlotActivate(index, slot.id)}
                 >
@@ -269,6 +279,7 @@ export function DragDrop({
   const [board, setBoard] = useState<DragDropBoard>(() => createBoard(slotIds, chipIds, sidecarId));
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [targetSlotId, setTargetSlotId] = useState<string | null>(null);
 
   function onDragStart(event: DragEvent<HTMLButtonElement>, chipId: string) {
     event.dataTransfer.setData('text/plain', chipId);
@@ -282,6 +293,7 @@ export function DragDrop({
 
   function onDropSlot(event: DragEvent<HTMLButtonElement>, slotId: string) {
     event.preventDefault();
+    setTargetSlotId((current) => nextDragTarget(current, 'drop', slotId));
     const chipId = event.dataTransfer.getData('text/plain');
     if (!chipId) return;
     setBoard((current) => placeChip(current, slotId, chipId));
@@ -347,6 +359,9 @@ export function DragDrop({
       onDropSlot={onDropSlot}
       onDropPool={onDropPool}
       onPoolKeyDown={onPoolKeyDown}
+      targetSlotId={targetSlotId}
+      onDragEnterSlot={(slotId) => setTargetSlotId((current) => nextDragTarget(current, 'enter', slotId))}
+      onDragLeaveSlot={(slotId) => setTargetSlotId((current) => nextDragTarget(current, 'leave', slotId))}
       onSlotActivate={(index, slotId) => {
         setBoard((current) => {
           const focused = { ...current, focus: { area: 'slots' as const, index } };
@@ -368,6 +383,7 @@ export function DragDrop({
       }}
       onReset={() => {
         setFailed(false);
+        setTargetSlotId(null);
         setBoard(resetBoard(slotIds, chipIds, sidecarId));
       }}
     />

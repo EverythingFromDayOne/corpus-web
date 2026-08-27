@@ -2,7 +2,11 @@
 
 import { useId, useRef, useState, type KeyboardEvent } from 'react';
 import {
+  flashcardCardClassName,
+  flashcardFaceAriaHidden,
+  flashcardScrollBehavior,
   nextCardIndex,
+  prefersReducedMotion,
   prevCardIndex,
   shouldHandleFlipKey,
   toggleFlip,
@@ -51,7 +55,11 @@ export function Flashcard({ id, title, cards, labels }: FlashcardProps) {
     const track = trackRef.current;
     const card = track?.children[clamped];
     if (card instanceof HTMLElement) {
-      card.scrollIntoView({ inline: 'center', block: 'nearest' });
+      card.scrollIntoView({
+        inline: 'center',
+        block: 'nearest',
+        behavior: flashcardScrollBehavior(prefersReducedMotion()),
+      });
     }
   }
 
@@ -99,7 +107,7 @@ export function Flashcard({ id, title, cards, labels }: FlashcardProps) {
             <button
               key={name}
               type="button"
-              className={`av-flashcard-card${pressed ? ' is-flipped' : ''}`}
+              className={flashcardCardClassName(pressed)}
               aria-pressed={pressed}
               aria-label={pressed ? labels.back : labels.front}
               onClick={() =>
@@ -110,8 +118,18 @@ export function Flashcard({ id, title, cards, labels }: FlashcardProps) {
               }
               onKeyDown={(event) => onCardKeyDown(event, cardIndex)}
             >
-              <span className="av-flashcard-face av-flashcard-front">{card.front}</span>
-              <span className="av-flashcard-face av-flashcard-back">{card.back}</span>
+              <span
+                className="av-flashcard-face av-flashcard-front"
+                aria-hidden={flashcardFaceAriaHidden('front', pressed)}
+              >
+                {card.front}
+              </span>
+              <span
+                className="av-flashcard-face av-flashcard-back"
+                aria-hidden={flashcardFaceAriaHidden('back', pressed)}
+              >
+                {card.back}
+              </span>
             </button>
           );
         })}
