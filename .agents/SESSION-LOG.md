@@ -3526,3 +3526,54 @@ persistence, matching PR #37's "no user-state" bar.
 
 ---
 
+## Session — sydexa-dragdrop-part2 — 2026-08-27
+
+**Branch:** cursor/feat-sydexa-drag-drop-sample-5e5b
+
+**Files changed:**
+- `curation/overrides/react-jsx-and-rendering.yaml` — append DragDrop sample after existing quiz/flashcard/callout blocks
+- `apps/web/test/article-widgets.test.ts` — sample override inject count 5 → 6
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased Part 2 sample bullet
+- `.agents/summary.md` — live sample now includes drag-drop; planned next step 4
+- `progress.md` — session-log line
+
+**Why:** Part 1 shipped the primitive with no live sample. Part 2 is the
+one-file override append so `jsx-and-rendering` mounts `.av-dd` on both
+the lesson and blog routes, with the no-JS `Answer:` line in the
+prerendered HTML and `accepts` / `correctSlots` still stripped by
+`toClientDragDropWidget`. Existing quiz / flashcard / callout blocks
+are unchanged. Sample stays in `curation/overrides/` (content-boundary;
+D35 still open).
+
+**Invented decisions:**
+- Branch named `cursor/feat-sydexa-drag-drop-sample-5e5b` per the
+  cloud-agent template.
+- Distractor chip texts (prompt named ids only): `jsx-lowercase` →
+  `card`, `props-null` → `null`, `props-array` → `['Hi']`.
+- `afterSection` lives on the inject item only, matching the sibling
+  quiz/flashcard/callout blocks; `DragDropSidecarData.parse` still
+  receives it from `resolveLessonWidgets`.
+- Appended at the end of `inject:` so the how-it-works group is
+  Callout, then Quiz, then DragDrop (inject groups by heading and
+  preserves list order).
+- Distractors are not added to any slot `accepts` list — the prompt
+  listed those arrays exactly. The client can still drop them because
+  `accepts` is server-only.
+- Updated the existing YAML-length assertion (5 → 6). The prompt
+  forbade new tests and `.ts` changes; leaving 5 would fail `pnpm test`.
+  No tests added.
+- Quoted chip texts that would parse as YAML null / flow sequences
+  (`null`, `['Hi']`, `{ title: 'Hi' }`).
+- `docs/DEBT.md` / `roadmap.md` / `.cursor/rules/` untouched. D24 not
+  closed (code-assembly, stepped-diagram shell, tab group remain).
+
+**Known issues / next steps:**
+- D35 is not closed: the sample is an override, not a corpus sidecar,
+  and corpus CI still cannot validate sidecars (D17).
+- Remaining D24: code-assembly, stepped-diagram shell, tab-group a11y.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side.
+- Do not auto-merge.
+
+---
+

@@ -5,6 +5,20 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-27] — cursor/feat-sydexa-drag-drop-sample-5e5b — drag-drop sample sidecar on jsx-and-rendering
+
+**Added**
+- DragDrop sample on `curation/overrides/react-jsx-and-rendering.yaml` (`jsx-to-createelement`, after `how-it-works-under-the-hood`)
+
+**Changed**
+- Sample override inject count 5 → 6 (existing YAML-parse assertion)
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Nothing
+
 ### [2026-08-27] — cursor/feat-sydexa-drag-drop-widget-b884 — drag-and-drop widget primitive (Part 1)
 
 **Added**

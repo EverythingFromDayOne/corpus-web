@@ -65,3 +65,46 @@ inject:
               body: Your code has constructed a fiber instance
               correct: false
           explanation: An element is a description. The function has not been called yet. React calls it later, during render, against its own instance.
+  - afterSection: how-it-works-under-the-hood
+    component: DragDrop
+    props:
+      id: jsx-to-createelement
+      title: Compose the JSX → React.createElement mapping
+      prompt: "For <Card title=\"Hi\" />, drag the right tokens into the type slot and props slot."
+      explanation: "<Card> is capitalized, so JSX compiles to jsx(Card, { title: \"Hi\" }) — Card is the component function itself, passed by reference. The second arg is the props object. jsx('card', ...) would only be correct if card were lowercase (a DOM tag)."
+      slots:
+        - id: type-slot
+          label: type
+          accepts:
+            - jsx-component-ref
+            - jsx-component-string
+        - id: props-slot
+          label: props
+          accepts:
+            - jsx-component-ref
+            - props-object
+            - props-string
+      chips:
+        - id: jsx-component-ref
+          text: Card
+          correctSlots:
+            - type-slot
+        - id: jsx-component-string
+          text: "'card'"
+          correctSlots: []
+        - id: props-object
+          text: "{ title: 'Hi' }"
+          correctSlots:
+            - props-slot
+        - id: props-string
+          text: "title: 'Hi'"
+          correctSlots: []
+        - id: jsx-lowercase
+          text: card
+          correctSlots: []
+        - id: props-null
+          text: "null"
+          correctSlots: []
+        - id: props-array
+          text: "['Hi']"
+          correctSlots: []
