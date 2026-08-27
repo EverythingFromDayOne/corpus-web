@@ -3204,3 +3204,118 @@ or architecture decision.
 (the block only applies to the dev server's HMR/asset endpoints).
 
 ---
+
+## Session — av-rail bottom-force math — 2026-08-27
+
+**Branch:** `cursor/fix-av-rail-bottom-force-math-527a`
+
+**Files changed:**
+- `apps/web/lib/toc-spy.ts` — `shouldForceLastHeading` now takes
+  `viewportHeight`; last-heading override is max-scroll, or a bottom
+  zone plus heading-on-screen plus the layout fact that the heading
+  cannot reach the reading line. Named `lastHeadingTopAtMaxScroll` so
+  the cancelled-`scrollY` identity is explicit
+- `apps/web/components/article/toc-rail.tsx` — picker options include
+  `viewportHeight`
+- `apps/web/test/toc-spy.test.ts` — short-tailed
+  `rendering-lists-and-keys` layout at `scrollY === 0`, mid-page, and
+  true bottom; same sweep on `how-react-renders`; a same-layout /
+  two-scroll-positions guard
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — Unreleased Fixed bullet
+- `.agents/summary.md` — rail key fact no longer describes leftover
+  scroll vs heading distance as the override
+- `progress.md` — item 9 notes and session-log line
+
+**Why:** PR #34's page-bottom override was
+
+```
+remaining < lastHeadingTop - readingLinePx
+```
+
+with `remaining = docHeight - viewportHeight - scrollY` and
+`lastHeadingTop = lastHeadingAbsoluteTop - scrollY`. Substituting:
+
+```
+(docHeight - viewportHeight - scrollY)
+  < (lastHeadingAbsoluteTop - scrollY) - readingLinePx
+```
+
+every `scrollY` cancels, leaving
+
+```
+docHeight - viewportHeight - lastHeadingAbsoluteTop + readingLinePx < 0
+```
+
+which is a fact about page layout, not about the reader's position.
+It is true whenever the last heading sits less than
+`viewportHeight - readingLinePx` from the document end. On
+`rendering-lists-and-keys` that distance is 517px against a 1129px
+threshold at 1411px viewport height, so the override is true at
+`scrollY === 0`. The rail highlights Demo source, `seenHeadingIds`
+returns every part, the ring reads 100%, and the reading-line picker
+never runs. Click-to-navigate still works because `jumpToPart` pins
+`active` until the picker agrees — and the picker is permanently
+agreeing with the last heading, so only a click that is itself the
+last heading looks stable; a click on an earlier tick is overwritten
+on the next observer callback unless the pin holds. That matches both
+reported symptoms.
+
+The same constant is true on `how-react-renders` (tail 552px) at the
+same viewport. PR #34's browser check on that page looked correct
+because it was done at the true bottom, where forcing the last heading
+is the right answer. The freeze at the top was the same bug, hidden
+by where the check sat.
+
+The hard `remaining <= slackPx` branch was already a genuine
+bottom-of-scroll signal and stays. The second branch is what
+collapsed. It now requires three things: the reader is inside a
+bottom zone (`remaining ≤ 0.2 × viewportHeight` — this is the term
+that tracks `scrollY`); the last heading is on screen; and at max
+scroll that heading would still sit below the reading line. Fact 3
+is the old comparison, kept as a precondition so a page whose last
+heading *can* reach the line is not pinned early just because the
+reader is in the last fifth of a viewport.
+
+Verified in headless Chrome at 1259×1411 and 1259×800 on both
+lessons. After the fix, `rendering-lists-and-keys` at load is Part 1
+/ 0%; a 150px sweep lights ticks 1→2→3→4→5→6→7→8→9 then 12 at the
+bottom zone; true bottom is Part 12 / 100%. `how-react-renders` at
+load is Part 1 / 0%; the sweep lights 1 through 10 then 13; true
+bottom is Part 13 / 100%. Click-to-navigate still matches the
+clicked tick on both pages, including late short parts (See also /
+References) that PR #34 was protecting.
+
+**Invented decisions:**
+- Branch named `cursor/fix-av-rail-bottom-force-math-527a` per the
+  cloud-agent template, not the requested `fix/av-rail-bottom-force-math`.
+- Kept a premature-force branch rather than dropping it. Dropping it
+  would rely on the reading-line picker plus hard max-scroll, and at
+  1411px the last heading of both test pages sits at ~860–890px at
+  max scroll — below the 282px reading line — so without a near-bottom
+  force the last part would only light at literal `remaining === 0`.
+  PR #34's "pin before hitting max scroll" is still the wanted
+  behaviour; it just needed a real scroll gate in front of it.
+- Bottom zone is `0.2 × viewportHeight`, matching the reading-line
+  ratio rather than introducing a third magic fraction. At 1411px that
+  is 282px of leftover scroll; both measured pages enter the last part
+  around 150–200px remaining, which is inside that zone.
+- `viewportHeight` is a new picker argument rather than reconstructing
+  it from leftover scroll. The cancelled identity is why reconstructing
+  it from the old arguments would be circular.
+- Tests drive both pages from a measured `(scrollHeight, viewportHeight,
+  absoluteTop[])` plus a `scrollY`, so a layout-only predicate cannot
+  pass top and bottom of the same fixture.
+- No `docs/DEBT.md` / `roadmap.md` / quiz-file edits, per instruction.
+
+**Known issues / next steps:**
+- At 1411px the last two short parts (See also, References) on both
+  lessons can be skipped by the scroll-driven picker once the bottom
+  zone opens, because the force then jumps to Demo source. Clicking
+  those ticks still highlights them via the existing pin. Same
+  trade-off PR #34 accepted for the last heading; not widened here.
+- Content gates remain red on D11, D13, D15 — pre-existing,
+  corpus-side, unrelated.
+- Do not auto-merge.
+
+---

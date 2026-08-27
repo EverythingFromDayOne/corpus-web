@@ -5,6 +5,21 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-27] — cursor/fix-av-rail-bottom-force-math-527a — TOC rail bottom-force is scroll-sensitive
+
+**Added**
+- `apps/web/test/toc-spy.test.ts` — short-tailed lesson layout at `scrollY === 0`, mid-page, and true bottom, plus the same sweep on `how-react-renders`
+
+**Changed**
+- `shouldForceLastHeading` takes `viewportHeight`. The last-heading override now requires a bottom zone (`remaining ≤ 0.2 × viewport`) and the heading on screen; the layout fact that the heading cannot reach the reading line is a precondition, not the trigger
+- `TocRail` passes `viewportHeight` into the picker
+
+**Removed**
+- Nothing
+
+**Fixed**
+- PR #34's leftover-scroll vs last-heading-distance comparison cancelled every `scrollY` term, so the override was a layout constant. On a short-tailed article it evaluated true from the top of the page, pinning the rail to the last part at 100% and freezing the scroll-driven picker (`rendering-lists-and-keys`)
+
 ### [2026-08-26] — cursor/fix-av-rail-scroll-spy-f3b4 — TOC rail scroll-spy at page bottom
 
 **Added**

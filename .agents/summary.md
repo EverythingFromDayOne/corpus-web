@@ -6,9 +6,9 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-26 (TOC rail scroll-spy: last heading above the 20%
-> reading line, plus a page-bottom fallback so the last part and 100% can
-> actually land)
+> Last updated: 2026-08-27 (TOC rail bottom-force: leftover-scroll vs
+> last-heading distance cancelled `scrollY` and pinned short-tailed pages
+> to the last part from the top; the override now needs a real bottom zone)
 
 ---
 
@@ -114,13 +114,17 @@ bootstrap.
   on the 3.5rem track clips the labels (that was the missing-hover-label bug).
   **Active is not `visible[0]` from the 20%–40% IntersectionObserver band.**
   That band is only the trigger. The picker is last heading whose top is at
-  or above 20% of the viewport, overridden to the last part when leftover
-  scroll is too short to bring that heading up to the line (or the page is
-  at max scroll). `.av-pnav` is a sentinel that retriggers the picker, not
-  itself "at bottom" — otherwise a click on a late short part (See also)
-  would steal the highlight for the last part. Click pins `active` until
-  the picker agrees or the page hits max scroll. `jumpToPart`'s
-  `scrollIntoView` already lands on the clicked heading.
+  or above 20% of the viewport. The last part is forced only at literal max
+  scroll, or inside a bottom zone (`remaining ≤ 0.2 × viewportHeight`) when
+  that heading is on screen *and* the document is too short to bring it up
+  to the reading line. The old leftover-scroll vs heading-distance comparison
+  cancelled every `scrollY` term and pinned short-tailed pages (Demo source
+  ~500px from the document end) to the last part from `scrollY === 0`.
+  `.av-pnav` is a sentinel that retriggers the picker, not itself "at
+  bottom" — otherwise a click on a late short part (See also) would steal
+  the highlight for the last part. Click pins `active` until the picker
+  agrees or the page hits max scroll. `jumpToPart`'s `scrollIntoView`
+  already lands on the clicked heading.
 - **`apps/web` does not import `@corpus/content-schema`.** Next's Turbopack build
   cannot resolve that package's NodeNext `.js` specifiers to `.ts` sources, and
   a client corpus filter must not pull remark/zod adapters. The listing loader

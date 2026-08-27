@@ -53,20 +53,22 @@ export function TocRail({
     pinnedAnchor.current = null;
 
     const sync = () => {
+      const viewportHeight = window.innerHeight;
       const remaining = remainingScrollPx(
         window.scrollY,
-        window.innerHeight,
+        viewportHeight,
         document.documentElement.scrollHeight,
       );
-      const readingLinePx = window.innerHeight * TOC_BAND_TOP_RATIO;
+      const viewport = {
+        readingLinePx: viewportHeight * TOC_BAND_TOP_RATIO,
+        remainingScroll: remaining,
+        viewportHeight,
+      };
       const headings = nodes.map((node) => ({
         id: node.id,
         top: node.getBoundingClientRect().top,
       }));
-      let nextActive = selectActiveHeadingId(headings, {
-        readingLinePx,
-        remainingScroll: remaining,
-      });
+      let nextActive = selectActiveHeadingId(headings, viewport);
       if (pinnedAnchor.current) {
         if (
           remaining <= TOC_BOTTOM_SLACK_PX ||
@@ -78,10 +80,7 @@ export function TocRail({
         }
       }
       if (nextActive) setActive(nextActive);
-      const newlySeen = seenHeadingIds(headings, {
-        readingLinePx,
-        remainingScroll: remaining,
-      });
+      const newlySeen = seenHeadingIds(headings, viewport);
       if (newlySeen.length === 0) return;
       setSeen((current) => {
         const next = new Set(current);
