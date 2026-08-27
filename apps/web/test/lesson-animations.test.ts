@@ -46,6 +46,24 @@ test('Phase 2 quiz glow pulse is focus-within only and gated', () => {
   ]) {
     assert.equal(css.includes(token), true, `missing ${token}`);
   }
+  // The keyframe must actually animate something — without opacity stops
+  // the rule is a no-op and the test passes while the UI sits static.
+  // Slice from the @keyframes declaration up to (but not including) the
+  // next top-level `@media` block, since the keyframe body uses braces
+  // internally that a naive `indexOf('}')` would mis-match.
+  const keyframeStart = css.indexOf('@keyframes lesson-glow-breath');
+  const nextMedia = css.indexOf('@media', keyframeStart);
+  const keyframeBlock = css.slice(keyframeStart, nextMedia);
+  assert.match(
+    keyframeBlock,
+    /opacity:\s*0\.\d+/,
+    'glow-breath keyframe must declare an opacity stop below 1.0',
+  );
+  assert.match(
+    keyframeBlock,
+    /opacity:\s*1(?:\.0|;|\s|\b)/,
+    'glow-breath keyframe must declare an opacity:1 stop so the pulse crosses 1.0',
+  );
   assert.equal(
     css.includes('.lesson-surface .av-qz:hover::before {\n    animation: lesson-glow-breath'),
     false,
