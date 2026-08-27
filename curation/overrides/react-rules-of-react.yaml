@@ -1,0 +1,170 @@
+schema: 1
+article: react/rules-of-react
+inject:
+  - afterSection: what-it-is
+    component: Flashcard
+    props:
+      id: ror-three-rule-families
+      title: The three rule families
+      cards:
+        - front: "What are the three rule families and what does each guard?"
+          back: "1) Components and hooks must be pure — guards StrictMode's double render, concurrent discard/replay, and the React Compiler's static analysis. 2) React calls components and hooks, you don't — guards fiber identity, hook ownership, and DevTools presence. 3) The Rules of Hooks — guards the fiber hook list's call-order matching."
+        - front: "What does 'purity' mean concretely?"
+          back: "Idempotent (same inputs → same output every time) and externally unobservable (no mutations that outlive the call, no I/O, no side effects). Local mutation before handoff is fine; mutating shared history is not. `Math.random()` and `Date.now()` in render make it non-idempotent."
+        - front: "What does the React Compiler lose if your component breaks purity?"
+          back: "Its bailout: where the Compiler can't statically prove the rules hold, it refuses to compile that component. Your rule-breaking component silently forfeits automatic memoization while its rule-following neighbors get it free. The rules are no longer just advice — they're the optimization boundary."
+  - afterSection: where-every-kind-of-code-belongs
+    component: Callout
+    props:
+      id: ror-placement-table
+      variant: info
+      title: "Where every kind of code belongs"
+      body: "Most 'rule violations' are code in the wrong room. Computing values from props/state → render body. Responding to interaction, writes, navigation, analytics → event handlers. Synchronizing external systems → effects with cleanup. Randomness and timestamps → handlers or effects; lazy initializer if 'sampled once at mount' is the real semantic. Reading mutable external sources → `useSyncExternalStore`. Instance-ish values (timers, connections) → refs touched from handlers/effects."
+  - afterSection: where-every-kind-of-code-belongs
+    component: Quiz
+    props:
+      schema: 1
+      article_id: rules-of-react
+      title: "Quick check — where does this code belong?"
+      questions:
+        - id: ror-math-random-in-render
+          prompt: "Where does `Math.random()` belong if its value should change on every user action that triggers it?"
+          options:
+            - label: A
+              body: "In the render body — it has to compute the value"
+              correct: false
+            - label: B
+              body: "In an event handler called by the user action, or in an effect; never in the render body because it makes the component non-idempotent"
+              correct: true
+            - label: C
+              body: "Inside `useMemo` so it stabilizes across renders"
+              correct: false
+            - label: D
+              body: "In a ref initialized during render"
+              correct: false
+          explanation: |
+            `Math.random()` in render makes the component non-idempotent — StrictMode's double render
+            produces two different values, and concurrent discard/replay makes the result fiction.
+            The right home for "value depends on a user action" is the event handler that performs
+            the action. The right home for "value sampled once at mount" is a lazy initializer
+            (`useState(() => Math.random())`). `useMemo` around it doesn't help — it caches an
+            arbitrary one of the random values.
+
+        - id: ror-hook-order-try-catch
+          prompt: "A component wraps a `useContext` call in `try/catch` so a throwing context doesn't crash the tree. What breaks?"
+          options:
+            - label: A
+              body: "Nothing — try/catch is just sugar"
+              correct: false
+            - label: B
+              body: "A throw between hook calls desynchronizes the fiber's hook list — the next render's hook order shifts, and React throws 'Rendered fewer/more hooks than expected'"
+              correct: true
+            - label: C
+              body: "The context value becomes null"
+              correct: false
+            - label: D
+              body: "React silently falls back to the default context value"
+              correct: false
+          explanation: |
+            Hooks are matched to their fiber slots purely by call order. A throw between two hook
+            calls is functionally identical to a conditional early return — the next hook call
+            doesn't happen, the list shifts by one, the next render's list doesn't line up, and
+            React throws. The right answer is an error boundary above the component, not a
+            try/catch around the hook.
+  - afterSection: walkthrough--the-violation-clinic
+    component: Quiz
+    props:
+      schema: 1
+      article_id: rules-of-react
+      title: "Quick check — clinic violations"
+      questions:
+        - id: ror-statusbadge-call
+          prompt: "In the violation clinic, the line `{StatusBadge({ status: invoice.status })}` is caught by the lint plugin. Why is calling a component as a function bad?"
+          options:
+            - label: A
+              body: "It returns undefined"
+              correct: false
+            - label: B
+              body: "Hooks inside StatusBadge register on *this* fiber, not on StatusBadge's own fiber — its conditional appearance elsewhere becomes a hook-order crash here"
+              correct: true
+            - label: C
+              body: "It misses React's memoization pass"
+              correct: false
+            - label: D
+              body: "React only calls function declarations, not arrow functions"
+              correct: false
+          explanation: |
+            Components are fibers, not just render outputs. When you call `StatusBadge(...)` directly,
+            any hooks inside it register on the *current* fiber (the parent) — not on a StatusBadge
+            fiber of their own. That breaks the hook-list contract for everyone who shares this
+            render. The fix is two characters of JSX: `<StatusBadge status={invoice.status} />` —
+            JSX creates an element that React can mount as its own fiber.
+
+        - id: ror-render-tally
+          prompt: "The clinic's `(E)` violation — a module-level `let renderTally = 0` and `renderTally++` inside the component — is purity-breaking twice over. What's the second problem beyond external mutation?"
+          options:
+            - label: A
+              body: "Module-level variables aren't supported by JSX"
+              correct: false
+            - label: B
+              body: "It's the kind of observable side effect that makes a render non-discardable — concurrent rendering can pause, discard, and replay renders, and any external write makes that impossible"
+              correct: true
+            - label: C
+              body: "It causes infinite re-renders"
+              correct: false
+            - label: D
+              body: "It throws in StrictMode"
+              correct: false
+          explanation: |
+            Two problems from one violation. (1) Module-level write during render — two mounted
+            panels now share one corrupted counter, and the count reflects any concurrent
+            retry/discard, not the user's actual render count. (2) Renders must be discardable:
+            concurrent rendering can decide 'actually don't ship this render' and replay, and any
+            external write makes that impossible to undo. The honest homes for render counts are
+            the Profiler (dev-time) or an effect (commits, not attempts).
+  - afterSection: common-mistakes
+    component: DragDrop
+    props:
+      id: ror-classify-mistakes
+      title: Categorize the common mistakes
+      prompt: "Drag each common-mistakes pattern into the slot for the right fix."
+      explanation: "Render-count refs → use the Profiler. Suppressing the hooks lint → fix the deps. Shallow-spread laundering → copy the nested mutation too. Memoizing impurity → move randomness/time to its right room first. Hook factories → branch inside one hook or render different components. Disabling StrictMode → make the code symmetric."
+      slots:
+        - id: ror-slot-render-count
+          label: "Use Profiler"
+          accepts:
+            - ror-chip-count
+            - ror-chip-console
+        - id: ror-slot-strictmode
+          label: "Make it symmetric"
+          accepts:
+            - ror-chip-disable
+            - ror-chip-effect
+        - id: ror-slot-factory
+          label: "Branch inside one hook"
+          accepts:
+            - ror-chip-factory
+            - ror-chip-loop
+      chips:
+        - id: ror-chip-count
+          text: "`let renderTally = 0` + `renderTally++` in body"
+          correctSlots:
+            - ror-slot-render-count
+        - id: ror-chip-console
+          text: "console.log('rendered') in body"
+          correctSlots: []
+        - id: ror-chip-disable
+          text: "Disable StrictMode to silence the doubling"
+          correctSlots:
+            - ror-slot-strictmode
+        - id: ror-chip-effect
+          text: "Add an effect that runs once"
+          correctSlots: []
+        - id: ror-chip-factory
+          text: "`const useThing = flags.x ? useA : useB`"
+          correctSlots:
+            - ror-slot-factory
+        - id: ror-chip-loop
+          text: "`hooks[name]()` from a dynamic registry"
+          correctSlots:
+            - ror-slot-factory

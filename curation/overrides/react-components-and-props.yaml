@@ -1,0 +1,172 @@
+schema: 1
+article: react/components-and-props
+inject:
+  - afterSection: what-it-is
+    component: Flashcard
+    props:
+      id: cap-the-load-bearing-rules
+      title: The load-bearing rules for components + props
+      cards:
+        - front: "What are the three load-bearing rules about props?"
+          back: "1) Props are read-only — never mutate them, not the object and not nested arrays/objects inside. 2) `children` is just a prop (one with syntax support). 3) Conventions: typed props via a named interface, destructured in the signature, defaults via destructuring, `function` declarations, no `React.FC`."
+        - front: "Why is mutating props forbidden even though React only freezes them in development?"
+          back: "The deeper reason is the purity contract: a render must be a pure computation, and mutating inputs makes it neither repeatable nor discardable. Data changes flow up through callbacks; new data flows back down as new props."
+        - front: "What is the project's convention for typing components?"
+          back: "Named `interface` for props, destructured in the signature, defaults via destructuring, `function` declarations with named exports, no `React.FC`."
+  - afterSection: every-render-every-props-object-is-new
+    component: Callout
+    props:
+      id: cap-object-is-table
+      variant: info
+      title: Remember the Object.is table
+      body: "`memo`, the Compiler's caches, `useState` bailouts, and dependency arrays all answer 'did props change?' the same way: per-value `Object.is`, not `===`, not deep. The two rows that bite: `{a:1}` vs `{a:1}` returns `false` (fresh literals always 'changed'), and `arr` vs same `arr` mutated returns `true` (mutations are invisible)."
+  - afterSection: every-render-every-props-object-is-new
+    component: Quiz
+    props:
+      schema: 1
+      article_id: components-and-props
+      title: "Quick check — props + Object.is"
+      questions:
+        - id: cap-fresh-literal-memo
+          prompt: "You wrap `<Row data={{ rows: items, cols: 5 }} />` in a `memo`-ed component. The parent re-renders due to a sibling state change. Does the memoized child re-render?"
+          options:
+            - label: A
+              body: "No — `memo` short-circuits when props are unchanged"
+              correct: false
+            - label: B
+              body: "Yes — `Object.is(prev.data, next.data)` is `false` because the inline object literal is a fresh reference every render"
+              correct: true
+            - label: C
+              body: "It depends on whether items.length has changed"
+              correct: false
+            - label: D
+              body: "It depends on whether items is the same reference as before"
+              correct: false
+          explanation: |
+            `Object.is` is per-value, not deep. Two structurally-equal fresh objects compare as
+            different. The fix is to lift the object out of render (`useMemo`, a `const` at module
+            scope, or a `useState` that holds the shape) so the reference is stable across renders.
+
+        - id: cap-mutated-array
+          prompt: "You `props.items.sort()` inside the component body, then read `props.items` in the next render. What goes wrong?"
+          options:
+            - label: A
+              body: "Nothing — sort is idempotent and idempotent operations are safe"
+              correct: false
+            - label: B
+              body: "You have mutated the caller's array in place; if the parent stored the same reference and compares with `Object.is`, your updates may be silently swallowed, and sibling renders that depend on the same array can be corrupted"
+              correct: true
+            - label: C
+              body: "The React Compiler will detect and reject the mutation at build time"
+              correct: false
+            - label: D
+              body: "Only a problem in StrictMode — production is unaffected"
+              correct: false
+          explanation: |
+            Two consequences from one bug. (1) Purity contract violated: a render mutating inputs
+            isn't repeatable or discardable. (2) `Object.is` says the array is the same reference it
+            was before the sort, so any skip-render logic (memo, useState bailouts) sees no change.
+            Use `toSorted()` or copy first.
+  - afterSection: children-defeat-memo--and-composition-beats-both
+    component: Quiz
+    props:
+      schema: 1
+      article_id: components-and-props
+      title: "Quick check — composition over memo"
+      questions:
+        - id: cap-memo-with-children
+          prompt: "Why does wrapping a component in `memo` and giving it children often do nothing?"
+          options:
+            - label: A
+              body: "Because `memo` only applies to function components, not to JSX elements"
+              correct: false
+            - label: B
+              body: "Because the parent renders create a fresh `<X />` element each time, so `props.children` is a new reference every render, so `Object.is` says 'changed'"
+              correct: true
+            - label: C
+              body: "Because `children` is excluded from the memo comparison by React's design"
+              correct: false
+            - label: D
+              body: "Because memoized components can't accept children"
+              correct: false
+          explanation: |
+            Every render of the parent evaluates its JSX, which creates new element objects for
+            every child — including `<Reports />` in `<HeavyPanel><Reports/></HeavyPanel>`. The
+            new element becomes a new `props.children` reference, the shallow compare fails, and
+            the memo pays for nothing. Composition fixes this by pushing the ticking state *down*
+            into a child component so the heavy subtree is created by something that isn't
+            re-rendering.
+
+        - id: cap-push-state-down
+          prompt: "You want `<HeavyPanel><Reports/></HeavyPanel>` to skip rendering when a sibling `<Clock />` ticks. The cleanest fix is:"
+          options:
+            - label: A
+              body: "Wrap `<Reports />` in `useMemo(() => <Reports/>, [])`"
+              correct: false
+            - label: B
+              body: "Add `displayName` to both components"
+              correct: false
+            - label: C
+              body: "Push the ticking state down into a child of HeavyPanel, so the heavy subtree is created by a component that isn't re-rendering; pass `<Reports />` through as children"
+              correct: true
+            - label: D
+              body: "Disable StrictMode in development"
+              correct: false
+          explanation: |
+            `useMemo(() => <Reports />, [])` looks right but the empty-deps array lies: `<Reports/>`
+            is still re-created every time the parent runs, just to be thrown away. The structural
+            fix is what the article calls "push state down, pull content up" — `ClockSection`
+            owns the tick state and accepts the heavy subtree as children, so its render reuses
+            the same `<Reports/>` element reference and React bails out of the subtree entirely.
+  - afterSection: make-invalid-states-unrepresentable--discriminated-union-props
+    component: Callout
+    props:
+      id: cap-variant-union-overload
+      variant: warn
+      title: Watch out — boolean explosion
+      body: "Three booleans that can't legally coexist are one union in disguise. Refactor the moment the second boolean of a family appears; the cost only compounds. The tell: any pair of boolean props where setting both is a bug."
+  - afterSection: common-mistakes
+    component: DragDrop
+    props:
+      id: cap-common-mistakes
+      title: Categorize the common mistakes
+      prompt: "Drag each common-mistakes category into its correct remediation slot."
+      explanation: "The mutations category points to `toSorted()` or copy first. The leaky props category points to destructure-then-spread. The boolean pile category points to a variant union. The reference-defeats-memo category points to lifting out of render. The introspection category points to explicit slots or context between compound parts."
+      slots:
+        - id: cap-slot-mutation
+          label: "Mutating props"
+          accepts:
+            - cap-mut-tosorted
+            - cap-mut-spread
+        - id: cap-slot-leaky
+          label: "Leaky DOM props"
+          accepts:
+            - cap-leak-destructure
+            - cap-leak-warning
+        - id: cap-slot-booleans
+          label: "Boolean pile"
+          accepts:
+            - cap-bool-union
+            - cap-bool-disable
+      chips:
+        - id: cap-mut-tosorted
+          text: "toSorted() or copy first"
+          correctSlots:
+            - cap-slot-mutation
+        - id: cap-mut-spread
+          text: "Spread rest"
+          correctSlots: []
+        - id: cap-leak-destructure
+          text: "Destructure out, spread rest"
+          correctSlots:
+            - cap-slot-leaky
+        - id: cap-leak-warning
+          text: "Run console.warn"
+          correctSlots: []
+        - id: cap-bool-union
+          text: "Variant union"
+          correctSlots:
+            - cap-slot-booleans
+        - id: cap-bool-disable
+          text: "Disable the prop"
+          correctSlots: []

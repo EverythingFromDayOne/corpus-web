@@ -1,0 +1,176 @@
+schema: 1
+article: react/conditional-rendering-and-events
+inject:
+  - afterSection: what-it-is
+    component: Flashcard
+    props:
+      id: cre-three-decisions
+      title: Three decisions behind every conditional render
+      cards:
+        - front: "What are the three decisions behind every conditional render?"
+          back: "1) Which construct reads best for the state being expressed (`&&`, ternary, switch, early return, extracted variable). 2) Where the condition lives — the parent's call site or inside the component. 3) Whether 'not shown' should mean unmounted or merely hidden (three genuinely different behaviors)."
+        - front: "Where do event handlers belong in a component?"
+          back: "Handlers are the only place that's supposed to cause things — state updates, mutations, navigation, analytics. Renders describe; handlers act. If a side effect has a user interaction it belongs to, it goes in the handler, not in an effect (the event-first rule)."
+        - front: "What is React's delegation model and what does it imply?"
+          back: "One listener per event type on the root container; native events bubble up, React works out which fiber was targeted, then simulates capture/bubble through the React tree. Propagation follows the React tree, not the DOM tree. `e.stopPropagation()` in a React handler stops the native event too — including document-level analytics listeners."
+  - afterSection: the-conditional-toolbox-and-when-each-earns-its-place
+    component: Quiz
+    props:
+      schema: 1
+      article_id: conditional-rendering-and-events
+      title: "Quick check — conditional toolbox"
+      questions:
+        - id: cre-and-zero-bug
+          prompt: "You render `{order.count && <Badge count={order.count} />}`. When `order.count` is `0`, what happens?"
+          options:
+            - label: A
+              body: "The badge renders with `count={0}`"
+              correct: false
+            - label: B
+              body: "Nothing — `0` is falsy so React renders nothing, even though zero is a meaningful count"
+              correct: true
+            - label: C
+              body: "React throws because `0` is not a valid React child"
+              correct: false
+            - label: D
+              body: "It depends on whether `Badge` has a `defaultProps`"
+              correct: false
+          explanation: |
+            `&&` is a strict boolean short-circuit — `0 && X` evaluates to `0`, and `0` is a number
+            React happily renders (as the text "0"). The fix is the explicit guard
+            `order.count > 0 && <Badge .../>` or the boolean coercion `Boolean(order.count) && ...`,
+            which makes the intent obvious in review.
+
+        - id: cre-hooks-before-guard
+          prompt: "You write `if (!user) return null;` before a `useState` call inside a component. The first render has `user`, the second doesn't. What breaks?"
+          options:
+            - label: A
+              body: "Nothing — early returns are always safe in React"
+              correct: false
+            - label: B
+              body: "The hook list is corrupted: the second render calls fewer hooks than the first, so React throws 'Rendered fewer hooks than expected' and the component crashes"
+              correct: true
+            - label: C
+              body: "The component returns `null` and nothing else happens — silent failure"
+              correct: false
+            - label: D
+              body: "React falls back to `React.FC` defaults"
+              correct: false
+          explanation: |
+            Hooks are matched by call order on the fiber. A `return` above a `useState` makes that
+            hook conditional, and on the render where the guard flips, every subsequent hook
+            shifts up by one — corrupting the entire list. The discipline is hooks first, guards
+            second, JSX last; the ESLint rule catches the most common forms, but conditional
+            hooks inside a switch with early returns is the case that still slips through.
+  - afterSection: handlers-pass-wrap-type
+    component: Callout
+    props:
+      id: cre-pass-never-call
+      variant: warn
+      title: "Pass functions, never call them"
+      body: "`onClick={save()}` runs `save()` during render; with a setter inside, that's the infinite-loop bug from `state-and-usestate`. The two right forms: `onClick={save}` (when `save` takes the right arguments) or `onClick={() => save(id)}` (when you need to bind). Under this project's Compiler-first stance, inline arrows are also free — the Compiler stabilizes them, so there's no `useCallback` tax to pay for readability."
+  - afterSection: handlers-pass-wrap-type
+    component: Quiz
+    props:
+      schema: 1
+      article_id: conditional-rendering-and-events
+      title: "Quick check — handlers + event objects"
+      questions:
+        - id: cre-target-vs-currenttarget
+          prompt: "A `<button>` contains an `<svg>` icon. The user clicks the icon. In `onClick`, what does `e.target` refer to?"
+          options:
+            - label: A
+              body: "The `<button>` — the element the handler is attached to"
+              correct: false
+            - label: B
+              body: "The `<svg>` — whatever was actually hit; `e.currentTarget` is the button"
+              correct: true
+            - label: C
+              body: "The closest ancestor that has `data-testid`"
+              correct: false
+            - label: D
+              body: "Both refer to the same element — React normalizes them"
+              correct: false
+          explanation: |
+            `e.currentTarget` is the element you attached the handler to — always the button,
+            always typed (`HTMLButtonElement`). `e.target` is whatever was actually hit — the
+            icon, the inner span, anything below — and it's loosely typed (`EventTarget`) so
+            reading `dataset` from it warns. If you need the button's data, use `currentTarget`;
+            if you need to know what specifically was clicked (for analytics, for hitting-test
+            delegation), use `target`.
+
+        - id: cre-stopprop-breaks-analytics
+          prompt: "An inner card calls `e.stopPropagation()` in its `onClick`. A document-level listener installed by an analytics library listens for clicks. What happens to the analytics event?"
+          options:
+            - label: A
+              body: "It still fires — analytics sits on `document`, above React's root"
+              correct: false
+            - label: B
+              body: "It never fires — React's root delegates from the container, but `stopPropagation` also stops the native event from reaching document-level listeners"
+              correct: true
+            - label: C
+              body: "It fires twice — once for the React handler and once for the document listener"
+              correct: false
+            - label: D
+              body: "It depends on whether StrictMode is on"
+              correct: false
+          explanation: |
+            Since React 17 the root listener sits on the *container*, but the native event still
+            bubbles upward from the actual DOM target — and `stopPropagation` in a React handler
+            also stops the native event. Anything above the React root (document-level
+            analytics, outside-click handlers, future libraries you didn't know were there) goes
+            silent. The article's advice: check `e.target` in the outer handler (`if
+            (ref.current?.contains(e.target as Node)) return`), stop propagation only for a
+            boundary you own and document.
+  - afterSection: step-3--commit-and-cancel-through-the-right-events
+    component: Callout
+    props:
+      id: cre-type-button-on-cancel
+      variant: info
+      title: "type=\"button\" on Cancel"
+      body: "Inside a `<form>`, a `<button>` without an explicit `type` defaults to `submit`. If your Cancel button is meant to abort the edit (not save), you must write `type=\"button\"` — omit it and Cancel *saves*. Same rule for any non-submit button inside a form. The article's walkthrough hits this on purpose to show the failure mode."
+  - afterSection: common-mistakes
+    component: DragDrop
+    props:
+      id: cre-classify-mistakes
+      title: Categorize the common mistakes
+      prompt: "Drag each common-mistake category into the slot for the right remediation."
+      explanation: "Calling instead of passing is fixed by an inline arrow. Guard clauses above hooks is fixed by moving hooks before the early return. Treating `onChange` as commit is fixed by putting validation in `onBlur`/`onSubmit`. `e.target` confusion is fixed by reading `e.currentTarget` for the attached element. Save-on-blur eating buttons needs the commit to be idempotent or the input to delay the blur handler until click."
+      slots:
+        - id: cre-slot-onclick
+          label: "Inline arrow handler"
+          accepts:
+            - cre-chip-call
+            - cre-chip-usecallback
+        - id: cre-slot-hooks
+          label: "Hooks first"
+          accepts:
+            - cre-chip-guard
+            - cre-chip-early
+        - id: cre-slot-blur
+          label: "Idempotent commit"
+          accepts:
+            - cre-chip-onblur
+            - cre-chip-onescape
+      chips:
+        - id: cre-chip-call
+          text: "`onClick={() => save(id)}` instead of `onClick={save(id)}`"
+          correctSlots:
+            - cre-slot-onclick
+        - id: cre-chip-usecallback
+          text: "Wrap in `useCallback`"
+          correctSlots: []
+        - id: cre-chip-guard
+          text: "Move `useState`/`useEffect` above `if (!user) return null`"
+          correctSlots:
+            - cre-slot-hooks
+        - id: cre-chip-early
+          text: "Add a top-level early return"
+          correctSlots: []
+        - id: cre-chip-onblur
+          text: "`onBlur` commit is idempotent; blur fires after button click"
+          correctSlots:
+            - cre-slot-blur
+        - id: cre-chip-onescape
+          text: "Add an Escape handler"
+          correctSlots: []
