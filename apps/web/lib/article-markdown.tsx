@@ -8,11 +8,11 @@ import { gradeQuizAnswer } from '@/lib/quiz-actions';
 import type { Locale } from '@/lib/locales';
 import { articlePath } from '@/lib/routes';
 import { isRepoId } from '@/lib/repos';
-import { createSlugger } from '@/lib/slug';
+import { remarkAssignHeadingIds } from '@/lib/heading-ids';
 import { t, type Messages } from '@/lib/i18n';
 
 const { MarkdownServer } = createMarkdownRenderer({
-  remarkPlugins: [remarkGfm, remarkDropHtmlComments, remarkCodeExtract],
+  remarkPlugins: [remarkGfm, remarkDropHtmlComments, remarkCodeExtract, remarkAssignHeadingIds],
 });
 
 type MdNode = {
@@ -127,7 +127,6 @@ export async function renderArticleMarkdown({
   cacheLife('max');
   void contentHash;
   void widgetsKey;
-  const slug = createSlugger();
   const labels: CodeBlockLabels = {
     copy: t(messages, 'article.copy'),
     copied: t(messages, 'article.copied'),
@@ -155,7 +154,7 @@ export async function renderArticleMarkdown({
         h1: () => null,
         h2: (props) => {
           const text = flatten(props.children);
-          const id = slug(text);
+          const id = typeof props.id === 'string' && props.id.length > 0 ? props.id : undefined;
           const part = /^(Part\s+\d+)\s+(.*)$/i.exec(text);
           if (part?.[1] && part[2]) {
             return (
@@ -168,8 +167,8 @@ export async function renderArticleMarkdown({
           return <h2 id={id}>{props.children}</h2>;
         },
         h3: (props) => {
-          const text = flatten(props.children);
-          return <h3 id={slug(text)}>{props.children}</h3>;
+          const id = typeof props.id === 'string' && props.id.length > 0 ? props.id : undefined;
+          return <h3 id={id}>{props.children}</h3>;
         },
         a: (props) => {
           const href = typeof props.href === 'string' ? props.href : '';

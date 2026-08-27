@@ -5,6 +5,23 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-27] — cursor/fix-after-section-heading-anchor-473e — heading-anchored afterSection injection
+
+**Added**
+- `apps/web/lib/heading-ids.ts` — remark plugin that assigns catalog-matching heading ids at mdast (`createSlugger` / `githubSlug`) so they reach function-component `h2`/`h3` as `props.id`
+- `packages/mdx-components/test/quiz.test.ts` — function-component heading slug injection (the production MarkdownServer tree shape)
+- `apps/web/test/heading-anchor-inject.test.ts` — parse → inject → HTML position for `how-it-works-under-the-hood`, plus `githubSlug` vs catalog-anchor checks
+
+**Changed**
+- `injectAfterSections` treats a function component with a non-empty `id` as a section heading (fumadocs tag overrides are functions, not `'h2'`/`'h3'`)
+- `article-markdown.tsx` heading components use the mdast-assigned `props.id` instead of calling `createSlugger()` at render
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Interactive injection with `afterSection` set to a real heading slug no longer throws `interactive injection afterSection not found` at prerender. Reproduced on `react/jsx-and-rendering` targeting `how-it-works-under-the-hood`; `afterSection: ''` (end-of-article) was already fine
+
 ### [2026-08-27] — cursor/fix-av-rail-bottom-force-math-527a — TOC rail bottom-force is scroll-sensitive
 
 **Added**
