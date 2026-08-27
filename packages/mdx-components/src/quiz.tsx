@@ -1,7 +1,8 @@
 'use client';
 
-import { useId, useState, type FormEvent } from 'react';
+import { useEffect, useId, useState, type FormEvent } from 'react';
 import type { ClientQuizQuestion, GradeResult, QuizGradeAction } from './quiz-model';
+import { quizRevealMounted } from './quiz-model';
 
 export type QuizLabels = {
   eyebrow: string;
@@ -32,6 +33,47 @@ function format(template: string, vars: Record<string, string | number>): string
   });
 }
 
+export type QuizVerdictBlockProps = {
+  ok: boolean;
+  statusId: string;
+  explanationId: string;
+  statusLabel: string;
+  explanationLabel: string;
+  correctLabel: string;
+  explanation: string;
+  paintReady: boolean;
+};
+
+/**
+ * Verdict + explanation. Tests call this as a function so the tree exists
+ * without `react-dom`. `data-mounted` stays `'false'` until `paintReady`.
+ */
+export function QuizVerdictBlock({
+  ok,
+  statusId,
+  explanationId,
+  statusLabel,
+  explanationLabel,
+  correctLabel,
+  explanation,
+  paintReady,
+}: QuizVerdictBlockProps) {
+  const mounted = quizRevealMounted(true, paintReady);
+  return (
+    <>
+      <p className={`av-qz-verdict${ok ? ' ok' : ' no'}`} id={statusId} role="status" data-mounted={mounted}>
+        {statusLabel}
+      </p>
+      <div className="av-qz-ex" id={explanationId} data-mounted={mounted}>
+        <p className="av-qz-ex-l">{explanationLabel}</p>
+        <p>
+          <b>{correctLabel}.</b> {explanation}
+        </p>
+      </div>
+    </>
+  );
+}
+
 export function Quiz({ schema, articleUid, questions, labels, gradeAction }: QuizProps) {
   const uid = useId();
   const [index, setIndex] = useState(0);
@@ -39,6 +81,15 @@ export function Quiz({ schema, articleUid, questions, labels, gradeAction }: Qui
   const [result, setResult] = useState<GradeResult | null>(null);
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [paintReady, setPaintReady] = useState(false);
+
+  useEffect(() => {
+    if (result !== null || failed) {
+      setPaintReady(true);
+      return;
+    }
+    setPaintReady(false);
+  }, [result, failed]);
 
   const total = questions.length;
   const question = questions[index];
@@ -56,6 +107,7 @@ export function Quiz({ schema, articleUid, questions, labels, gradeAction }: Qui
     setSelected(null);
     setResult(null);
     setFailed(false);
+    setPaintReady(false);
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -63,6 +115,7 @@ export function Quiz({ schema, articleUid, questions, labels, gradeAction }: Qui
     if (!selected || submitted || pending) return;
     setPending(true);
     setFailed(false);
+    setPaintReady(false);
     try {
       const graded = await gradeAction({
         articleUid,
@@ -123,25 +176,26 @@ export function Quiz({ schema, articleUid, questions, labels, gradeAction }: Qui
           })}
         </fieldset>
         {failed ? (
-          <p className="av-qz-verdict no" role="alert">
+          <p
+            className="av-qz-verdict no"
+            role="alert"
+            data-mounted={quizRevealMounted(true, paintReady)}
+          >
             {labels.error}
           </p>
         ) : null}
         {submitted ? (
           <>
-            <p
-              className={`av-qz-verdict${result.isCorrect ? ' ok' : ' no'}`}
-              id={statusId}
-              role="status"
-            >
-              {result.isCorrect ? labels.correct : labels.incorrect}
-            </p>
-            <div className="av-qz-ex" id={explanationId}>
-              <p className="av-qz-ex-l">{labels.explanation}</p>
-              <p>
-                <b>{result.correctLabel}.</b> {result.explanation}
-              </p>
-            </div>
+            <QuizVerdictBlock
+              ok={result.isCorrect}
+              statusId={statusId}
+              explanationId={explanationId}
+              statusLabel={result.isCorrect ? labels.correct : labels.incorrect}
+              explanationLabel={labels.explanation}
+              correctLabel={result.correctLabel}
+              explanation={result.explanation}
+              paintReady={paintReady}
+            />
             {hasNext ? (
               <button className="av-qz-go" type="button" onClick={() => resetQuestion(index + 1)}>
                 {labels.next}

@@ -1,0 +1,208 @@
+/*
+ * Lesson surface animations. All entries gated behind
+ * `prefers-reduced-motion: no-preference` so the article reads as
+ * static for users who opt out.
+ *
+ * Scope: `.lesson-surface` only. App chrome is not touched.
+ */
+
+/* ---- Reveal keyframes (quiz verdict, callout, etc.) ---- */
+
+@keyframes lesson-rise-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes lesson-rise-in-loud {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Flashcard 3D flip ---- */
+
+@keyframes lesson-flip-to-back {
+  from { transform: rotateY(0deg); }
+  to   { transform: rotateY(180deg); }
+}
+
+@keyframes lesson-flip-to-front {
+  from { transform: rotateY(180deg); }
+  to   { transform: rotateY(0deg); }
+}
+
+/* ---- Toast pulse (copy button feedback) ---- */
+
+@keyframes lesson-toast-pulse {
+  0%   { transform: scale(1);    opacity: 1; }
+  40%  { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* ---- Quiz option color transitions (existing classes) ---- */
+
+  .lesson-surface .av-qz-opt {
+    transition:
+      border-color var(--duration-base) var(--ease-out),
+      background-color var(--duration-base) var(--ease-out);
+  }
+
+  /* ---- Quiz verdict reveal (mount animation via [data-mounted]) ---- */
+
+  .lesson-surface [data-mounted='false'] {
+    opacity: 0;
+  }
+
+  .lesson-surface [data-mounted='true'] {
+    animation: lesson-rise-in var(--duration-slow) var(--ease-out) both;
+  }
+
+  /* ---- Callout reveal on scroll ---- */
+  /* Hidden only after the client wrapper marks the aside for observation,
+     so SSR / no-JS callouts stay visible. */
+
+  .lesson-surface .av-callout[data-observe='true']:not(.is-revealed) {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  .lesson-surface .av-callout.is-revealed {
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+      opacity var(--duration-slow) var(--ease-out),
+      transform var(--duration-slow) var(--ease-out);
+  }
+
+  /* ---- Flashcard 3D flip (replaces display:none/block) ---- */
+
+  .lesson-surface .av-flashcard-card {
+    perspective: 1000px;
+    transform-style: preserve-3d;
+    position: relative;
+    transition: transform var(--duration-slow) cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .lesson-surface .av-flashcard-front,
+  .lesson-surface .av-flashcard-back {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    display: block;
+  }
+
+  .lesson-surface .av-flashcard-back {
+    position: absolute;
+    inset: 1.1rem 1.2rem;
+    transform: rotateY(180deg);
+  }
+
+  .lesson-surface .av-flashcard-card.is-flipped {
+    transform: rotateY(180deg);
+  }
+
+  .lesson-surface .av-flashcard-track {
+    scroll-behavior: smooth;
+  }
+
+  /* ---- Drag-drop hover, focus, and submit transitions ---- */
+
+  .lesson-surface .av-dd-chip {
+    transition:
+      border-color var(--duration-base) var(--ease-out),
+      transform var(--duration-base) var(--ease-out),
+      box-shadow var(--duration-base) var(--ease-out);
+  }
+
+  .lesson-surface .av-dd-chip:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px color-mix(in srgb, var(--lesson-purple-accent) 14%, transparent);
+  }
+
+  .lesson-surface .av-dd-slot {
+    transition:
+      border-color var(--duration-base) var(--ease-out),
+      background-color var(--duration-base) var(--ease-out);
+  }
+
+  .lesson-surface .av-dd-slot.is-target {
+    border-color: var(--lesson-purple-accent);
+    background: color-mix(in srgb, var(--lesson-purple-accent) 30%, transparent);
+  }
+
+  .lesson-surface .av-dd-slot.is-ok,
+  .lesson-surface .av-dd-slot.is-no {
+    transition: border-color var(--duration-slow) var(--ease-out);
+  }
+
+  /* ---- Copy button toast ---- */
+
+  .lesson-surface .av-cbcopy {
+    transition: color var(--duration-base) var(--ease-out);
+  }
+
+  .lesson-surface .av-cbcopy.done {
+    animation: lesson-toast-pulse var(--duration-slow) var(--ease-out);
+  }
+}
+
+/* ---- Reduced-motion overrides ---- */
+
+@media (prefers-reduced-motion: reduce) {
+  .lesson-surface .av-callout,
+  .lesson-surface .av-callout.is-revealed {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .lesson-surface .av-qz-opt {
+    transition: none;
+  }
+
+  .lesson-surface .av-flashcard-card {
+    transform: none !important;
+    transition: none;
+    perspective: none;
+  }
+
+  .lesson-surface .av-flashcard-front,
+  .lesson-surface .av-flashcard-back {
+    backface-visibility: visible;
+    position: static;
+    transform: none;
+    display: none;
+  }
+
+  .lesson-surface .av-flashcard-card:not(.is-flipped) .av-flashcard-front,
+  .lesson-surface .av-flashcard-card.is-flipped .av-flashcard-back {
+    display: block;
+  }
+
+  .lesson-surface .av-flashcard-track {
+    scroll-behavior: auto;
+  }
+
+  .lesson-surface .av-dd-chip:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .lesson-surface .av-dd-chip,
+  .lesson-surface .av-dd-slot,
+  .lesson-surface .av-dd-slot.is-ok,
+  .lesson-surface .av-dd-slot.is-no {
+    transition: none;
+  }
+
+  .lesson-surface .av-cbcopy.done {
+    animation: none;
+  }
+
+  .lesson-surface [data-mounted='false'] {
+    opacity: 1;
+  }
+
+  .lesson-surface [data-mounted='true'] {
+    animation: none;
+  }
+}

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { calloutClassName, renderInlineMarkdown } from '../src/callout';
+import { calloutClassName, calloutSurfaceClass, calloutShouldReveal, renderInlineMarkdown, Callout } from '../src/callout';
 
 test('calloutClassName applies the variant modifier', () => {
   assert.equal(calloutClassName('info'), 'av-callout av-callout--info');
@@ -19,4 +19,18 @@ test('renderInlineMarkdown handles bold and inline code only', () => {
     return typeof node;
   });
   assert.deepEqual(types, ['text', 'code', 'text', 'strong', 'text']);
+});
+
+test('initial callout HTML has av-callout without is-revealed', () => {
+  const tree = Callout({ id: 'tip', variant: 'info', title: 'Tip', body: 'A note.' });
+  assert.equal(tree.props.className, 'av-callout av-callout--info');
+  assert.equal(tree.props.className.includes('is-revealed'), false);
+  assert.equal(calloutSurfaceClass('info', false).includes('is-revealed'), false);
+  assert.equal(calloutSurfaceClass('info', true), 'av-callout av-callout--info is-revealed');
+});
+
+test('calloutShouldReveal disconnects after the first intersecting entry', () => {
+  assert.equal(calloutShouldReveal([{ isIntersecting: false }]), false);
+  assert.equal(calloutShouldReveal([{ isIntersecting: true }]), true);
+  assert.equal(calloutShouldReveal([{ isIntersecting: false }, { isIntersecting: true }]), true);
 });

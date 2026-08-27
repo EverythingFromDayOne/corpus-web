@@ -5,6 +5,25 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-27] — cursor/lesson-animations-phase1-23ec — lesson-surface Phase 1 motion
+
+**Added**
+- `apps/web/components/article/lesson-animations.css` — rise-in, flip, toast-pulse keyframes; callout reveal; flashcard 3D flip; drag-drop hover/`is-target`; copy-button pulse
+- `--duration-base`, `--duration-slow`, `--ease-in-out`, `--ease-spring` motion tokens
+- `CalloutReveal` client wrapper (`IntersectionObserver`, disconnect after first reveal)
+- Quiz `data-mounted` verdict reveal; DragDrop slot `is-target`; flashcard `aria-hidden` on the hidden face
+
+**Changed**
+- Flashcard front/back no longer use `display:none` (3D flip via `rotateY` / `backface-visibility`)
+- Copy button class assembly extracted to `copyButtonClassName()`
+- `packages/ui/DESIGN.md` motion paragraph records the new duration/ease tokens
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Nothing
+
 ### [2026-08-27] — cursor/feat-sydexa-drag-drop-sample-5e5b — drag-drop sample sidecar on jsx-and-rendering
 
 **Added**

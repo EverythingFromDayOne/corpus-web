@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { CalloutReveal } from './callout-reveal';
 
 export type CalloutVariant = 'info' | 'success' | 'warn' | 'error';
 
@@ -12,6 +13,13 @@ export type CalloutProps = {
 export function calloutClassName(variant: CalloutVariant): string {
   return `av-callout av-callout--${variant}`;
 }
+
+export function calloutSurfaceClass(variant: CalloutVariant, revealed: boolean): string {
+  const base = calloutClassName(variant);
+  return revealed ? `${base} is-revealed` : base;
+}
+
+export { calloutShouldReveal } from './callout-reveal';
 
 /**
  * Very small inline markdown: `**bold**` and `` `code` ``. No nested
@@ -42,9 +50,9 @@ export function renderInlineMarkdown(input: string): ReactNode[] {
 
 export function Callout({ id, variant, title, body }: CalloutProps) {
   return (
-    <aside className={calloutClassName(variant)} data-callout={id}>
+    <CalloutReveal className={calloutClassName(variant)} data-callout={id}>
       {title ? <p className="av-callout-title">{title}</p> : null}
       <p className="av-callout-body">{renderInlineMarkdown(body)}</p>
-    </aside>
+    </CalloutReveal>
   );
 }

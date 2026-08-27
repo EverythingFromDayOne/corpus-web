@@ -42,6 +42,10 @@ export function CodeBlockToolbar({
   );
 }
 
+export function copyButtonClassName(copied: boolean): string {
+  return copied ? 'av-cbcopy done' : 'av-cbcopy';
+}
+
 export function CodeBlockCopy({
   code,
   labels,
@@ -62,7 +66,7 @@ export function CodeBlockCopy({
   }
 
   return (
-    <button type="button" className={`av-cbcopy${copied ? ' done' : ''}`} onClick={() => void copy()}>
+    <button type="button" className={copyButtonClassName(copied)} onClick={() => void copy()}>
       {copied ? labels.copied : labels.copy}
     </button>
   );

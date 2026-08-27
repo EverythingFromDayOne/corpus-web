@@ -77,6 +77,10 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **lesson-animations-phase1 (2026-08-27):** CSS-only (plus small
+  client hooks) polish on Quiz / Callout / Flashcard / DragDrop / copy
+  button, gated by `prefers-reduced-motion`. No schema, chrome, or new
+  primitives. Feature branch PR; not pushed to `main`. Do not auto-merge.
 - **sydexa-dragdrop-part2 (2026-08-27):** Appended the drag-drop sample
   to `curation/overrides/react-jsx-and-rendering.yaml` (existing
   quiz/flashcard/callout blocks unchanged). No primitive/code changes

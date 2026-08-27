@@ -6,7 +6,13 @@
  *
  * `--lesson-purple-*` keeps the sydexa-shaped names the feature asked for;
  * the values are Instrument palette mixes, not a new purple.
+ *
+ * Motion lives in `./lesson-animations.css`. `@import` has to come first
+ * (a trailing import is invalid CSS); display:none flashcard rules were
+ * removed here so that file does not need to override them.
  */
+
+@import './lesson-animations.css';
 
 .lesson-surface {
   --lesson-text-primary: var(--color-body);
@@ -128,6 +134,12 @@
   .lesson-surface .av-qz:hover::before,
   .lesson-surface .av-qz:focus-within::before {
     opacity: 1;
+  }
+
+  .lesson-surface .av-qz-opt {
+    transition:
+      border-color var(--duration-base) var(--ease-out),
+      background-color var(--duration-base) var(--ease-out);
   }
 }
 
@@ -280,13 +292,7 @@
 
 .av-flashcard-front,
 .av-flashcard-back {
-  display: none;
   color: var(--lesson-text-primary);
-}
-
-.av-flashcard-card:not(.is-flipped) .av-flashcard-front,
-.av-flashcard-card.is-flipped .av-flashcard-back {
-  display: block;
 }
 
 .av-flashcard-card.is-flipped .av-flashcard-back {
@@ -576,6 +582,17 @@
 @media (prefers-reduced-motion: reduce) {
   .av-dd-slot.is-ok,
   .av-dd-slot.is-no {
+    transition: none;
+  }
+
+  .av-callout,
+  .av-callout.is-revealed {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .av-qz-opt {
     transition: none;
   }
 }
