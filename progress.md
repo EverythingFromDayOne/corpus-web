@@ -77,6 +77,16 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **after-section-heading-anchor (2026-08-27):** PR #32's heading-anchored
+  `afterSection` threw `interactive injection afterSection not found` at
+  prerender even when the slug matched `catalog.sections`. Reproduced on
+  `jsx-and-rendering` / `how-it-works-under-the-hood`. Cause: fumadocs
+  `MarkdownServer` puts function-component `h2`/`h3` in the tree; inject
+  only looked for native tags, and ids were computed inside those
+  functions so they were invisible to the walk. Ids now assigned at mdast
+  (`remarkAssignHeadingIds`) and inject matches `props.id`. `slug.ts` /
+  `sections.ts` githubSlug bodies were already identical. Feature branch
+  PR; not pushed to `main`. Do not auto-merge.
 - **av-rail-bottom-force-math (2026-08-27):** PR #34's
   `shouldForceLastHeading` compared leftover scroll to the last heading's
   distance to the 20% reading line. Substituting the definitions cancels

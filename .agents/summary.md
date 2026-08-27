@@ -6,9 +6,10 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-27 (TOC rail bottom-force: leftover-scroll vs
-> last-heading distance cancelled `scrollY` and pinned short-tailed pages
-> to the last part from the top; the override now needs a real bottom zone)
+> Last updated: 2026-08-27 (afterSection heading-anchor: MarkdownServer
+> emits function-component h2/h3, so inject now reads catalog slugs from
+> `props.id` assigned at mdast; `slug.ts` / `sections.ts` githubSlug
+> bodies were already identical)
 
 ---
 
@@ -300,11 +301,15 @@ bootstrap.
   the initial payload regardless of the component's own render logic. No lesson YAML
   is authored yet — nothing mounts on a live article until that later pass. Sidecars
   remain the documented future; overrides remain the working mechanism until D17
-  closes (D35). Gotcha for whoever authors the first real widget: an override whose
-  `afterSection` targets an actual article heading currently throws at prerender
-  ("afterSection not found") even when the heading exists and slugs match — verified
-  pre-existing on `main`-equivalent code, unrelated to the leak fix; `afterSection: ''`
-  (end-of-article) does not hit this. Root cause not yet diagnosed.
+  closes (D35). Heading-anchored `afterSection` works: fumadocs `MarkdownServer`
+  puts function components in the tree where native `h2`/`h3` would be, so
+  `injectAfterSections` matches on `props.id` (the catalog slug, assigned at
+  mdast by `remarkAssignHeadingIds` using `apps/web/lib/slug.ts`). Native `h2`
+  trees still work. `afterSection: ''` is still end-of-article. `githubSlug` /
+  `dedupeSlug` in `slug.ts` and `packages/content-schema/src/sections.ts` are
+  the same three-line bodies; they had not drifted. An h2 whose next sibling
+  is an h3 has an empty section body, so a widget for that h2 lands between
+  them — that is the existing "before the next heading" rule, not a miss.
   §7.5 specifies the code-assembly exercise. Video is struck (§16 Q5 decided: SVG plus
   motion).
 

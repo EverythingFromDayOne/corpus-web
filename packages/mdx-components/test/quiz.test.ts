@@ -96,3 +96,62 @@ test('injectAfterSections throws when afterSection is missing from the tree', ()
     /afterSection not found/,
   );
 });
+
+/**
+ * fumadocs `MarkdownServer` does not emit native `h2`/`h3` nodes when those
+ * tags are overridden: the tree child is the function component, and the
+ * native heading exists only after React renders it. Production assigns the
+ * catalog slug as `props.id` on that function (via a remark plugin); inject
+ * must read it there, not only from `type === 'h2'`.
+ */
+function MarkdownHeading(props: { id?: string; children?: unknown }) {
+  return createElement('h2', { id: props.id }, props.children as never);
+}
+
+function childSummary(node: unknown): string[] {
+  const kids = (node as { props?: { children?: unknown } }).props?.children;
+  const list = Array.isArray(kids) ? kids : kids == null ? [] : [kids];
+  return list.map((child) => {
+    if (!child || typeof child !== 'object' || !('props' in child)) return '';
+    const el = child as {
+      type?: unknown;
+      props?: { id?: string; className?: string; 'data-quiz'?: string };
+    };
+    if (el.props?.['data-quiz'] || el.props?.className === 'av-qz') return 'quiz';
+    if (typeof el.type === 'function') {
+      return el.props?.id ? `heading#${el.props.id}` : 'heading';
+    }
+    if (typeof el.type === 'string') return el.props?.id ? `${el.type}#${el.props.id}` : el.type;
+    return '';
+  });
+}
+
+test('injectAfterSections places a node after a function-component heading slug', () => {
+  const heading = 'How it works under the hood';
+  const afterSection = heading.toLowerCase().replace(/[^\w\- ]/g, '').replace(/ /g, '-');
+  assert.equal(afterSection, 'how-it-works-under-the-hood');
+  const quiz = createElement('section', { className: 'av-qz', 'data-quiz': 'heading' });
+  const body = createElement(Fragment, null, [
+    createElement(MarkdownHeading, { id: afterSection, key: 'h' }, heading),
+    createElement('p', { key: 'p' }, 'The compiler emits elements, not DOM nodes.'),
+    createElement(MarkdownHeading, { id: 'basic-usage', key: 'n' }, 'Basic usage'),
+  ]);
+  const injected = injectAfterSections(body, [{ afterSection, node: quiz }]);
+  assert.deepEqual(childSummary(injected), [
+    'heading#how-it-works-under-the-hood',
+    'p',
+    'quiz',
+    'heading#basic-usage',
+  ]);
+});
+
+test('injectAfterSections still throws when a function-component heading has no matching id', () => {
+  const body = createElement(MarkdownHeading, { id: 'present' }, 'Present');
+  assert.throws(
+    () =>
+      injectAfterSections(body, [
+        { afterSection: 'how-it-works-under-the-hood', node: createElement('div') },
+      ]),
+    /afterSection not found/,
+  );
+});

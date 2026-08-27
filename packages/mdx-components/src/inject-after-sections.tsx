@@ -4,6 +4,11 @@
  * "After the section" means after that heading's body, immediately before the
  * next heading (or at the end of the article). Matches OverrideInjection's
  * `afterSection` and QuizQuestion.afterSection.
+ *
+ * Headings are identified by `props.id` (the catalog slug). Native `h2`/`h3`
+ * work, and so do function-component tag overrides — fumadocs MarkdownServer
+ * replaces `h2`/`h3` with functions, so `type === 'h2'` never matches the
+ * production tree. Empty `afterSection` still means end of article.
  */
 import {
   Children,
@@ -23,11 +28,16 @@ type HeadingHit = { id: string };
 
 function headingOf(node: ReactNode): HeadingHit | null {
   if (!isValidElement(node)) return null;
-  const type = node.type;
-  if (type !== 'h2' && type !== 'h3') return null;
   const id = (node.props as { id?: unknown }).id;
   if (typeof id !== 'string' || id.length === 0) return null;
-  return { id };
+  const type = node.type;
+  if (type === 'h2' || type === 'h3') return { id };
+  // fumadocs MarkdownServer swaps overridden `h2`/`h3` for function
+  // components. The native heading (and its id) exists only after React
+  // renders them. Catalog slugs are assigned at mdast and forwarded as
+  // `props.id`, so a function child with an id is a section heading.
+  if (typeof type === 'function') return { id };
+  return null;
 }
 
 function isFragment(node: ReactNode): node is ReactElement<{ children?: ReactNode }> {
@@ -42,6 +52,9 @@ function childrenOf(node: ReactNode): ReactNode[] {
     const id = (node.props as { id?: unknown }).id;
     // A heading is a leaf for this walk even if it has text children.
     if (typeof node.type === 'string' && (node.type === 'h2' || node.type === 'h3')) {
+      return [node];
+    }
+    if (typeof node.type === 'function' && typeof id === 'string' && id.length > 0) {
       return [node];
     }
     // Unwrap a single anonymous wrapper (the markdown renderer root).

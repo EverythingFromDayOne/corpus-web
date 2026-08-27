@@ -3319,3 +3319,39 @@ References) that PR #34 was protecting.
 - Do not auto-merge.
 
 ---
+
+## Session — afterSection heading-anchor injection — 2026-08-27
+
+**Branch:** `cursor/fix-after-section-heading-anchor-473e`
+
+**Files changed:**
+- `packages/mdx-components/src/inject-after-sections.tsx` — treat function-component headings with `props.id` as section markers (MarkdownServer never emits native `h2`/`h3` when those tags are overridden)
+- `packages/mdx-components/test/quiz.test.ts` — heading-anchored injection against the function-component tree shape; confirmed failing with `afterSection not found` before the inject change
+- `apps/web/lib/heading-ids.ts` — remark plugin assigning catalog-matching ids at mdast via `createSlugger` so they reach the function component as `props.id`
+- `apps/web/lib/article-markdown.tsx` — run `remarkAssignHeadingIds`; heading components use `props.id` instead of calling `createSlugger()` during render
+- `apps/web/test/heading-anchor-inject.test.ts` — `githubSlug` vs catalog anchors, and parse → inject → HTML position for `how-it-works-under-the-hood`
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased heading-anchor fix
+- `.agents/summary.md` — replace the undiagnosed afterSection gotcha with the actual tree-shape cause and the fix
+- `progress.md` — session-log line
+
+**Why:** PR #32 disclosed that an override whose `afterSection` targeted a real heading threw `interactive injection afterSection not found` at prerender even when the heading existed and the slug matched `catalog.sections`. Reproduced in `pnpm --filter @corpus/web build` against `react/jsx-and-rendering` / `how-it-works-under-the-hood` — same error, not a different failure. A MarkdownServer dump showed the production tree is a Fragment of `fn:h2` nodes with no `id` on the outer element; `createSlugger()` ran inside the heading function, so inject (which walks the element tree before React renders those functions) never saw a native `h2` or an id. `afterSection: ''` never needed a heading, which is why only end-of-article worked.
+
+`apps/web/lib/slug.ts` and `packages/content-schema/src/sections.ts` `githubSlug` / `dedupeSlug` bodies are identical; they had not drifted. The files are not byte-identical (exports vs private, comments, `createSlugger` only on the web side). No slug algorithm was changed. Ids are now assigned once at mdast with that same slugger and forwarded as `props.id`; inject matches on that.
+
+**Invented decisions:**
+- Branch named `cursor/fix-after-section-heading-anchor-473e` per the cloud-agent template, not the requested `fix/after-section-heading-anchor`.
+- Reproduced with a throwaway `curation/overrides/jsx-and-rendering.yaml` (Quiz targeting `how-it-works-under-the-hood`), then deleted it before commit. D35 still says not to author lesson quiz YAML, and a fake quiz on the first course lesson would be reader-facing invented content. Prerender verification with that override present: both `/en/blog/react/jsx-and-rendering.html` and the matching lesson HTML contained `.av-qz` after `<h2 id="how-it-works-under-the-hood">`, with no `correct` / `explanation` in the payload.
+- Did not edit `content/` (content-boundary). Did not add `react-dom` to `packages/mdx-components`; the mdx-components test inspects the React tree, and the HTML round-trip lives in `apps/web/test` where `react-dom` already exists.
+- `remarkAssignHeadingIds` creates a slugger per document, not per processor, so consecutive articles cannot steal `-1` suffixes from each other.
+- An h2 immediately followed by an h3 has an empty section body under the existing "before the next heading" rule; the quiz therefore sat between that h2 and its first h3. Not changed — out of scope, and the lookup requirement is satisfied.
+- `docs/DEBT.md` / `roadmap.md` not touched, per instruction. No quiz scoring / answer-key files were edited (`quiz.tsx`, `quiz-actions.ts`, `toClientQuizWidget` untouched).
+- Session log id `afterSection heading-anchor injection` rather than a sequential session number. No `prompts/session-N+1.md` authored.
+
+**Known issues / next steps:**
+- No lesson YAML is authored, so a live article still does not mount a Quiz until that later pass (D35). The heading-anchor path is unit-tested and was prerender-verified with a deleted throwaway override.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side, unrelated.
+- Do not auto-merge.
+
+---
+
