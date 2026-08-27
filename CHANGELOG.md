@@ -5,6 +5,23 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-27] — cursor/lesson-animations-phase2-5842 — lesson-surface Phase 2 motion
+
+**Added**
+- Quiz glow spotlight pulse on `.av-qz:focus-within` (`lesson-glow-breath`, 3s)
+- Button hover lift on `.av-qz-go` / `.av-dd-go` / `.av-cbcopy` / `.av-pnav a` (`@media (hover: hover)`)
+- Sidebar progress fill on `.av-pbar rect` (`lesson-progress-fill`)
+- TOC tick width/label easing at `--duration-base`
+
+**Changed**
+- `.av-tk` and `.av-tk-l` transitions use `--duration-base` instead of `--duration-fast`
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Nothing
+
 ### [2026-08-27] — cursor/lesson-animations-phase1-23ec — lesson-surface Phase 1 motion
 
 **Added**

@@ -77,6 +77,11 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **lesson-animations-phase2 (2026-08-27):** CSS-only Phase 2 polish
+  (patterns #7/#8/#9/#12): quiz focus glow pulse, button hover lift,
+  sidebar progress fill, TOC tick easing. Chrome motion in
+  `article.css`; lesson-surface motion in `lesson-animations.css`.
+  Feature branch PR; not pushed to `main`. Do not auto-merge.
 - **lesson-animations-phase1 (2026-08-27):** CSS-only (plus small
   client hooks) polish on Quiz / Callout / Flashcard / DragDrop / copy
   button, gated by `prefers-reduced-motion`. No schema, chrome, or new
