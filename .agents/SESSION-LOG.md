@@ -4033,4 +4033,10 @@ itself was prod-only.
 - D29 (category filter chips inert on /en/courses and /en/blog) — open.
 - The current nxhhuy.tech prod is healthy: real article = 200, missing-slug = 404 (was 500), bad-corpus = 404, missing-lesson = 404 (was 500). `x-vercel-id: hkg1::2sc25-...` confirms live edge; `x-matched-path: /500` gone.
 
+- **chore/session-wrap-d37-d38-d39-d19 (PR #70) — 2026-08-28:** wrap of the entire D37 + D38-test + D39 + D19 chain in canonical state files per AGENTS.md session protocol. 4 files changed (+170/-3, all markdown): `.agents/SESSION-LOG.md` (this entry), `CHANGELOG.md` (8 new `[Unreleased]` entries), `.agents/summary.md` (Last updated line), and `progress.md` (Session log section). PR #70 merged to develop at 2026-08-28T18:34:13Z (merge commit `482aded`).
+
+- **chore/promote-develop-main-d37-d38-d39-d19 (PR #71) — 2026-08-28:** develop → main release of PR #70. Merged with `--admin --squash` at 2026-08-28T18:37:13Z (merge commit `e84d114`). Vercel Production auto-deployed at 2026-08-28T18:38:49Z. Smoke test confirmed: `/en/blog/react/suspense` = 200, `/en/blog/react/hooks` = 404, `/en/blog/bogus/foo` = 404, `/en/courses/react-foundations/lessons/missing-slug` = 404. nxhhuy.tech prod healthy.
+
+  **End-of-session state on main (`e84d114`):** D37 closed, D38 test half closed, D38 content half deferred (user's call — "lessons/articles are enough, move to polish"), D39 closed (Vercel prod 500 → 404 via middleware), D19 stubs shipped (real impl owed, design call needed). All four mandatory AGENTS.md wrap steps satisfied; canonical state files reflect this session's work. Next session: D20 (Shiki code blocks) + D18 (POC a11y defects) — user's "A first step by step" choice.
+
 ---
