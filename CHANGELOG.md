@@ -1411,3 +1411,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   submodules pinned to tags; `content/` is never edited from this repo
 - English-only content ships, but all routes are namespaced `/[locale]/` and all
   user-visible strings go through a message catalogue from day one
+
+### [2026-08-28] — chore/release-promote-d18 — D18 defects shipped to main and prod
+
+**Changed**
+- D18 changes from PR #74 promoted to `main` via PR #76 (admin-squashed)
+- Vercel Production auto-deploy at 19:44:18Z, state ACTIVE
+
+**Verified live on nxhhuy.tech:**
+- Sidebar search input has accessible label (visually hidden)
+- Completed corpus sidebar links announce " (completed)" to screen readers
+- Closed mobile drawer (≤1000px viewport) removes focusable children via `inert`
+
+**Next:** D20 (Shiki) — own session + own prompt file.

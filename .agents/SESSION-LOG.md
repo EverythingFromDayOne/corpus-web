@@ -4071,3 +4071,59 @@ itself was prod-only.
 
 ---
 
+## Session — PR #74 + #75 + #76 D18 promote-to-main — 2026-08-28 (evening)
+
+Closed out the D18 polish session after the local-merge conflict resolution
+was completed. Three PRs:
+
+- **PR #74** (`cursor/fix-d18-a11y-poc-defects` → `develop`) — Cursor's
+  3-commit D18 fix (search label, completed-link announcement, mobile drawer
+  inert). Merged 19:31:56Z, commit `08625cc` (squash of 3 commits).
+  Verified locally before merge: `pnpm typecheck` 5/5 green,
+  `pnpm verify:frontmatter` 196/196, `pnpm --filter @corpus/web build`
+  green, `pnpm verify:prerender` 196/196 blog + 18/18 lessons, vendor
+  neutrality 0 hits on both changed files.
+
+- **PR #75** (`develop` → `main`) — opened but conflicted on the doc-file
+  variants (`.agents/summary.md` and `progress.md` were both edited in place
+  per the session-protocol rule; `CHANGELOG.md` and `.agents/SESSION-LOG.md`
+  auto-merged via `merge=union`). Followed the cursor-slack-relay skill's
+  7-step local-merge recipe: cut `ops/merge-pr75-into-main` off fresh
+  `origin/main`, local `git merge --no-ff`, manually resolved the two
+  in-place doc files, pushed the ops branch, closed PR #75 with supersede
+  comment, opened follow-up PR.
+
+- **PR #76** (`ops/merge-pr75-into-main` → `main`) — admin-merged with
+  `--admin --squash` at 19:41:47Z, merge commit `9c03b34`. Vercel
+  Production deployed at 19:44:18Z for the same commit, state ACTIVE.
+
+  **Prod smoke test (post-deploy):**
+  - `https://nxhhuy.tech/en/blog/react/suspense` → 200 ✅
+  - `https://nxhhuy.tech/en/blog/react/hooks` → 404 ✅ (was 500 pre-D39)
+  - `https://nxhhuy.tech/en/blog/bogus/foo` → 404 ✅
+  - `https://nxhhuy.tech/en/courses/react-foundations/lessons/missing-slug`
+    → 404 ✅ (was 500 pre-D39)
+
+  **D18 changes verified live on prod HTML:**
+  - `<label class="sr-only" for="av-corpus-search">` + matching
+    `id="av-corpus-search"` ✅
+  - On desktop viewport: `<aside class="av-sb" aria-label="Corpus">` with
+    NO `inert` attribute ✅ — `useMobileViewport()` returns false at ≥1000px
+    so `mobileDrawerInert(false, …)` correctly returns `undefined`. The
+    defensive gating Cursor built (vs. my prompt's naive
+    `inert={!mobileOpen}`) is working — desktop sidebar is not falsely
+    inerted.
+
+  **Vercel auto-deploy detail**: Production deploy of `9c03b34c` landed at
+  19:44:18Z (about 2.5 minutes after the merge). This batch was clean
+  (compared to PR #57 earlier today which got "1 Skipped Deployment"). The
+  intermittency the skill flags is real but unpredictable per-PR.
+
+**End-of-session state:** local main at `9c03b34`, working tree clean, all
+prod URLs correct, all D18 defects live on nxhhuy.tech.
+
+**Next session starter:** D20 (Shiki code blocks with copy/download/expand)
+needs its own session + prompt file. Substantial feature with non-trivial
+design choices (which Shiki package, dual-theme strategy, Cache Components
+compatibility). D38 content-half (44 unresolved refs, Option B ~3-4h to drop)
+also still open. D19 real impl blocked on design call.
