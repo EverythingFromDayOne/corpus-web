@@ -3,6 +3,7 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import type { ClientQuizQuestion, GradeResult, QuizGradeAction } from './quiz-model';
 import { quizRevealMounted } from './quiz-model';
+import { WidgetRise } from './widget-rise';
 
 export type QuizLabels = {
   eyebrow: string;
@@ -131,6 +132,7 @@ export function Quiz({ schema, articleUid, questions, labels, gradeAction }: Qui
   }
 
   return (
+    <WidgetRise>
     <section className="av-qz" data-article={articleUid} aria-label={labels.eyebrow}>
       <header className="av-qz-hd">
         <span>{labels.eyebrow}</span>
@@ -209,5 +211,6 @@ export function Quiz({ schema, articleUid, questions, labels, gradeAction }: Qui
         )}
       </form>
     </section>
+    </WidgetRise>
   );
 }

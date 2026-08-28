@@ -9,6 +9,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 **Added**
 - Two new assertions in `apps/web/test/lesson-animations.test.ts`: glow-breath keyframe block contains `opacity: 0.X` and `opacity: 1` stops (closes the empty-keyframe no-op gap). Tautology proven: stripped body → assertion failure; restored → 5/5 pass.
+### [2026-08-28] — cursor/lesson-animations-phase3-1bd9 — lesson-surface Phase 3 motion
+
+**Added**
+- Drag-drop slot shake on `.av-dd-slot.is-flash-no` (`lesson-dd-shake`, 480ms)
+- Inline-code chip hover on `.lesson-surface :not(pre) > code`
+- Widget stagger reveal on below-fold `.av-qz` / `.av-flashcard` / `.av-dd` (`lesson-widget-rise`)
+- `WidgetRise` IntersectionObserver leaf; `is-flash-no` flash-window class on drag-drop slots
 
 **Changed**
 - Nothing
