@@ -20,17 +20,15 @@ type PageProps = {
 
 export async function generateStaticParams() {
   const view = await getCatalogView();
-  return view.courses
-    .filter((course) => course.slug === 'react-render-cycle')
-    .flatMap((course) =>
-      course.items.flatMap((item) =>
-        LOCALES.map((locale) => ({
-          locale,
-          course: course.slug,
-          slug: item.articleId,
-        })),
-      ),
-    );
+  return view.courses.flatMap((course) =>
+    course.items.flatMap((item) =>
+      LOCALES.map((locale) => ({
+        locale,
+        course: course.slug,
+        slug: item.articleId,
+      })),
+    ),
+  );
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
