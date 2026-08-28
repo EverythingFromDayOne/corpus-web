@@ -87,8 +87,14 @@ export function CorpusSidebar({
                 className={on ? 'on' : undefined}
                 aria-current={on ? 'page' : undefined}
               >
-                <i className={`av-dot${on ? ' now' : done ? ' done' : ''}`} />
+                <i
+                  className={`av-dot${on ? ' now' : done ? ' done' : ''}`}
+                  aria-hidden="true"
+                />
                 {article.title}
+                {done ? (
+                  <span className="sr-only"> ({t(messages, 'article.completed')})</span>
+                ) : null}
               </a>
             );
           })}
