@@ -21,7 +21,9 @@
     "verify:frontmatter": "tsx scripts/verify-frontmatter.mjs",
     "verify:links": "tsx scripts/verify-links.mjs",
     "verify:catalog": "tsx scripts/verify-catalog.mjs",
-    "verify:prerender": "node scripts/verify-prerender.mjs"
+    "verify:prerender": "node scripts/verify-prerender.mjs",
+    "verify:a11y": "node scripts/verify-a11y.mjs",
+    "verify:lighthouse": "node scripts/verify-lighthouse.mjs"
   },
   "dependencies": {
     "gray-matter": "4.0.3",
