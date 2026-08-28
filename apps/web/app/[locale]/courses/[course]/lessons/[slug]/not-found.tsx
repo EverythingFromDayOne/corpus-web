@@ -30,7 +30,7 @@ export default async function LessonNotFound({ params }: Props) {
         {t(messages, 'notFound.title')}
       </h1>
       <p className="mt-4 text-[color:var(--color-body)]">
-        {t(messages, 'notFound.lessonBody', { course, slug })}
+        D39-DEBUG-MARKER-LESSON — {t(messages, 'notFound.lessonBody', { course, slug })}
       </p>
       <nav className="mt-8 flex justify-center gap-3 text-sm">
         <Link

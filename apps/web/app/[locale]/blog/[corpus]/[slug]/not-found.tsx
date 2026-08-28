@@ -30,7 +30,7 @@ export default async function ArticleNotFound({ params }: Props) {
         {t(messages, 'notFound.title')}
       </h1>
       <p className="mt-4 text-[color:var(--color-body)]">
-        {t(messages, 'notFound.body', { corpus, slug })}
+        D39-DEBUG-MARKER-ARTICLE — {t(messages, 'notFound.body', { corpus, slug })}
       </p>
       <nav className="mt-8 flex justify-center gap-3 text-sm">
         <Link
