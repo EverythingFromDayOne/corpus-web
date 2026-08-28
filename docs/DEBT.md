@@ -3,7 +3,7 @@
 Known gaps. IDs are **append-only and never reused** — a closed item keeps its
 number and its row, marked closed.
 
-**Highest ID issued: D36**
+**Highest ID issued: D37**
 
 ## Open
 
@@ -39,6 +39,7 @@ number and its row, marked closed.
 | D34 | **Testimonials are blocked on having readers.** The site went public 2026-08-19 and has had no reader long enough to hold an opinion. A testimonial section now would contain invented quotes on a site that publishes its own unresolved-reference count to prove it does not fabricate. Revisit when real feedback exists. | A testimonial section now would be invented quotes. | Having real readers | 2026-08-20 |
 | D35 | **Sidecar schema support deferred** (§7.3). Overrides are the working mechanism until a lesson genuinely needs corpus-side interactives. The §7.5 exercise is the case that will force it, and the corpus CI gap must close first. | Interactive content lives in `curation/overrides/` until every corpus can validate sidecars. | The §7.5 exercise; D17 must close first | 2026-08-20 |
 | D36 | **Interactive layer, tier 2** — concept simulators, one per mechanism, mounted in the stepped-diagram shell. Incremental; each instance is justified by an article that is hard to understand without it. Candidates: render → commit pipeline, context re-render propagation, middleware → guard → interceptor → pipe → filter chain, cached-versus-uncached resolution. Split from D24 on 2026-08-20. | Articles whose mechanism is hard to see stay prose-only. | Phase 4; D24 (the shell) | 2026-08-20 |
+| D37 | **CI `actions/checkout` with `submodules: recursive` pulls each submodule's default-branch HEAD, not the parent's pinned SHA.** Symptom: `verify-frontmatter` (which calls `submoduleRef()` → `git describe --exact-match --tags HEAD`) fails on every PR whose submodule working tree has commits past its latest tag. Pre-existing: reproducible on `develop` HEAD itself — the last two CI runs on `develop` are red on the same gate before PR #56 was opened. Reproduced locally with a fresh `git clone --depth 1 --branch develop && git submodule update --init`: the local clone lands on tagged SHAs, so the failure is deterministically CI-side. Fix is in `.github/workflows/ci.yml`: after `actions/checkout@v4`, run an explicit per-submodule `git -C content/<repo> fetch --tags && git -C content/<repo> checkout <pinned-sha>` loop (or switch to `submodules: recursive` plus a `git submodule update --init --force` post-step, which honors the parent index). Out of scope for PR #56; recorded here so the next CI-tuning session picks it up. | CI gates are red on every PR including develop→main promotions, masking real regressions. | CI config change; test by re-running CI on develop HEAD with the fix | 2026-08-28 |
 
 ## Closed
 
