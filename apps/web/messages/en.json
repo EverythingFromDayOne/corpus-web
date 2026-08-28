@@ -118,7 +118,11 @@
     "articles": "Articles"
   },
   "notFound": {
-    "title": "Not found"
+    "title": "Not found",
+    "body": "No article at /{corpus}/{slug}. It may have moved when the corpus was re-tagged, or the link came from a draft.",
+    "lessonBody": "No lesson at /{course}/lessons/{slug}. It may have been removed from the course.",
+    "browseAll": "Browse all articles",
+    "browseCourses": "Browse courses"
   },
   "article": {
     "corpusNav": "Corpus",

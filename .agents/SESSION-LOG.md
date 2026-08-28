@@ -3901,3 +3901,93 @@ widgets already on first paint do not fade in over the article.
 - Do not auto-merge.
 
 ---
+
+## Session — missing-slug not-found pages — 2026-08-28
+
+**Branch:** `fix/missing-slug-not-found`
+
+**Files changed:**
+- `apps/web/app/[locale]/blog/[corpus]/[slug]/not-found.tsx` — new RSC, renders chrome-styled 404 for blog/article slugs missing from `catalog.json`
+- `apps/web/app/[locale]/courses/[course]/lessons/[slug]/not-found.tsx` — new RSC, same shape for course-lesson slugs
+- `apps/web/messages/en.json` — `notFound.body`, `notFound.lessonBody`, `notFound.browseAll`, `notFound.browseCourses` keys added under the existing `notFound` block
+
+**Why:** Production was returning HTTP 500 on every blog URL not present in
+`catalog.json` (e.g. `/en/blog/react/hooks`, `/en/blog/react/nonexistent`,
+`/en/blog/angular/widgets`). Verified by curl against `nxhhuy.tech` — all three
+500s, empty `digest` field. Same shape in dev returned a clean 404, which made
+the bug prod-only.
+
+Root cause: the article route is a Cache Components ◐ dynamic segment with no
+`not-found.tsx` and no `dynamicParams = false`. `getCatalogView()` carries the
+`'use cache'` directive (see `apps/web/lib/catalog.ts:323`). When the runtime
+hits a slug `generateStaticParams` didn't emit, the route handler calls
+`notFound()`, but the `NEXT_NOT_FOUND` exception propagates through the cache
+boundary and Next 16's prod runtime classifies it as an error — Vercel returns
+500. Next's built-in 404 fallback only ships in dev. Same code shape on the
+lesson route (`notFound()` on lines 69 and 71 of
+`apps/web/app/[locale]/courses/[course]/lessons/[slug]/page.tsx`).
+
+Fix is two paired `not-found.tsx` files, one per dynamic segment, that import
+`getMessages` and `t` directly without crossing the `'use cache'` boundary. The
+lesson route has the same bug; it gets the same fix in the same PR. Both
+`not-found.tsx` files are RSC, read `params` and `messages` only, render a
+minimal page (corpus eyebrow, "Not found" title, sentence naming the missing
+path, two `<Link>` CTAs to the corpus index and the home), and use the existing
+chrome tokens (`--color-graphite` borders, `--color-surface` hover,
+`--color-muted` eyebrow, `--color-body` prose).
+
+Verified locally:
+
+- `pnpm typecheck` 5/5 ✅
+- `pnpm verify:frontmatter` 196/196 ✅
+- `pnpm build:catalog` exits 0, writes 196 articles / 445 edges / 0 excluded / 44 unresolved ✅
+- `pnpm dev` + curl `/en/blog/react/hooks` → **404** with the new chrome page (was 404-in-dev via Next's built-in fallback; was 500-in-prod; is now 404 in both with the new chrome page)
+- `pnpm dev` + curl `/en/courses/react-render-cycle/lessons/nonexistent` → **404** with the new chrome page
+- `pnpm dev` + curl `/en/blog/react/concurrent-rendering` → 200 ✅ (no regression on real articles)
+- `pnpm dev` + curl `/en/courses/react-render-cycle/lessons/jsx-and-rendering` → 200 ✅
+
+A real-Vercel smoke test against the develop Preview URL is still owed before
+merging to main. The dev test is necessary but not sufficient because the bug
+itself was prod-only.
+
+**Invented decisions:**
+- One not-found.tsx per Cache Components ◐ dynamic segment that calls
+  `notFound()`, not a single app-wide one. Next 16 scopes not-found.tsx
+  resolution to the segment; an app-wide `app/not-found.tsx` would not catch
+  notFound() thrown inside `[corpus]/[slug]`. Verified by reading the
+  generated shell HTML on disk — the per-segment scope is the only one that
+  binds to the route handler's `notFound()`.
+- Page reads `getMessages(locale)` directly, not `getCatalogView()`. Crossing
+  the `'use cache'` boundary inside a not-found render is what produced the
+  prod-only 500, so the not-found page must not. The not-found page therefore
+  has no awareness of which corpora exist — it just renders whatever
+  `params.corpus` was passed.
+- Vendor-neutral copy throughout. `grep -ciE '\b(sydexa|100 days|ng-|nxhhuy@|vercel|tailwind)\b'` returns 0 on both new files. The body copy names the missing
+  corpus and slug so a reader hitting an old link can self-diagnose without
+  needing a vendor name to anchor on.
+- Did not add `dynamicParams = false`. That would break runtime resolution
+  for any future non-prerendered-but-valid path, which is the wrong tradeoff
+  for fixing a 500 on a 404.
+
+**Known issues / next steps:**
+- Production smoke test against the Vercel Preview URL for `develop` is still
+  owed. I verified in dev but the bug was prod-only, so dev verification is
+  necessary not sufficient.
+- Every future Cache Components ◐ dynamic segment that calls `notFound()`
+  needs a paired `not-found.tsx`. The lesson-animations / quiz / drag-drop
+  wrappers all stay inside `[corpus]/[slug]` so they inherit this one. The
+  home, courses index, and courses detail don't `notFound()` so they're
+  safe. No new debt row for this — it's a one-time gotcha recorded in the
+  doc update below.
+- `progress.md` does not need a session-line entry; the recent session-log
+  entries on this branch already cover the lesson-animations phases. The
+  PR will mention both.
+- `content/react` is at the tagged `v0.6.0` (D11-resolved). The
+  `git submodule update --init` earlier in this session had rolled forward
+  to an untagged commit; rolled back to the tag before running the gates.
+  Worth flagging in `.agents/summary.md` if not already there — see the
+  related key-fact in `cursor-slack-relay`.
+- Do not auto-merge. Per the locked `develop` → `main` flow, this lands on
+  develop first, then a separate PR promotes develop to main with `--admin`.
+
+---
