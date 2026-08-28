@@ -1,10 +1,16 @@
 /**
  * `deriveTitle` / `findTitleHeading`, run against the real corpus.
  *
- * Every corpus assertion below names a file in a pinned submodule, so these
- * tests are also a standing check on the corpus itself: if `react-concepts`
- * lands the D11 fix and re-tags, the "no title" cases start failing and the
- * fix has to be acknowledged here rather than passing unnoticed.
+ * One assertion below (`an explicit frontmatter title wins over the body H1`)
+ * still names a corpus file: `nextjs/docs/recipes/index.md`, which carries
+ * both `title: Recipe index` and a `# Recipes` H1 and is excluded from
+ * article discovery.
+ *
+ * Everything else that used to be corpus-anchored was converted to inline
+ * fixtures after the D11 fix landed in `react-concepts` (PR #1, 2026-08-28):
+ * the 58 untitled / fake-titled articles all got real H1s and frontmatter
+ * titles, so the corpus no longer exhibits the bugs the old tests guarded
+ * against. See the SYNTHETIC block below — those are the live coverage now.
  *
  * Two cases have no corpus instance and use inline fixtures instead — see
  * `SYNTHETIC` below. They are marked, not smuggled in as corpus coverage.
@@ -36,27 +42,53 @@ const LEGACY_H1_REGEX = /^#\s+(.+)$/m;
 
 // ---------------------------------------------------------------------------
 // Fenced code — the confirmed regression
+//
+// Pre-D11 (2026-08-27): `react/rendering/react-compiler-deep-dive.md` was the
+// corpus-anchored case — no frontmatter title, no real H1, a shell comment
+// inside an `npm i -D` fence matching `/^#\s+(.+)$/m`. The old line scanner
+// titled the article "TypeScript projects also need the Babel core types:".
+// After D11 (2026-08-28) the article got `# React Compiler deep dive` and a
+// description, so it stopped exhibiting the bug. The SYNTHETIC test below
+// preserves the regression coverage without depending on the corpus staying
+// untitled.
 // ---------------------------------------------------------------------------
 
-const FENCED_FALSE_MATCH = 'react/rendering/react-compiler-deep-dive.md';
+test('SYNTHETIC: a `# ` line inside a fenced code block is not a title', () => {
+  const body = [
+    'Some prose introducing a shell snippet:',
+    '',
+    '```bash',
+    'npm i -D some-package',
+    '# TypeScript projects also need the Babel core types:',
+    '```',
+    '',
+    'Body text.',
+    '',
+  ].join('\n');
 
-test('a `# ` line inside a fenced code block is not a title', () => {
-  const body = corpusBody(FENCED_FALSE_MATCH);
-
-  // The bug, stated as an assertion so the test fails loudly if the corpus
-  // edits this fence away and the case stops being covered by a real file.
   assert.equal(
     LEGACY_H1_REGEX.exec(body)?.[1],
     'TypeScript projects also need the Babel core types:',
-    'expected the shell comment inside the npm-install fence to be what the old line scanner matched',
+    'expected the old line scanner to match the shell comment',
   );
-
   assert.equal(findTitleHeading(body), null);
 });
 
-test('the fenced false match throws rather than titling the article', () => {
+test('SYNTHETIC: deriveTitle throws on a body whose only `# ` line is inside a fence', () => {
+  const body = [
+    'Some prose introducing a shell snippet:',
+    '',
+    '```bash',
+    'npm i -D some-package',
+    '# TypeScript projects also need the Babel core types:',
+    '```',
+    '',
+    'Body text.',
+    '',
+  ].join('\n');
+
   assert.throws(
-    () => deriveTitle(undefined, corpusBody(FENCED_FALSE_MATCH), 'react', FENCED_FALSE_MATCH),
+    () => deriveTitle(undefined, body, 'react', 'synthetic.md'),
     (err: unknown) =>
       err instanceof AdapterError && /no H1 in the body to derive one from/.test(err.message),
   );
@@ -90,16 +122,24 @@ test('an explicit frontmatter title wins over the body H1', () => {
 });
 
 // ---------------------------------------------------------------------------
-// No title at all — Debt D11
+// No title at all — Debt D11 (CLOSED in `react-concepts` PR #1, 2026-08-28)
+//
+// The corpus-anchored case was `react/concurrent/suspense.md`. It used to be
+// the only article in the corpus with neither frontmatter title nor H1, and
+// the test asserted `deriveTitle` would throw AdapterError on it. After D11
+// closed (`react-concepts` PR #1 added `# Suspense` and a description), the
+// file now has both. No other corpus article has neither — the only files
+// in `content/` without a title or H1 are the demo-lab trees under
+// `content/nextjs/demos/`, which are excluded from the adapter layer per
+// D3. Coverage moves to SYNTHETIC below.
 // ---------------------------------------------------------------------------
 
-test('an article with neither frontmatter title nor H1 throws AdapterError', () => {
-  const relPath = 'react/concurrent/suspense.md';
-  const body = corpusBody(relPath);
+test('SYNTHETIC: deriveTitle throws AdapterError when both frontmatter title and H1 are absent', () => {
+  const body = ['Some prose with no heading at all.', '', 'More prose.', ''].join('\n');
 
   assert.equal(LEGACY_H1_REGEX.test(body), false, 'expected no `# ` line anywhere in this body');
   assert.throws(
-    () => deriveTitle(undefined, body, 'react', relPath),
+    () => deriveTitle(undefined, body, 'react', 'synthetic.md'),
     (err: unknown) => err instanceof AdapterError && err.repo === 'react',
   );
 });
