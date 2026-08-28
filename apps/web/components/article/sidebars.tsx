@@ -9,6 +9,25 @@ import { isRepoId, REPOS, type RepoId } from '@/lib/repos';
 import { readProgress } from '@/lib/progress';
 import { sidebarClassName, useArticleChrome } from './article-shell';
 
+/** Matches `article.css` / `toggle()`: `@media (width <= 1000px)`. */
+function useMobileViewport(): boolean {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia('(width <= 1000px)');
+    const sync = () => setIsMobile(media.matches);
+    sync();
+    media.addEventListener('change', sync);
+    return () => media.removeEventListener('change', sync);
+  }, []);
+
+  return isMobile;
+}
+
+function mobileDrawerInert(isMobile: boolean, mobileOpen: boolean): true | undefined {
+  return isMobile && !mobileOpen ? true : undefined;
+}
+
 export function CorpusSidebar({
   locale,
   messages,
@@ -27,6 +46,7 @@ export function CorpusSidebar({
   collapseLabel: string;
 }) {
   const { desktopOpen, mobileOpen, toggle } = useArticleChrome();
+  const isMobile = useMobileViewport();
   const [completed, setCompleted] = useState<Record<string, true>>({});
 
   useEffect(() => {
@@ -34,7 +54,11 @@ export function CorpusSidebar({
   }, [currentUid]);
 
   return (
-    <aside className={sidebarClassName(desktopOpen, mobileOpen)} aria-label={t(messages, 'article.corpusNav')}>
+    <aside
+      className={sidebarClassName(desktopOpen, mobileOpen)}
+      aria-label={t(messages, 'article.corpusNav')}
+      inert={mobileDrawerInert(isMobile, mobileOpen)}
+    >
       <div className="av-sbhd">
         <b>{t(messages, 'article.corpus')}</b>
         <button type="button" className="av-sbtog" aria-label={collapseLabel} onClick={toggle}>
@@ -118,6 +142,7 @@ export function CurriculumSidebar({
   collapseLabel: string;
 }) {
   const { desktopOpen, mobileOpen, toggle } = useArticleChrome();
+  const isMobile = useMobileViewport();
   const [completed, setCompleted] = useState<Record<string, true>>({});
 
   useEffect(() => {
@@ -128,7 +153,11 @@ export function CurriculumSidebar({
   const ratio = course.lessonCount === 0 ? 0 : Math.round((doneCount / course.lessonCount) * 100);
 
   return (
-    <aside className={sidebarClassName(desktopOpen, mobileOpen)} aria-label={t(messages, 'article.curriculumNav')}>
+    <aside
+      className={sidebarClassName(desktopOpen, mobileOpen)}
+      aria-label={t(messages, 'article.curriculumNav')}
+      inert={mobileDrawerInert(isMobile, mobileOpen)}
+    >
       <a className="av-back" href={coursePath(locale, course.slug)}>
         ← {course.title}
       </a>
