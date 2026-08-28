@@ -14,6 +14,8 @@
     "lib/**/*.tsx",
     "test/**/*.ts",
     "messages/**/*.json",
+    "slug-allowlist.json",
+    "lesson-allowlist.json",
     "next-env.d.ts",
     ".next/types/**/*.ts"
   ],
