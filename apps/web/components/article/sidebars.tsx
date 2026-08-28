@@ -60,10 +60,15 @@ export function CorpusSidebar({
           </option>
         ))}
       </select>
+      <label className="sr-only" htmlFor="av-corpus-search">
+        {t(messages, 'article.searchSidebar')}
+      </label>
       <input
+        id="av-corpus-search"
         type="search"
         disabled
         aria-disabled="true"
+        aria-label={t(messages, 'article.searchSidebar')}
         placeholder={t(messages, 'placeholders.search')}
       />
       {groups.map((group) => (
