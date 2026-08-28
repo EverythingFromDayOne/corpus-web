@@ -55,6 +55,7 @@ the current pins: **197 selected, 181 adapting** — nextjs 10/10, react 58/73, 
 | 14 | SEO baseline: metadata, OG, sitemap, JSON-LD | 🟡 | Listing and article pages ship metadata + WebSite/Organization/TechArticle/BreadcrumbList JSON-LD. Sitemap, robots.txt, OG images are Debt D22 |
 | 15 | Cache Components strategy, verified via `.next/server/app/**.html` | ✅ | Nothing above the article/lesson pages reads `cookies()`, `headers()`, or `searchParams`. `pnpm verify:prerender` asserts 181 blog + 12 lesson HTML files under `.next/server/app`, each with a non-empty `<body>`. Bracketed `[param]` shells (◐ rows) are excluded. Build table still groups generated paths as `◐`; listing concretes stay `○`. No `ƒ`. D23 closed. |
 | 16 | `description` frontmatter pass, four framework corpora (197 files) | 🟡 | **Debt D5, no longer blocking item 7.** The pass has landed in all four: `nextjs@v0.3.0` 10/10, `react@v0.5.0` 58/73, `angular@v0.3.0` 93/94, `nestjs@v0.3.2` 20/20 — 181 of 197 adapt. Two named residues remain, both corpus-side: the 15 untitled `react` articles the pass deliberately skipped (D11) and `angular`'s duplicate `widget-deployment.md` (D15). `nestjs@v0.3.1` recovered `dtos-and-class-validator` (D12 closed), which is the +1 selected / +1 adapting |
+| 17 | Branch model split: feature → `develop` (staging) → `main` (production → nxhhuy.tech) | 🟢 | `develop` created off `origin/main` at `aa87412` (same HEAD as main). `main` keeps full strict protection (admin-enforced, 1 review, linear history, no force-push, no deletion, conversation-resolution required). `develop` has lighter protection (no required reviews, admins bypass, linear history, no force-push, no deletion). GitHub API does not enforce "only develop→main"; Vercel's environment branch policy on the Production environment does (user to confirm in Vercel dashboard). Cursor cloud-agent PRs continue targeting `main` for the transition period — see `.agents/SESSION-LOG.md` Phase-3 session entry for the invented decision |
 
 **Gate:** a complete, shippable, useful site with zero backend.
 
@@ -77,6 +78,11 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **lesson-animations-phase3 (2026-08-28):** Phase 3 polish
+  (patterns #5 follow-up / #10 / #13): drag-drop slot shake on
+  `is-flash-no`, inline-code chip hover, below-fold widget stagger.
+  `WidgetRise` IO wrapper; first-paint widgets stay static. Feature
+  branch PR; not pushed to `main`. Do not auto-merge.
 - **lesson-animations-phase2 (2026-08-27):** CSS-only Phase 2 polish
   (patterns #7/#8/#9/#12): quiz focus glow pulse, button hover lift,
   sidebar progress fill, TOC tick easing. Chrome motion in

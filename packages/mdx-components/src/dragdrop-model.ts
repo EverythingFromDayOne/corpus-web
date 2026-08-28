@@ -365,7 +365,7 @@ export function slotClassName(
   const classes = ['av-dd-slot'];
   if (filled) classes.push('is-filled');
   if (flash === 'ok') classes.push('is-ok');
-  if (flash === 'no') classes.push('is-no');
+  if (flash === 'no') classes.push('is-no', 'is-flash-no');
   if (isTarget) classes.push('is-target');
   return classes.join(' ');
 }

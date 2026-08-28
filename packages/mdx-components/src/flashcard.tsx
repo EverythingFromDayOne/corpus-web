@@ -11,6 +11,7 @@ import {
   shouldHandleFlipKey,
   toggleFlip,
 } from './flashcard-model';
+import { WidgetRise } from './widget-rise';
 
 export type FlashcardCard = {
   front: string;
@@ -73,6 +74,7 @@ export function Flashcard({ id, title, cards, labels }: FlashcardProps) {
   }
 
   return (
+    <WidgetRise>
     <section className="av-flashcard" data-flashcard={id} aria-label={title}>
       <header className="av-flashcard-hd">
         <span>{labels.eyebrow}</span>
@@ -135,5 +137,6 @@ export function Flashcard({ id, title, cards, labels }: FlashcardProps) {
         })}
       </div>
     </section>
+    </WidgetRise>
   );
 }

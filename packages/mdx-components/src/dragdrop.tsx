@@ -20,6 +20,7 @@ import {
   type DragDropBoard,
   type DragDropGradeAction,
 } from './dragdrop-model';
+import { WidgetRise } from './widget-rise';
 
 export type DragDropLabels = {
   eyebrow: string;
@@ -143,6 +144,7 @@ export function DragDropView({
     board.verdict === 'correct' ? labels.correct : board.verdict === 'incorrect' ? labels.incorrect : '';
 
   return (
+    <WidgetRise>
     <section className="av-dd" data-dd={sidecarId} data-article={articleUid} aria-label={title}>
       <noscript>
         <p className="av-dd-fallback">{fallbackLine}</p>
@@ -258,6 +260,7 @@ export function DragDropView({
         </div>
       ) : null}
     </section>
+    </WidgetRise>
   );
 }
 

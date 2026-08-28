@@ -1,0 +1,53 @@
+schema: 1
+slug: react-foundations
+title: React foundations
+description: >-
+  Six articles that introduce the React mental model and the building blocks
+  every later concept depends on. Pairs with `react-render-cycle`, which picks
+  up where this leaves off and walks the full render and commit model with its
+  symptom-first recipes.
+rationale: >-
+  The corpus separates concept articles from symptom-first recipes. The
+  foundations path is the concept-only entry point: the model first, then the
+  primitives (JSX, props, composition), then the patterns the primitives
+  compose into (branching and events), and finally the constraints that
+  prevent the patterns from being misused.
+
+  Order is bottom-up on purpose. `thinking-in-react` opens with the bet the
+  whole API is built on — UI as a function of state — because every later
+  rule only makes sense once that bet is on the table. `jsx-and-rendering`
+  comes next because the rules about when output is recomputed assume the
+  reader already knows what the output is. Props precede composition because
+  composition is built on prop typing and slot discipline. Branching and
+  events come after composition because the conditional-render machinery is
+  easier to read once the host-versus-children distinction is in place. The
+  Rules of React close the path, placed last so the constraints read as
+  consequences of the preceding five articles rather than as prerequisites.
+
+  Nothing here asserts how React behaves. Every claim lives in an article
+  under the corpus gates.
+items:
+  - article: react/thinking-in-react
+    note: >-
+      Start here. React's bet is that UI is a function of state, and every
+      later rule protects that bet.
+  - article: react/jsx-and-rendering
+    note: >-
+      What JSX compiles into. The output type is what the rest of the model
+      talks about recomputing.
+  - article: react/components-and-props
+    note: >-
+      A component's props type is its public API. Designing it well is what
+      makes invalid usage fail to compile.
+  - article: react/component-composition
+    note: >-
+      Composition rests on the owner-versus-parent distinction. Read this
+      before any render-prop or custom-hook material in the render-cycle path.
+  - article: react/conditional-rendering-and-events
+    note: >-
+      Branching and event handling look trivial and hide real machinery, from
+      unmount-versus-hide decisions to blur firing before click.
+  - article: react/rules-of-react
+    note: >-
+      The constraints only read as consequences rather than as arbitrary
+      rules once the preceding five articles are in place.

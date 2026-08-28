@@ -5,6 +5,42 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-27] — test/lesson-animations-glow-coverage — glow-breath keyframe coverage
+
+**Added**
+- Two new assertions in `apps/web/test/lesson-animations.test.ts`: glow-breath keyframe block contains `opacity: 0.X` and `opacity: 1` stops (closes the empty-keyframe no-op gap). Tautology proven: stripped body → assertion failure; restored → 5/5 pass.
+### [2026-08-28] — cursor/lesson-animations-phase3-1bd9 — lesson-surface Phase 3 motion
+
+**Added**
+- Drag-drop slot shake on `.av-dd-slot.is-flash-no` (`lesson-dd-shake`, 480ms)
+- Inline-code chip hover on `.lesson-surface :not(pre) > code`
+- Widget stagger reveal on below-fold `.av-qz` / `.av-flashcard` / `.av-dd` (`lesson-widget-rise`)
+- `WidgetRise` IntersectionObserver leaf; `is-flash-no` flash-window class on drag-drop slots
+
+**Changed**
+- Nothing
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Test coverage gap on Phase 2 quiz glow pulse (PR #43 could ship with an empty keyframe and tests still passed; now caught)
+
+### [2026-08-28] — branch model split (develop ↔ main)
+
+**Added**
+- `develop` branch off `origin/main` at `aa87412` (same HEAD, new branch). Lighter protection than `main`: no required reviews, admins bypass, linear history required, no force-push, no deletion. Intended for staging/preview-deploy buffer.
+- `develop` row in `progress.md` (item 17)
+
+**Changed**
+- Branch-protection semantics: `main` already has full strict protection (admin-enforced, 1 review, linear history, no force-push, no deletion, conversation-resolution required). `develop` is a new lighter counterpart.
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Nothing
+
 ### [2026-08-27] — cursor/lesson-animations-phase2-5842 — lesson-surface Phase 2 motion
 
 **Added**
