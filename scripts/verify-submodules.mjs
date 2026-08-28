@@ -2,9 +2,19 @@
 /**
  * verify-submodules.mjs
  *
- * Fails if any content submodule is missing, dirty, or on a floating ref
- * rather than an exact tag. Also fails if .gitmodules lists nothing — a gate
- * that returns 0 on an empty input set is broken.
+ * Fails if any content submodule is missing, dirty, or not at the SHA the
+ * parent repo's gitlink records. The parent-pinned SHA is the source of
+ * truth: it is what `actions/checkout@v4` with `submodules: recursive`
+ * honors in CI (the submodule init step does `git -c protocol.version=2
+ * submodule update --init --force --depth=1 --recursive` per GitHub's
+ * actions/checkout@v4 source — depth=1, no tags), and what `git submodule
+ * update --init` honors locally. The script reports the tag name
+ * (e.g. `v0.6.0`) for human-readable confirmation when run locally with
+ * tags fetched, but does NOT fail when the tag object is missing — that
+ * is the CI-shallow-clone state, not a real drift.
+ *
+ * Also fails if .gitmodules lists nothing — a gate that returns 0 on an
+ * empty input set is broken.
  *
  * Session 2: also fails unless there are EXACTLY four — `nextjs`, `react`,
  * `angular`, `nestjs`. The session 1 audit found `auth`, `authz`, and
@@ -14,6 +24,15 @@
  *
  * Complements submodule.<name>.ignore = none, which makes `git status` surface
  * dirty submodule content instead of hiding it.
+ *
+ * D37 history: prior to 2026-08-28 this script used `git describe
+ * --exact-match --tags HEAD` as the primary check, which fails on CI's
+ * shallow submodule clones because `--depth=1` does not fetch tag
+ * objects. The check still ran cleanly locally (full clones DO have
+ * tags) so local verification passed while CI ran red. Switched to
+ * "submodule HEAD == parent gitlink" as the primary invariant, with
+ * tag reporting as a best-effort informational line. See docs/DEBT.md
+ * row D37.
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
@@ -89,12 +108,52 @@ for (const mod of modules) {
     errors.push(`${mod.path}: dirty working tree\n${indent(dirty)}`);
   }
 
+  // Primary check: the submodule HEAD must match the SHA the parent repo's
+  // gitlink records. This is what `actions/checkout@v4` with
+  // `submodules: recursive` honors in CI (D37), and what `git submodule
+  // update --init` honors locally — so it is the source of truth for
+  // "is the submodule in sync with the parent repo". The gitlink is read
+  // from the parent's index at the recorded path.
+  let pinned;
   try {
-    git(['describe', '--exact-match', '--tags', 'HEAD'], abs);
+    pinned = git(['ls-files', '--stage', mod.path], ROOT);
   } catch {
-    const short = git(['rev-parse', '--short', 'HEAD'], abs);
-    errors.push(`${mod.path}: HEAD ${short} (${head}) is not an exact tag`);
+    errors.push(`${mod.path}: cannot read parent gitlink`);
+    continue;
   }
+  // `git ls-files --stage <path>` prints one line:
+  //   <mode> <sha> <stage>\t<path>
+  const gitlinkMatch = /^\d+ ([0-9a-f]{40}) \d+\t/.exec(pinned);
+  if (!gitlinkMatch) {
+    errors.push(`${mod.path}: parent gitlink not found`);
+    continue;
+  }
+  const pinnedSha = gitlinkMatch[1];
+  if (head !== pinnedSha) {
+    const short = git(['rev-parse', '--short', 'HEAD'], abs);
+    const shortPinned = pinnedSha.slice(0, 7);
+    errors.push(
+      `${mod.path}: HEAD ${short} does not match parent gitlink ${shortPinned}. ` +
+        `Run \`git submodule update --init ${mod.path}\` to sync.`,
+    );
+  }
+
+  // Secondary check: a tag should point at the pinned SHA. This is the
+  // belt-and-suspenders guarantee for humans running the script locally
+  // with full tag fetches, where `git describe --exact-match` succeeds.
+  // CI's `actions/checkout@v4` uses `--depth=1 --no-tags` for submodules
+  // (verified from CI logs of D37), so tag objects are NOT fetched and
+  // this check would fail there. The parent-pinned-SHA check above is
+  // the authoritative one — this tag check is informational and runs
+  // best-effort: a missing tag (because tags weren't fetched) does NOT
+  // fail the gate, but is reported so humans can see it locally.
+  let tag = '(unknown — tags not fetched)';
+  try {
+    tag = git(['describe', '--exact-match', '--tags', 'HEAD'], abs);
+  } catch {
+    // CI shallow-clone does not fetch tags. Local tag check is best-effort.
+  }
+  console.log(`verify-submodules: ${mod.path} at ${head.slice(0, 7)} (${tag})`);
 }
 
 if (errors.length > 0) {
@@ -105,7 +164,7 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(`verify-submodules: ${modules.length} submodule(s) pinned to a tag and clean`);
+console.log(`verify-submodules: ${modules.length} submodule(s) pinned to parent gitlinks and clean`);
 
 /**
  * @param {string} raw
