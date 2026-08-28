@@ -3786,3 +3786,52 @@ no new primitives, no answer-key path.
 - Do not auto-merge.
 
 ---
+
+## Session — branch model split (develop ↔ main) — 2026-08-28
+
+**Branch:** `main` (and `develop` created off it)
+
+**Files changed:**
+- `.agents/SESSION-LOG.md` — this entry
+- `progress.md` — added a row recording the branch model split
+
+**Why:** Until now every merge to `main` deployed straight to `nxhhuy.tech`. With
+Phase 3 animations + ongoing sidecar work about to ship, the user wants a staging
+buffer: feature branches → `develop` → preview-deploy, then `develop` → `main` →
+production. This gives a place to do an end-to-end live verification on the real
+nxhhuy.tech surface *before* the change reaches the public production-mirror, and
+matches the conventional `develop`/`main` GitFlow used in many monorepos.
+
+**Invented decisions:**
+- `develop` protection is **looser** than `main`: no required reviews, admins
+  bypass allowed, no conversation-resolution gate. The intent is "fast iteration
+  in staging". `main` stays strict (enforce_admins, 1 review, linear history, no
+  force-push, no deletion) per the previous session's protection setup.
+- `develop` was seeded from `origin/main` at `aa87412` (post-Phase 3 prompt).
+  No content divergence; it's the same HEAD, just on a new branch.
+- Branch-protection API does not let us restrict PR merges to come from a
+  specific branch (no `required_source_branch` field). The "only develop merges
+  into main" rule is enforced **by Vercel's environment branch policy** in the
+  dashboard, not on GitHub. On GitHub we rely on the user (you) only opening
+  develop→main PRs when ready to promote; this is the same model as the
+  Vercel-side enforcement.
+- Cursor cloud-agent PRs keep going to `main` for now (Cursor's prompt does not
+  mention `develop`). This is intentional for the transition period — Cursor PRs
+  are already pre-tested via the live Preview deploy, so promoting them through
+  `develop` first is redundant for the staging goal. If this changes, the
+  Phase 3 prompt can be amended and a `prompts/cursor-develop-target.md` followup
+  can route Cursor to `develop` instead.
+
+**Known issues / next steps:**
+- Cursor's currently-running Phase 3 PR will land on `main` (not `develop`) when
+  verified and merged. That's the last "main-direct" merge; future work should
+  target `develop`. The user was informed.
+- `develop` is currently at the same commit as `main`; no live Preview URL yet
+  for it specifically (Vercel's branch policy in the dashboard may or may not
+  pin Preview to `develop` — see the handoff note below).
+- Hand-off required: user needs to verify Vercel's Production environment deploys
+  only from `main` (default) and Preview covers `develop` + feature branches
+  (Vercel dashboard → Settings → Git → Production Branch should read "main";
+  Preview Branch should be left as "All branches" or explicitly include `develop`).
+
+---
