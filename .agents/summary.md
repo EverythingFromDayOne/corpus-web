@@ -6,9 +6,7 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-28 (D18 POC a11y defects closed on article chrome — labelled
-> sidebar search, announced completed links, inert closed mobile drawer. D39
-> middleware 404s and D19 stubs remain as previously shipped.)
+> Last updated: 2026-08-28 (D18 POC a11y defects closed on article chrome via PR #75 — labelled sidebar search, announced completed links, inert closed mobile drawer. D39 middleware 404s, D37 submodule-tag fix, D38 test half, and D19 stubs remain as previously shipped. nxhhuy.tech prod healthy across all 4 URL paths.)
 
 ---
 
