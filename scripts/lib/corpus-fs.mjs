@@ -58,10 +58,35 @@ export function git(args, cwd) {
   return execFileSync('git', args, { cwd, encoding: 'utf8', env }).trim();
 }
 
-/** Submodule tag + commit, as recorded on disk. Throws if not pinned to a tag. */
+/** Submodule tag + commit, as recorded on disk.
+ *
+ * `commit` is the authoritative value — every consumer of `submoduleRef` only
+ * uses the commit SHA for parity checks, and `commit` is what `actions/checkout@v4`
+ * with `submodules: recursive` honors in CI (it does `git submodule update
+ * --init --force --depth=1 --recursive` per the actions/checkout@v4 source).
+ *
+ * `tag` is informational: best-effort. CI shallow-clones don't fetch
+ * submodule tag objects (`--depth=1 --no-tags`), so `git describe
+ * --exact-match --tags HEAD` will fail there even when the parent repo's
+ * gitlink points at a tagged commit. Locally with full clones, the tag
+ * resolves normally and is reported for audit/catalog purposes.
+ *
+ * The previous version threw on the tag lookup, breaking `verify-frontmatter`
+ * (which calls `submoduleRef` via `adapt-all.mjs`) on every PR whose
+ * submodules were CI-shallow-cloned. Same defect as D37 in
+ * `verify-submodules.mjs`, fixed in both places.
+ */
 export function submoduleRef(absPath) {
   const commit = git(['rev-parse', 'HEAD'], absPath);
-  const tag = git(['describe', '--exact-match', '--tags', 'HEAD'], absPath);
+  let tag = '(unknown — tags not fetched)';
+  try {
+    tag = git(['describe', '--exact-match', '--tags', 'HEAD'], absPath);
+  } catch {
+    // CI shallow clone (or shallow submodule fetch) doesn't have tag objects.
+    // Locally this catch only fires if the submodule is at an untagged commit
+    // — which is its own alarm and is reported via verify-submodules.mjs's
+    // primary gitlink check, not here.
+  }
   return { tag, commit };
 }
 
