@@ -86,8 +86,9 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
   Components ◐ dynamic segment with no segment-level `not-found.tsx`;
   `NEXT_NOT_FOUND` crossed the `'use cache'` boundary on
   `getCatalogView()` and surfaced as 500. Fix reads `getMessages` only,
-  no catalog touch. Feature branch PR to develop, then develop→main.
-  Do not auto-merge.
+  no catalog touch. PR #56 → develop → PR #57 → main (--admin). D37
+  recorded separately for the pre-existing CI submodule-tag failure
+  that surfaced on this PR (not caused by it). Do not auto-merge.
 - **lesson-animations-phase3 (2026-08-28):** Phase 3 polish
   (patterns #5 follow-up / #10 / #13): drag-drop slot shake on
   `is-flash-no`, inline-code chip hover, below-fold widget stagger.
