@@ -78,6 +78,16 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **missing-slug-not-found (2026-08-28):** paired
+  `not-found.tsx` pages for `/blog/[corpus]/[slug]` and
+  `/courses/[course]/lessons/[slug]`. Production was returning HTTP 500
+  on every URL absent from `catalog.json` (e.g. `/en/blog/react/hooks`),
+  prod-only; dev fell through to Next's built-in 404. Cause: Cache
+  Components ◐ dynamic segment with no segment-level `not-found.tsx`;
+  `NEXT_NOT_FOUND` crossed the `'use cache'` boundary on
+  `getCatalogView()` and surfaced as 500. Fix reads `getMessages` only,
+  no catalog touch. Feature branch PR to develop, then develop→main.
+  Do not auto-merge.
 - **lesson-animations-phase3 (2026-08-28):** Phase 3 polish
   (patterns #5 follow-up / #10 / #13): drag-drop slot shake on
   `is-flash-no`, inline-code chip hover, below-fold widget stagger.

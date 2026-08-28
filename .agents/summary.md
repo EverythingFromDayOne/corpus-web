@@ -6,8 +6,9 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-28 (lesson-surface Phase 3 motion: drag-drop
-> slot shake, inline-code chip hover, widget stagger reveal)
+> Last updated: 2026-08-28 (missing-slug not-found pages — production 500 on
+> catalog-absent URLs fixed via paired per-segment not-found.tsx files; lesson
+> route got the same fix)
 
 ---
 
@@ -161,6 +162,17 @@ bootstrap.
   (D23, closed).
 - `next dev` under-reports prerender severity: some failures show HTTP 200 in dev and are
   fatal at build.
+- **Every Cache Components ◐ dynamic segment that calls `notFound()` needs a paired
+  `not-found.tsx` at the segment level** — not an app-wide one. Without it, prod
+  returns HTTP 500 on any slug `generateStaticParams` didn't emit, because
+  `NEXT_NOT_FOUND` crosses the `'use cache'` boundary on `getCatalogView()`
+  (and similar) and Next 16's prod runtime classifies it as a generic error.
+  Dev returns a clean 404 via Next's built-in fallback, so the bug is invisible
+  without a prod curl. Both `apps/web/app/[locale]/blog/[corpus]/[slug]/not-found.tsx`
+  and `apps/web/app/[locale]/courses/[course]/lessons/[slug]/not-found.tsx`
+  exist as of 2026-08-28. Future dynamic segments that `notFound()` need the
+  same pairing — keep the not-found page free of `getCatalogView()` so it
+  doesn't re-cross the cache boundary it's trying to escape.
 - **Every rule that places a child of the article shell's grid is breakpoint-scoped, and
   must stay that way.** `docs/design/article-layout-poc.html` pairs
   `@media (width > 1000px)` with `@media (width <= 1000px)` — exact complements — and each
