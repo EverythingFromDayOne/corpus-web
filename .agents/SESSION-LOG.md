@@ -3786,3 +3786,72 @@ no new primitives, no answer-key path.
 - Do not auto-merge.
 
 ---
+
+## Session — lesson-animations phase 3 — 2026-08-28
+
+**Branch:** `cursor/lesson-animations-phase3-1bd9`
+
+**Files changed:**
+- `apps/web/components/article/lesson-animations.css` — `lesson-dd-shake` on `.av-dd-slot.is-flash-no` (480ms); `lesson-widget-rise` on below-fold quiz/flashcard/drag-drop; reduced-motion resets
+- `apps/web/components/article/lesson-tokens.css` — inline-code chip hover on `.lesson-surface :not(pre) > code`
+- `apps/web/test/lesson-animations.test.ts` — three Phase 3 CSS-hook tests (shake, chip hover, stagger)
+- `packages/mdx-components/src/dragdrop-model.ts` — `slotClassName` emits `is-flash-no` alongside `is-no` during the flash window
+- `packages/mdx-components/src/widget-rise.tsx` — IntersectionObserver leaf; first-paint skip; `data-stagger` 1–3
+- `packages/mdx-components/src/quiz.tsx` — wrap host in `WidgetRise`
+- `packages/mdx-components/src/flashcard.tsx` — wrap host in `WidgetRise`
+- `packages/mdx-components/src/dragdrop.tsx` — wrap host in `WidgetRise`
+- `packages/mdx-components/test/widget-rise.test.ts` — in-view / stagger-cap / should-rise predicates
+- `packages/mdx-components/test/dragdrop.test.ts` — `is-flash-no` present during flash, gone after `settleGrade`
+- `.agents/SESSION-LOG.md` — this entry
+- `CHANGELOG.md` — unreleased Phase 3 motion bullets
+- `.agents/summary.md` — shake/chip-hover/stagger gotcha; planned next step 4
+- `progress.md` — session-log line
+
+**Why:** Phase 1 and Phase 2 shipped the high-payoff and gentler polish.
+Phase 3 is the remaining Phase-2-eligible work from the 2026-08-27 audit:
+the deferred drag-drop rejection shake, inline-code chip hover, and
+widget stagger now that six lessons have multiple widgets. Shake is
+bound to the 600ms flash window so a settled wrong slot (emptied by
+`settleGrade`) never keeps buzzing. Stagger is below-fold only so
+widgets already on first paint do not fade in over the article.
+
+**Invented decisions:**
+- PR #41 never shipped `is-flash-no`. `slotClassName` mapped `flash ===
+  'no'` to `is-no` only, and `settleGrade` clears `flash`, so `is-no`
+  was already flash-window-only. Added `is-flash-no` alongside `is-no`
+  so the shake selector matches the prompt/Hermes grep (`is-flash-no`
+  in CSS, 0 in SSR HTML) without coupling animation to the error-color
+  class if a settled `is-no` is ever added.
+- Inline-code hover lives in `lesson-tokens.css` next to the existing
+  `.lesson-surface :not(pre) > code` rule, not in `article.css`. Mix
+  base is `--lesson-bg-secondary` (the token that rule already uses);
+  `--color-surface-2` does not exist.
+- Stagger uses `WidgetRise` (IO + `getBoundingClientRect` first-paint
+  skip), not `:not(.is-revealed)` and not `nth-of-type`. Widgets are
+  mixed `<section>` siblings among prose, so `nth-of-type` would not
+  count "the second quiz". `data-stagger` 1/2/3 is document order
+  among `.av-callout, .av-qz, .av-flashcard, .av-dd`, capped at 3
+  (240ms). Callouts are counted for delay indexing but do not play
+  `lesson-widget-rise` — they already have CalloutReveal; stacking
+  would double-animate. Attributes are set on the host DOM node, not
+  via inline `style` (forbidden).
+- No new motion tokens. Shake duration is the specified 480ms literal
+  so it fits inside `FLASH_MS` (600) with 120ms settle. Chip hover
+  uses `--duration-fast` (120ms) rather than an invented 150ms token.
+- Tests assert CSS source (keyframes, tokens, reduced-motion resets)
+  plus the `is-flash-no` / first-paint predicates. Tautology: renaming
+  `lesson-dd-shake` / changing the 8% hover mix / renaming
+  `lesson-widget-rise` each failed the matching test; restoring each
+  passed.
+- `docs/DEBT.md` / `roadmap.md` / `.cursor/rules/` / sidecar schemas /
+  `messages/en.json` untouched. D24 not closed. No Phase 4 prompt
+  (remaining audit rows are skip/defer).
+
+**Known issues / next steps:**
+- Callout IntersectionObserver is still not driven in JSDOM; class
+  toggle is covered by the predicate + `WidgetRise` / `CalloutReveal`
+  wiring.
+- Content gates remain red on D11, D13, D15 — pre-existing, corpus-side.
+- Do not auto-merge.
+
+---

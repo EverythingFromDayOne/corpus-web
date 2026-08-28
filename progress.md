@@ -77,6 +77,11 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **lesson-animations-phase3 (2026-08-28):** Phase 3 polish
+  (patterns #5 follow-up / #10 / #13): drag-drop slot shake on
+  `is-flash-no`, inline-code chip hover, below-fold widget stagger.
+  `WidgetRise` IO wrapper; first-paint widgets stay static. Feature
+  branch PR; not pushed to `main`. Do not auto-merge.
 - **lesson-animations-phase2 (2026-08-27):** CSS-only Phase 2 polish
   (patterns #7/#8/#9/#12): quiz focus glow pulse, button hover lift,
   sidebar progress fill, TOC tick easing. Chrome motion in

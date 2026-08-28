@@ -5,6 +5,23 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-28] — cursor/lesson-animations-phase3-1bd9 — lesson-surface Phase 3 motion
+
+**Added**
+- Drag-drop slot shake on `.av-dd-slot.is-flash-no` (`lesson-dd-shake`, 480ms)
+- Inline-code chip hover on `.lesson-surface :not(pre) > code`
+- Widget stagger reveal on below-fold `.av-qz` / `.av-flashcard` / `.av-dd` (`lesson-widget-rise`)
+- `WidgetRise` IntersectionObserver leaf; `is-flash-no` flash-window class on drag-drop slots
+
+**Changed**
+- Nothing
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Nothing
+
 ### [2026-08-27] — cursor/lesson-animations-phase2-5842 — lesson-surface Phase 2 motion
 
 **Added**
