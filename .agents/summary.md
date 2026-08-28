@@ -6,8 +6,8 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-27 (lesson-surface Phase 2 motion: quiz focus
-> glow pulse, button hover lift, sidebar progress fill, TOC tick easing)
+> Last updated: 2026-08-28 (lesson-surface Phase 3 motion: drag-drop
+> slot shake, inline-code chip hover, widget stagger reveal)
 
 ---
 
@@ -314,6 +314,13 @@ bootstrap.
   copy-button pulse are gated by `prefers-reduced-motion`. Phase 2 adds a slow
   quiz glow pulse on `:focus-within` only, hover lift on submit/copy (not
   `.av-cbb`), sidebar progress fill on `.av-pbar rect`, and TOC tick easing.
+  Phase 3 adds a 480ms decaying shake on `.av-dd-slot.is-flash-no` (the
+  FLASH_MS window; settled `.is-no` stays still), an inline-code chip
+  hover on `.lesson-surface :not(pre) > code` in `lesson-tokens.css`,
+  and a below-fold widget stagger (`data-rise-pending` / `data-rise` via
+  `WidgetRise`, same IO pattern as CalloutReveal). First-paint widgets
+  do not animate; callouts keep their Phase 1 reveal so they do not
+  double-rise.
   Sidecars remain
   the documented future; overrides remain the working mechanism until D17 closes
   (D35).
@@ -375,5 +382,5 @@ no personal content, narrowed to permit a contact email in the footer and on
   `curation/overrides/react-jsx-and-rendering.yaml` — not a corpus sidecar
   (content-boundary; D35 still open). Remaining tier-1 widgets:
   code-assembly, stepped-diagram shell, tab group. Remaining animation
-  patterns from the 2026-08-27 audit are skip/defer, not a follow-up
-  prompt.
+  patterns from the 2026-08-27 audit after Phase 3 are skip/defer, not a
+  follow-up prompt.

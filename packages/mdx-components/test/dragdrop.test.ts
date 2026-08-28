@@ -128,12 +128,15 @@ test('(b) one slot wrong → failure state, that slot flashes error then resets 
   board = applyGrade(board, result);
   assert.equal(board.verdict, 'incorrect');
   assert.equal(slotClassName(true, board.flash['props-slot']).includes('is-no'), true);
+  assert.equal(slotClassName(true, board.flash['props-slot']).includes('is-flash-no'), true);
+  assert.equal(slotClassName(true, 'ok').includes('is-flash-no'), false);
   assert.equal(board.placement['props-slot'], 'props-string');
   board = settleGrade(board, result);
   assert.equal(board.placement['props-slot'], null);
   assert.equal(board.placement['type-slot'], 'jsx-component-ref');
   assert.equal(board.pool.includes('props-string'), true);
   assert.equal(slotClassName(false, board.flash['props-slot']).includes('is-no'), false);
+  assert.equal(slotClassName(false, board.flash['props-slot']).includes('is-flash-no'), false);
 });
 
 test('(c) drag from slot back to pool empties that slot', () => {

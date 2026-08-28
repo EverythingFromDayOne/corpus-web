@@ -45,6 +45,24 @@
   50%      { opacity: 1; }
 }
 
+/* ---- Drag-drop slot shake (incorrect flash window) ---- */
+
+@keyframes lesson-dd-shake {
+  0%, 100% { transform: translateX(0); }
+  15%      { transform: translateX(-6px); }
+  30%      { transform: translateX(5px); }
+  45%      { transform: translateX(-4px); }
+  60%      { transform: translateX(3px); }
+  75%      { transform: translateX(-2px); }
+}
+
+/* ---- Widget stagger reveal (below-fold only) ---- */
+
+@keyframes lesson-widget-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   /* ---- Quiz option color transitions (existing classes) ---- */
 
@@ -159,6 +177,49 @@
   .lesson-surface .av-qz:focus-within::before {
     animation: lesson-glow-breath 3s var(--ease-in-out) infinite;
   }
+
+  /* ---- Drag-drop slot shake on incorrect flash ---- */
+  /* `is-flash-no` is the 600ms FLASH_MS window. Settled `.is-no` stays still. */
+
+  .lesson-surface .av-dd-slot.is-flash-no {
+    animation: lesson-dd-shake 480ms var(--ease-out) both;
+  }
+
+  /* ---- Widget stagger reveal ---- */
+  /* Hidden only after WidgetRise marks a below-fold host pending, so SSR
+     and first-paint widgets stay visible. Callouts keep Phase 1's own
+     CalloutReveal — stacking lesson-widget-rise would double-animate. */
+
+  .lesson-surface .av-qz[data-rise-pending='true'],
+  .lesson-surface .av-flashcard[data-rise-pending='true'],
+  .lesson-surface .av-dd[data-rise-pending='true'] {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  .lesson-surface .av-qz[data-rise='true'],
+  .lesson-surface .av-flashcard[data-rise='true'],
+  .lesson-surface .av-dd[data-rise='true'] {
+    animation: lesson-widget-rise var(--duration-base) var(--ease-out) both;
+  }
+
+  .lesson-surface .av-qz[data-stagger='1'],
+  .lesson-surface .av-flashcard[data-stagger='1'],
+  .lesson-surface .av-dd[data-stagger='1'] {
+    animation-delay: 80ms;
+  }
+
+  .lesson-surface .av-qz[data-stagger='2'],
+  .lesson-surface .av-flashcard[data-stagger='2'],
+  .lesson-surface .av-dd[data-stagger='2'] {
+    animation-delay: 160ms;
+  }
+
+  .lesson-surface .av-qz[data-stagger='3'],
+  .lesson-surface .av-flashcard[data-stagger='3'],
+  .lesson-surface .av-dd[data-stagger='3'] {
+    animation-delay: 240ms;
+  }
 }
 
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
@@ -252,6 +313,21 @@
   }
 
   .lesson-surface [data-mounted='true'] {
+    animation: none;
+  }
+
+  .lesson-surface .av-dd-slot.is-flash-no {
+    animation: none;
+  }
+
+  .lesson-surface .av-qz[data-rise-pending='true'],
+  .lesson-surface .av-flashcard[data-rise-pending='true'],
+  .lesson-surface .av-dd[data-rise-pending='true'],
+  .lesson-surface .av-qz[data-rise='true'],
+  .lesson-surface .av-flashcard[data-rise='true'],
+  .lesson-surface .av-dd[data-rise='true'] {
+    opacity: 1;
+    transform: none;
     animation: none;
   }
 }
