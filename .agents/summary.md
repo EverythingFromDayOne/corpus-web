@@ -6,9 +6,9 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-28 (missing-slug not-found pages — production 500 on
-> catalog-absent URLs fixed via paired per-segment not-found.tsx files; lesson
-> route got the same fix)
+> Last updated: 2026-08-28 (D39 middleware fix shipped to prod via PR #66 — Vercel prod
+> now returns 404 for missing article/lesson slugs; D37 + D38 test half + D19 stubs
+> also shipped this session. nxhhuy.tech prod healthy across all 4 URL paths.)
 
 ---
 
