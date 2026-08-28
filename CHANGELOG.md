@@ -5,6 +5,21 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-28] — fix/missing-slug-not-found — 404 pages for slugs absent from catalog
+
+**Added**
+- `apps/web/app/[locale]/blog/[corpus]/[slug]/not-found.tsx` — RSC 404 page for blog/article slugs not in `catalog.json`
+- `apps/web/app/[locale]/courses/[course]/lessons/[slug]/not-found.tsx` — RSC 404 page for course-lesson slugs not in the course item list
+
+**Changed**
+- `apps/web/messages/en.json` — added `notFound.body`, `notFound.lessonBody`, `notFound.browseAll`, `notFound.browseCourses` under the existing `notFound` block
+
+**Removed**
+- Nothing
+
+**Fixed**
+- Production HTTP 500 on any blog URL not present in `catalog.json` (e.g. `/en/blog/react/hooks`, `/en/blog/react/nonexistent`, `/en/blog/angular/widgets`). The 500 was prod-only: dev fell through to Next's built-in 404 fallback; prod had no `not-found.tsx` to bind the route handler's `notFound()` to, and the `NEXT_NOT_FOUND` exception crossed the `'use cache'` boundary on `getCatalogView()` and surfaced as a 500.
+
 ### [2026-08-27] — test/lesson-animations-glow-coverage — glow-breath keyframe coverage
 
 **Added**
