@@ -5,6 +5,22 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-28] — cursor/fix-d18-a11y-poc-defects — close D18 POC accessibility defects
+
+**Added**
+- `article.searchSidebar` and `article.completed` message keys
+
+**Changed**
+- Corpus sidebar search has a visually hidden `<label>` plus `aria-label`
+- Completed corpus-sidebar links append a visually hidden ` (completed)` suffix; status dots are `aria-hidden`
+- Closed mobile drawer sets HTML `inert` on both `CorpusSidebar` and `CurriculumSidebar` when the viewport is `width <= 1000px`
+
+**Removed**
+- Nothing
+
+**Fixed**
+- D18 — sidebar search was placeholder-only; completed state was colour-only; off-screen mobile drawer stayed in the tab order
+
 ### [2026-08-28] — fix/d19-stub-a11y-lighthouse-scripts — stub CI scripts that referenced nothing
 
 **Added**

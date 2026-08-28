@@ -6,9 +6,7 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-28 (D39 middleware fix shipped to prod via PR #66 — Vercel prod
-> now returns 404 for missing article/lesson slugs; D37 + D38 test half + D19 stubs
-> also shipped this session. nxhhuy.tech prod healthy across all 4 URL paths.)
+> Last updated: 2026-08-28 (D18 POC a11y defects closed on article chrome via PR #75 — labelled sidebar search, announced completed links, inert closed mobile drawer. D39 middleware 404s, D37 submodule-tag fix, D38 test half, and D19 stubs remain as previously shipped. nxhhuy.tech prod healthy across all 4 URL paths.)
 
 ---
 
@@ -385,9 +383,9 @@ no personal content, narrowed to permit a contact email in the footer and on
    (`cache-lifetimes`, `use-cache-directive`), which closes 4 of the 44.
 3. Article and lesson routes now read `catalog.json` (`/en/blog/[corpus]/[slug]`,
   `/en/courses/[course]/lessons/[slug]`). Remaining Phase 1: Shiki (D20),
-  Pagefind (D21), `/en/license` (D25), SEO residue (D22), a11y (D18/D19).
-  Render-mode gate (D23) is `pnpm verify:prerender`. Do not revive
-  `/en/concepts/…`.
+  Pagefind (D21), `/en/license` (D25), SEO residue (D22), a11y CI (D19).
+  D18 (POC a11y on article chrome) is closed. Render-mode gate (D23) is
+  `pnpm verify:prerender`. Do not revive `/en/concepts/…`.
 4. Quiz, flashcard, callout, and drag-drop primitives exist (D24 slice)
   with Phase 1 + Phase 2 motion polish. Sample usage (2 quizzes, 1
   flashcard, 2 callouts, 1 drag-drop) is
