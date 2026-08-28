@@ -33,13 +33,13 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale, course: courseSlug, slug } = await params;
-  if (!isLocale(locale)) return {};
+  if (!isLocale(locale)) notFound();
   const view = await getCatalogView();
   const course = getCourse(view, courseSlug);
   const item = course?.items.find((entry) => entry.articleId === slug);
-  if (!course || !item) return {};
+  if (!course || !item) notFound();
   const article = view.byUid[item.article];
-  if (!article) return {};
+  if (!article) notFound();
   const canonical = absoluteUrl(articlePath(locale, article.repo, article.articleId));
   return {
     title: article.title,

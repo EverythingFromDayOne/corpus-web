@@ -31,10 +31,10 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale, corpus, slug } = await params;
-  if (!isLocale(locale) || !isRepoId(corpus)) return {};
+  if (!isLocale(locale) || !isRepoId(corpus)) notFound();
   const view = await getCatalogView();
   const article = getArticle(view, corpus, slug);
-  if (!article) return {};
+  if (!article) notFound();
   const url = absoluteUrl(articlePath(locale, article.repo, article.articleId));
   return {
     title: article.title,
