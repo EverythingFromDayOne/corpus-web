@@ -4034,3 +4034,33 @@ itself was prod-only.
 - The current nxhhuy.tech prod is healthy: real article = 200, missing-slug = 404 (was 500), bad-corpus = 404, missing-lesson = 404 (was 500). `x-vercel-id: hkg1::2sc25-...` confirms live edge; `x-matched-path: /500` gone.
 
 ---
+
+## Session — D18 POC accessibility defects — 2026-08-28
+
+**Branch:** `cursor/fix-d18-a11y-poc-defects`
+
+**Files changed:**
+- `apps/web/components/article/sidebars.tsx` — labelled the disabled corpus search; `aria-hidden` on status dots plus a visually hidden completed suffix; `inert` on both sidebars when the viewport is mobile and the drawer is closed
+- `apps/web/messages/en.json` — `article.searchSidebar` ("Search within this corpus") and `article.completed` ("completed")
+- `docs/DEBT.md` — D18 moved from Open to Closed
+- `progress.md` — Phase 1 item 9 notes D18 closed; session-log bullet added
+- `.agents/summary.md` — Last updated line; planned next step 3 drops D18 (D19 remains)
+- `CHANGELOG.md` — Unreleased entry for this branch
+- `.agents/SESSION-LOG.md` — this entry
+
+**Why:** D18 tracked five POC a11y defects transcribed into article chrome. Two were already gone after the `article-shell.tsx` refactor (`aria-expanded` on the header toggle; named progress text with `aria-hidden` SVG). The remaining three were real: a placeholder is not a label, a colour-only `done` dot is invisible to screen readers, and `transform: translateX(-102%)` leaves the closed mobile drawer in the tab order. The prompt (`prompts/d18-a11y-poc-defects.md` at `origin/main` `1d3a174`) closed those three without touching `article-shell.tsx`, the TOC rail, or listing chrome.
+
+**Invented decisions:**
+- Did not apply `inert={!mobileOpen}` as the prompt's snippet showed. `mobileOpen` is false on desktop by default, so that would have hidden the desktop sidebar from assistive tech. `inert` is gated on `matchMedia('(width <= 1000px)')` (same query as `toggle()` / `article.css`) AND `!mobileOpen`. The hook lives in `sidebars.tsx` because `article-shell.tsx` was out of scope.
+- Routed "completed" through `article.completed` rather than a hardcoded English span, matching the never-hardcode-strings rule. The prompt's " (completed)" wording is unchanged.
+- Reused Tailwind's `sr-only` utility already used on the corpus select. It is not defined in `article.css`; that file was not edited.
+- Did not author a next prompt file. This was `prompts/d18-a11y-poc-defects.md`, not a numbered `session-N`, and the prompt already names D20 as the next polish item needing its own prompt.
+
+**Known issues / next steps:**
+- VoiceOver was not available in this environment. Completed-state announcement is client-only (`readProgress()` after mount), so prerender HTML does not include the suffix until localStorage is populated.
+- `verify-links` still fails on D38's 44 unresolved refs — pre-existing, not this PR.
+- D19 (real axe-core + Lighthouse CI + Playwright diffs) remains. D20 is the next polish item.
+- Do not auto-merge. PR targets `develop` only; do not push to `main`.
+
+---
+
