@@ -5,6 +5,29 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-29] — prompts/design-spec-2026-08-{lessons,blog,home} — four-file design-spec extraction across the reading surface
+
+**Added**
+- `prompts/design-spec-2026-08.md` — Section 8 rewritten from "animation patterns observed (HTML only)" placeholder to a full 4-layer motion stack (CSS keyframes via `tailwindcss-animate`, Framer Motion, GSAP+ScrollTrigger, Lenis). Easing signature (26 curves, `back.out(1.4–2.4)` overshoot family dominates) and duration budget (70 values, 0.04s–500s) aggregated from 38 JS chunks + 3 CSS files (~4.4MB total).
+- `prompts/design-spec-2026-08-lessons.md` — vendor-neutral lesson-detail spec covering 6 public lesson pages (~28KB, 14 sections). 3-column flex layout, left sidebar TOC with `data-lenis-prevent`, View Transitions API on `lesson-content`, theme toggle with sliding purple thumb, right aside playground collapsed to a 40px rail, ~25 `lesson-*` CSS variables, Be Vietnam Pro + JetBrains Mono font pairing.
+- `prompts/design-spec-2026-08-blog.md` — vendor-neutral blog spec covering 1 index + 4 individual posts (~17KB, 18 sections). Hero with aurora gradient, featured post overlay, article card grid with `group-hover:scale-110` image zoom, tag chips, author byline + read time + date, share buttons (Facebook/Twitter), related posts at bottom, newsletter signup.
+- `prompts/design-spec-2026-08-home.md` — vendor-neutral homepage spec covering the front-door page (~19KB, 18 sections). Sticky nav with pill CTA + backdrop-blur, hero with negative top margin (pulls under nav) + bloom + multi-layer noise overlay + gradient text fill, ScrollStack pinned pain cards (Framer Motion `useScroll` indicator), 3-column audience fit section with gradient line/dot dividers, anti-pattern pain section, reusable section divider pattern (line + dot + label + dot + line with subtle blur), background aurora + Z-stack layering, three-tier color tokens (`accent` / `accent-deep` / `accent-bloom`).
+
+**Changed**
+- Nothing.
+
+**Removed**
+- Nothing.
+
+**Fixed**
+- Nothing.
+
+**Architecture decisions**
+- Vendor-neutral filename convention established: `prompts/design-spec-2026-08-<page>.md` (date-suffixed, no source brand named).
+- Reference data collection via direct `curl` with Safari User-Agent. `web_extract` (Firecrawl keyless) returns HTTP 403 on this site; direct curl returns 200.
+- All 4 specs paired current `nxhhuy.tech` code references with extracted patterns and prioritized action items by effort × risk. Top picks across the set: View Transitions API on lesson content (~30min), share buttons (~1h), card hover zoom (~30min), section divider (~30min), hero bloom + gradient text (~1h), film-grain noise overlay (~30min), pill theme toggle (~2h), skeleton placeholders (~2h).
+- Framer Motion / GSAP integration deferred in all specs pending Cache Components compatibility verification.
+
 ### [2026-08-28] — cursor/fix-d18-a11y-poc-defects — close D18 POC accessibility defects
 
 **Added**
