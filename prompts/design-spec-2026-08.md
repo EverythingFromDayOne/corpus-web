@@ -17,6 +17,10 @@ publicly accessible. No auth, no JavaScript execution required to extract
 structural information — Tailwind utility classes carry the visual
 information in the markup.
 
+**Update 2026-08-29:** Section 8 (animation) extended with JS-bundle
+analysis. 41 assets fetched (38 JS chunks + 3 CSS files), animation
+library signatures detected, easing/duration aggregates compiled.
+
 **Vendor-neutrality:** No brand names, copy, or visual identity captured
 below. This spec describes reusable patterns, not brand-specific
 implementations.
@@ -203,26 +207,119 @@ Multiple decorative backgrounds observed:
 - **Opportunity:** A subtle bloom accent on the course landing page hero
   could add visual interest while preserving the existing color discipline.
 
-## 8. Animation patterns observed
+## 8. Animation system (motion picture)
 
-All three pages use Tailwind's `animate-pulse` for loading states:
+The motion is implemented with a **three-layer stack**:
 
-```html
-<div class="animate-pulse rounded-md bg-muted h-32 w-full"></div>
-<div class="animate-pulse rounded-md bg-muted h-4 w-5/6"></div>
+### Layer 1 — Pure CSS keyframes (`tailwindcss-animate`)
+
+16 `@keyframes` blocks defined in the compiled design-system CSS:
+
+| Keyframe | Purpose | Timing (observed) |
+|---|---|---|
+| `@enter` / `@exit` | Radix-style enter/exit, variable-driven (`--tw-enter-opacity`, `--tw-enter-translate-x/y`, `--tw-enter-scale`) | `.15s` default, configurable |
+| `@hero-demo-fade-in` | Hero element entrance | `.4s` ease-out |
+| `@demo-flip-in` / `@demo-flip-out` | 3D `rotateY(±90deg)` flip for hero demo cards | `.3s` ease-in/out |
+| `@float-gentle` | Vertical bobbing on background decorations | (long-form, not yet measured) |
+| `@shimmer-spin` | Loading shimmer with rotation | continuous |
+| `@pulse-dot` | Online/now-reading indicator | continuous |
+| `@star-movement-top` / `@star-movement-bottom` | Parallax background stars (foreground/background layers) | `6s` linear infinite alternate |
+| `@fade-in` / `@fade-out` | Generic opacity transitions | `.2s` |
+| `@marquee` | Horizontal scroll for logo strips | variable via `--duration` |
+| `@pulse`, `@spin`, `@bounce` | Tailwind built-ins | standard |
+
+### Layer 2 — Framer Motion (component-level React animations)
+
+Detected via JS bundle inspection. 3 chunks reference `framer-motion`:
+
+- `motion.div`, `AnimatePresence` — primary primitives
+- Hooks in active use: `useAnimate`, `useMotionValue`, `useTransform`, `usePresence`
+- Duration range observed: `.04s` to `1.5s` (micro-interactions → hero animations)
+
+### Layer 3 — GSAP + ScrollTrigger (scroll-driven timelines)
+
+Detected via JS bundle inspection. 5 chunks reference `gsap`:
+
+- APIs in active use: `gsap.fromTo`, `gsap.set`, `gsap.timeline`, `gsap.to`
+- `ScrollTrigger` registered in 1 chunk — used for scroll-tied reveals
+- Easing signature: `back.out(1.4)` through `back.out(2.4)` family dominates
+  (overshoot for snappy UI), plus `power1.out`, `power2.out`, `power3.out`,
+  `sine.inOut`, `expo` for smoother state transitions
+
+### Layer 4 — Lenis smooth scroll (page-level motion)
+
+3 chunks reference Lenis. Configuration observed:
+- `lerp: 0.1` (interpolation factor — 0.1 = smooth catch-up)
+- `wheelMultiplier: 1`
+- `smoothWheel: true`
+
+### Easing system signature (aggregated from all chunks)
+
+26 distinct easing strings observed. The dominance pattern:
+
+```
+back.out(1.4) ... back.out(2.4)    ← overshoot, snappy UI (~9 variants)
+power1.in / .inOut / .out           ← Tailwind/GSAP defaults (~6 variants)
+power2.in / .inOut / .out
+power3.inOut / .out
+sine.inOut                          ← smooth state transitions
+expo                                ← dramatic entrance
+bounce.out                          ← celebration / unlock moments
 ```
 
-That's the **only** explicit animation class in the fetched HTML. The
-other motion is almost certainly CSS-keyframe-based or JS-driven
-(Framer Motion / GSAP, common in modern education sites). To extract the
-real animation patterns I'd need to:
+**Reusable principle:** *overshoot for tactile interactions, smooth-step
+for content reveals, bounce for celebration moments*. The
+`back.out(1.4-2.4)` family specifically means "snappy then settle" — the
+cursor overshoots its target by 1.4-2.4% before settling back.
 
-1. Fetch the JS bundles (`/_next/static/chunks/...`)
-2. Search for `framer-motion` or `gsap` imports
-3. Identify the specific entrance animations, hover transitions, scroll-
-   triggered reveals
+### Duration budget signature
 
-**This is the next thing to do** if we want the full motion picture.
+70 distinct durations observed. Distribution:
+- **Micro (40-100ms)**: hovers, taps, small state flips — instant feedback
+- **Standard (150-300ms)**: most UI transitions — feels responsive
+- **Hero (400-800ms)**: large content entrances — dramatic
+- **Long-form (1-6s)**: scroll-tied reveals — paced
+- **Marquee (continuous)**: ambient scrolling
+
+**Reusable principle:** *nothing under 40ms, nothing over 800ms for
+direct interaction*. Anything longer must be triggered by scroll or
+explicit user action. Perceived as "responsive" without being "jittery".
+
+### Comparison to current `nxhhuy.tech`
+
+- Currently: no animation library, only CSS `transition:` on hover
+- No scroll-driven animations
+- No overshoot easing — straight `ease` or `ease-in-out`
+- Animations on the article chrome are minimal (sidebar collapse, mobile
+  drawer transform)
+
+**Biggest opportunity:** add a Lenis-style smooth scroll on the article
+reading view. The current scroll is native browser behavior, which feels
+abrupt on long articles. Smooth scroll with `lerp: 0.1` would make the
+reading experience feel premium for ~5KB of JS.
+
+**Second-biggest:** add `back.out(1.5)` overshoot easing to the
+existing mobile drawer transform. Currently straight `ease`, no
+overshoot. Adding overshoot would make the drawer feel "snappy".
+
+### What this means for the prioritized action items
+
+The "High" priority items from the section above (bloom accent, pill
+metadata) are pure CSS — no animation library needed. Adding Framer
+Motion / GSAP / Lenis is a separate architectural decision (currently
+neither is in `nxhhuy.tech`'s `apps/web/package.json`):
+
+- **Framer Motion**: ~60KB gzipped, requires `'use client'` boundary on
+  every animated component (Cache Components may have opinions about
+  this — verify before adopting)
+- **GSAP**: free for non-commercial, paid for commercial. Larger bundle.
+  Used here likely under a license that fits the site's business model
+- **Lenis**: ~5KB gzipped, no React-specific issues. Recommended for
+  smooth scroll only.
+
+**Recommendation for next session:** Lenis for smooth scroll (~5KB
+addition, no architectural risk). Defer Framer Motion / GSAP until
+there's a specific feature that needs them.
 
 ## 9. Color tokens (inferred)
 
@@ -279,21 +376,34 @@ letter-spacing via `font-mono` inferred from the consistent treatment).
 
 ## What to extract next (when ready)
 
-The HTML-only analysis gives layout, structure, and color tokens. To get
-the **motion** picture, fetch the JS bundles and grep for animation
-libraries:
+The HTML-only analysis gives layout, structure, and color tokens. Section 8
+above extends this with JS-bundle analysis: 41 assets were fetched (38 JS
+chunks + 3 CSS files), animation library signatures detected, easing
+and duration aggregates compiled across all chunks.
+
+**Reproduction recipe** (for extending this spec to other sites or page
+types):
 
 ```bash
-curl -s https://sydexa.com/courses/advanced-sql \
-  | grep -oE '/_next/static/[^"]+\.js' | sort -u
+# 1. Fetch the page HTML
+curl -s -A "Safari/17" "<page-url>" -o page.html
 
-# Then for each bundle:
-curl -s https://sydexa.com/_next/static/<hash>.js | head -c 5000000 \
-  | grep -oE 'framer-motion|gsap|motion\.|@motionone'
+# 2. Enumerate static assets (Next.js pattern shown; adapt for Vite/etc.)
+grep -oE '/_next/static/[^"]+\.(js|css)' page.html | sort -u
+
+# 3. Download each asset in parallel (adjust concurrency)
+xargs -I{} -P 8 curl -sf -A "Safari/17" "<base-url>{}" -o "assets/$(basename {})"
+
+# 4. Detect animation libraries
+grep -l "framer-motion\|motion\." assets/*.js   # Framer Motion
+grep -l "gsap\|ScrollTrigger" assets/*.js        # GSAP
+grep -l "lenis" assets/*.js                      # Lenis smooth scroll
+grep -l "motion-one\|@motionone" assets/*.js    # Motion One
+
+# 5. Extract @keyframes from CSS
+python3 -c "import re,sys; css=open(sys.argv[1]).read();
+print('\n'.join(re.findall(r'@keyframes (\w+)', css)))" assets/main.css
 ```
-
-This will tell us whether they use Framer Motion, GSAP, or plain CSS
-transitions, and roughly how much of each.
 
 ---
 
