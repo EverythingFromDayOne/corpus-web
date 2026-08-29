@@ -3,6 +3,7 @@ import { PageShell } from '@/components/chrome/site-header';
 import { CensusReadout, CorpusCards } from '@/components/home/corpus-cards';
 import { EntryPoints, ReadingConventions } from '@/components/home/entry-points';
 import { JsonLd } from '@/components/json-ld';
+import { SectionDivider } from '@/components/section-divider';
 import { getCatalogView } from '@/lib/catalog';
 import { getMessages, t } from '@/lib/i18n';
 import { isLocale } from '@/lib/locales';
@@ -84,6 +85,10 @@ export default async function HomePage({ params }: PageProps) {
             </div>
           </div>
         </section>
+        <SectionDivider
+          label={t(messages, 'article.sectionDividerLabel')}
+          className="my-8"
+        />
         <div className="ls-wrap">
           <CorpusCards locale={locale} corpora={view.corpora} messages={messages} />
           <EntryPoints locale={locale} featured={featured} census={view.census} messages={messages} />
