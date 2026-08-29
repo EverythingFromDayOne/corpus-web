@@ -6,7 +6,7 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-28 (D18 POC a11y defects closed on article chrome via PR #75 — labelled sidebar search, announced completed links, inert closed mobile drawer. D39 middleware 404s, D37 submodule-tag fix, D38 test half, and D19 stubs remain as previously shipped. nxhhuy.tech prod healthy across all 4 URL paths.)
+> Last updated: 2026-08-29 (Design-spec four-file extraction landed on develop: prompts/design-spec-2026-08.md extended with 4-layer motion stack, plus three new specs covering lesson-detail, blog index+post, and homepage. PRs #81/#82/#83 merged to develop; #79/#80/#73 history reconciled to develop via rebase (prior direct-to-main paths corrected). All 4 specs vendor-neutral (0 hits except Tailwind framework name in action items tables). 4 commits ahead of main at 1bae96e, awaiting develop→main release PR. Workflow rule reinforced: prompts/* files go feature → develop → main, never direct to main.)
 
 ---
 
@@ -394,3 +394,37 @@ no personal content, narrowed to permit a contact email in the footer and on
   code-assembly, stepped-diagram shell, tab group. Remaining animation
   patterns from the 2026-08-27 audit after Phase 3 are skip/defer, not a
   follow-up prompt.
+5. **Design-spec polish backlog (2026-08-29).** Four vendor-neutral specs
+   land on develop via PRs #81/#82/#83 (PRs #73/#79/#80 history reconciled
+   to develop via rebase; this corrects an earlier direct-to-main commit
+   path):
+   - `prompts/design-spec-2026-08.md` — course-detail (`/courses/[slug]`),
+     extended with 4-layer motion stack analysis (CSS keyframes +
+     Framer Motion + GSAP+ScrollTrigger + Lenis). 440 lines.
+   - `prompts/design-spec-2026-08-lessons.md` — lesson-detail
+     (`/courses/[slug]/lessons/[slug]`). 14 sections covering 6 lesson pages.
+   - `prompts/design-spec-2026-08-blog.md` — blog index + post
+     (`/blog`, `/blog/[slug]`). 18 sections covering 1 index + 4 posts.
+   - `prompts/design-spec-2026-08-home.md` — homepage (`/`). 18 sections.
+
+   **Top action items across the set** (effort × risk, lowest first):
+   | Item | Spec | Effort | Risk |
+   |---|---|---|---|
+   | View Transitions API on lesson content | lessons §3 | ~30min | None |
+   | Card hover zoom (`group-hover:scale-110`) | blog §5 | ~30min | None |
+   | Section divider (line+dot+label+dot+line) | home §7 | ~30min | None |
+   | Film-grain noise overlay (data-URI SVG) | home §2 | ~30min | None |
+   | Hero bloom + gradient text | home §2 | ~1h | None |
+   | Share buttons (FB/Twitter) | blog §16 | ~1h | None |
+   | Pill theme toggle with sliding thumb | lessons §4 | ~2h | Low |
+   | Skeleton placeholders for lesson chrome | lessons §9 | ~2h | Low |
+   | 3-column audience cards + gradient dividers | home §4 | ~2h | Low |
+   | Three-tier accent tokens (`accent` / `accent-deep` / `accent-bloom`) | home §10 | ~2h | Low (breaking) |
+   | ScrollStack pinned pain cards | home §3 | ~4h | Med (Framer Motion) |
+   | Lenis smooth scroll | lessons / home | ~2h | Low (5KB dep) |
+
+   Framer Motion / GSAP integration is explicitly deferred across all specs
+   pending Cache Components compatibility verification. Recommended next
+   session: section divider + hero bloom + card hover + film-grain + share
+   buttons (~3.5h, lowest risk, highest perceived-polish impact). Promote
+   develop → main in a separate admin-squash PR when ready.
