@@ -122,6 +122,7 @@ export default async function ArticlePage({ params }: PageProps) {
         nextHref={next ? articlePath(locale, next.repo, next.articleId) : null}
         prevLabel={t(messages, 'article.previous')}
         nextLabel={t(messages, 'article.next')}
+        shareUrl={absoluteUrl(canonical)}
       />
     </>
   );
