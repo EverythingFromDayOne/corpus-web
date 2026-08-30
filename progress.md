@@ -78,6 +78,28 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Lesson-route skeleton placeholders — Polish-1 (2026-08-31, on**
+  **`polish/d20-skeleton @ cb82fcc`):** NEW
+  `apps/web/components/lesson-skeleton.tsx` (chrome + 3 paragraph + 2
+  callout + 1 table + 1 code-block placeholder bars; `bg-muted
+  motion-safe:animate-pulse rounded`; outer `aria-hidden`) +
+  `<Suspense fallback={<LessonSkeleton />}>` wrap in
+  `apps/web/app/[locale]/courses/[course]/lessons/[slug]/page.tsx`.
+  Path B worked end-to-end: spec at `/tmp/skeleton-task.txt` (330
+  lines, kit-shaped, via `--query-file`), sub-agent in the
+  `coding` profile (`HERMES_HOME=/Users/huynguyen/.hermes/profiles/coding`,
+  `--run-budget 1500`, `--reasoning high`) returned clean in ~9 min.
+  Principal engineer re-ran the 4 gates: typecheck (5/5, direct
+  `tsc --noEmit` since Turborepo cache was warm), `next build` 236/236
+  static pages, `pnpm verify:prerender` 196/196 blog + 18/18 lesson
+  HTML each containing skeleton markers, brand-string guard 0,
+  personal-content guard 0. `pnpm verify:links` still fails on
+  pre-existing D13 (44/33) — not in this PR's surface. No npm deps,
+  no i18n keys, no new tokens. Three invented decisions disclosed:
+  default-vs-named export (chose named), paragraph-row count (3 vs
+  spec's 6-12 range), and the **absence** of opacity-pulse stagger
+  (my spec simplification, not a sub-agent miss). PR not opened —
+  user reviews + merges.
 - **Review-first refinement of blog spec (2026-08-30, PR #88):**
   sub-agent session `20260830_220501_e1e12b` (9m 47s, 113 tool calls,
   Hermes-Coding profile) delivered a 1296-line first draft at
