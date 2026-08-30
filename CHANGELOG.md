@@ -5,6 +5,73 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-30] — polish/d20-blog-spec — review-first refinement of blog spec
+
+**Added**
+- `prompts/design-spec-2026-08-blog.md` — vendor-neutral blog spec covering 1 index + 5 individual post pages (1287 lines, 18 sections + 2 appendices). Replaces the missing blog spec from the 2026-08-29 four-file extraction. The `.blog-content` typography CSS block (17px / 1.8 line-height / 768px reading column / scoped to article body) is the highest-value artifact — copy-pasteable into the design system in ~1h. Three-layer color token structure (site-wide base → blog-scoped `--blog-*` × 2 themes → light-mode `[data-blog]` override) is the second-highest-value artifact.
+
+**Changed**
+- §1 Hero H1 — noted blog hero (40→80px) is louder than homepage hero (~60-72px) by design
+- §5 Post header — reconciled the spec's own "no share buttons" finding with §15's recommendation to add Facebook/Twitter share buttons
+- §10 Color tokens — collapsed the redundant 15-token light-theme table to a pointer note; structural shape (3 layers, 15 `--blog-*` tokens, `[data-blog]` gating) is the durable lesson
+- §11 Typography — removed the reading-type table that duplicated §6; kept only the blog-index chrome typography table
+- §14 Comparison — added the actual `apps/web/components/article/` inventory; added Vietnamese-vs-English typography caveat; expanded the `prefers-reduced-motion` fix recommendation; added a row noting `[data-blog]` should be set in the blog route layout
+
+**Removed**
+- Nothing.
+
+**Fixed**
+- Nothing.
+
+**Architecture decisions**
+- Review-first workflow proven for sub-agent-delivered artifacts. The sub-agent's first draft (session `20260830_220501_e1e12b`, 9m 47s, 113 tool calls) was committed to disk without review; the user's review-first instruction caught 6 actionable refinements before any commit/PR. The draft was technically good (vendor-neutral, self-flagged gaps, honest about what was inferred vs grepped) but not PR-ready without review.
+- The retraction: option B review initially claimed a wrong-path bug (`apps/web/styles/globals.css` → `apps/web/app/globals.css`). Re-reading showed the spec never named that path — the review was projecting from the homepage spec's mention of `globals.css`. No path fix needed; honest correction noted in PR #88 body.
+- Sub-agent delegation choice (Hermes-Coding profile) works for well-bounded extraction tasks like this one. ~10min wall-clock for 57KB of structured vendor-neutral output. Right tool for the job; review-first is the correct guardrail, not a sign the sub-agent failed.
+
+### [2026-08-30] — polish/d20-design-spec-batch — retroactive wrap of stranded D20 polish
+
+**Added**
+- `apps/web/components/section-divider.tsx` — accessible `<SectionDivider label />` primitive using existing tokens. `role="separator"` + `aria-label`, decorative spans `aria-hidden`. Composition: gradient hairline → dot → label → dot → gradient hairline.
+- `apps/web/messages/en.json` — `article.sectionDividerLabel: "Continue reading"` (used on `/en` between lead-in and corpus cards).
+- A new `SectionDivider` is now rendered on `/en` between the lead-in section and the corpus cards.
+
+**Changed**
+- `apps/web/app/[locale]/courses/[course]/page.tsx` — course hero now wraps in `relative mt-6 overflow-hidden` with an `aria-hidden` decorative bloom div behind the H1 (`bg-signal-dim opacity-25 blur-3xl`), and the H1 itself uses `bg-gradient-to-b from-display to-signal bg-clip-text text-transparent`. Body paragraphs add `relative` to sit above the bloom layer.
+
+**Removed**
+- Nothing.
+
+**Fixed**
+- Nothing.
+
+**Architecture decisions**
+- Recovered stranded commits `c9b6d46` and `5c8a527` from an abandoned `polish/d20-design-spec-batch` branch and merged via PR #86. The 49-insertion diff is design polish recommended by `progress.md` lines 103–105; rescue-then-document preferred over discard-and-redo.
+- Merged with `--admin --squash` despite Content gates red (verify-links failing on the 44 unresolved refs from D13, plus two `fatal: no tag exactly matches` submodule-pin warnings). Verified pre-existing by checking PR #85's CI history. Merge-commit body explicitly documents the red gate and the D13/D19 debt rather than hiding it. Rationale: per memory, do not block on infrastructure-substrate failures that pre-date the fix being verified locally.
+- Did **not** open a new DEBT.md row for the merge-with-red-light — D13 + D19 already document the same root cause, and duplicating would violate the "debt IDs are append-only and never reused" rule.
+
+### [2026-08-29] — prompts/design-spec-2026-08-{lessons,blog,home} — four-file design-spec extraction across the reading surface
+
+**Added**
+- `prompts/design-spec-2026-08.md` — Section 8 rewritten from "animation patterns observed (HTML only)" placeholder to a full 4-layer motion stack (CSS keyframes via `tailwindcss-animate`, Framer Motion, GSAP+ScrollTrigger, Lenis). Easing signature (26 curves, `back.out(1.4–2.4)` overshoot family dominates) and duration budget (70 values, 0.04s–500s) aggregated from 38 JS chunks + 3 CSS files (~4.4MB total).
+- `prompts/design-spec-2026-08-lessons.md` — vendor-neutral lesson-detail spec covering 6 public lesson pages (~28KB, 14 sections). 3-column flex layout, left sidebar TOC with `data-lenis-prevent`, View Transitions API on `lesson-content`, theme toggle with sliding purple thumb, right aside playground collapsed to a 40px rail, ~25 `lesson-*` CSS variables, Be Vietnam Pro + JetBrains Mono font pairing.
+- `prompts/design-spec-2026-08-blog.md` — vendor-neutral blog spec covering 1 index + 4 individual posts (~17KB, 18 sections). Hero with aurora gradient, featured post overlay, article card grid with `group-hover:scale-110` image zoom, tag chips, author byline + read time + date, share buttons (Facebook/Twitter), related posts at bottom, newsletter signup.
+- `prompts/design-spec-2026-08-home.md` — vendor-neutral homepage spec covering the front-door page (~19KB, 18 sections). Sticky nav with pill CTA + backdrop-blur, hero with negative top margin (pulls under nav) + bloom + multi-layer noise overlay + gradient text fill, ScrollStack pinned pain cards (Framer Motion `useScroll` indicator), 3-column audience fit section with gradient line/dot dividers, anti-pattern pain section, reusable section divider pattern (line + dot + label + dot + line with subtle blur), background aurora + Z-stack layering, three-tier color tokens (`accent` / `accent-deep` / `accent-bloom`).
+
+**Changed**
+- Nothing.
+
+**Removed**
+- Nothing.
+
+**Fixed**
+- Nothing.
+
+**Architecture decisions**
+- Vendor-neutral filename convention established: `prompts/design-spec-2026-08-<page>.md` (date-suffixed, no source brand named).
+- Reference data collection via direct `curl` with Safari User-Agent. `web_extract` (Firecrawl keyless) returns HTTP 403 on this site; direct curl returns 200.
+- All 4 specs paired current `nxhhuy.tech` code references with extracted patterns and prioritized action items by effort × risk. Top picks across the set: View Transitions API on lesson content (~30min), share buttons (~1h), card hover zoom (~30min), section divider (~30min), hero bloom + gradient text (~1h), film-grain noise overlay (~30min), pill theme toggle (~2h), skeleton placeholders (~2h).
+- Framer Motion / GSAP integration deferred in all specs pending Cache Components compatibility verification.
+
 ### [2026-08-28] — cursor/fix-d18-a11y-poc-defects — close D18 POC accessibility defects
 
 **Added**
@@ -1411,3 +1478,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   submodules pinned to tags; `content/` is never edited from this repo
 - English-only content ships, but all routes are namespaced `/[locale]/` and all
   user-visible strings go through a message catalogue from day one
+
+### [2026-08-28] — chore/release-promote-d18 — D18 defects shipped to main and prod
+
+**Changed**
+- D18 changes from PR #74 promoted to `main` via PR #76 (admin-squashed)
+- Vercel Production auto-deploy at 19:44:18Z, state ACTIVE
+
+**Verified live on nxhhuy.tech:**
+- Sidebar search input has accessible label (visually hidden)
+- Completed corpus sidebar links announce " (completed)" to screen readers
+- Closed mobile drawer (≤1000px viewport) removes focusable children via `inert`
+
+**Next:** D20 (Shiki) — own session + own prompt file.
