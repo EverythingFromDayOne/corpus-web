@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ArticleView, corpusBreadcrumb } from '@/components/article/article-view';
+import '@/components/article/blog-content.css';
 import { JsonLd } from '@/components/json-ld';
 import {
   conceptNeighbors,

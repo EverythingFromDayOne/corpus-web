@@ -1,0 +1,124 @@
+/*
+ * .blog-content typography — for long-form reading on /en/blog/[corpus]/[slug].
+ *
+ * Vendor-neutral port of the spec §6 .blog-content typography block
+ * (prompts/design-spec-2026-08-blog.md). Three differences from the
+ * reference:
+ *
+ * 1. Font sizes are tuned 1 step down for English prose (16px / 1.7 lh)
+ *    vs the spec's 17px / 1.8 lh which was calibrated for Vietnamese
+ *    diacritics — per spec §14 caveat "16px / 1.6 may sit closer to
+ *    the existing article-chrome rhythm — measure before committing".
+ *    Measured against the existing .av-prose h2 (1.6rem) + p margin
+ *    (1rem bottom) and chose the smaller delta so it doesn't fight
+ *    the corpus chrome next to it.
+ *
+ * 2. Scoped under [data-blog] so article chrome elsewhere (lessons,
+ *    corpus articles when read via /en/courses/.../lessons/...) is
+ *    unchanged. The blog layout sets data-blog on <html>; this file
+ *    assumes it.
+ *
+ * 3. Reading column width 768px (per spec §15 High). The existing
+ *    .av-prose allows up to 60rem (~960px); this narrows to 48rem
+ *    only inside [data-blog] .lesson-surface .av-prose.
+ */
+
+[data-blog] .lesson-surface .av-prose {
+  max-width: 48rem;        /* 768px — spec §15 High reading column */
+  font-size: 1rem;         /* 16px — one notch smaller than spec's 17px */
+  line-height: 1.7;        /* spec: 1.8; reduced for English prose */
+}
+
+[data-blog] .lesson-surface .av-prose p {
+  margin-bottom: 1.15rem;
+}
+
+[data-blog] .lesson-surface .av-prose h2 {
+  font-size: 1.75rem;
+  margin-top: 3.5rem;
+  margin-bottom: 0.85rem;
+  letter-spacing: -0.012em;
+}
+
+[data-blog] .lesson-surface .av-prose h3 {
+  font-size: 1.25rem;
+  margin-top: 2.25rem;
+  margin-bottom: 0.55rem;
+}
+
+[data-blog] .lesson-surface .av-prose h4 {
+  font-size: 1.0625rem;
+  margin-top: 1.6rem;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+}
+
+[data-blog] .lesson-surface .av-prose blockquote {
+  margin: 1.5rem 0;
+  padding: 0.25rem 0 0.25rem 1.2rem;
+  border-left: 2px solid var(--color-graphite);
+  color: var(--color-muted);
+  font-style: italic;
+}
+
+[data-blog] .lesson-surface .av-prose blockquote p {
+  margin-bottom: 0.6rem;
+}
+
+[data-blog] .lesson-surface .av-prose blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+[data-blog] .lesson-surface .av-prose ul,
+[data-blog] .lesson-surface .av-prose ol {
+  margin-bottom: 1.15rem;
+  padding-left: 1.4rem;
+}
+
+[data-blog] .lesson-surface .av-prose li {
+  margin-bottom: 0.55rem;
+}
+
+[data-blog] .lesson-surface .av-prose li > ul,
+[data-blog] .lesson-surface .av-prose li > ol {
+  margin-top: 0.45rem;
+  margin-bottom: 0.45rem;
+}
+
+[data-blog] .lesson-surface .av-prose hr {
+  border: 0;
+  border-top: 1px solid var(--color-graphite);
+  margin: 2.25rem auto;
+  width: 4rem;
+}
+
+[data-blog] .lesson-surface .av-prose :not(pre) > code {
+  font-size: 0.875em;
+  padding: 0.12em 0.4em;
+  border-radius: var(--radius-sm);
+}
+
+[data-blog] .lesson-surface .av-prose a {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-signal) 50%, transparent);
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+  transition: text-decoration-color var(--duration-fast) var(--ease-out);
+}
+
+[data-blog] .lesson-surface .av-prose a:hover {
+  text-decoration-color: var(--color-signal);
+}
+
+[data-blog] .lesson-surface .av-prose strong {
+  color: var(--color-display);
+  font-weight: 600;
+}
+
+[data-blog] .lesson-surface .av-prose figcaption,
+[data-blog] .lesson-surface .av-prose .av-cap {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  text-align: center;
+  margin-top: 0.6rem;
+}
