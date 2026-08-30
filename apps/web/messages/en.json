@@ -195,6 +195,11 @@
     "dragdropPool": "Chip pool",
     "dragdropSlotEmpty": "Empty slot",
     "dragdropSlotFilled": "Filled with",
-    "sectionDividerLabel": "Continue reading"
+    "sectionDividerLabel": "Continue reading",
+    "share": {
+      "label": "Share this article",
+      "facebook": "Share on Facebook",
+      "twitter": "Share on X"
+    }
   }
 }

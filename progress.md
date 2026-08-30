@@ -8,10 +8,14 @@ snapshot and `roadmap.md` for the planning rationale.
 This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 
-**This file is the authority for exact article counts.** Measured 2026-08-17 against
-the current pins: **197 selected, 181 adapting** — nextjs 10/10, react 58/73, angular
-93/94, nestjs 20/20. `roadmap.md` carries the order of magnitude only ("four corpora,
-~200 articles") and is not updated when a count is re-measured.
+**This file is the authority for exact article counts.** Measured 2026-08-30 against
+the current pins: **197 selected, 196 adapting** — nextjs 10/10, react 73/73, angular
+94/94, nestjs 20/20. `roadmap.md` carries the order of magnitude only ("four corpora,
+~200 articles") and is not updated when a count is re-measured. **Note:** the
+`react@v0.5.0→v0.6.0` and `angular@v0.3.0→v0.3.2` submodule pins have been
+promoted since the 2026-08-17 measurement; D11's 15 untitled `react` articles are
+now in scope and adapting. Re-measured 2026-08-30 in session
+`polish/d20-batch-2` (PR #90).
 
 ## Legend
 
@@ -95,6 +99,129 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
   brand-string hit on `home.css` is unrelated. Three invented decisions
   disclosed: vendored SVG (lucide-react not in apps/web deps), heading
   copy variation, sub-agent icon swap (code → book).
+- **Lesson-route skeleton placeholders — Polish-1 (2026-08-31, on**
+  **`polish/d20-skeleton @ cb82fcc`):** NEW
+  `apps/web/components/lesson-skeleton.tsx` (chrome + 3 paragraph + 2
+  callout + 1 table + 1 code-block placeholder bars; `bg-muted
+  motion-safe:animate-pulse rounded`; outer `aria-hidden`) +
+  `<Suspense fallback={<LessonSkeleton />}>` wrap in
+  `apps/web/app/[locale]/courses/[course]/lessons/[slug]/page.tsx`.
+  Path B worked end-to-end: spec at `/tmp/skeleton-task.txt` (330
+  lines, kit-shaped, via `--query-file`), sub-agent in the
+  `coding` profile (`HERMES_HOME=/Users/huynguyen/.hermes/profiles/coding`,
+  `--run-budget 1500`, `--reasoning high`) returned clean in ~9 min.
+  Principal engineer re-ran the 4 gates: typecheck (5/5, direct
+  `tsc --noEmit` since Turborepo cache was warm), `next build` 236/236
+  static pages, `pnpm verify:prerender` 196/196 blog + 18/18 lesson
+  HTML each containing skeleton markers, brand-string guard 0,
+  personal-content guard 0. `pnpm verify:links` still fails on
+  pre-existing D13 (44/33) — not in this PR's surface. No npm deps,
+  no i18n keys, no new tokens. Three invented decisions disclosed:
+  default-vs-named export (chose named), paragraph-row count (3 vs
+  spec's 6-12 range), and the **absence** of opacity-pulse stagger
+  (my spec simplification, not a sub-agent miss). PR not opened —
+  user reviews + merges.
+- **Hermes-Coding handover kit authored (2026-08-30, on `develop` at**
+  **`b58749c`):** 2 new files under `prompts/`:
+  - `prompts/HANDOFF-corpus-web.md` (~700 lines, base kit)
+  - `prompts/HANDOFF-session-protocol.md` (~120 lines, slim
+    per-session supplement)
+  Cited `.cursor/rules/20-never-violate.mdc` rather than
+  duplicating; did NOT touch `.cursor/rules/*` or
+  `.claude/skills/*`. Output shape is a fixed template
+  (condensed verdict; working-process detail in tool calls +
+  SESSION-LOG). Brand-string guard clean: 4 brand-string hits
+  in HANDOFF-corpus-web.md are all rule-references (the kit
+  quotes the grep recipe itself + cites sydexa/tailwind/
+  nxhhuy@ as permitted context), 0 in HANDOFF-session-protocol.md.
+  Personal-content guard clean: 4 author/byline/hire-me hits in
+  HANDOFF-corpus-web.md are all NEVER-list references, 0 in the
+  supplement. Authored directly on `develop` per "go"
+  (docs-only, not user-visible); if a reviewer prefers
+  feature-branch dance next time, flag. Kit covers read order,
+  repo summary, stack versions, hard constraints, verification
+  chain (typecheck/build/prerender + frontmatter + links),
+  commit + PR workflow, i18n nesting rule, invented-decision
+  discipline, brand-string guard, 4-canonical-wrap reminder,
+  worked example (PR #91), failure-mode table, when-to-stop
+  list. **Why this matters:** the Hermes-Coding sub-agent
+  profile is stateless and grounded only in what you give it;
+  a one-shot context pack turns "I don't recognize corpus-web"
+  into "I have the read order + rules + gates + worked
+  example" — reduces per-task briefing from ~30min to ~5min.
+- **Pill theme toggle (2026-08-30, PR #91 in flight on `polish/d20-batch-3`):**
+  one file: `apps/web/components/chrome/theme-toggle.tsx`. Replaced the
+  36×36 square `◐` glyph button with a 72×36 pill (`rounded-full`,
+  `border-graphite bg-surface`) carrying two glyphs `☀` (U+2600) and `☾`
+  (U+263E), with a 32px `--color-signal` thumb (`translate-x-0` ↔
+  `translate-x-9`, 300ms ease-in-out) sliding over whichever icon is
+  active. Active icon reads `text-ink`, inactive reads `text-muted`.
+  Added `role="switch"` + `aria-checked={isLight}` for AT semantics;
+  `aria-label` still sourced from `messages.nav.themeToggle`
+  ("Toggle colour theme"). Reduced-motion guard via
+  `motion-reduce:transition-none` Tailwind v4 variants (no media query
+  in CSS). `useState` mirrors `<html data-theme>` on mount so
+  `aria-checked` and thumb position reflect truth before first click.
+  No new i18n keys (label already correct); no new CSS; no new npm
+  deps. **Deviations from spec** (disclosed): thumb uses
+  `--color-signal` instead of spec's `#a100ff` (token rule); no
+  gradient/backdrop-blur background (raw rgba rule + invisible at this
+  size); kept `THEME_COOKIE` cookie flow (spec example used localStorage
+  but the cookie is the canonical mechanism here). Off `main` at
+  `8378947`, target `develop`. Verification: typecheck 5/5 green,
+  build 236/236 green, `verify:prerender` 196/196 + 18/18 green.
+  **Next candidate polish items** per `prompts/d20-d24-polish-batch.md`:
+  skeleton placeholders (~2h), audience cards (~2h), three-tier accent
+  tokens (~2h, breaking). User leaning on me; picked the highest
+  per-page-visibility item first.
+- **PR #90 D20 polish batch 2 + develop.nxhhuy.tech DNS + Vercel Auth**
+  **ON for Preview (2026-08-30):** PR #90 (card hover accent +
+  film-grain + share buttons) squash-merged to develop at `29182d4`
+  from `polish/d20-batch-2` (commit `dc92d21`, `68e41e3`,
+  `1082b4c` — amended from `b51685f` after build caught `share.label`
+  should be `article.share.label` per `sectionDividerLabel`
+  precedent). Wrap commit `cf487c2`. 4 merge conflicts all resolved
+  HEAD-wins; 2 auto via `.gitattributes` `merge=union`. i18n keys
+  nested under `article.share.*` per existing pattern. Note:
+  `181 → 196` adapting-count drift corrected in `progress.md`
+  preamble (submodule pins `react@v0.6.0`, `angular@v0.3.2` already
+  past documented state). Cloudflare record added:
+  `develop.nxhhuy.tech → 10f154d5e0948eb1.vercel-dns-017.com` (DNS
+  only, gray cloud, TTL Auto) — copy-pasted from apex/www project
+  hash; first attempt failed (`Content for CNAME record is invalid`)
+  because `http://` was prepended to the target string. 12/200
+  records used. Vercel Authentication kept ON for Preview per user
+  decision (testing environment, not public). Branches `polish/d20-batch-2`
+  and `polish/d20-blog-spec` deleted after merge.
+- **D20 polish batch 2 (2026-08-30, PR #90):** three items from
+  `prompts/d20-d24-polish-batch.md` that hadn't shipped in PR #86/#89.
+  **Item 3** — card hover accent bar: `group` + `aria-hidden` `<span>`
+  accent (0.5px, scale-y-0 → scale-y-100, 300ms ease) added to the
+  `<li>` wrapper in both blog and course card listings; `<a>` border
+  animates to `--color-signal`. **Item 4** — `.film-grain` opt-in
+  utility appended to `apps/web/app/globals.css` (SVG `fractalNoise`
+  data-URI at opacity 0.075, `mix-blend-mode: overlay`,
+  `isolation: isolate`); applied to the course-detail `<header>` only.
+  **Item 5** — `<ShareButtons>` RSC for Facebook + X share intents;
+  `ArticleView` gains an optional `shareUrl?` prop; the blog page
+  caller passes `absoluteUrl(canonical)`, the lesson caller omits it.
+  i18n keys nested under `article.share.*` (matching the existing
+  `article.sectionDividerLabel` pattern). Three commits on
+  `polish/d20-batch-2` off `main` at `8378947`; PR #90 open against
+  `develop`. Verification: `pnpm typecheck` (green), `verify:frontmatter`
+  (green, **196/196 adapt** — re-measured from 181 due to `react@v0.6.0`
+  and `angular@v0.3.2` submodule pins that had drifted past
+  `progress.md` state), `verify:links` (failing on pre-existing D13
+  44/33 — not in scope, recorded in PR body), `build` (green, 236/236
+  pages), `verify:prerender` (green, 196/196 blog HTML + 18/18 lesson
+  HTML). Visual smoke deferred to Vercel Preview. Branch cut from
+  `main` because PR #89 already shipped the design-spec polish items
+  to release; PR target is `develop`, develop→main promotion is a
+  separate decision. **Honest correction:** the i18n-key nesting bug
+  (using `t(messages, 'share.label')` instead of
+  `t(messages, 'article.share.label')`) was caught by the build
+  prerender — `Missing message: share.label` — not by reading the
+  i18n file ahead of the keys. Amend-in-place before pushing.
 - **Review-first refinement of blog spec (2026-08-30, PR #88):**
   sub-agent session `20260830_220501_e1e12b` (9m 47s, 113 tool calls,
   Hermes-Coding profile) delivered a 1296-line first draft at
