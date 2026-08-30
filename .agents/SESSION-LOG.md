@@ -4254,4 +4254,99 @@ Commit `f1e301b` on branch `polish/d20-blog-spec`, pushed to `origin/polish/d20-
 - `origin/polish/d20-blog-spec` at `f1e301b`, in sync with local
 - `origin/develop` at `0fc654f` (unchanged from last session)
 - `origin/main` at `1bae96e` (unchanged from last session)
-- 1 open PR: #88 (this session's commit, awaiting review/merge)
+| 1 open PR: #88 (this session's commit, awaiting review/merge)
+
+---
+
+## Session — PR #90 D20 polish batch 2 landed + DNS for develop.nxhhuy.tech + Vercel Auth kept ON — 2026-08-30
+
+**Branch:** `polish/d20-batch-2` (off `main` at `8378947`), PR #90 squash-merged to `develop` at `29182d4`
+
+**Files shipped (squashed):**
+- `apps/web/components/blog/article-index.tsx` — `<li>` becomes `group relative`, accent `<span>` (scale-y 0→100, 300ms)
+- `apps/web/components/courses/course-card.tsx` — `className` prop, `hover:border-signal`
+- `apps/web/app/[locale]/courses/page.tsx` — `<li>` + accent span wrapper per card
+- `apps/web/app/globals.css` — `.film-grain` SVG fractalNoise @ 0.075 opacity, mix-blend overlay
+- `apps/web/app/[locale]/courses/[course]/page.tsx` — `film-grain` on `<header>`
+- `apps/web/components/share-buttons.tsx` — NEW RSC, FB + X share intents
+- `apps/web/messages/en.json` — `article.share.{label,facebook,twitter}` block (nests under `article.*` matching `sectionDividerLabel` precedent)
+- `apps/web/components/article/article-view.tsx` — optional `shareUrl?` prop, conditional mount
+- `apps/web/app/[locale]/blog/[corpus]/[slug]/page.tsx` — passes `shareUrl={absoluteUrl(canonical)}`
+
+**Bug caught + fix:** Build prerender threw `Missing message: share.label` because prompt example used top-level `t(messages, 'share.label')` but keys live under `article.share.*`. Caught at first build, amended `b51685f → 1082b4c`, not pushed before fix. Lesson: prompt example vs file pattern — file wins.
+
+**Merge conflicts (4 content + 2 auto via `merge=union`):**
+1. `.agents/summary.md` — both rewrote `Last updated` → kept HEAD (PR #90). PR #88 fact preserved in `progress.md`
+2. `apps/web/app/[locale]/courses/[course]/page.tsx` — `<header>` class → kept HEAD (added `film-grain` on top of PR #86's bloom)
+3. `apps/web/messages/en.json` — both added keys after `sectionDividerLabel` → kept HEAD (both blocks present)
+4. `progress.md` — both added session rows at top → kept HEAD's PR #90 row, markers stripped
+5. `.agents/SESSION-LOG.md` + `CHANGELOG.md` — auto via `.gitattributes` `merge=union`
+
+**Verification gates:** typecheck 5/5 green, `verify:frontmatter` 196/196, `verify:prerender` 196/196 + 18/18, `verify:links` failing on pre-existing D13 (44/33, NOT chased, recorded in PR body), build 236/236.
+
+**DNS for `develop.nxhhuy.tech`:**
+- Vercel domain added on Preview environment bound to `develop` branch
+- Cloudflare CNAME record added: `develop.nxhhuy.tech → 10f154d5e0948eb1.vercel-dns-017.com` (DNS only, gray cloud, TTL Auto)
+- Matches the apex/www project hash — copy-paste pattern
+- First attempt failed with `Content for CNAME record is invalid` because user pasted `http://10f154d5e0948eb1.vercel-dns-017.com` with `http://` prepended; fixed by clearing field and using bare hostname
+- Final: 12/200 Cloudflare records used, all 4 Vercel domains Valid Configuration, homepage at `https://develop.nxhhuy.tech/en` renders with stats `196 ARTICLES, 445 CROSS-LINKS, 4 CORPORA, 44 UNRESOLVED`
+
+**Vercel Authentication ON for Preview (user explicit 2026-08-30):**
+- `develop.nxhhuy.tech` returns Vercel login page to incognito browsers
+- TLS cert validates fine (subject: CN=develop.nxhhuy.tech, valid Aug 30 → Nov 28)
+- Root cause is **application-layer Deployment Protection / Vercel Authentication**, NOT DNS/TLS
+- User decision: **leave Auth ON** — testing environment, not public
+
+**Cleanup:**
+- `polish/d20-blog-spec` deleted (PR #88 already merged)
+- `polish/d20-batch-2` deleted (PR #90 squash-merged)
+
+**Known state leaks:**
+- `progress.md` older session-log rows + `.agents/summary.md` "Last updated" line still mention "181 adapting" in some places — doc-state drift, flagged not chased
+- `react@v0.6.0` and `angular@v0.3.2` already on disk via submodule bumps; `progress.md` preamble corrected to 196/196 in PR #90 wrap but other references lag
+
+---
+
+## Session — PR #91 D20 polish batch 3 (pill theme toggle) — 2026-08-30 (evening)
+
+**Branch:** `polish/d20-batch-3` (off `main` at `8378947`), PR #91 (target `develop`)
+
+**Files shipped:**
+- `apps/web/components/chrome/theme-toggle.tsx` — REWRITE: square ◐ glyph → pill 72px wide, sliding thumb
+
+**What changed:**
+- Width 36px → 72px; height stays 36px (h-9)
+- Square border-radius (`rounded-md`) → pill (`rounded-full`)
+- Single `◐` glyph → two glyphs `☀` (sun U+2600) + `☾` (moon U+263E), separated left/right
+- Animated thumb (32px square, `--color-signal` fill) slides between left position (light mode, over sun) and right position (dark mode, over moon) via `translate-x-0` ↔ `translate-x-9`, 300ms ease-in-out
+- Active icon bright (`text-ink`); inactive muted (`text-muted`)
+- `prefers-reduced-motion` guard: `motion-reduce:transition-none` on thumb and icon color transitions (Tailwind v4 variants, no media query in CSS)
+- `aria-label` unchanged ("Toggle colour theme", from `nav.themeToggle` in `apps/web/messages/en.json`)
+- Added `role="switch"` + `aria-checked={isLight}` for proper AT semantics
+- Added `useState` to track current theme in component state; `useEffect` syncs from `data-theme` attribute on mount (avoids SSR/CSR drift; SSR renders default `dark`, `useEffect` corrects before user interaction)
+
+**Invented decisions (disclosed):**
+- **Deviation from spec #1 — purple thumb replaced with `--color-signal`.** Spec example used `#a100ff` (purple), part of a different reference site's palette. Our design system's `--color-signal` (warm amber) is the constraint per `.cursor/rules/20-never-violate.mdc` "use existing tokens only" and `tokens.css`'s three-tier color discipline. Borderline call: a 32px thumb is small enough that the "no large accent fills" rule doesn't really bite. Flagged for user review in case signal-tonal thumb needs reconsideration.
+- **Deviation from spec #2 — no gradient/backdrop-blur background.** Spec had `rgba(63,58,83,0.4) → rgba(19,17,25,0.4)` with `backdrop-blur-[4px]`. Two reasons to skip: (a) raw rgba violates the no-raw-hex/color rule; (b) backdrop-blur on a 72px wide button isn't visible against the existing topbar chrome. Used solid `bg-surface` for v1 — could add a subtle gradient in follow-up if it reads flat.
+- **Used text glyphs `☀` `☾` instead of SVG icons.** Matches existing pattern (old toggle used `◐` as a glyph; SVG icons would be the first in chrome/). **Honest risk:** JetBrains Mono (used in `lesson-tokens.css`) and Archivo (display font) might not include U+2600 / U+263E. Fallback plan: switch to inline SVG (sun rays + crescent) if visual smoke test shows tofu boxes.
+- **`useState` + `useEffect` instead of bare DOM read.** Original code read `document.documentElement.getAttribute('data-theme')` synchronously in onClick. New code mirrors into state on mount so `aria-checked` and the thumb position reflect truth *before* the user clicks. Hydration is fine because SSR renders default `dark` (matching the inline script's default if cookie absent).
+- **Sun bright in light mode, moon bright in dark mode.** Matches the meaning: "the active icon is bright, the inactive is muted." Counter-intuitive that moon is bright at night — but the visual UX is "thumb over the icon representing current mode = that icon reads stronger," which feels right.
+
+**Verification gates:** typecheck 5/5 green, `pnpm --filter @corpus/web build` green (236/236), `verify:prerender` 196/196 + 18/18, no new i18n keys needed (`nav.themeToggle` already says "Toggle colour theme"), no new CSS (Tailwind utilities only).
+
+**Files NOT touched (intentionally):**
+- `apps/web/lib/site.ts` — `THEME_COOKIE = 'corpus-theme'` stays
+- `apps/web/app/layout.tsx` — `themeScript` inline script unchanged
+- `apps/web/components/chrome/site-header.tsx` — passes `label` prop unchanged
+- `apps/web/messages/en.json` — `nav.themeToggle` already says "Toggle colour theme", matches spec's sr-only guidance
+- `apps/web/app/globals.css` — no new CSS, no theme token changes (per D28 deferred)
+- `prompts/*` — none touched (workflow rule: feature → develop → main)
+
+**Visual smoke plan:**
+- User visual verification required because `develop.nxhhuy.tech` is behind Vercel Authentication (incognito returns login page)
+- User has cookie → can see the toggle in their logged-in browser
+- Expected at `https://develop.nxhhuy.tech/`: top-bar shows new pill toggle, thumb positioned at right (default dark mode), clicking slides thumb left (switches to light mode, sun brightens, moon mutes), cookie persists across reload
+
+**Status:** PR #91 to be opened against `develop` after docs wrap + visual smoke.
+
+---

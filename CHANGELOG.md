@@ -5,6 +5,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-30] — polish/d20-batch-3 — D20 polish item 6 (pill theme toggle)
+
+**Changed**
+- `apps/web/components/chrome/theme-toggle.tsx` — REWRITE: square ◐ glyph → 72×36 pill with sliding thumb (sun ↔ moon, 300ms ease-in-out). Added `role="switch"` + `aria-checked`. `prefers-reduced-motion` guard via `motion-reduce:transition-none` (Tailwind v4 variants). `useState` + `useEffect` mirrors the `data-theme` attribute on mount. Same `THEME_COOKIE` + same inline `themeScript` flow; no other files touched.
+
+**Architecture decisions**
+- **Deviation from spec:** thumb uses `--color-signal` instead of spec's `#a100ff` (violates "existing tokens only"). Spec's gradient + backdrop-blur background dropped (raw rgba + invisible at this size); solid `bg-surface` for v1.
+- **No new npm deps.** Text glyphs `☀` `☾` instead of SVG icons (matches existing `◐` glyph pattern in this component); fallback to inline SVG if visual smoke shows tofu boxes.
+- **Phase 1 polish item 6 of `prompts/d20-d24-polish-batch.md`** — completed. Next candidate items per spec: skeleton placeholders (~2h, lessons §9), 3-column audience cards (~2h, home §4), three-tier accent tokens (~2h, home §10 — breaking).
+
 ### [2026-08-30] — polish/d20-blog-spec — review-first refinement of blog spec
 
 **Added**
