@@ -5,6 +5,19 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-31] — polish/d20-view-transitions — View Transitions API on lesson content (D20 §8)
+
+**Added**
+- Inline `style={{ viewTransitionName: 'lesson-content' }}` on the lesson `<main>` in `apps/web/components/article/article-view.tsx`.
+- `lesson-view-transition-in` / `-out` keyframes + the `::view-transition-{old,new}(lesson-content)` rules in `apps/web/components/article/lesson-animations.css`; the reduced-motion override sets `animation-duration: 0.001ms`.
+
+**Architecture decisions**
+- One `view-transition-name` global, scoped to the lesson main only (not chrome / sidebars / TOC). Per spec §8.
+- Inline `style` (not utility class) because Tailwind v4 doesn't ship a `view-transition-name` utility.
+- Reuses `var(--ease-in-out)` (already-defined easing token). No new tokens.
+
+**Browser support (known limitation):** Chrome 111+, Edge 111+, Safari TP. Firefox falls back to instant swap, which is the spec-compliant default.
+
 ### [2026-08-31] — polish/d20-cool-tokens — three-tier `--color-cool*` in `@theme` (DEBT D28 closure)
 
 **Added**

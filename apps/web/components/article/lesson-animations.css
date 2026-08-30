@@ -13,6 +13,16 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes lesson-view-transition-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes lesson-view-transition-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-6px); }
+}
+
 @keyframes lesson-rise-in-loud {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -64,6 +74,14 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  /* ---- View Transitions API on the lesson main (Chrome 111+, Edge 111+, Safari TP) ---- */
+  ::view-transition-old(lesson-content) {
+    animation: lesson-view-transition-out 220ms var(--ease-in-out) both;
+  }
+  ::view-transition-new(lesson-content) {
+    animation: lesson-view-transition-in 280ms var(--ease-in-out) both;
+  }
+
   /* ---- Quiz option color transitions (existing classes) ---- */
 
   .lesson-surface .av-qz-opt {
@@ -241,6 +259,12 @@
 /* ---- Reduced-motion overrides ---- */
 
 @media (prefers-reduced-motion: reduce) {
+  /* ---- View Transitions: respect reduced motion preference (instant swap) ---- */
+  ::view-transition-old(lesson-content),
+  ::view-transition-new(lesson-content) {
+    animation-duration: 0.001ms !important;
+    transform: none !important;
+  }
   .lesson-surface .av-callout,
   .lesson-surface .av-callout.is-revealed {
     opacity: 1;
