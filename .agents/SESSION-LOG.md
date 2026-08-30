@@ -4377,6 +4377,17 @@ Mounting under `<Suspense>` is the smallest invasive change that future-proofs t
 - Personal-content guard on the new file — 0 hits
 - `pnpm verify:links` — STILL FAILING on pre-existing D13 (44 unresolved refs across 33 distinct targets in `nextjs` + `nestjs`). NOT introduced by this branch. Recorded per kit §4 "Known issues" rule.
 
+**Post-merge addendum (principal engineer, ~30 min after branch-push):**
+- Branch `polish/d20-skeleton @ 0c6ed59` was opened as **PR #92** (`gh pr create`).
+- First `gh pr merge 92 --squash` attempt FAILED with "the merge commit cannot be cleanly created" — the kit's polish pattern (branch from `main`) collides with the 9-commit develop-ahead drift (origin/main at PR #89's merge commit, origin/develop at the Hermes-Coding kit's bump). Established PR #91 pattern applied: `gh pr checkout 92 && git merge origin/develop` surfaced 3 conflicts:
+  1. `.agents/summary.md` "Last updated" line — both branches edited. Took HEAD (Polish-1 more recent + accurate).
+  2. `apps/web/app/[locale]/courses/[course]/page.tsx` line 114 — develop's retroactive PR #86 wrap had added `film-grain` to the `<header>`. Took develop (the grain is real polish that PR #91 also picked up).
+  3. `apps/web/messages/en.json` line 183 — develop's PR #90 added `share.label` / `share.facebook` / `share.twitter` under `article.*`. Took develop's full block (my branch added nothing in en.json).
+  4. `progress.md` Session log — both branches appended entries. Took BOTH (per PR #91 "kept both rows" precedent; SESSION-LOG + progress are append-only).
+- Conflict resolution commit `c40efed` pushed; `gh pr merge 92 --squash --delete-branch` then succeeded. Result on develop: **`34eea4b feat(polish): lesson-route skeleton placeholders (D20 §9) (#92)`**.
+- SESSION-LOG + progress.md updates from the wrap commit survived into the squash per the PR #91 confirmation — but the wrap text references SHAs `cb82fcc` / `0c6ed59` (pre-squash) rather than the merged develop SHA `34eea4b`. A post-merge follow-up commit on develop corrects this.
+- Polish-2 (3-column audience-fit cards on `/en`, per `prompts/design-spec-2026-08-home.md` §4) starts immediately; spec at `/tmp/audience-cards-task.txt` (346 lines, kit-shaped, dispatched to coding profile session `proc_b32e7ee800dd`).
+
 **Invented decisions:**
 - **Default → named export.** Spec said "default export"; sub-agent shipped `export function LessonSkeleton()` (named). Import site mirrors the named shape. Default-vs-named is in the kit's "what you can decide yourself" list; named export is more refactor-friendly (tree-shake, rename-safe, no `default` collisions). Accepting.
 - **3 paragraph rows, not 6.** Spec §9 said "6 to 12 paragraph-block placeholders of varying width." Sub-agent picked 3. The "what you can decide" list in my prompt allowed that range. Disclosing: visual density is lower than the spec's midpoint; if a future review wants 6, it's a one-line edit.
