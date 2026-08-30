@@ -4354,6 +4354,51 @@ Commit `f1e301b` on branch `polish/d20-blog-spec`, pushed to `origin/polish/d20-
 
 ---
 
+## Session Polish-2 — 3-column audience-fit cards on home (D20 §4) — 2026-08-31
+
+**Branch:** `polish/d20-audience-cards`
+
+**Files changed:**
+- `apps/web/components/home/audience-cards.tsx` — NEW: 3-card grid component, inline-SVG glyphs (cap / book / sparkle at 24×24), uses `Messages` + `t()` from `@/lib/i18n`
+- `apps/web/app/[locale]/page.tsx` — added `import { AudienceCards } from '@/components/home/audience-cards'` and `<AudienceCards messages={messages} />` between `<CorpusCards>` and `<EntryPoints>` inside the `ls-wrap` container
+- `apps/web/messages/en.json` — added `home.audience.{heading, card1, card2, card3}` block (4 new keys total). Pre-existing brand-string-counts on `home.css` (1) are unrelated; this PR's diff is clean (0 brand hits).
+- `apps/web/components/home/home.css` — added `.ls-audience` / `.ls-aud-grid` / `.ls-aud-card` / `.ls-aud-icon` rules. Desktop: 3-column grid (`md:w-1/3` equivalent via `grid-template-columns: repeat(3, minmax(0, 1fr))`) with vertical soft gradient divider (`::before` on cards 2+3, `linear-gradient` over `color-mix(--color-ink 18%, transparent)`). Mobile: stacked with horizontal divider (`border-top` on cards 2+3, `color-mix(--color-ink 14%, transparent)`).
+
+**Why:** Phase 1 polish item per `prompts/design-spec-2026-08-home.md` §4 (priority "High", ~2h effort, low risk). The reference site's "Audience fit" section names the three reader personas that the corpus fits (developer-on-a-journey, sources-not-assertions reader, ad-free-site reader). Without it, `/en` reads as a feature dump; with it, the page makes a *fit claim* that lets a first-time visitor self-select in 10 seconds. Vendor-neutral copy (English only; the reference wrote Vietnamese — kit §6 hard rule).
+
+Mounted between `<CorpusCards>` and `<EntryPoints>`: fits after the corpus inventory (which is "what this site is") and before the entry-point pills (which are "how do I start"). Eyebrow says "Who reads this corpus" (declarative, not Vietnamese).
+
+**Sub-agent timeout (invented decision discipline):** the dispatched coding-profile sub-agent timed out on its `--quiet` clarify-call after ~3 minutes (the spec was self-deciding; the agent's training pulled it toward asking). Principal engineer took over from the partial state: the agent had authored `audience-cards.tsx` (91 lines, vendored SVG glyphs), branch `polish/d20-audience-cards` was checked out at `origin/main @ 8378947`, untracked file. Took ~10 min to add the missing 3 files (en.json keys, home.css rules, page.tsx import + render), commit, push, run gates.
+
+**Gates re-run by the principal engineer (this session):**
+- `pnpm typecheck` — clean (5/5)
+- `npx next build` — clean, 236/236 static routes, lesson routes still `◐` (PPR)
+- `pnpm verify:prerender` — 196/196 blog + 18/18 lessons
+- Brand-string guard on diff-only — 0 hits
+- Personal-content guard — 0 hits
+- Pre-existing brand hit on `home.css` is a long-standing reference (NOT introduced by this PR)
+
+**Invented decisions:**
+- **Lucide-react → vendored inline SVG.** Spec said use `lucide-react`. `apps/web/package.json` does not have `lucide-react` as a direct dep (icon set is in the global workspace via `packages/ui` but not exported to apps/web). Per kit §3 "no new npm deps," sub-agent vendored three 24×24 SVG glyphs into the component file (`cap`, `book`, `sparkle`). Glyphs traced from the public lucide set to stay visually compatible. **Accepting**: dep-free is right; future PRs that need more icons should add `lucide-react` to `apps/web/package.json` and replace.
+- **Heading copy = "Who reads this corpus".** Spec wrote Vietnamese. Vendor-neutral English picked that reads declarative over "for you if..." (which would be a translation of the brand's marketing voice). Reasonable for English-only shipping.
+- **Icon → BookOpenCheck swap (sub-agent).** Spec listed `lucide-graduation-cap`, `lucide-code`, `lucide-sparkles`. Sub-agent picked `cap` (graduation-cap glyph), `book` (book-with-check glyph), `sparkle` (sparkles). The `code` swap → `book` was sub-agent's choice; visually better variety than three academic icons. Accepting.
+- **Vertical divider left offset.** CSS uses `left: calc(-1.125rem - 1px)` to position the divider line in the 2.25rem `gap`. If the gap ever changes, the divider position needs to follow. Disclosed in CSS comment.
+- **3 paragraph rows, not 6.** Wait, that was Polish-1. Disregard. (Invented-decision prose is from the wrong session — ignore this line.)
+- **`.ls-audience` block placement.** Inserted after `.ls-more:hover` (`/-- Cards ----------/` boundary), before the "Cards" section. Grouping signals "this is its own component surface, distinct from the .ls-grid cards below." Accepting.
+
+**Workflow observations (for the next session, not this one):**
+- **The sub-agent clarify-call pitfall is real.** The `--quiet` flag suppresses intermediate output but does NOT suppress the agent's `clarify` tool calls; if the spec is well-bounded but the agent doesn't recognize that, it stalls asking. The kill-after-2-minute-then-takeover worked here, but it's a 10-min expense we shouldn't pay routinely. Consider: prepending "DO NOT use the clarify tool under any circumstances; everything you need is in the spec." to every polish spec.
+- **The branch base lands on `origin/main`, which is now 10 commits behind `origin/develop`** (was 9 before Polish-1's merge). Polish-2 will hit the same merge-conflict pattern as Polish-1. The kit's polish pattern needs updating, OR we promote develop→main in a single release PR before the next polish (user's call — out of scope tonight).
+- **Brand-string guard counts pre-existing hits.** The kit's guard counts whole-file, not diff. Next polish spec should add a note "diff-only — pre-existing hits in [file] are out of scope" so sub-agents don't chase them.
+- **`apps/web` does NOT have `lucide-react` as a direct dep.** This is a recurring pitfall — every polish item that needs icons hits it. Worth either adding the dep OR creating a `packages/icons` workspace package that re-exports lucide glyphs vendored.
+
+**Known issues / next steps:**
+- The 44 unresolved refs (D13) still block `verify:links`. Polish-2 doesn't touch them.
+- The 6 demo-app refs (`recipes/auth/...` → `auth`) that warn under `verify:links` continue to warn. Pre-existing.
+- DEBT D28 (three-tier accent tokens) is the next polish item (Polish-3). Now well-scoped: promote `--ls-cool` to `--color-cool{,-soft,-dim}` in `@theme`, close D28.
+- Polish-3 (three-tier accent tokens) — Polish-4 (D21 Pagefind + ⌘K) — Polish-5 (View Transitions API on lessons) are the remaining queue items for tonight.
+
+---
 ## Session Polish-1 — lesson-route skeleton placeholders (D20 §9) — 2026-08-31
 
 **Branch:** `polish/d20-skeleton`

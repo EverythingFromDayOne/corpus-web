@@ -82,6 +82,23 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **3-column audience-fit cards on home — Polish-2 (2026-08-31, on**
+  **`polish/d20-audience-cards @ 081faed`):** NEW
+  `apps/web/components/home/audience-cards.tsx` (3-card grid, vendored
+  inline-SVG glyphs cap/book/sparkle) + `<AudienceCards messages={messages} />`
+  inserted between `<CorpusCards>` and `<EntryPoints>` in
+  `apps/web/app/[locale]/page.tsx` + 4 new `home.audience.{heading,
+  card1/2/3.{title, body}}` keys in `apps/web/messages/en.json` +
+  `.ls-audience` block in `apps/web/components/home/home.css` (desktop
+  3-col with vertical soft gradient dividers, mobile stacked with
+  horizontal divider). Sub-agent timed out on its `--quiet`
+  clarify-call; principal engineer took over from the partial state
+  (agent authored 1 of 4 files) and finished in ~10 min. Gates re-run:
+  typecheck clean, next build 236/236, verify:prerender 196/196 blog +
+  18/18 lessons, diff-only brand+personal guards 0. Pre-existing
+  brand-string hit on `home.css` is unrelated. Three invented decisions
+  disclosed: vendored SVG (lucide-react not in apps/web deps), heading
+  copy variation, sub-agent icon swap (code → book).
 - **Lesson-route skeleton placeholders — Polish-1 (2026-08-31, on**
   **`polish/d20-skeleton @ cb82fcc`):** NEW
   `apps/web/components/lesson-skeleton.tsx` (chrome + 3 paragraph + 2

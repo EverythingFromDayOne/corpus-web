@@ -57,6 +57,21 @@
     "entryGraphEyebrow": "Follow the graph",
     "entryGraphTitle": "Concept map",
     "entryGraphBody": "{count} cross-links across four corpora, drawn as one graph.",
+    "audience": {
+      "heading": "Who reads this corpus",
+      "card1": {
+        "title": "Engineers learning a new framework",
+        "body": "197 concept articles across Next.js, React, Angular, and NestJS. Pick the framework; read a curated path or grab one article and go."
+      },
+      "card2": {
+        "title": "Readers who want sources, not assertions",
+        "body": "Every claim cites a verified demo or extraction; every article links to its neighbors. If you can't follow a thread, the site has failed, not the reader."
+      },
+      "card3": {
+        "title": "People who like their reference site ad-free",
+        "body": "No tracking pixels, no popovers, no email capture. The text, the demo, and a link back to the source. That is the whole product."
+      }
+    },
     "readingHeading": "How to read this corpus",
     "readingConceptLabel": "Concept",
     "readingConcept": "Explains a mechanism. Read when you want to know how something works before it breaks.",

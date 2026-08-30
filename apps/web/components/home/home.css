@@ -180,6 +180,90 @@
   color: var(--color-display);
 }
 
+/* ---------- Audience-fit 3-column cards ---------- */
+.ls-audience {
+  margin: 4rem 0 5rem;
+}
+
+.ls-aud-eyebrow {
+  display: block;
+  margin-bottom: 1.5rem;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.ls-aud-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (width >= 768px) {
+  .ls-aud-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2.25rem;
+  }
+}
+
+.ls-aud-card {
+  position: relative;
+  padding: 1.5rem 1rem;
+}
+
+.ls-aud-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-graphite);
+  background: color-mix(in srgb, var(--color-signal-dim) 35%, transparent);
+  color: var(--color-display);
+}
+
+.ls-aud-card h3 {
+  margin: 1rem 0 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-display);
+}
+
+.ls-aud-card p {
+  margin: 0.5rem 0 0;
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--color-muted);
+}
+
+/* Vertical gradient divider between cards on desktop (cards 2 and 3) */
+@media (width >= 768px) {
+  .ls-aud-card + .ls-aud-card::before {
+    content: '';
+    position: absolute;
+    left: calc(-1.125rem - 1px);
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      color-mix(in srgb, var(--color-ink) 18%, transparent),
+      transparent
+    );
+  }
+}
+
+/* Horizontal divider on mobile (cards 2 and 3) */
+@media (width < 768px) {
+  .ls-aud-card + .ls-aud-card {
+    border-top: 1px solid color-mix(in srgb, var(--color-ink) 14%, transparent);
+    padding-top: 1.5rem;
+  }
+}
+
 /* ---------- Cards ---------- */
 .ls-grid {
   display: grid;

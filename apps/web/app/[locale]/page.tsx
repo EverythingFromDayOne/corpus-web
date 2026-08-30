@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { PageShell } from '@/components/chrome/site-header';
+import { AudienceCards } from '@/components/home/audience-cards';
 import { CensusReadout, CorpusCards } from '@/components/home/corpus-cards';
 import { EntryPoints, ReadingConventions } from '@/components/home/entry-points';
 import { JsonLd } from '@/components/json-ld';
@@ -91,6 +92,7 @@ export default async function HomePage({ params }: PageProps) {
         />
         <div className="ls-wrap">
           <CorpusCards locale={locale} corpora={view.corpora} messages={messages} />
+          <AudienceCards messages={messages} />
           <EntryPoints locale={locale} featured={featured} census={view.census} messages={messages} />
           <ReadingConventions messages={messages} />
         </div>
