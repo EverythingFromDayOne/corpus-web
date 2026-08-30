@@ -89,6 +89,64 @@
   --color-stale: #a83f2e;
 }
 
+/* ---- Blog-scoped tokens (DEBT D20 §10, §15) --------------------------
+   Vendor-neutral port of prompts/design-spec-2026-08-blog.md §10's
+   "three-layer color token" structure: site-wide base (above) →
+   --blog-* × 2 themes (here) → [data-blog] light-mode override (in
+   apps/web/components/article/blog-content.css). 15 tokens total;
+   names mirror the spec for grep parity.
+
+   Dark theme: deep ink surface, signal-tinted accents.
+   Light theme: paper surface, signal softened for 4.5:1 contrast.
+
+   Scoped under [data-blog] so lesson / corpus chrome is untouched;
+   the selector is set by apps/web/app/[locale]/blog/layout.tsx on a
+   wrapping div (App Router owns <html> in the root layout and cannot
+   set the attribute there without coupling blog routing to chrome —
+   documented in spec §14 caveat).
+*/
+[data-blog] {
+  --blog-bg: var(--color-ink);
+  --blog-bg-raised: var(--color-surface);
+  --blog-bg-card: var(--color-raised);
+  --blog-border: var(--color-graphite);
+  --blog-border-strong: color-mix(in srgb, var(--color-display) 25%, var(--color-graphite));
+
+  --blog-text: var(--color-body);
+  --blog-text-muted: var(--color-muted);
+  --blog-text-display: var(--color-display);
+
+  --blog-accent: var(--color-signal);
+  --blog-accent-soft: var(--color-signal-soft);
+  --blog-accent-dim: color-mix(in srgb, var(--color-signal) 25%, transparent);
+
+  --blog-callout-info-bg: color-mix(in srgb, var(--color-cool-dim) 60%, var(--color-ink));
+  --blog-callout-info-border: var(--color-cool);
+  --blog-badge-bg: color-mix(in srgb, var(--color-signal) 8%, transparent);
+  --blog-badge-text: var(--color-signal);
+}
+
+:root[data-theme='light'] [data-blog] {
+  --blog-bg: var(--color-ink);
+  --blog-bg-raised: var(--color-surface);
+  --blog-bg-card: var(--color-raised);
+  --blog-border: var(--color-graphite);
+  --blog-border-strong: color-mix(in srgb, var(--color-display) 18%, var(--color-graphite));
+
+  --blog-text: var(--color-body);
+  --blog-text-muted: var(--color-muted);
+  --blog-text-display: var(--color-display);
+
+  --blog-accent: var(--color-signal);
+  --blog-accent-soft: var(--color-signal-soft);
+  --blog-accent-dim: color-mix(in srgb, var(--color-signal) 18%, transparent);
+
+  --blog-callout-info-bg: color-mix(in srgb, var(--color-cool-soft) 22%, var(--color-surface));
+  --blog-callout-info-border: var(--color-cool);
+  --blog-badge-bg: color-mix(in srgb, var(--color-signal) 12%, var(--color-surface));
+  --blog-badge-text: var(--color-signal);
+}
+
 /* ---- Quality floor, unannounced -------------------------------------- */
 
 :where(a, button, [tabindex]):focus-visible {
