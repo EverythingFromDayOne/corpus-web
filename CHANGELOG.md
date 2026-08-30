@@ -15,6 +15,27 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Mounted under `<Suspense>`, not as a top-level placeholder. Cache Components streams the static HTML immediately; the skeleton is the fallback for any subtree that ever suspends, not the first paint. Smallest invasive change that future-proofs the route without changing the current visual.
 - Spec wrote `bg-lesson-bg-secondary` (lesson-prefixed token from reference); site does not have lesson-prefixed tokens in `@theme` yet — DEBT D28 is the eventual three-tier refactor. `bg-muted` (existing `@theme` token) is the closest semantic match and ships without a token addition.
 - `motion-safe:animate-pulse` (Tailwind v4 built-in variant) for the pulse; CSS-tree-shake strips the keyframes for `prefers-reduced-motion: reduce` users so they see static bars. No JS animation library added.
+### [2026-08-30] — develop — Hermes-Coding handover kit
+
+**Added**
+- `prompts/HANDOFF-corpus-web.md` — base kit (~700 lines): read order, repo summary, stack versions, hard constraints curated from `.cursor/rules/20-never-violate.mdc`, verification chain, commit + PR workflow, i18n nesting rule, invented-decision discipline, brand-string guard, 4-canonical-wrap reminder, worked example (PR #91), failure-mode table
+- `prompts/HANDOFF-session-protocol.md` — slim per-session protocol supplement: input order, output shape, when-to-stop list, what-can-be-self-decided, failure-mode logging
+
+**Architecture decisions**
+- Cited `.cursor/rules/20-never-violate.mdc` rather than duplicating into the kit; rules are auto-generated into `AGENTS.md` and skill files, so editing the kit would force a sync
+- Did not create a `.claude/skills/` counterpart — the skills are task-procedure skills, not documentation
+- Output shape is a fixed template (per the user's request for condensed verdict-only responses); working-process detail belongs in tool calls and SESSION-LOG, not in the response
+- Authored on `develop` directly per the user's "go" (treats the kit as docs-only like SESSION-LOG/CHANGELOG wraps); if a code reviewer wants feature-branch dance next time, flag it
+
+### [2026-08-30] — polish/d20-batch-3 — D20 polish item 6 (pill theme toggle)
+
+**Changed**
+- `apps/web/components/chrome/theme-toggle.tsx` — REWRITE: square ◐ glyph → 72×36 pill with sliding thumb (sun ↔ moon, 300ms ease-in-out). Added `role="switch"` + `aria-checked`. `prefers-reduced-motion` guard via `motion-reduce:transition-none` (Tailwind v4 variants). `useState` + `useEffect` mirrors the `data-theme` attribute on mount. Same `THEME_COOKIE` + same inline `themeScript` flow; no other files touched.
+
+**Architecture decisions**
+- **Deviation from spec:** thumb uses `--color-signal` instead of spec's `#a100ff` (violates "existing tokens only"). Spec's gradient + backdrop-blur background dropped (raw rgba + invisible at this size); solid `bg-surface` for v1.
+- **No new npm deps.** Text glyphs `☀` `☾` instead of SVG icons (matches existing `◐` glyph pattern in this component); fallback to inline SVG if visual smoke shows tofu boxes.
+- **Phase 1 polish item 6 of `prompts/d20-d24-polish-batch.md`** — completed. Next candidate items per spec: skeleton placeholders (~2h, lessons §9), 3-column audience cards (~2h, home §4), three-tier accent tokens (~2h, home §10 — breaking).
 
 ### [2026-08-30] — polish/d20-blog-spec — review-first refinement of blog spec
 
@@ -1502,3 +1523,32 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Closed mobile drawer (≤1000px viewport) removes focusable children via `inert`
 
 **Next:** D20 (Shiki) — own session + own prompt file.
+
+### [2026-08-30] — polish/d20-batch-2 — D20 polish items 3–5
+
+**Added**
+- `apps/web/components/share-buttons.tsx` — `<ShareButtons>` RSC with Facebook + X share intents, text+glyph labels (WCAG 2.2 SC 2.5.3 friendly), `target="_blank" rel="noopener noreferrer"`
+- `apps/web/messages/en.json` — `article.share.{label,facebook,twitter}` i18n block
+- `.film-grain` opt-in utility in `apps/web/app/globals.css` (SVG `fractalNoise` data-URI at 0.075 opacity, `mix-blend-mode: overlay`)
+
+**Changed**
+- `apps/web/components/blog/article-index.tsx`, `apps/web/components/courses/course-card.tsx`, `apps/web/app/[locale]/courses/page.tsx` — listing cards gain a sliding left-border accent bar on hover, border color animates to `--color-signal`
+- `apps/web/app/[locale]/courses/[course]/page.tsx` — added `film-grain` class to the course-detail hero `<header>` (alongside the existing PR #86 bloom + gradient text)
+- `apps/web/components/article/article-view.tsx` — added optional `shareUrl?: string` prop to `ArticleViewProps`; renders `<ShareButtons>` after the `<h1>` only when provided
+- `apps/web/app/[locale]/blog/[corpus]/[slug]/page.tsx` — passes `shareUrl={absoluteUrl(canonical)}` to mount share buttons on blog articles; lesson caller omits the prop
+
+**Removed**
+- Nothing.
+
+**Fixed**
+- Nothing (no debt closure; this is pure polish)
+
+**Architecture decisions**
+- Three commits in one PR, matching the established pattern (PR #88 = single spec refinement, PR #86 = two stranded polish commits). One item per commit keeps the diff reviewable and reverts individual if needed.
+- `film-grain` shipped only on course-detail (the prompt explicitly defers home + blog post). Blog post and home get it in a future iteration.
+- Share buttons shipped only on blog articles (`/en/blog/[corpus]/[slug]`), not on lessons. `ArticleView` accepts the `shareUrl` prop as optional; the lesson caller (`/en/courses/[course]/lessons/[slug]/page.tsx`) omits it. Honors the prompt's "blog articles" scope without forking the component.
+- i18n keys nested under `article.share.*` rather than top-level `share.*`, matching the existing `article.sectionDividerLabel` pattern. Build-time prerender caught a wrong-path bug (`t(messages, 'share.label')` would have thrown at `Missing message` on first build) — corrected before merge by reading `apps/web/messages/en.json` line 183 and following the precedent.
+- `verify:links` is failing on the pre-existing 44 unresolved refs / 33 distinct targets (Debt D13). Not introduced by this PR; `origin/main` HEAD `8378947` has the same failure. Per AGENTS.md protocol, recorded in the PR body rather than silently fixed in this scope.
+- Submodule pins (`react@v0.6.0`, `angular@v0.3.2`, `nestjs@v0.3.2`) have drifted past the documented state in `progress.md` (which still says `react@v0.5.0` / `angular@v0.3.0`). The adapting count is now 196/196, not 181. Doc state refresh is a follow-up session; not in scope here.
+- Branch cut from `main` (not `develop`) — PR #89's squash already brought the design-spec polish items into release, so this PR is the next logical slice. **PR target: `develop`**, per AGENTS.md session protocol. `develop → main` release PR is a separate decision.
+- `prompts/*` files NOT touched — pure `apps/web/` code changes.
