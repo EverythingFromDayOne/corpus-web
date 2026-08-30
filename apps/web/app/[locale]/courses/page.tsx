@@ -58,7 +58,11 @@ export default async function CoursesPage({ params }: PageProps) {
       </header>
       <ul className="mt-10 grid gap-4">
         {view.courses.map((course) => (
-          <li key={course.slug}>
+          <li key={course.slug} className="group relative">
+            <span
+              aria-hidden="true"
+              className="absolute inset-y-0 left-0 w-0.5 origin-top scale-y-0 rounded-full bg-signal transition-transform duration-300 group-hover:scale-y-100"
+            />
             <CourseCard locale={locale} course={course} messages={messages} />
           </li>
         ))}
