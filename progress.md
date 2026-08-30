@@ -82,6 +82,50 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Pill theme toggle (2026-08-30, PR #91 in flight on `polish/d20-batch-3`):**
+  one file: `apps/web/components/chrome/theme-toggle.tsx`. Replaced the
+  36×36 square `◐` glyph button with a 72×36 pill (`rounded-full`,
+  `border-graphite bg-surface`) carrying two glyphs `☀` (U+2600) and `☾`
+  (U+263E), with a 32px `--color-signal` thumb (`translate-x-0` ↔
+  `translate-x-9`, 300ms ease-in-out) sliding over whichever icon is
+  active. Active icon reads `text-ink`, inactive reads `text-muted`.
+  Added `role="switch"` + `aria-checked={isLight}` for AT semantics;
+  `aria-label` still sourced from `messages.nav.themeToggle`
+  ("Toggle colour theme"). Reduced-motion guard via
+  `motion-reduce:transition-none` Tailwind v4 variants (no media query
+  in CSS). `useState` mirrors `<html data-theme>` on mount so
+  `aria-checked` and thumb position reflect truth before first click.
+  No new i18n keys (label already correct); no new CSS; no new npm
+  deps. **Deviations from spec** (disclosed): thumb uses
+  `--color-signal` instead of spec's `#a100ff` (token rule); no
+  gradient/backdrop-blur background (raw rgba rule + invisible at this
+  size); kept `THEME_COOKIE` cookie flow (spec example used localStorage
+  but the cookie is the canonical mechanism here). Off `main` at
+  `8378947`, target `develop`. Verification: typecheck 5/5 green,
+  build 236/236 green, `verify:prerender` 196/196 + 18/18 green.
+  **Next candidate polish items** per `prompts/d20-d24-polish-batch.md`:
+  skeleton placeholders (~2h), audience cards (~2h), three-tier accent
+  tokens (~2h, breaking). User leaning on me; picked the highest
+  per-page-visibility item first.
+- **PR #90 D20 polish batch 2 + develop.nxhhuy.tech DNS + Vercel Auth**
+  **ON for Preview (2026-08-30):** PR #90 (card hover accent +
+  film-grain + share buttons) squash-merged to develop at `29182d4`
+  from `polish/d20-batch-2` (commit `dc92d21`, `68e41e3`,
+  `1082b4c` — amended from `b51685f` after build caught `share.label`
+  should be `article.share.label` per `sectionDividerLabel`
+  precedent). Wrap commit `cf487c2`. 4 merge conflicts all resolved
+  HEAD-wins; 2 auto via `.gitattributes` `merge=union`. i18n keys
+  nested under `article.share.*` per existing pattern. Note:
+  `181 → 196` adapting-count drift corrected in `progress.md`
+  preamble (submodule pins `react@v0.6.0`, `angular@v0.3.2` already
+  past documented state). Cloudflare record added:
+  `develop.nxhhuy.tech → 10f154d5e0948eb1.vercel-dns-017.com` (DNS
+  only, gray cloud, TTL Auto) — copy-pasted from apex/www project
+  hash; first attempt failed (`Content for CNAME record is invalid`)
+  because `http://` was prepended to the target string. 12/200
+  records used. Vercel Authentication kept ON for Preview per user
+  decision (testing environment, not public). Branches `polish/d20-batch-2`
+  and `polish/d20-blog-spec` deleted after merge.
 - **D20 polish batch 2 (2026-08-30, PR #90):** three items from
   `prompts/d20-d24-polish-batch.md` that hadn't shipped in PR #86/#89.
   **Item 3** — card hover accent bar: `group` + `aria-hidden` `<span>`
