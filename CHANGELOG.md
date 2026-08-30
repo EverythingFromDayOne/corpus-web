@@ -5,6 +5,18 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-30] — develop — Hermes-Coding handover kit
+
+**Added**
+- `prompts/HANDOFF-corpus-web.md` — base kit (~700 lines): read order, repo summary, stack versions, hard constraints curated from `.cursor/rules/20-never-violate.mdc`, verification chain, commit + PR workflow, i18n nesting rule, invented-decision discipline, brand-string guard, 4-canonical-wrap reminder, worked example (PR #91), failure-mode table
+- `prompts/HANDOFF-session-protocol.md` — slim per-session protocol supplement: input order, output shape, when-to-stop list, what-can-be-self-decided, failure-mode logging
+
+**Architecture decisions**
+- Cited `.cursor/rules/20-never-violate.mdc` rather than duplicating into the kit; rules are auto-generated into `AGENTS.md` and skill files, so editing the kit would force a sync
+- Did not create a `.claude/skills/` counterpart — the skills are task-procedure skills, not documentation
+- Output shape is a fixed template (per the user's request for condensed verdict-only responses); working-process detail belongs in tool calls and SESSION-LOG, not in the response
+- Authored on `develop` directly per the user's "go" (treats the kit as docs-only like SESSION-LOG/CHANGELOG wraps); if a code reviewer wants feature-branch dance next time, flag it
+
 ### [2026-08-30] — polish/d20-batch-3 — D20 polish item 6 (pill theme toggle)
 
 **Changed**

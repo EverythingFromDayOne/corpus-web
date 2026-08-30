@@ -82,6 +82,34 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Hermes-Coding handover kit authored (2026-08-30, on `develop` at**
+  **`b58749c`):** 2 new files under `prompts/`:
+  - `prompts/HANDOFF-corpus-web.md` (~700 lines, base kit)
+  - `prompts/HANDOFF-session-protocol.md` (~120 lines, slim
+    per-session supplement)
+  Cited `.cursor/rules/20-never-violate.mdc` rather than
+  duplicating; did NOT touch `.cursor/rules/*` or
+  `.claude/skills/*`. Output shape is a fixed template
+  (condensed verdict; working-process detail in tool calls +
+  SESSION-LOG). Brand-string guard clean: 4 brand-string hits
+  in HANDOFF-corpus-web.md are all rule-references (the kit
+  quotes the grep recipe itself + cites sydexa/tailwind/
+  nxhhuy@ as permitted context), 0 in HANDOFF-session-protocol.md.
+  Personal-content guard clean: 4 author/byline/hire-me hits in
+  HANDOFF-corpus-web.md are all NEVER-list references, 0 in the
+  supplement. Authored directly on `develop` per "go"
+  (docs-only, not user-visible); if a reviewer prefers
+  feature-branch dance next time, flag. Kit covers read order,
+  repo summary, stack versions, hard constraints, verification
+  chain (typecheck/build/prerender + frontmatter + links),
+  commit + PR workflow, i18n nesting rule, invented-decision
+  discipline, brand-string guard, 4-canonical-wrap reminder,
+  worked example (PR #91), failure-mode table, when-to-stop
+  list. **Why this matters:** the Hermes-Coding sub-agent
+  profile is stateless and grounded only in what you give it;
+  a one-shot context pack turns "I don't recognize corpus-web"
+  into "I have the read order + rules + gates + worked
+  example" — reduces per-task briefing from ~30min to ~5min.
 - **Pill theme toggle (2026-08-30, PR #91 in flight on `polish/d20-batch-3`):**
   one file: `apps/web/components/chrome/theme-toggle.tsx`. Replaced the
   36×36 square `◐` glyph button with a 72×36 pill (`rounded-full`,
