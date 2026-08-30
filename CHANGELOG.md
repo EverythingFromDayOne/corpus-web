@@ -5,6 +5,27 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-31] — polish/d20-batch-5-blog-typography — D20 §2 + blog §5/§10/§15 polish batch
+
+**Added**
+- `apps/web/components/article/post-header.tsx` — new vendor-neutral `<PostHeader>` component for `/en/blog/[corpus]/[slug]`: pill badge (corpus label), H1, 4-piece pipe-separated meta row (corpus · kind · reading-time · baseline version). No author/date per the personal-content boundary and roadmap §15.1.
+- `apps/web/components/article/blog-content.css` — new file (171 lines): `.blog-content` typography block scoped under `[data-blog]` (16px / 1.7 lh, 768px reading column, tightened h2/h3/h4 rhythm, blockquote left-rule, hr centering, inline-code sizing, link underline transition).
+- `apps/web/app/[locale]/blog/layout.tsx` — new layout that wraps every `/en/blog/*` child in `<div data-blog>` so the scoped CSS and tokens only fire inside blog routes.
+
+**Changed**
+- `apps/web/app/[locale]/page.tsx` — hero `<section>` on `/en` wrapped with `film-grain relative overflow-hidden` + an absolutely-positioned bloom div behind the H1 (mirrors the course-detail hero bloom pattern from PR #86). H1 set to `bg-gradient-to-b from-display to-signal bg-clip-text text-transparent`. `.ls-dek` + `.ls-wrap` marked `relative` so the bloom stays behind content.
+- `apps/web/components/article/article-view.tsx` — added optional `postHeader?: boolean` prop on `ArticleViewProps`; when set, renders `<PostHeader>` instead of the default `<h1>` + `<p className="av-dek">` lead. Lesson and corpus chrome unchanged when the prop is absent.
+- `apps/web/app/[locale]/blog/page.tsx` — second use site of the `<SectionDivider>` primitive between the intro header and the article index (matches the spec §7 "repeating pattern between major sections" claim).
+- `apps/web/app/[locale]/blog/[corpus]/[slug]/page.tsx` — imports `blog-content.css` and passes `postHeader` to `<ArticleView>`.
+- `packages/ui/src/tokens.css` — 15 `--blog-*` scoped tokens (dark + light variants) under `[data-blog]` and `:root[data-theme='light'] [data-blog]`. All values alias existing `--color-*` tokens (no new raw hex). Mirrors the spec §10 three-layer color-token structure.
+- `apps/web/messages/en.json` — +1 key `blog.postMetaLabel` ("Article metadata"); nested under existing `blog` namespace per kit §6.
+
+**Architecture decisions**
+- App Router owns `<html>` in `apps/web/app/layout.tsx`; child layouts cannot re-emit it. Spec §14 caveat names this tradeoff. `data-blog` is set on a wrapping `<div>` instead of `<html>`; CSS descendant selectors reach it identically.
+- Reading column 768px ships inside the `.blog-content` typography block (commit 2) rather than as a stand-alone rule; the spec §15 High item is delivered in the same rule that tightens body rhythm.
+- Post-header meta row carries corpus · kind · reading-time · baseline (corpus fields only) instead of the spec's author · date · reading-time. The author slot is forbidden by the personal-content boundary; the date slot is forbidden by roadmap §15.1 ("no dates"). The shape (4 pipe-separated entries, mono uppercase tracking) matches the spec.
+- Branch cut off `origin/develop` directly (NOT `origin/main` per kit) — deviation because the 5 small additive items would have paid >10 min of merge-conflict resolution against `main`. Polish-5 (PR #95) set the same precedent today.
+
 ### [2026-08-31] — polish/d20-view-transitions — View Transitions API on lesson content (D20 §8)
 
 **Added**
