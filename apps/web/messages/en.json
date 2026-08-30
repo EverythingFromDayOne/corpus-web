@@ -179,6 +179,7 @@
     "dragdropError": "Couldn't check that assembly. Try again.",
     "dragdropPool": "Chip pool",
     "dragdropSlotEmpty": "Empty slot",
-    "dragdropSlotFilled": "Filled with"
+    "dragdropSlotFilled": "Filled with",
+    "sectionDividerLabel": "Continue reading"
   }
 }
