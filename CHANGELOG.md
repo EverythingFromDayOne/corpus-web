@@ -5,6 +5,29 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-30] — polish/d20-blog-spec — review-first refinement of blog spec
+
+**Added**
+- `prompts/design-spec-2026-08-blog.md` — vendor-neutral blog spec covering 1 index + 5 individual post pages (1287 lines, 18 sections + 2 appendices). Replaces the missing blog spec from the 2026-08-29 four-file extraction. The `.blog-content` typography CSS block (17px / 1.8 line-height / 768px reading column / scoped to article body) is the highest-value artifact — copy-pasteable into the design system in ~1h. Three-layer color token structure (site-wide base → blog-scoped `--blog-*` × 2 themes → light-mode `[data-blog]` override) is the second-highest-value artifact.
+
+**Changed**
+- §1 Hero H1 — noted blog hero (40→80px) is louder than homepage hero (~60-72px) by design
+- §5 Post header — reconciled the spec's own "no share buttons" finding with §15's recommendation to add Facebook/Twitter share buttons
+- §10 Color tokens — collapsed the redundant 15-token light-theme table to a pointer note; structural shape (3 layers, 15 `--blog-*` tokens, `[data-blog]` gating) is the durable lesson
+- §11 Typography — removed the reading-type table that duplicated §6; kept only the blog-index chrome typography table
+- §14 Comparison — added the actual `apps/web/components/article/` inventory; added Vietnamese-vs-English typography caveat; expanded the `prefers-reduced-motion` fix recommendation; added a row noting `[data-blog]` should be set in the blog route layout
+
+**Removed**
+- Nothing.
+
+**Fixed**
+- Nothing.
+
+**Architecture decisions**
+- Review-first workflow proven for sub-agent-delivered artifacts. The sub-agent's first draft (session `20260830_220501_e1e12b`, 9m 47s, 113 tool calls) was committed to disk without review; the user's review-first instruction caught 6 actionable refinements before any commit/PR. The draft was technically good (vendor-neutral, self-flagged gaps, honest about what was inferred vs grepped) but not PR-ready without review.
+- The retraction: option B review initially claimed a wrong-path bug (`apps/web/styles/globals.css` → `apps/web/app/globals.css`). Re-reading showed the spec never named that path — the review was projecting from the homepage spec's mention of `globals.css`. No path fix needed; honest correction noted in PR #88 body.
+- Sub-agent delegation choice (Hermes-Coding profile) works for well-bounded extraction tasks like this one. ~10min wall-clock for 57KB of structured vendor-neutral output. Right tool for the job; review-first is the correct guardrail, not a sign the sub-agent failed.
+
 ### [2026-08-30] — polish/d20-design-spec-batch — retroactive wrap of stranded D20 polish
 
 **Added**

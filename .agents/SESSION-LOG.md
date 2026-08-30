@@ -4212,5 +4212,46 @@ The rescue path is non-trivial because the polish also needs the four mandatory 
 - `origin/develop` at `50eb0f0`, in sync with local
 - `origin/main` at `1bae96e`, 1 commit behind develop (waiting on release PR)
 - No open PRs
-- Remote branch `polish/d20-design-spec-batch` deleted; local branch also removed
-- All 4 mandatory wraps completed in this same session: SESSION-LOG (this entry), CHANGELOG, progress.md, summary.md
+
+---
+
+## Session [wrap] — review-first refinement of blog spec — 2026-08-30
+
+**Branch:** `polish/d20-blog-spec`
+
+**Files changed:**
+- `prompts/design-spec-2026-08-blog.md` — six surgical edits; 1285 insertions, 3 deletions vs develop HEAD `0fc654f`. Net 1296 → 1287 lines.
+
+**Why:** Option 1 (from the previous session's plan) called for the Hermes-Coding sub-agent to produce a first draft of the vendor-neutral blog spec, then a principal-engineer review before any commit. The sub-agent delivered a 1296-line draft at `/tmp/blog-spec-draft.md` and wrote it in-place to `prompts/design-spec-2026-08-blog.md` (sub-agent session `20260830_220501_e1e12b`, 9m 47s, 113 tool calls, exit 0). The user then chose option B (review-first — no file edits until reviewed).
+
+The option B review ran all three sub-agent-flagged verifications:
+1. **§13-§15 nxhhuy.tech path references** — verified `apps/web/components/article/` and `apps/web/app/[locale]/blog/page.tsx` both exist. The third claim (`apps/web/styles/globals.css`) was retracted on re-reading — the spec never actually named that path; review was projecting from the homepage spec.
+2. **`data-blog` attribute counts** — confirmed 27 hits across 6 HTML files (10 on `blog.html`, 3-4 per post page). Attribute is on `<html>` (gating selector for `[data-blog]` light-mode override) and on every article card (JS/analytics hook, not CSS-bound).
+3. **Section trimming** — §6 (140 lines) is justified by being a self-contained CSS block; §10 (122 lines) is slightly over-stated by the duplicate light-theme table.
+
+Per the user's call, option A was executed: six surgical edits (~55 lines freed by trims, ~46 lines added by §1/§5/§14 notes, net –9 lines). The trims target §10's redundant light-theme table (canonical values are in the dark table; the structural shape is the durable lesson) and §11's redundant reading-type table (already covered by §6). The add-ons enrich §1 (hero-size comparison vs homepage hero), §5 (reconcile the spec's own "no share UI" finding with §15's recommendation to add share buttons), and §14 (actual `apps/web/components/article/` inventory, Vietnamese-vs-English typography caveat, expanded reduced-motion recommendation, `[data-blog]` location note).
+
+Final spec is **1287 lines / ~57KB** — still ~3× the homepage spec (424 lines), defensibly because the blog spec embeds two large CSS artifacts (`.blog-content` block + `--blog-*` token tables) the homepage spec doesn't.
+
+Commit `f1e301b` on branch `polish/d20-blog-spec`, pushed to `origin/polish/d20-blog-spec`, PR #88 opened against `origin/develop` (per the workflow rule: `prompts/*` files go feature → develop → main; this PR is the feature → develop step).
+
+**Invented decisions:**
+- Option A (refine-then-commit) over option B (commit-as-is, defer trims to PR review comments) or option C (open PR as-is, trims in follow-up). Option A keeps the spec author-quality and was the user's explicit call after seeing the review summary.
+- Retracted the "wrong path" claim from option B review on re-reading. No path fix in this commit; honest correction noted in PR #88 body.
+- Did NOT trim §6 (the 140-line `.blog-content` block is the deliverable) or §13/§16/Appendix A/B (those are the trust-calibration sections).
+- Per the workflow rule recorded in this log's Phase-3 entry (user-corrected 2026-08-29): the spec lands via feature → develop PR, not direct to main. Develop → main promotion will be a separate release PR per user decision.
+
+**Known issues / next steps:**
+- **Third stranded-work-adjacent incident in 4 days** (this session avoided it). 2026-08-27 saw three `prompts/*.md` PRs land direct-to-main; 2026-08-30 morning saw two design-system commits stranded on a stale branch; 2026-08-30 evening saw this same lapse pattern one sub-agent-delegation away — the sub-agent wrote the 1296-line draft directly to disk and would have been left there if the user hadn't insisted on review-first. The proposed `git log --since='8 hours ago' --all --not main --not develop --oneline` opener (last session) would NOT have caught this one because the file was never committed. The actual safeguard that worked: the user's review-first instruction. **Lesson reinforced: option B (review-first) is the right default for any sub-agent-delivered artifact, not just for risky ones.**
+- **PR #88 is open, awaiting review.** Squash-merge eligible, no admin needed.
+- **Develop → main release PR** still pending. `origin/develop` is now at `0fc654f` (the wrap from PR #87) + `f1e301b` (this commit, via PR #88 once merged) = 2 commits ahead of `main` at `1bae96e`. Will need a develop→main admin-squash PR when the user decides to promote.
+- **The 28 stale local branches** (was 30 before option 3a deleted 2) still on disk. Out of scope; same as last session's known issue.
+- **Reactivity drift noticed but not blocked on:** `verify-submodules` printed `content/react at v0.6.0` while `.agents/summary.md` and `progress.md` last measured `react@v0.5.0`. Pre-existing; pre-commit gate passed (parent gitlink pinning is what the gate checks, not exact tag match). Worth a content-watch session later to reconcile the pin + the docs.
+- **`react@v0.6.0` change is a real corpus bump** — affects the adapting count if D11's 15 untitled articles changed status. Out of scope for this session; flagged for a future re-measurement session.
+
+**End-of-session state:**
+- Local `polish/d20-blog-spec` at `f1e301b`, working tree clean
+- `origin/polish/d20-blog-spec` at `f1e301b`, in sync with local
+- `origin/develop` at `0fc654f` (unchanged from last session)
+- `origin/main` at `1bae96e` (unchanged from last session)
+- 1 open PR: #88 (this session's commit, awaiting review/merge)

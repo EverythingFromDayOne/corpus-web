@@ -78,6 +78,26 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Review-first refinement of blog spec (2026-08-30, PR #88):**
+  sub-agent session `20260830_220501_e1e12b` (9m 47s, 113 tool calls,
+  Hermes-Coding profile) delivered a 1296-line first draft at
+  `/tmp/blog-spec-draft.md` AND wrote it in-place to
+  `prompts/design-spec-2026-08-blog.md`, overwriting the 4-post
+  version that landed on PR #82 on 2026-08-29. User chose option B
+  (review-first — no file edits until reviewed). Six surgical edits
+  committed (`f1e301b`) on `polish/d20-blog-spec`: §10 light-theme
+  table collapsed to a pointer note; §11 reading-type table removed
+  (duplicate of §6); §1, §5, §14 enriched with add-ons (hero-size
+  comparison, share-buttons reconciliation, actual
+  `apps/web/components/article/` inventory, Vietnamese-vs-English
+  caveat, expanded reduced-motion fix, `[data-blog]` location note).
+  Net –9 lines (1287). **Note:** the 2026-08-29 entry below claims
+  "1 index + 4 posts"; that refers to PR #82's 4-post version,
+  which was overwritten. Current file is **1 index + 5 posts**.
+  PR #88 open against `develop`, squash-merge eligible. New
+  pattern: **review-first is the right default for any
+  sub-agent-delivered artifact**, not just risky ones — the
+  draft was technically good but not PR-ready without review.
 - **Design-spec four-file extraction (2026-08-29):** landed on develop
   via four feature-branch PRs to develop (regular squash, no admin):
   `prompts/design-spec-2026-08-lessons.md` (#81), `prompts/design-spec-2026-08-blog.md`
