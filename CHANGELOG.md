@@ -5,6 +5,21 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-31] — polish/d20-audience-cards — 3-column audience-fit cards on home (D20 §4)
+
+**Added**
+- `apps/web/components/home/audience-cards.tsx` — 3-card grid component for the home route; vendored inline-SVG glyphs (cap / book / sparkle at 24×24) instead of `lucide-react` (not in `apps/web` direct deps)
+- `.ls-audience` / `.ls-aud-grid` / `.ls-aud-card` / `.ls-aud-icon` rules in `apps/web/components/home/home.css` — desktop 3-column grid with vertical gradient divider on cards 2/3 (via `::before` + `linear-gradient` over `color-mix(--color-ink 18%, transparent)`); mobile stacked with horizontal divider (`border-top` over `color-mix(--color-ink 14%, transparent)`)
+- `home.audience.{heading, card1/2/3.{title, body}}` in `apps/web/messages/en.json` — 4 new keys under existing `home` namespace, vendor-neutral English copy
+
+**Changed**
+- `apps/web/app/[locale]/page.tsx` — added one import (`AudienceCards`) and one render call, between `<CorpusCards>` and `<EntryPoints>` inside the `ls-wrap` container
+
+**Architecture decisions**
+- Vendored SVG instead of `lucide-react` to honor the "no new npm deps" rule. Glyphs are traced from the public lucide set to stay visually compatible; future PRs that need more icons should add the dep and replace.
+- Section divider styles use `color-mix(in srgb, var(--color-ink) N%, transparent)` instead of raw rgba — same visual, kit §3 rule holds.
+- Heading copy ("Who reads this corpus") is declarative English rather than the Vietnamese "for you if..." pattern in the reference; vendor-neutral posture per kit §6 hard rule.
+
 ### [2026-08-30] — polish/d20-blog-spec — review-first refinement of blog spec
 
 **Added**
