@@ -4347,7 +4347,7 @@ Commit `f1e301b` on branch `polish/d20-blog-spec`, pushed to `origin/polish/d20-
 - User has cookie → can see the toggle in their logged-in browser
 - Expected at `https://develop.nxhhuy.tech/`: top-bar shows new pill toggle, thumb positioned at right (default dark mode), clicking slides thumb left (switches to light mode, sun brightens, moon mutes), cookie persists across reload
 
-**Status:** PR #91 to be opened against `develop` after docs wrap + visual smoke.
+**Status:** PR #91 opened against `develop` at `49a2c02`. After visual smoke test, fix commit `601bf77` added: replaced both Unicode glyphs (`☀` `☾`, codepoints not in Archivo or IBM Plex Mono) with inline SVG (sun = filled disc + 8 rays, moon = filled crescent). Changed thumb `bg-signal` → `bg-muted` so visual weight balanced against the now-clearly-drawn icons. Fix commit pushed; PR now at 3 commits + merge resolution. **Total visual fix cost: ~30 min wall clock from "weird UI still there" to "new build lands." Lesson: glyphs are not icons — when font fallback is involved, a glyph is an unknown shape until proven.**
 
 ---
 - 1 open PR: #88 (this session's commit, awaiting review/merge)

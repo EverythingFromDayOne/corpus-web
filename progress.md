@@ -83,30 +83,36 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 ## Session log
 
 - **Pill theme toggle (2026-08-30, PR #91 in flight on `polish/d20-batch-3`):**
-  one file: `apps/web/components/chrome/theme-toggle.tsx`. Replaced the
-  36×36 square `◐` glyph button with a 72×36 pill (`rounded-full`,
-  `border-graphite bg-surface`) carrying two glyphs `☀` (U+2600) and `☾`
-  (U+263E), with a 32px `--color-signal` thumb (`translate-x-0` ↔
-  `translate-x-9`, 300ms ease-in-out) sliding over whichever icon is
-  active. Active icon reads `text-ink`, inactive reads `text-muted`.
-  Added `role="switch"` + `aria-checked={isLight}` for AT semantics;
-  `aria-label` still sourced from `messages.nav.themeToggle`
-  ("Toggle colour theme"). Reduced-motion guard via
-  `motion-reduce:transition-none` Tailwind v4 variants (no media query
-  in CSS). `useState` mirrors `<html data-theme>` on mount so
-  `aria-checked` and thumb position reflect truth before first click.
-  No new i18n keys (label already correct); no new CSS; no new npm
-  deps. **Deviations from spec** (disclosed): thumb uses
-  `--color-signal` instead of spec's `#a100ff` (token rule); no
-  gradient/backdrop-blur background (raw rgba rule + invisible at this
-  size); kept `THEME_COOKIE` cookie flow (spec example used localStorage
-  but the cookie is the canonical mechanism here). Off `main` at
-  `8378947`, target `develop`. Verification: typecheck 5/5 green,
-  build 236/236 green, `verify:prerender` 196/196 + 18/18 green.
-  **Next candidate polish items** per `prompts/d20-d24-polish-batch.md`:
-  skeleton placeholders (~2h), audience cards (~2h), three-tier accent
-  tokens (~2h, breaking). User leaning on me; picked the highest
-  per-page-visibility item first.
+  2 commits, 1 file (`apps/web/components/chrome/theme-toggle.tsx`).
+  **First commit:** replaced the 36×36 square `◐` glyph button with a
+  72×36 pill (`rounded-full`, `border-graphite bg-surface`) carrying
+  two Unicode glyphs `☀` (U+2600) and `☾` (U+263E), with a 32px
+  `bg-signal` thumb (`translate-x-0` ↔ `translate-x-9`, 300ms
+  ease-in-out). **Caught on first visual smoke:** neither Archivo
+  nor IBM Plex Mono (the only loaded fonts) include U+2600/U+263E;
+  the browser fell back to OS default and rendered the icons as a
+  small dot and a snowflake/asterisk. **Second commit (fix):**
+  replaced both glyphs with inline SVG (sun = filled disc + 8 rays,
+  moon = filled crescent path). Changed thumb `bg-signal` → `bg-muted`
+  to even out the visual weight against the now-clearly-drawn icons.
+  Active icon still reads `text-display`, inactive reads `text-muted`.
+  `role="switch"` + `aria-checked={isLight}` for AT; `aria-label`
+  still `messages.nav.themeToggle` ("Toggle colour theme");
+  `motion-reduce:transition-none` reduced-motion guard. `useState`
+  mirrors `<html data-theme>` on mount. **Lesson:** when fonts are
+  fixed, glyphs are an unknown shape until proven — flagged in plan
+  as deviation #3, caught immediately on visual smoke, fixed with
+  the planned fallback. **Future:** if a user-requested `--mute` or
+  token tweak changes `--color-muted`, this component adapts for
+  free. **Deviations from spec** (final): thumb `bg-muted` not
+  `#a100ff` (token rule + visual weight); no gradient/backdrop-blur
+  background; SVG icons not glyphs. Off `main` at `8378947`, target
+  `develop`. Verification: typecheck 5/5, build 236/236,
+  `verify:prerender` 196/196 + 18/18. **Next candidate polish**
+  items per `prompts/d20-d24-polish-batch.md`: skeleton placeholders
+  (~2h), audience cards (~2h), three-tier accent tokens (~2h,
+  breaking). User leaning on me; picked this item as highest
+  per-page-visibility first.
 - **PR #90 D20 polish batch 2 + develop.nxhhuy.tech DNS + Vercel Auth**
   **ON for Preview (2026-08-30):** PR #90 (card hover accent +
   film-grain + share buttons) squash-merged to develop at `29182d4`

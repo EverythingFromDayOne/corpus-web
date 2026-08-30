@@ -8,11 +8,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### [2026-08-30] — polish/d20-batch-3 — D20 polish item 6 (pill theme toggle)
 
 **Changed**
-- `apps/web/components/chrome/theme-toggle.tsx` — REWRITE: square ◐ glyph → 72×36 pill with sliding thumb (sun ↔ moon, 300ms ease-in-out). Added `role="switch"` + `aria-checked`. `prefers-reduced-motion` guard via `motion-reduce:transition-none` (Tailwind v4 variants). `useState` + `useEffect` mirrors the `data-theme` attribute on mount. Same `THEME_COOKIE` + same inline `themeScript` flow; no other files touched.
+- `apps/web/components/chrome/theme-toggle.tsx` — REWRITE: square ◐ glyph → 72×36 pill with sliding thumb (sun ↔ moon via **inline SVG** — see fix below, not glyphs). Added `role="switch"` + `aria-checked`. `prefers-reduced-motion` guard via `motion-reduce:transition-none` (Tailwind v4 variants). `useState` + `useEffect` mirrors the `data-theme` attribute on mount. Same `THEME_COOKIE` + same inline `themeScript` flow; no other files touched.
+
+**Fixed (addendum 1 commit later the same session)**
+- Initial implementation used Unicode glyphs `☀` (`U+2600`) and `☾` (`U+263E`). These codepoints are not in **Archivo** or **IBM Plex Mono** (the only fonts loaded by `apps/web/app/layout.tsx`), so the browser fell back to the OS default Unicode font and rendered the sun as a small dot and the moon as a snowflake/asterisk glyph. Replaced with inline SVG: a filled disc + 8 rays for the sun (viewBox 0 0 24 24), and the classic crescent `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />` for the moon. Both inherit `currentColor` so the active/inactive contrast is driven by `text-ink` / `text-muted`. This was the exact risk I flagged in PR #91's deviation #3 — caught immediately on the first visual smoke, fixed with the planned fallback. **Lesson recorded:** "glyphs are not icons" — when a font fallback is involved, a glyph is an unknown shape until proven.
+
+**Other additions in the fix commit**
+- Thumb visual weight changed from `bg-signal` (warm amber, heavy accent) to `bg-muted` (quiet neutral). The `bg-signal` thumb read as asymmetrically heavy against the slim SVG icons; the muted thumb reads as a quiet selection indicator and lets the active icon be the primary signal. User can flag a revert if they want the signal-tone thumb back.
 
 **Architecture decisions**
-- **Deviation from spec:** thumb uses `--color-signal` instead of spec's `#a100ff` (violates "existing tokens only"). Spec's gradient + backdrop-blur background dropped (raw rgba + invisible at this size); solid `bg-surface` for v1.
-- **No new npm deps.** Text glyphs `☀` `☾` instead of SVG icons (matches existing `◐` glyph pattern in this component); fallback to inline SVG if visual smoke shows tofu boxes.
+- **Deviation from spec:** thumb uses `bg-muted` (not spec's `#a100ff` purple, not the original `bg-signal`). Token rule (no raw hex); visual-weight discipline (small selection indicator, not loud accent).
+- **No new npm deps.** Inline SVG instead of an icon library.
 - **Phase 1 polish item 6 of `prompts/d20-d24-polish-batch.md`** — completed. Next candidate items per spec: skeleton placeholders (~2h, lessons §9), 3-column audience cards (~2h, home §4), three-tier accent tokens (~2h, home §10 — breaking).
 
 ### [2026-08-30] — polish/d20-blog-spec — review-first refinement of blog spec
