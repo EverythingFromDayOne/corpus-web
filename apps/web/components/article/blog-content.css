@@ -122,3 +122,51 @@
   text-align: center;
   margin-top: 0.6rem;
 }
+
+/* ---- Post header (badge + H1 + meta row) ----------------------------- */
+/* Vendor-neutral port of prompts/design-spec-2026-08-blog.md §5.
+   Scoped under [data-blog] so lesson / corpus chrome keeps its plain
+   .av-inner h1 + .av-dek shape. */
+
+[data-blog] .lesson-surface .post-header {
+  margin-bottom: 1.5rem;
+}
+
+[data-blog] .lesson-surface .post-header-badge {
+  display: inline-block;
+  margin: 0 0 0.9rem;
+  padding: 0.18rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--color-signal) 45%, var(--color-graphite));
+  border-radius: 999px;
+  color: var(--color-signal);
+  background: color-mix(in srgb, var(--color-signal) 8%, transparent);
+}
+
+[data-blog] .lesson-surface .post-header-title {
+  margin: 0 0 1rem;
+  font-size: clamp(1.85rem, 3.6vw, 2.45rem);
+  font-weight: 600;
+  line-height: 1.18;
+  letter-spacing: -0.012em;
+  color: var(--color-display);
+  max-width: 22ch;
+}
+
+[data-blog] .lesson-surface .post-header-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  color: var(--color-muted);
+}
+
+[data-blog] .lesson-surface .post-header-meta > span {
+  white-space: nowrap;
+}
+
+[data-blog] .lesson-surface .post-header-meta > span[aria-hidden='true'] {
+  color: var(--color-graphite);
+  user-select: none;
+}

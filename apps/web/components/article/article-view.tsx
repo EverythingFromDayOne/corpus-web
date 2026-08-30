@@ -13,6 +13,7 @@ import { railParts } from '@/lib/rail-parts';
 import { ArticleProgressBar, ArticleScrim } from './article-shell';
 import { CorpusSidebar, CurriculumSidebar } from './sidebars';
 import { TocRail } from './toc-rail';
+import { PostHeader } from './post-header';
 import { ShareButtons } from '@/components/share-buttons';
 import './article.css';
 
@@ -41,6 +42,9 @@ export type ArticleViewProps = {
   nextLabel: string;
   lead?: ReactNode;
   shareUrl?: string;
+  /** Render the long-form post header (badge + meta row) instead of the
+   *  default corpus/article lead. Used by /en/blog/[corpus]/[slug]. */
+  postHeader?: boolean;
 };
 
 function relatedItemHref(view: CatalogView, locale: Locale, uid: string): string | null {
@@ -70,6 +74,7 @@ export async function ArticleView({
   nextLabel,
   lead,
   shareUrl,
+  postHeader,
 }: ArticleViewProps) {
   const widgets = loadArticleLessonWidgets(article);
   const body = await renderArticleMarkdown({
@@ -135,8 +140,14 @@ export async function ArticleView({
               </ol>
             </nav>
             <div className="lesson-surface">
-              <h1>{article.title}</h1>
-              <p className="av-dek">{article.description}</p>
+              {postHeader ? (
+                <PostHeader article={article} messages={messages} />
+              ) : (
+                <>
+                  <h1>{article.title}</h1>
+                  <p className="av-dek">{article.description}</p>
+                </>
+              )}
               {shareUrl ? (
                 <ShareButtons url={shareUrl} title={article.title} messages={messages} />
               ) : null}

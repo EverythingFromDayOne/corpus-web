@@ -124,6 +124,7 @@ export default async function ArticlePage({ params }: PageProps) {
         prevLabel={t(messages, 'article.previous')}
         nextLabel={t(messages, 'article.next')}
         shareUrl={absoluteUrl(canonical)}
+        postHeader
       />
     </>
   );

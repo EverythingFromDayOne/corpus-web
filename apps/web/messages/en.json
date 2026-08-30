@@ -124,6 +124,7 @@
     "filterLabel": "Filter by corpus",
     "readingTime": "{minutes} min read",
     "folderLabel": "{folder}",
+    "postMetaLabel": "Article metadata",
     "empty": "No articles in this corpus."
   },
   "breadcrumb": {
