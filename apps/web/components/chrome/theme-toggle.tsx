@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { THEME_COOKIE } from '@/lib/site';
+import { THEME_COOKIE_NAME } from '@/lib/site';
 
 type Theme = 'light' | 'dark';
 
@@ -17,7 +17,7 @@ export function ThemeToggle({ label }: { label: string }) {
     const root = document.documentElement;
     const next: Theme = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
     root.setAttribute('data-theme', next);
-    document.cookie = `${THEME_COOKIE}=${next};path=/;max-age=31536000;SameSite=Lax`;
+    document.cookie = `${THEME_COOKIE_NAME}=${next};path=/;max-age=31536000;SameSite=Lax`;
     setTheme(next);
   }
 

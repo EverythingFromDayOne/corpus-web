@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Archivo, IBM_Plex_Mono, Public_Sans } from 'next/font/google';
-import { THEME_COOKIE } from '@/lib/site';
+import { THEME_COOKIE_NAME } from '@/lib/site';
 import './globals.css';
 
 const archivo = Archivo({
@@ -23,7 +23,7 @@ const ibmPlexMono = IBM_Plex_Mono({
   variable: '--font-ibm-plex-mono',
 });
 
-const themeScript = `(function(){try{var m=document.cookie.match(/(?:^|; )${THEME_COOKIE}=([^;]*)/);var t=m?decodeURIComponent(m[1]):'dark';if(t!=='light'&&t!=='dark')t='dark';document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`;
+const themeScript = `(function(){try{var m=document.cookie.match(/(?:^|; )${THEME_COOKIE_NAME}=([^;]*)/);var t=m?decodeURIComponent(m[1]):'dark';if(t!=='light'&&t!=='dark')t='dark';document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`;
 
 export const metadata = {
   metadataBase: new URL('https://nxhhuy.tech'),
