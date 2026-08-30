@@ -6,7 +6,7 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-30 (PR #86 merged to develop: retroactive wrap of stranded D20 polish — `<SectionDivider>` primitive + course hero bloom + gradient text. 49 insertions across 4 files. Merged with `--admin --squash` despite a red Content gates run; the 44 unresolved refs are D13 by-design and the two `fatal: no tag exactly matches` warnings are submodule-pin drift — both pre-existing. develop is now 1 commit ahead of main at `1bae96e`, awaiting develop→main release PR. **New reusable component:** `apps/web/components/section-divider.tsx` — `<SectionDivider label />`, accessible (`role="separator"` + `aria-label`), uses existing tokens, currently mounted on `/en` between the lead-in section and the corpus cards.)
+| **Last updated: 2026-08-30 (PR #88 opened: review-first refinement of blog spec — 6 surgical edits to the sub-agent's 1296-line first draft. Net –9 lines (1287). `prompts/design-spec-2026-08-blog.md` now covers 1 blog index + 5 post pages; the `.blog-content` typography CSS block (17px / 1.8 line-height / 768px reading column) is the highest-value artifact, copy-pasteable into the design system in ~1h. Sub-agent session `20260830_220501_e1e12b` (9m 47s, 113 tool calls). PR #88 is open against `develop`; the develop→main release PR will follow when the user decides to promote. **New pattern promoted:** review-first is the right default for any sub-agent-delivered artifact — the draft was technically good (vendor-neutral, self-flagged gaps) but not PR-ready without review. Workflow rule re-asserted: `prompts/*` files go feature → develop → main, never direct to main.)**
 
 ---
 
@@ -404,7 +404,13 @@ no personal content, narrowed to permit a contact email in the footer and on
    - `prompts/design-spec-2026-08-lessons.md` — lesson-detail
      (`/courses/[slug]/lessons/[slug]`). 14 sections covering 6 lesson pages.
    - `prompts/design-spec-2026-08-blog.md` — blog index + post
-     (`/blog`, `/blog/[slug]`). 18 sections covering 1 index + 4 posts.
+     (`/blog`, `/blog/[slug]`). 18 sections covering 1 index + 5 posts
+     (review-first refinement on PR #88, 1287 lines). **Highest-value
+     artifact:** the `.blog-content` typography CSS block (17px / 1.8
+     line-height / 768px reading column / scoped to article body) —
+     ~1h to copy into the design system. Three-layer color tokens
+     (site-wide base → `--blog-*` × 2 themes → `[data-blog]` light-mode
+     override) is the second-highest-value artifact.
    - `prompts/design-spec-2026-08-home.md` — homepage (`/`). 18 sections.
 
    **Top action items across the set** (effort × risk, lowest first):
