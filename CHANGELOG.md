@@ -1491,3 +1491,32 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Closed mobile drawer (≤1000px viewport) removes focusable children via `inert`
 
 **Next:** D20 (Shiki) — own session + own prompt file.
+
+### [2026-08-30] — polish/d20-batch-2 — D20 polish items 3–5
+
+**Added**
+- `apps/web/components/share-buttons.tsx` — `<ShareButtons>` RSC with Facebook + X share intents, text+glyph labels (WCAG 2.2 SC 2.5.3 friendly), `target="_blank" rel="noopener noreferrer"`
+- `apps/web/messages/en.json` — `article.share.{label,facebook,twitter}` i18n block
+- `.film-grain` opt-in utility in `apps/web/app/globals.css` (SVG `fractalNoise` data-URI at 0.075 opacity, `mix-blend-mode: overlay`)
+
+**Changed**
+- `apps/web/components/blog/article-index.tsx`, `apps/web/components/courses/course-card.tsx`, `apps/web/app/[locale]/courses/page.tsx` — listing cards gain a sliding left-border accent bar on hover, border color animates to `--color-signal`
+- `apps/web/app/[locale]/courses/[course]/page.tsx` — added `film-grain` class to the course-detail hero `<header>` (alongside the existing PR #86 bloom + gradient text)
+- `apps/web/components/article/article-view.tsx` — added optional `shareUrl?: string` prop to `ArticleViewProps`; renders `<ShareButtons>` after the `<h1>` only when provided
+- `apps/web/app/[locale]/blog/[corpus]/[slug]/page.tsx` — passes `shareUrl={absoluteUrl(canonical)}` to mount share buttons on blog articles; lesson caller omits the prop
+
+**Removed**
+- Nothing.
+
+**Fixed**
+- Nothing (no debt closure; this is pure polish)
+
+**Architecture decisions**
+- Three commits in one PR, matching the established pattern (PR #88 = single spec refinement, PR #86 = two stranded polish commits). One item per commit keeps the diff reviewable and reverts individual if needed.
+- `film-grain` shipped only on course-detail (the prompt explicitly defers home + blog post). Blog post and home get it in a future iteration.
+- Share buttons shipped only on blog articles (`/en/blog/[corpus]/[slug]`), not on lessons. `ArticleView` accepts the `shareUrl` prop as optional; the lesson caller (`/en/courses/[course]/lessons/[slug]/page.tsx`) omits it. Honors the prompt's "blog articles" scope without forking the component.
+- i18n keys nested under `article.share.*` rather than top-level `share.*`, matching the existing `article.sectionDividerLabel` pattern. Build-time prerender caught a wrong-path bug (`t(messages, 'share.label')` would have thrown at `Missing message` on first build) — corrected before merge by reading `apps/web/messages/en.json` line 183 and following the precedent.
+- `verify:links` is failing on the pre-existing 44 unresolved refs / 33 distinct targets (Debt D13). Not introduced by this PR; `origin/main` HEAD `8378947` has the same failure. Per AGENTS.md protocol, recorded in the PR body rather than silently fixed in this scope.
+- Submodule pins (`react@v0.6.0`, `angular@v0.3.2`, `nestjs@v0.3.2`) have drifted past the documented state in `progress.md` (which still says `react@v0.5.0` / `angular@v0.3.0`). The adapting count is now 196/196, not 181. Doc state refresh is a follow-up session; not in scope here.
+- Branch cut from `main` (not `develop`) — PR #89's squash already brought the design-spec polish items into release, so this PR is the next logical slice. **PR target: `develop`**, per AGENTS.md session protocol. `develop → main` release PR is a separate decision.
+- `prompts/*` files NOT touched — pure `apps/web/` code changes.

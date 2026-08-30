@@ -13,6 +13,7 @@ import { railParts } from '@/lib/rail-parts';
 import { ArticleProgressBar, ArticleScrim } from './article-shell';
 import { CorpusSidebar, CurriculumSidebar } from './sidebars';
 import { TocRail } from './toc-rail';
+import { ShareButtons } from '@/components/share-buttons';
 import './article.css';
 
 export type BreadcrumbCrumb = {
@@ -39,6 +40,7 @@ export type ArticleViewProps = {
   prevLabel: string;
   nextLabel: string;
   lead?: ReactNode;
+  shareUrl?: string;
 };
 
 function relatedItemHref(view: CatalogView, locale: Locale, uid: string): string | null {
@@ -67,6 +69,7 @@ export async function ArticleView({
   prevLabel,
   nextLabel,
   lead,
+  shareUrl,
 }: ArticleViewProps) {
   const widgets = loadArticleLessonWidgets(article);
   const body = await renderArticleMarkdown({
@@ -134,6 +137,9 @@ export async function ArticleView({
             <div className="lesson-surface">
               <h1>{article.title}</h1>
               <p className="av-dek">{article.description}</p>
+              {shareUrl ? (
+                <ShareButtons url={shareUrl} title={article.title} messages={messages} />
+              ) : null}
             </div>
             <div className="av-mr meta">
               <div>

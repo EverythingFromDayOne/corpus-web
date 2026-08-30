@@ -11,15 +11,17 @@ export function CourseCard({
   locale,
   course,
   messages,
+  className,
 }: {
   locale: Locale;
   course: CourseView;
   messages: Messages;
+  className?: string;
 }) {
   return (
     <a
       href={coursePath(locale, course.slug)}
-      className="border-graphite bg-surface hover:border-muted block rounded-md border p-6 no-underline"
+      className={`border-graphite bg-surface hover:border-signal block rounded-md border p-6 pl-7 no-underline transition-colors duration-300 ${className ?? ''}`}
     >
       <h2 className="text-2xl">{course.title}</h2>
       <p className="mt-3">{course.description}</p>
