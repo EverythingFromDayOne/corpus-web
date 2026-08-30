@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { ArticleView, courseBreadcrumb } from '@/components/article/article-view';
 import { JsonLd } from '@/components/json-ld';
+import { LessonSkeleton } from '@/components/lesson-skeleton';
 import {
   courseNeighbors,
   getArticle,
@@ -122,27 +124,29 @@ export default async function LessonPage({ params }: PageProps) {
           ],
         }}
       />
-      <ArticleView
-        locale={locale}
-        messages={messages}
-        view={view}
-        article={article}
-        markdown={markdown}
-        chrome={{ variant: 'course', course }}
-        breadcrumb={crumbs}
-        prev={prev}
-        next={next}
-        prevHref={prev ? lessonPath(locale, course.slug, prev.articleId) : null}
-        nextHref={next ? lessonPath(locale, course.slug, next.articleId) : null}
-        prevLabel={t(messages, 'article.previousLesson')}
-        nextLabel={t(messages, 'article.nextLesson')}
-        lead={
-          <div className="av-ph">
-            <p className="av-lab">{t(messages, 'placeholders.comingSoon')}</p>
-            <p className="mt-2">{t(messages, 'article.quizHint')}</p>
-          </div>
-        }
-      />
+      <Suspense fallback={<LessonSkeleton />}>
+        <ArticleView
+          locale={locale}
+          messages={messages}
+          view={view}
+          article={article}
+          markdown={markdown}
+          chrome={{ variant: 'course', course }}
+          breadcrumb={crumbs}
+          prev={prev}
+          next={next}
+          prevHref={prev ? lessonPath(locale, course.slug, prev.articleId) : null}
+          nextHref={next ? lessonPath(locale, course.slug, next.articleId) : null}
+          prevLabel={t(messages, 'article.previousLesson')}
+          nextLabel={t(messages, 'article.nextLesson')}
+          lead={
+            <div className="av-ph">
+              <p className="av-lab">{t(messages, 'placeholders.comingSoon')}</p>
+              <p className="mt-2">{t(messages, 'article.quizHint')}</p>
+            </div>
+          }
+        />
+      </Suspense>
     </>
   );
 }
