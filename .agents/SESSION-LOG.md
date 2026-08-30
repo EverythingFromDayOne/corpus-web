@@ -4350,3 +4350,57 @@ Commit `f1e301b` on branch `polish/d20-blog-spec`, pushed to `origin/polish/d20-
 **Status:** PR #91 to be opened against `develop` after docs wrap + visual smoke.
 
 ---
+- 1 open PR: #88 (this session's commit, awaiting review/merge)
+
+---
+
+## Session [polish/d20-batch-2] — D20 polish items 3–5: card hover + film-grain + share buttons — 2026-08-30
+
+**Branch:** `polish/d20-batch-2` (off `main` at `8378947`)
+
+**Files changed:**
+- `apps/web/components/blog/article-index.tsx` — `<li>` becomes `group relative`, decorative `<span>` accent bar (0.5px, scale-y-0 → scale-y-100, 300ms ease); `<a>` border becomes `hover:border-signal`, `pl-5`, `transition-colors duration-300`
+- `apps/web/components/courses/course-card.tsx` — added optional `className` prop, same border + padding + transition pattern
+- `apps/web/app/[locale]/courses/page.tsx` — `<li className="group relative">` wraps `<CourseCard>` with matching accent `<span>`
+- `apps/web/app/globals.css` — appended `.film-grain` opt-in utility (`.film-grain` + `.film-grain::after` with SVG `fractalNoise` data-URI at `opacity: 0.075`, `mix-blend-mode: overlay`, `isolation: isolate`)
+- `apps/web/app/[locale]/courses/[course]/page.tsx` — added `film-grain` class to the existing `<header>` (which already carries PR #86 bloom + gradient text)
+- `apps/web/components/share-buttons.tsx` — NEW RSC `<ShareButtons url title messages>`, two `<a>` buttons with text+glyph labels (WCAG 2.2 SC 2.5.3 friendly), `target="_blank" rel="noopener noreferrer"`, share URL builders encode URL + title
+- `apps/web/messages/en.json` — added `article.share.{label,facebook,twitter}` block (nested under `article` to match the existing `article.sectionDividerLabel` pattern)
+- `apps/web/components/article/article-view.tsx` — added optional `shareUrl?: string` to `ArticleViewProps`; renders `<ShareButtons>` after the `<h1>` only when provided
+- `apps/web/app/[locale]/blog/[corpus]/[slug]/page.tsx` — passes `shareUrl={absoluteUrl(canonical)}` (already in scope via `SITE_ORIGIN` + `articlePath`)
+
+**Why:** PR #89 (squash-merged 2026-08-30 morning) brought PRs #78–#88 into main, including the D20 polish items 1 (SectionDivider) and 2 (hero bloom + gradient text) from `prompts/d20-d24-polish-batch.md`. Items 3 (card hover accent), 4 (film-grain noise overlay), and 5 (share buttons) remained. The user resumed from `/tmp/d20-polish-resume-prompt.txt` to ship the remaining three. The prompt is the authoritative task list per AGENTS.md (`prompts/session-N.md` pattern), and `prompts/*` files are not touched — pure `apps/web/` UI polish.
+
+Each item is the lowest-effort / highest-perceived-impact slice of its design spec (`prompts/design-spec-2026-08{,-blog,-home}.md`). Card hover replaces the reference site's `group-hover:scale-110` (image-bearing cards) with a left-border accent for text-only cards. Film-grain ships as opt-in (course-detail only) so the dark theme (#0e141b) doesn't get washed out. Share buttons ship on blog articles only, not lessons — the lesson chrome keeps canonical-link-first shape and the `shareUrl` prop is optional on `ArticleView` so the lesson caller can omit it cleanly.
+
+**Invented decisions:**
+- Dropped unused `locale` prop from `ShareButtons`'s `Props` (prompt included it but the component doesn't reference it; declared-but-unused would fail lint hygiene).
+- Used `group` + `group-hover:` (unnamed) instead of the prompt's `group/scale` named-group syntax. The `<li>` parent and the `<span>` child are both inside the `<li>`, so unnamed `group` is simpler and Tailwind v4 handles either.
+- `shareUrl` is **optional** on `ArticleView` rather than required — lets the lesson caller skip it without a `null`-vs-empty-string distinction. Honors the prompt's "blog articles" scope without forking the component.
+- i18n keys placed under `article.share.*` rather than top-level `share.*`. The prompt's example showed `t(messages, 'share.label')` but the existing pattern (e.g. `article.sectionDividerLabel`) is to nest under `article`. Build-time prerender threw `Missing message: share.label` on first attempt; corrected by nesting. Discovered by the build, not by reading the i18n file ahead of the keys — the same prerender-first rule that caught the bug would have caught the prompt too.
+- Branch cut from `main` not `develop` because PR #89's squash already brought the design-spec polish items into release; this PR is the next logical slice.
+- `prompts/*` files NOT touched (compliant with feature → develop → main workflow rule, even for doc-only PRs).
+- Did NOT chase the `verify-links` failure on the 44 unresolved refs / 33 distinct targets (D13, pre-existing on `origin/main` HEAD `8378947`). Recorded in PR body per AGENTS.md "do not silently skip".
+
+**Verification (run this session):**
+- `pnpm typecheck` — green (5/5 packages)
+- `pnpm verify:frontmatter` — green, **196/196 articles adapt** (up from the 181 documented in `progress.md` — reflects the `react@v0.6.0` and `angular@v0.3.2` submodule pins that have drifted past the documented state. Pre-existing; not introduced by this PR.)
+- `pnpm verify:links` — **failing on 44 unresolved refs / 33 distinct targets** (D13). Pre-existing, not in scope.
+- `pnpm --filter @corpus/web build` — green, 236/236 static pages generated (196 blog + 18 lesson + listing concretes)
+- `pnpm verify:prerender` — green, **196/196 blog HTML + 18/18 lesson HTML** with non-empty `<body>`
+- Manual HTML inspection: `grep -rl 'Share on Facebook' apps/web/.next/server/app/en/blog/` returns 990 hits across 196 blog articles + `.rsc` payloads — share buttons are server-rendered on every blog page
+- Visual smoke (hover, film-grain, share dialog) deferred to Vercel Preview on PR #90
+
+**Known issues / next steps:**
+- PR #90 is open against `develop`. **Do NOT auto-merge.** Develop → main release PR is a separate decision (per the user's standing workflow rule).
+- **Submodule pin drift:** `verify-submodules` output shows `react at v0.6.0` and `angular at v0.3.2`, but `progress.md` and `.agents/summary.md` still say `react@v0.5.0` and `angular@v0.3.0`. Same drift the previous session flagged in its session log. The doc state needs a refresh in a follow-up session (the actual adapting count is 196 now, not 181). **Not in scope for this PR.**
+- D13 (44 unresolved refs) remains open. Not in scope.
+- Vercel Preview smoke test for the visual items (hover accent, film-grain texture, share dialog opening) — flagged in PR #90 body. Manual browser check is the next session's pre-merge gate.
+- `tools/dead-code audit` — `ShareButtons`'s `locale` prop was the only unused-prop risk I considered; the prompt-level design choice to nest under `article.share.*` rather than top-level `share.*` matches the existing pattern, so no broader cleanup owed.
+
+**End-of-session state:**
+- Local `polish/d20-batch-2` at `1082b4c` (amended from `b51685f` to fix the i18n path), working tree clean
+- `origin/polish/d20-batch-2` at `1082b4c`, in sync with local
+- `origin/develop` at `928010a` (unchanged — PR #88 still pending)
+- `origin/main` at `8378947` (unchanged)
+- 2 open PRs: #88 (blog spec refinement), #90 (this session's polish batch 2)

@@ -8,10 +8,14 @@ snapshot and `roadmap.md` for the planning rationale.
 This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 
-**This file is the authority for exact article counts.** Measured 2026-08-17 against
-the current pins: **197 selected, 181 adapting** — nextjs 10/10, react 58/73, angular
-93/94, nestjs 20/20. `roadmap.md` carries the order of magnitude only ("four corpora,
-~200 articles") and is not updated when a count is re-measured.
+**This file is the authority for exact article counts.** Measured 2026-08-30 against
+the current pins: **197 selected, 196 adapting** — nextjs 10/10, react 73/73, angular
+94/94, nestjs 20/20. `roadmap.md` carries the order of magnitude only ("four corpora,
+~200 articles") and is not updated when a count is re-measured. **Note:** the
+`react@v0.5.0→v0.6.0` and `angular@v0.3.0→v0.3.2` submodule pins have been
+promoted since the 2026-08-17 measurement; D11's 15 untitled `react` articles are
+now in scope and adapting. Re-measured 2026-08-30 in session
+`polish/d20-batch-2` (PR #90).
 
 ## Legend
 
@@ -108,7 +112,7 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
   film-grain + share buttons) squash-merged to develop at `29182d4`
   from `polish/d20-batch-2` (commit `dc92d21`, `68e41e3`,
   `1082b4c` — amended from `b51685f` after build caught `share.label`
-  should be `article.share.label` per `article.sectionDividerLabel`
+  should be `article.share.label` per `sectionDividerLabel`
   precedent). Wrap commit `cf487c2`. 4 merge conflicts all resolved
   HEAD-wins; 2 auto via `.gitattributes` `merge=union`. i18n keys
   nested under `article.share.*` per existing pattern. Note:
@@ -122,7 +126,35 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
   records used. Vercel Authentication kept ON for Preview per user
   decision (testing environment, not public). Branches `polish/d20-batch-2`
   and `polish/d20-blog-spec` deleted after merge.
-
+- **D20 polish batch 2 (2026-08-30, PR #90):** three items from
+  `prompts/d20-d24-polish-batch.md` that hadn't shipped in PR #86/#89.
+  **Item 3** — card hover accent bar: `group` + `aria-hidden` `<span>`
+  accent (0.5px, scale-y-0 → scale-y-100, 300ms ease) added to the
+  `<li>` wrapper in both blog and course card listings; `<a>` border
+  animates to `--color-signal`. **Item 4** — `.film-grain` opt-in
+  utility appended to `apps/web/app/globals.css` (SVG `fractalNoise`
+  data-URI at opacity 0.075, `mix-blend-mode: overlay`,
+  `isolation: isolate`); applied to the course-detail `<header>` only.
+  **Item 5** — `<ShareButtons>` RSC for Facebook + X share intents;
+  `ArticleView` gains an optional `shareUrl?` prop; the blog page
+  caller passes `absoluteUrl(canonical)`, the lesson caller omits it.
+  i18n keys nested under `article.share.*` (matching the existing
+  `article.sectionDividerLabel` pattern). Three commits on
+  `polish/d20-batch-2` off `main` at `8378947`; PR #90 open against
+  `develop`. Verification: `pnpm typecheck` (green), `verify:frontmatter`
+  (green, **196/196 adapt** — re-measured from 181 due to `react@v0.6.0`
+  and `angular@v0.3.2` submodule pins that had drifted past
+  `progress.md` state), `verify:links` (failing on pre-existing D13
+  44/33 — not in scope, recorded in PR body), `build` (green, 236/236
+  pages), `verify:prerender` (green, 196/196 blog HTML + 18/18 lesson
+  HTML). Visual smoke deferred to Vercel Preview. Branch cut from
+  `main` because PR #89 already shipped the design-spec polish items
+  to release; PR target is `develop`, develop→main promotion is a
+  separate decision. **Honest correction:** the i18n-key nesting bug
+  (using `t(messages, 'share.label')` instead of
+  `t(messages, 'article.share.label')`) was caught by the build
+  prerender — `Missing message: share.label` — not by reading the
+  i18n file ahead of the keys. Amend-in-place before pushing.
 - **Review-first refinement of blog spec (2026-08-30, PR #88):**
   sub-agent session `20260830_220501_e1e12b` (9m 47s, 113 tool calls,
   Hermes-Coding profile) delivered a 1296-line first draft at

@@ -79,10 +79,14 @@ export function ArticleIndex({
                   <h3 className="meta">{folder}</h3>
                   <ul className="mt-3 grid gap-3">
                     {items.map((article) => (
-                      <li key={article.uid}>
+                      <li key={article.uid} className="group relative">
+                        <span
+                          aria-hidden="true"
+                          className="absolute inset-y-0 left-0 w-0.5 origin-top scale-y-0 rounded-full bg-signal transition-transform duration-300 group-hover:scale-y-100"
+                        />
                         <a
                           href={articlePath(locale, article.repo, article.articleId)}
-                          className="border-graphite bg-surface hover:border-muted block rounded-md border p-4 no-underline"
+                          className="border-graphite bg-surface hover:border-signal block rounded-md border p-4 pl-5 no-underline transition-colors duration-300"
                         >
                           <p className="text-display text-lg">{article.title}</p>
                           <p className="text-muted mt-2 text-sm">{article.description}</p>
