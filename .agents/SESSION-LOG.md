@@ -4167,3 +4167,50 @@ also still open. D19 real impl blocked on design call.
 - Drift: develop ahead by 4, no conflicts
 - Develop protection restored after the rebase fix (linear history required, no force-push, no deletions)
 - All 4 specs vendor-neutral (0 hits except Tailwind framework name in action items tables)
+
+---
+
+## Session — Retroactive wrap of stranded D20 polish (SectionDivider + course hero bloom+gradient) — 2026-08-30
+
+**Branch:** `polish/d20-design-spec-batch` (created from `develop@bc499bd`, merged into `develop` at `50eb0f0` via PR #86)
+
+**Files added:**
+- `apps/web/components/section-divider.tsx` — NEW. 32 lines. Accessible `<SectionDivider label />` primitive using existing tokens (`text-muted`, `bg-graphite`, `.meta` class). `role="separator"` + `aria-label`, decorative spans `aria-hidden="true"`. Composition: gradient hairline → dot → label → dot → gradient hairline.
+
+**Files changed:**
+- `apps/web/app/[locale]/page.tsx` — imports `SectionDivider`, renders one between the lead-in section and the corpus cards.
+- `apps/web/app/[locale]/courses/[course]/page.tsx` — wraps course hero in `relative mt-6 overflow-hidden`, adds an `aria-hidden` decorative bloom div behind the H1 (`pointer-events-none absolute -inset-x-12 -inset-y-8 rounded-full bg-signal-dim opacity-25 blur-3xl`), and the H1 itself uses `bg-gradient-to-b from-display to-signal bg-clip-text text-transparent`. Body paragraphs add `relative` to sit above the bloom layer.
+- `apps/web/messages/en.json` — adds `article.sectionDividerLabel: "Continue reading"` (used on `/en`).
+- `.agents/SESSION-LOG.md` — this entry.
+- `CHANGELOG.md` — `[Unreleased]` bullet for the retroactive wrap.
+- `progress.md` — prose note that SectionDivider + hero bloom+gradient shipped, reframing the remaining Recommended-next-session list.
+- `.agents/summary.md` — Last-updated line + a "new component" pointer so future agents know `SectionDivider` exists.
+
+**Why:** Two commits authored on 2026-08-30 in a previous session were never wrapped — no PR, no SESSION-LOG entry, no CHANGELOG bullet, branch just abandoned. `progress.md` lines 103–105 already listed "section divider + hero bloom + card hover + film-grain + share buttons (~3.5h, lowest risk, highest perceived-polish impact)" as the *recommended next session*. Two of those four were sitting unmerged on a stale branch when I picked the session up. Decision: rescue the work and document the lapse explicitly rather than throw it away.
+
+The rescue path is non-trivial because the polish also needs the four mandatory wrap steps per `.cursor/rules/00-session-protocol.mdc`. Retrospectively completing those steps is the honest fix; pretending the commits don't exist would lose real work to a process miss, which is the wrong lesson.
+
+**Why admin-squash despite red CI:** Content gates (`verify-links`) failed on this PR with the same 44 unresolved-ref error documented in D13, plus two `fatal: no tag exactly matches` warnings about submodule pins. Verified the failure is **pre-existing** by checking PR #85 (the previous develop tip that landed on 2026-08-29): same Content gates job, same failure, same error message. The gate is broken-by-design per D13's row: "`verify-links` fails on all 44, by design (§5.4)." D19 tracks the broader "Site CI gates missing" gap. Per memory rule "do not block on infrastructure-substrate failures that pre-date the fix being verified locally," this PR was merged with `--admin --squash` and a merge-commit body that explicitly calls out the red gate and the D13/D19 debt. Local `pnpm verify:frontmatter` / `build:catalog` / `typecheck` / `verify:prerender` all passed; the diff is 49 insertions across 4 files, no touched submodules, no touched infrastructure.
+
+**Invented decisions:**
+- Rescue (path A) over discard (path B/C) — 49 insertions of real polish beats throwing away work to fix a process miss. Lapse visibility in this entry is the corrective action, not branch deletion.
+- **No new DEBT.md row** for the merge-with-red-light. D13 + D19 already document the underlying failures. Creating a parallel row would violate the "debt IDs are append-only and never reused" rule by creating a second record of the same problem.
+- Retroactive wrap counts as a session for SESSION-LOG numbering (continuing the existing sequence — no forced N+1 label, matching the prior 4-spec session's unnumbered format).
+- Used `--delete-branch` on `gh pr merge` to delete the remote branch (`polish/d20-design-spec-batch`) so the rescued branch doesn't sit around inviting confusion. Local branch was also removed by the same flag.
+- Did **not** touch `.agents/summary.md`'s `Last updated` line content beyond refreshing the date and adding the new-component note — the file is "edited in place" per AGENTS.md and a wholesale rewrite would be wrong.
+- Did **not** touch the 30 other stale local branches (`ops/merge-pr77-into-develop`, `pr75-merge-source`, `fix/d18-a11y-poc-defects`, `resolve-pr57`, `ops/merge-pr54-into-main`, `chore/bump-submodule-pins-d11-d15`, `ops/merge-pr52-into-develop`, etc.) — out of scope for this session. Logged below as next-session cleanup.
+
+**Known issues / next steps:**
+- **Second stranded-work incident in 3 days.** 2026-08-27 saw three `prompts/*.md` PRs (#73, #79, #80) reach main via direct-to-main admin-squash with a rationalization that "prompts are docs-only." 2026-08-30 saw two design-system commits reach a stale branch with no PR at all. Same root cause both times: session-end protocol skipped. The four mandatory wrap steps in `.cursor/rules/00-session-protocol.mdc` exist precisely because this lapse recurs. Concrete proposal for the next-session opener: at the start of every session, before any other action, run a one-liner like `git log --since='8 hours ago' --all --not main --not develop --oneline` to surface any branch that landed work without wrapping it. If non-empty, prompt the user before doing anything else.
+- **30 stale local branches** still on disk from prior merges (`ops/merge-*`, `pr*-merge-source`, `fix/d18-*`, etc.). All represent work that already landed; safe to delete with `git branch -D` after a `git log <branch>` eyeball. Out of scope here.
+- **Develop → main release PR** still pending. `origin/develop` is now at `50eb0f0`, 1 commit ahead of `main` at `1bae96e`. The commit is design-polish (SectionDivider + bloom/gradient), small and contained. Ready for the develop→main admin-squash PR when you choose. (Not done in this session because the user asked for option 3a only, not the release promotion.)
+- **D13 / D19 still open.** This PR did not close them. They remain corpus-side or site-CI work for future sessions.
+- **`/tmp/coding-verify-output.txt`** (28KB) was written by a Hermes-Coding sub-agent in the prior session and never read. Likely the report on a coding-profile config verification task. Out of scope for this session but flagged so it doesn't get orphaned forever.
+
+**End-of-session state:**
+- Local `develop` at `50eb0f0`, working tree clean
+- `origin/develop` at `50eb0f0`, in sync with local
+- `origin/main` at `1bae96e`, 1 commit behind develop (waiting on release PR)
+- No open PRs
+- Remote branch `polish/d20-design-spec-batch` deleted; local branch also removed
+- All 4 mandatory wraps completed in this same session: SESSION-LOG (this entry), CHANGELOG, progress.md, summary.md

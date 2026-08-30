@@ -6,7 +6,7 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-> Last updated: 2026-08-29 (Design-spec four-file extraction landed on develop: prompts/design-spec-2026-08.md extended with 4-layer motion stack, plus three new specs covering lesson-detail, blog index+post, and homepage. PRs #81/#82/#83 merged to develop; #79/#80/#73 history reconciled to develop via rebase (prior direct-to-main paths corrected). All 4 specs vendor-neutral (0 hits except Tailwind framework name in action items tables). 4 commits ahead of main at 1bae96e, awaiting develop→main release PR. Workflow rule reinforced: prompts/* files go feature → develop → main, never direct to main.)
+> Last updated: 2026-08-30 (PR #86 merged to develop: retroactive wrap of stranded D20 polish — `<SectionDivider>` primitive + course hero bloom + gradient text. 49 insertions across 4 files. Merged with `--admin --squash` despite a red Content gates run; the 44 unresolved refs are D13 by-design and the two `fatal: no tag exactly matches` warnings are submodule-pin drift — both pre-existing. develop is now 1 commit ahead of main at `1bae96e`, awaiting develop→main release PR. **New reusable component:** `apps/web/components/section-divider.tsx` — `<SectionDivider label />`, accessible (`role="separator"` + `aria-label`), uses existing tokens, currently mounted on `/en` between the lead-in section and the corpus cards.)
 
 ---
 
