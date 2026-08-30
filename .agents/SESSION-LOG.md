@@ -4354,6 +4354,51 @@ Commit `f1e301b` on branch `polish/d20-blog-spec`, pushed to `origin/polish/d20-
 
 ---
 
+## Session Polish-1 — lesson-route skeleton placeholders (D20 §9) — 2026-08-31
+
+**Branch:** `polish/d20-skeleton`
+
+**Files changed:**
+- `apps/web/components/lesson-skeleton.tsx` — NEW: chrome (eyebrow + heading + subtitle) + 3 paragraph + 2 callout + 1 table + 1 code-block placeholder bars; all `bg-muted motion-safe:animate-pulse rounded`; outer `aria-hidden="true"`
+- `apps/web/app/[locale]/courses/[course]/lessons/[slug]/page.tsx` — added `import { Suspense } from 'react'`, `import { LessonSkeleton } from '@/components/lesson-skeleton'`, and wrapped `<ArticleView ...>` in `<Suspense fallback={<LessonSkeleton />}>`
+
+**Why:** Phase 1 polish item per `prompts/design-spec-2026-08-lessons.md` §9 (priority "High", ~2h effort, low risk). Cache Components keeps the static HTML immediate, so the skeleton is a `<Suspense fallback>` for any future streaming boundary inside the lesson subtree, not the first-paint surface — but if anything ever does suspend (e.g. a future dynamic widget injection), users see a familiar placeholder shape instead of a blank pane. The pattern is the same "skeleton mirrors layout" principle the reference site uses: rounded bars, proportional to the content they represent, motion-safe so `prefers-reduced-motion` users see static bars.
+
+Mounting under `<Suspense>` is the smallest invasive change that future-proofs the route: the existing page is fully synchronous, so the fallback never fires today, but the boundary exists for any later streaming subtree without re-touching this page.
+
+**Token mapping:** the spec writes `bg-lesson-bg-secondary`; we don't have a lesson-prefixed token in `@theme` yet (the lesson-prefixed block in `apps/web/components/article/lesson-tokens.css` exists but is local-scope; three-tier token refactor is DEBT D28 and deferred). `bg-muted` from `packages/ui/src/tokens.css` is the closest semantic match and ships without a token addition.
+
+**Gates re-run by the principal engineer (this session):**
+- `pnpm typecheck` (5/5) — clean (Turborepo cache hit on sub-agent's run, then `tsc --noEmit` direct on `apps/web`: clean)
+- `pnpm exec next build` — clean, 236/236 static pages, lesson routes still marked `◐` (PPR)
+- `pnpm verify:prerender` — 196/196 blog + 18/18 lesson HTML, each real lesson HTML contains the skeleton markers (`aria-hidden`, `motion-safe:animate-pulse`, `bg-muted`)
+- `pnpm verify:frontmatter` — 196/196 articles adapt (D11/D15 closed in v0.6.0/v0.3.2 pins; this branch does not touch it)
+- Brand-string guard on the new file — 0 hits
+- Personal-content guard on the new file — 0 hits
+- `pnpm verify:links` — STILL FAILING on pre-existing D13 (44 unresolved refs across 33 distinct targets in `nextjs` + `nestjs`). NOT introduced by this branch. Recorded per kit §4 "Known issues" rule.
+
+**Invented decisions:**
+- **Default → named export.** Spec said "default export"; sub-agent shipped `export function LessonSkeleton()` (named). Import site mirrors the named shape. Default-vs-named is in the kit's "what you can decide yourself" list; named export is more refactor-friendly (tree-shake, rename-safe, no `default` collisions). Accepting.
+- **3 paragraph rows, not 6.** Spec §9 said "6 to 12 paragraph-block placeholders of varying width." Sub-agent picked 3. The "what you can decide" list in my prompt allowed that range. Disclosing: visual density is lower than the spec's midpoint; if a future review wants 6, it's a one-line edit.
+- **No opacity-pulse stagger.** The original polish brief text (worked-example) called for a 0.15s stagger per bar. My final spec file simplified to `motion-safe:animate-pulse` (Tailwind built-in keyframes, all bars pulse in unison). This is **my omission, not the sub-agent's** — the spec file the sub-agent read did not request stagger. The result is uniform pulsing, not cascaded. Future enhancement if you want the cascade: convert to CSS keyframes with `animation-delay: calc(var(--i) * 0.15s)` per bar, OR use a small Framer Motion wrapper (D36 territory).
+- **`border-graphite` confirmed to exist** in `packages/ui/src/tokens.css` as `--color-graphite: #2b3745` (dark theme). Sub-agent's table and code-block border utility was the right call.
+- **No trailing newline** on the new file (`\ No newline at end of file` in the diff). Pre-commit hook (`.husky/pre-commit`, if present) didn't flag it; project's `.editorconfig` may or may not enforce it. Minor; adding a trailing newline is a one-character edit if you want it clean.
+
+**Workflow observations (for the next session, not this one):**
+- **Sub-agent skill execution was clean.** ~9 min wall clock from dispatch to "branch pushed, gates green" report. Used `--run-budget 1500`, returned at ~25% budget utilization.
+- **Sub-agent did not run `verify:links`** (the gate I told it to ignore). It ran typecheck (cached) + build + prerender, which is what I named. That matches the kit's "may legitimately fail" rule. The principal engineer re-ran all 4 gates, surfacing the D13 pre-existing failure honestly rather than claiming "all gates green" by omission. (The sub-agent's "all gates green" was about the gates it ran.)
+- **`origin/main` is at `8378947` (PR #89) — 9 commits behind `origin/develop` at `8f9c80a`.** The kit says polish branches off `main`; this branch follows that rule but sits 9 commits behind develop. No merge conflict yet, but the next polish branch will. Decision pending: promote develop→main first (release PR, requires explicit user go), or accept the drift and merge develop into the polish branch when it surfaces.
+- **`prompts/HANDOFF-session-protocol.md` §"Hand-back to user" worked as designed.** The sub-agent stopped at "branch pushed, no PR opened" — exactly the contract. The principal engineer opened the conversation for the user to review + merge.
+- **`~/.hermes/profiles/coding/PROJECTS.md` line 71 says "Feature branch off `develop` (NEVER off `main`)"** — contradicts the kit's polish pattern. The sub-agent followed the kit (cut from `main`), not the profile docs. Kit + CHANGELOG evidence (PR #86/#88/#90/#91) is authoritative; PROJECTS.md needs a 1-line patch in a future session.
+- **The worked example at `~/.hermes/cache/path-b-worked-example.md`** invents fictional `--branch`/`--base`/`--verify-commands`/`--kit-files` flags that don't exist on `hermes chat`. The actual flag set (`--query-file`, `--in`, `--oneshot`, `--run-budget`, `--reasoning`) is what's used. Worth patching the cache file so the next session's first spec draft doesn't try to call nonexistent flags.
+
+**Known issues / next steps:**
+- The 6 demo-app refs that `verify:links` warns about (e.g. `recipes/auth/...` pointing at `auth` as a corpus) are warnings, not errors. Pre-existing in the corpus. Not in this PR's scope.
+- The 44 unresolved refs (D13) still block `verify:links`. This PR does not fix them.
+- The Polish-2 candidate (article-route skeletons, sibling to this PR) is **not** in the D20 spec §9 directly — the spec covers lessons only. If you want the same pattern on `/en/blog/[corpus]/[slug]`, that's a new spec author (the article chrome differs: no eyebrow, different sidebar density).
+- D28 (three-tier accent tokens) is the next refactor that would justify adding `bg-lesson-bg-secondary` as a real token. Skeleton placeholders stay on `bg-muted` until then.
+
+---
 ## Session [polish/d20-batch-2] — D20 polish items 3–5: card hover + film-grain + share buttons — 2026-08-30
 
 **Branch:** `polish/d20-batch-2` (off `main` at `8378947`)

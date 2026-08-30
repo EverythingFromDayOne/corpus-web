@@ -5,6 +5,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-31] — polish/d20-skeleton — lesson-route skeleton placeholders (D20 §9)
+
+**Added**
+- `apps/web/components/lesson-skeleton.tsx` — chrome (eyebrow + heading + subtitle), 3 paragraph bars, 2 callout blocks, 1 table, 1 code-block, all `bg-muted motion-safe:animate-pulse rounded`; outer wrapper `aria-hidden="true"` so screen readers skip the placeholder
+- `<Suspense fallback={<LessonSkeleton />}>` boundary around `<ArticleView>` in `apps/web/app/[locale]/courses/[course]/lessons/[slug]/page.tsx` — future-proofs the route for any future streaming subtree; today the page is fully static so the fallback does not render
+
+**Architecture decisions**
+- Mounted under `<Suspense>`, not as a top-level placeholder. Cache Components streams the static HTML immediately; the skeleton is the fallback for any subtree that ever suspends, not the first paint. Smallest invasive change that future-proofs the route without changing the current visual.
+- Spec wrote `bg-lesson-bg-secondary` (lesson-prefixed token from reference); site does not have lesson-prefixed tokens in `@theme` yet — DEBT D28 is the eventual three-tier refactor. `bg-muted` (existing `@theme` token) is the closest semantic match and ships without a token addition.
+- `motion-safe:animate-pulse` (Tailwind v4 built-in variant) for the pulse; CSS-tree-shake strips the keyframes for `prefers-reduced-motion: reduce` users so they see static bars. No JS animation library added.
 ### [2026-08-30] — develop — Hermes-Coding handover kit
 
 **Added**
