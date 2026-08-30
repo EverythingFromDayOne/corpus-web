@@ -21,6 +21,10 @@
   --color-signal-soft: #f2c782;
   --color-signal-dim: #6b5228;
 
+  --color-cool: #6aa9d8;        /* concept-tag foreground (DEBT D28) */
+  --color-cool-soft: #a4c6e0;
+  --color-cool-dim: #2c4659;
+
   --color-verified: #63b98c;   /* gate-passed states only */
   --color-stale: #d2705f;      /* drift markers, legacy code annotations only */
 
@@ -76,6 +80,10 @@
   --color-signal: #a1671a;      /* darkened for 4.5:1 on paper */
   --color-signal-soft: #7d4f12;
   --color-signal-dim: #f0dcb8;
+
+  --color-cool: #2b6f9e;
+  --color-cool-soft: #6aa9d8;
+  --color-cool-dim: #c8dceb;
 
   --color-verified: #2f7d55;
   --color-stale: #a83f2e;
