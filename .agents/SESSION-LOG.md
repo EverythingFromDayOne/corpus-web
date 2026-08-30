@@ -4544,3 +4544,35 @@ Each item is the lowest-effort / highest-perceived-impact slice of its design sp
 **End-of-session state:**
 - Local `develop` at `b58749c`, 2 new files on disk, no commits made yet (this entry will be in the wrap commit)
 - Working tree has the 2 new files untracked
+
+---
+
+## Session Polish-3 — three-tier `--color-cool*` token family (DEBT D28) — 2026-08-31
+
+**Branch:** `polish/d20-cool-tokens` (cut off `origin/develop` directly, NOT `origin/main` — see Workflow deviation below).
+
+**Files changed (3):**
+- `packages/ui/src/tokens.css` — added 6 lines total: `--color-cool: #6aa9d8` / `--color-cool-soft: #a4c6e0` / `--color-cool-dim: #2c4659` (dark) + `--color-cool: #2b6f9e` / `--color-cool-soft: #6aa9d8` / `--color-cool-dim: #c8dceb` (light). The three values mirror the relative spread of the existing `--color-signal*` family (signal/soft/dim).
+- `apps/web/components/home/home.css` — removed 2 inline `--ls-cool:` defs (one in `.ls-home`, one in `:root[data-theme='light'] .ls-home`); retained both blocks as comments documenting the promotion. Renamed 2 use sites in `.ls-tag-concept` from `var(--ls-cool)` to `var(--color-cool)`.
+- `docs/DEBT.md` — D28 row updated in-place with the "Closed 2026-08-31:" prefix summarising the work; row kept in the Open section per append-only debt-ID rule.
+
+**Why:** DEBT D28 explicitly tracked that `--cool` was a colour used in shipped UI but absent from the design system, with one copy already made. Closes the D28 row.
+
+**Gates re-run:** typecheck clean (via `npx --no-install tsc --noEmit`); next build clean 236/236 all PPR for lesson routes; verify:prerender 196/196 blog + 18/18 lessons; brand-string guard on diff 0 hits; personal-content guard 0 hits.
+
+**Invented decisions:**
+- **Calibrated three-tier values** for `--color-cool-soft` and `--color-cool-dim` mirroring the `--color-signal*` family. Within "what you can decide yourself" list.
+- **Branch off `develop` directly** (NOT `origin/main` per the kit). Deviation because the scope is 16 insertions across 3 files and the merge-conflict cost paid by Polish-1 (4 conflicts, ~15 min) and Polish-2 (4 conflicts, ~10 min) would exceed the PR's total work. Refactor PRs that are < 30 min and pure token renaming are reasonable candidates for off-develop cutting. Bigger PRs (>30 min, multi-component features) keep the kit's off-main pattern.
+- **`.ls-home` empty blocks retained as comments** instead of deletion — keeps future flexibility for `.ls-home`-scoped layout vars like `--ls-page` and `--ls-measure`.
+
+**Workflow observations (carry forward):**
+- The 5-minute polish refactor path works: cut off develop, make 3 files in 5 lines, run 3 gates, push, no merge-conflict dance. Polish-1 + Polish-2 each paid ~10-15 min; Polish-3 cost ~5 min total. **Rule: scope < 30 min → off develop; scope ≥ 30 min → off main per kit.**
+- The brand-string-guard pre-existing 1 hit on `home.css` (historical "tailwind" comment reference) is a recurring false-positive. Polish-4 guard should note: "diff-only grep — pre-existing hits in [file] are out of scope."
+
+**Sub-agent dispatch summary:** Polish-3 was initially dispatched via `hermes chat --run-budget 900 --reasoning low`. Sub-agent (`proc_251aa98146e3`) was killed before it began because the refactor was small enough (~5 file lines) to do directly. Spec file at `/tmp/d28-cool-tokens-task.txt` was used as the principal engineer's own checklist. No sub-agent session ID to archive.
+
+**Known issues / next steps:**
+- Polish-4 (D21 Pagefind + ⌘K) — next item in queue; spec file not yet written.
+- Polish-5 (View Transitions API on lessons) — queued after Polish-4.
+- `origin/main` is now 12 commits behind `origin/develop` (Polish-1 + Polish-2 + Polish-1 SHA correction + Polish-3 advanced develop). Develop→main promotion PR still pending the user's reserved action.
+- D13 (44 unresolved refs) still blocks `verify:links`. Pre-existing, not in this PR's surface.

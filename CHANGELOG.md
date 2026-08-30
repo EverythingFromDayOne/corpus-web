@@ -5,6 +5,19 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-31] — polish/d20-cool-tokens — three-tier `--color-cool*` in `@theme` (DEBT D28 closure)
+
+**Added**
+- `--color-cool`, `--color-cool-soft`, `--color-cool-dim` in `packages/ui/src/tokens.css` (dark + light variants), mirroring the existing `--color-signal*` family shape and renamed from the inline `--ls-cool`.
+
+**Changed**
+- `apps/web/components/home/home.css` — removed 2 inline `--ls-cool:` definitions; renamed 2 use sites in `.ls-tag-concept` from `var(--ls-cool)` to `var(--color-cool)`.
+- `docs/DEBT.md` — D28 row updated in-place with the "Closed 2026-08-31:" prefix summarising the promotion.
+
+**Architecture decisions**
+- Three-tier relative spread mirrors the signal family: base value is calibrated, soft = ~30% lighter, dim = ~70% darker, on both themes. Hexes verified at the single use site (`.ls-tag-concept`).
+- Branch cut off `origin/develop` directly (NOT `origin/main` per kit) — deviation because scope was 16 insertions across 3 files and the merge-conflict cost paid by Polish-1 and Polish-2 (>10 min each) would exceed the PR's total work. Documented in SESSION-LOG.
+
 ### [2026-08-31] — polish/d20-audience-cards — 3-column audience-fit cards on home (D20 §4)
 
 **Added**

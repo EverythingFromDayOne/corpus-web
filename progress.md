@@ -82,6 +82,21 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Three-tier `--color-cool*` in `@theme` (DEBT D28 closure) —**
+  **Polish-3 (2026-08-31, on `polish/d20-cool-tokens` off develop):**
+  NEW tokens `--color-cool: #6aa9d8`, `--color-cool-soft: #a4c6e0`,
+  `--color-cool-dim: #2c4659` (dark) + light variants in
+  `packages/ui/src/tokens.css`; 2 inline `--ls-cool:` defs removed
+  from `apps/web/components/home/home.css`; 2 use sites in
+  `.ls-tag-concept` renamed from `var(--ls-cool)` to
+  `var(--color-cool)`; `docs/DEBT.md` D28 row marked
+  Closed 2026-08-31. Branch cut off develop directly (5-min PR; off
+  main would have been 10+ min of merge-conflict resolution). Gates
+  re-run: typecheck clean, next build 236/236, verify:prerender
+  196/196+18/18. Three invented decisions: calibrated cool-soft/dim
+  hexes (mirror signal family's relative spread), off-develop branch
+  (deviation from kit, justified by scope), commented-out `.ls-home`
+  empty blocks (kept for future layout-var overrides).
 - **3-column audience-fit cards on home — Polish-2 (2026-08-31, on**
   **`polish/d20-audience-cards @ 081faed`):** NEW
   `apps/web/components/home/audience-cards.tsx` (3-card grid, vendored
