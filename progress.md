@@ -82,6 +82,22 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **View Transitions API on lesson content (D20 §8) — Polish-5**
+  **(2026-08-31, on `polish/d20-view-transitions` off develop):**
+  Inline `style={{ viewTransitionName: 'lesson-content' }}` on the
+  lesson `<main>` in `apps/web/components/article/article-view.tsx`;
+  +24 lines in `apps/web/components/article/lesson-animations.css`
+  for `lesson-view-transition-{in,out}` keyframes (280ms-in / 220ms-out,
+  6px Y slide) + the `::view-transition-{old,new}(lesson-content)`
+  rules under `prefers-reduced-motion: no-preference` + the 0.001ms
+  reduced-motion override. All 3 gates green. Marker landed in real
+  lesson HTML (3/3 sampled via `apps/web/.next/server/app/en/courses/`).
+  Three invented decisions: 280ms-in / 220ms-out asymmetric durations
+  (out starts 60ms before in), 6px translateY on the in/out axis,
+  single global `view-transition-name` per API spec. Browser-support
+  note: Chrome 111+/Edge 111+/Safari TP; Firefox falls back to instant
+  swap; cross-document Chrome needs
+  `chrome://flags#view-transition-on-navigation`.
 - **Three-tier `--color-cool*` in `@theme` (DEBT D28 closure) —**
   **Polish-3 (2026-08-31, on `polish/d20-cool-tokens` off develop):**
   NEW tokens `--color-cool: #6aa9d8`, `--color-cool-soft: #a4c6e0`,

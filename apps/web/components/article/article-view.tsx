@@ -118,7 +118,7 @@ export async function ArticleView({
       <ArticleProgressBar />
       <div className="av-view">
         {sidebar}
-        <main id="content" className="av-main">
+        <main id="content" className="av-main" style={{ viewTransitionName: 'lesson-content' }}>
           <div className="av-inner">
             <nav aria-label={t(messages, 'breadcrumb.label')}>
               <ol className="av-crumb meta">
