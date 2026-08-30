@@ -104,6 +104,22 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
   hover + film-grain + share buttons (~3.5h, lowest risk, highest
   perceived-polish impact). Promote develop → main in a separate
   admin-squash PR when ready.
+- **D20 polish shipped (2026-08-30):** two of the four "recommended
+  next session" items above are now live on `develop` at `50eb0f0`
+  (PR #86): the reusable `<SectionDivider>` primitive (~30 min as
+  estimated) and the course hero bloom + gradient text (~1 h as
+  estimated). The merge had to land with admin-squash despite a red
+  Content gates run — the 44 unresolved-refs failure is the D13 gate
+  failing by design, and the two `fatal: no tag exactly matches`
+  warnings are submodule-pin drift. Neither is introduced by PR #86;
+  PR #85 on `develop`'s previous tip showed the same red, and D19
+  tracks the broader Site-CI gap. Remaining polish from the list:
+  card hover zoom (~30 min), film-grain noise overlay (~30 min),
+  share buttons (~1 h). These were *not* in PR #86; they're still
+  recommended as the next session after this one. Also note: PR
+  #86 was a retroactive wrap of work that had been stranded on a
+  branch with no PR — see `.agents/SESSION-LOG.md` for the full
+  reasoning and the 2nd-stranded-incident-in-3-days observation.
 - **Workflow violation (corrected) (2026-08-29):** earlier in this
   same session I committed `prompts/d18-a11y-poc-defects.md` (PR #73),
   `prompts/design-spec-2026-08.md` (PR #79), and the motion-extension
