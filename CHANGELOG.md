@@ -27,6 +27,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 **Stats:** 1 file +3/-2. All 5 gates green: typecheck 5/5, lint 0, next build PASS (Pagefind 222 pages / 28910 words — unchanged, no new content), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. End-to-end probe: `/en/blog/react/micro-frontends` HTTP 200 with the article rendered. For statically-prerendered blog posts, the skeleton never actually displays in production (the entire HTML is pre-built); the skeleton only displays for paths that exercise Cache Components dynamic-IO. PR #118.
 
+### [2026-08-31] — polish/home-card-bloom — entry-points card bloom + gradient (consistency with blog card)
+
+**Changed**
+- `apps/web/components/home/home.css` — `.ls-card` got the same two-layer background treatment as `.ls-blog-card` (PR #115): `radial-gradient(circle at 85% 100%, --marketing-accent-bloom 18%, transparent)` for the soft bloom at the lower-right corner (32% on hover), `linear-gradient(135deg, surface 0%, --marketing-accent-deep 8%)` for corner-to-corner subtle accent (16% on hover). `:focus-visible` adds a clear `--marketing-accent-bloom` border. Opacity is lower than the blog card (18% vs 30%) because the entry-points section already has the per-section bloom underneath (PR #116); doubling would be visual overload.
+
+**Stats:** 1 file +21/-3. All 5 gates green: typecheck 5/5, lint 0, next build PASS (Pagefind 222 pages / 28910 words — unchanged, no new content), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. End-to-end probe: `/en` HTTP 200 with 6 `.ls-card` + 1 `.ls-card.ls-card-soon`. Served CSS bundle `/_next/static/chunks/3l_gepy4mjwqz.css`: all three rules (`.ls-card`, `a.ls-card:hover`, `a.ls-card:focus-visible`) confirmed. PR #119.
+
 ### [2026-08-31] — polish/blog-card-kind-badge — kind badge overlay on `/en/blog` article cards
 
 **Changed**
