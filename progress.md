@@ -82,6 +82,17 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Entry-points card bloom + gradient — Polish-home-card-bloom**
+  **(2026-08-31, on `polish/home-card-bloom` off develop @ `5810320`,
+  PR #119):** Closes a visual-consistency gap exposed by PR #115.
+  After the blog card got bloom + gradient, the home entry-points
+  `.ls-card` was still flat-color. 1 file +21/-3. `.ls-card` now has
+  the same two-layer background treatment as `.ls-blog-card`:
+  bloom 18% (32% hover) + deep 8% (16% hover). Lower opacity than
+  the blog card because the entry-points section already has
+  the per-section bloom from PR #116. All 5 gates green;
+  `/en` HTTP 200 with 7 cards rendered.
+
 - **Blog post skeleton fallback — Polish-blog-post-skeleton**
   **(2026-08-31, on `polish/blog-post-skeleton` off develop @ `e563d87`,
   PR #118):** Closed the "blog post skeleton placeholder" half of

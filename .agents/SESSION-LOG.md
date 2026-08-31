@@ -5260,4 +5260,62 @@ Known caveats:
   ready for future streaming paths.
 
 Files changed:
-- `apps/web/app/[locale]/blog/[corpus]/[slug]/page.tsx`
+- `apps/web/app/[locale]/blog/[corpus]/[slug]/page.tsx`feat(home): entry-points card bloom + gradient (consistency with blog card)
+
+Closes a visual-consistency gap exposed by PR #115. After the blog
+card got the bloom + gradient treatment, the home page's
+entry-points `.ls-card` (3 cards: featured course + blog + soon)
+was still flat-color, making the home section feel visually muted
+relative to `/en/blog`.
+
+Changes:
+
+- `apps/web/components/home/home.css` — `.ls-card` now has the
+  same two-layer background treatment as `.ls-blog-card`
+  (PR #115): a `radial-gradient` of `--marketing-accent-bloom` at
+  18% (32% on hover) anchored to the lower-right, plus a
+  `linear-gradient(135deg, surface 0%, deep 8%)` for corner-to-corner
+  subtle accent (16% on hover). `:focus-visible` adds a clear
+  `--marketing-accent-bloom` border for keyboard navigation.
+  Opacity is lower than the blog card (18% vs 30%) because the
+  entry-points section already has the per-section bloom underneath
+  (PR #116); doubling the effect would be visual overload.
+
+**Invented decisions:**
+
+- **Lower opacity than `.ls-blog-card`** (18% vs 30% at rest,
+  32% vs 50% on hover) — the entry-points section sits on top of
+  the per-section bloom from PR #116. Doubling the bloom visual
+  load would make the cards compete with their section background.
+- **`background-color` AND `background-image`** (not just
+  `background`) — same pattern as `.ls-blog-card`. The
+  `background-color` keeps the flat-color fallback if gradient
+  rendering fails on low-end devices, and avoids the
+  `background: <shorthand>` override that would otherwise happen
+  on `:hover`.
+- **`:focus-visible` border using `--marketing-accent-bloom`** —
+  the only outline that's visible against the gradient
+  background. Replaces the default `2px solid var(--color-signal)`
+  outline (set globally in globals.css `:focus-visible`) so the
+  focus indicator matches the card's accent family.
+- **`a.ls-card` selector, not just `.ls-card`** — the new
+  background must apply to anchor cards but not to the
+  `.ls-card-soon` placeholder (which has `opacity: .5` already).
+  Anchor-only focus-visible also makes sense: the `:focus-visible`
+  is for keyboard navigation on actionable cards.
+
+Verification:
+- All 5 gates green: typecheck 5/5, lint 0, next build PASS
+  (Pagefind 222 pages / 28910 words — unchanged, no new content),
+  verify:prerender 196/196+18/18, verify:frontmatter 196/196,
+  vitest 38/38.
+- End-to-end probe via `pnpm --filter @corpus/web start`:
+  `/en` → HTTP 200 with 6 `.ls-card` + 1 `.ls-card.ls-card-soon`
+  rendered. Served CSS bundle
+  `/_next/static/chunks/3l_gepy4mjwqz.css`: all three rules
+  (`.ls-card`, `a.ls-card:hover`, `a.ls-card:focus-visible`)
+  confirmed with their respective gradient layers + accent
+  border.
+
+Files changed:
+- `apps/web/components/home/home.css`
