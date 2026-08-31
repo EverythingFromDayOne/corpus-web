@@ -82,6 +82,36 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Topbar pill CTA + backdrop-blur — Polish-topbar-pill-cta**
+  **(2026-08-31, on `polish/topbar-pill-cta` off develop @ `cdee66b`,
+  PR #114):** Closed design-spec §1's "no pill-style CTA, no
+  backdrop-blur header background" gap. Backdrop-blur header
+  background already existed (`backdrop-filter: blur(12px)` on
+  `.topbar`), so the real gap was the pill CTA. **Invented
+  decisions:** (a) pill links to `view.courses[0]` (first course), NOT
+  a hard-coded slug — picks up new courses automatically; (b)
+  `featured?` is OPTIONAL — when the catalog has no courses, the pill
+  simply doesn't render; (c) pill renders on every page (not just
+  `/en`) — by plumbing from the layout which wraps every locale route;
+  (d) `backdrop-filter: blur(2px)` (spec value) PLUS
+  `color-mix(... 60%, transparent)` surface so the blur shows through;
+  (e) press-state border shifts to `--marketing-accent-bloom` (NOT
+  `--color-signal`) — the spec calls for press, not hover, and the
+  bloom family is the "active" colour; (f) mobile collapse via
+  `@media (max-width: 640px)` — same pattern as the search trigger and
+  theme toggle; (g) `font-mono` + uppercase for the pill text —
+  matches the topbar logo. **Also fixed a pre-existing TypeScript-level
+  bug**: layout had `<SiteFooter messages={messages} />` but
+  SiteFooter requires `locale` — restored `<SiteFooter locale={locale} />`.
+  5 files +71/-3. End-to-end probe: `/en`, `/en/blog`, `/en/courses`,
+  `/en/courses/react-foundations`, `/en/blog/angular/getting-started`
+  all HTTP 200 with 1 pill CTA each, all with `aria-label="Start the
+  React foundations course"`. All 5 gates green: typecheck 5/5,
+  lint 0, next build PASS (Pagefind 222 pages / 28910 words — +1 word
+  from new aria-label), verify:prerender 196/196+18/18,
+  verify:frontmatter 196/196, vitest 38/38. **Session cadence cap:
+  hit** — seven polish batches chained in this run.
+
 - **Kind badge overlay on `/en/blog` article cards — Polish-blog-card-kind-badge**
   **(2026-08-31, on `polish/blog-card-kind-badge` off develop @ `606474d`,
   PR #112):** Cards on `/en/blog` rendered title + description + corpus ·

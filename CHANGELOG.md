@@ -11,6 +11,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `apps/web/components/blog/article-index.tsx` — converted the per-article `.map(article => ( ... ))` from inline JSX to a function body so we can compute `kindClass` + `kindLabel` per article. Added a `<span class="tag-soon ls-tag-concept">Concept</span>` / `<span class="tag-soon ls-tag-recipe">Recipe</span>` badge to the meta row of every card. Wrapped the meta `<p>` in `flex flex-wrap items-center gap-2` so the badge + corpus + reading-time share one row but wrap if needed on narrow widths.
 
 **Stats:** 1 file +18/-13. All 5 gates green: typecheck 5/5, lint 0 problems, next build PASS (Pagefind indexed 222 pages / 28909 words — +7 words from new aria-labels), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. Verified `/en/blog` HTTP 200 in 22ms; 196 `tag-soon ls-tag-*` badges total (134 `concept` + 62 `recipe`) in the rendered HTML — matches the catalog split 1:1 with every article in `view.articles`. PR #112.
+### [2026-08-31] — polish/topbar-pill-cta — topbar pill CTA + backdrop-blur (design-spec §1)
+
+**Changed**
+- `packages/ui/src/tokens.css` — added `--marketing-accent-bloom` token (dark + light modes), resolving to `var(--color-signal-soft)`. Updated marketing-accent comment block to mention both §1 (pill CTA) and §7 (divider).
+- `apps/web/components/chrome/site-header.tsx` — `SiteHeader` accepts an optional `featured?: { slug, title }` prop and renders `<a className="topbar-pill-cta">Start the course</a>` between SearchTrigger and ThemeToggle when set. `aria-label` interpolates course title via existing `t(messages, 'topbar.pillCtaAriaLabel', { title })`.
+- `apps/web/app/[locale]/layout.tsx` — calls `getCatalogView()` once per request, picks `view.courses[0]` as `featured`, passes `{ slug, title }` to `<SiteHeader>`. Also fixed pre-existing TypeScript-level bug: `<SiteFooter messages={messages} />` was passing wrong prop; restored `<SiteFooter locale={locale} />`.
+- `apps/web/app/globals.css` — added `.topbar-pill-cta` rule: `border-radius: 9999px` (pill), `backdrop-filter: blur(2px)`, `color-mix(... 60%, transparent)` surface, hover + active (`marketing-accent-bloom`) states, mobile collapse (`max-width: 640px`).
+- `apps/web/messages/en.json` — added top-level `topbar` namespace: `pillCta: "Start the course"`, `pillCtaAriaLabel: "Start the {title} course"`.
+
+**Stats:** 5 files +71/-3. All 5 gates green: typecheck 5/5, lint 0, next build PASS (Pagefind 222 pages / 28910 words — +1 word), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. End-to-end probe: `/en`, `/en/blog`, `/en/courses`, `/en/courses/react-foundations`, `/en/blog/angular/getting-started` all HTTP 200 with 1 pill CTA each, all with `aria-label="Start the React foundations course"`. PR #114.
+
 ### [2026-08-31] — fix/search-dialog-html-suffix — strip `.html` from Pagefind result URLs
 
 **Fixed**

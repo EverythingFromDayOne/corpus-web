@@ -223,6 +223,53 @@ body:has(.av-view) .av-header-tog {
   text-align: left;
 }
 
+/* --- Topbar pill CTA (design-spec §1) ---
+   Pill-shaped "Start the course" link with backdrop blur + active-state
+   border colour shift. Border transitions on press, not hover (per
+   design-spec §1's "press feedback emphasis over hover"). Hidden via
+   flex:none + no-render rather than display:none so the flex layout
+   doesn't shift when the topbar re-renders without a featured course. */
+.topbar-pill-cta {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-display);
+  background: color-mix(in srgb, var(--color-surface) 60%, transparent);
+  backdrop-filter: blur(2px);
+  border: 1px solid var(--color-graphite);
+  border-radius: 9999px;
+  padding: 0.3rem 0.85rem;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color 300ms ease, color 300ms ease, background-color 300ms ease;
+}
+
+.topbar-pill-cta:hover {
+  color: var(--color-display);
+  border-color: var(--color-muted);
+  background: color-mix(in srgb, var(--color-surface) 75%, transparent);
+}
+
+.topbar-pill-cta:active,
+.topbar-pill-cta:focus-visible {
+  border-color: var(--marketing-accent-bloom);
+  color: var(--color-display);
+  outline: 0;
+}
+
+/* Mobile: collapse to icon-only text, like the search trigger and theme
+   toggle (PR #108 follow-up). Keeps the topbar compact at iPhone widths. */
+@media (max-width: 640px) {
+  .topbar-pill-cta {
+    padding: 0.25rem 0.6rem;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+  }
+}
+
 /* On mobile widths the topbar overflows: logo + 3 nav links + a
    16rem search input + theme toggle is ~640px of content competing
    for a 390px viewport. Hide the input's text + ⌘K chip on
