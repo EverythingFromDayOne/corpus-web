@@ -28,7 +28,6 @@
     "searchLoading": "Searching…",
     "searchEmpty": "No matches.",
     "searchError": "Search failed. Try again.",
-    "searchCloseLabel": "Close search",
     "searchHint": "Full-text across every adapting article. ↑↓ to move, ↵ to open, Esc to close.",
     "demoTitle": "Interactive demos",
     "demoHint": "Stepped simulators for the render cycle, the event loop, and the Next.js cache. This panel is a placeholder and does nothing yet.",

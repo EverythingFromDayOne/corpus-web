@@ -328,19 +328,6 @@ body:has(.av-view) .av-header-tog {
   letter-spacing: 0.04em;
 }
 
-.srch-dialog-close {
-  position: absolute;
-  top: 0.6rem;
-  right: 0.6rem;
-  margin: 0;
-}
-
-.srch-dialog-close button {
-  cursor: pointer;
-  font-family: var(--font-mono);
-  background: transparent;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .srch-dialog {
     animation: none;
