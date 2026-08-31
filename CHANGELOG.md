@@ -20,6 +20,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `apps/web/app/[locale]/courses/[course]/page.tsx` — replaced the single `bg-signal-dim opacity-25 blur-3xl` bloom div in the course hero `<header>` with two new bloom divs using `.course-hero-bloom--warm` and `.course-hero-bloom--cool`. Header gets the `course-hero` class for future hook-point.
 
 **Stats:** 2 files +43/-3. All 5 gates green: typecheck 5/5, lint 0, next build PASS (Pagefind 222 pages / 28910 words — unchanged, no new content), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. End-to-end probe: `/en/courses/react-foundations` HTTP 200 with both bloom divs in served HTML. Served CSS bundle `/_next/static/chunks/29ofgg-ni5quy.css` confirms both rules. PR #117.
+### [2026-08-31] — polish/blog-post-skeleton — skeleton fallback on blog post streaming (design-spec §9)
+
+**Changed**
+- `apps/web/app/[locale]/blog/[corpus]/[slug]/page.tsx` — imported `Suspense` and `LessonSkeleton`, wrapped `<ArticleView>` in `<Suspense fallback={<LessonSkeleton />}>`. The skeleton (which already includes table + code-block skeletons per spec §9) now appears during the streaming phase of any blog-post navigation that ends up on a streaming route.
+
+**Stats:** 1 file +3/-2. All 5 gates green: typecheck 5/5, lint 0, next build PASS (Pagefind 222 pages / 28910 words — unchanged, no new content), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. End-to-end probe: `/en/blog/react/micro-frontends` HTTP 200 with the article rendered. For statically-prerendered blog posts, the skeleton never actually displays in production (the entire HTML is pre-built); the skeleton only displays for paths that exercise Cache Components dynamic-IO. PR #118.
 
 ### [2026-08-31] — polish/blog-card-kind-badge — kind badge overlay on `/en/blog` article cards
 
