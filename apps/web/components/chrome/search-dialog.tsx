@@ -3,6 +3,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { t, type Messages } from '@/lib/i18n';
 
+// Pagefind exposes itself on `window.pagefind` once the browser bundle
+// at `/pagefind/pagefind.js` finishes executing. Augment the Window type
+// so callers don't have to.
+type PagefindWindow = Window & { pagefind?: PagefindModule };
+
 /**
  * Full-text search dialog backed by Pagefind.
  *
@@ -74,20 +79,44 @@ export function SearchDialog({ messages }: { messages: Messages }) {
   }, []);
 
   // Lazy-load Pagefind on first open. The browser bundle is at
-  // /pagefind/pagefind.js (served from public/pagefind/).
+  // /pagefind/pagefind.js (served from public/pagefind/). Turbopack and
+  // webpack both try to resolve static `import()` calls at build time,
+  // so we load Pagefind the recommended way: inject a <script> tag,
+  // wait for the global to be defined, then use `window.pagefind`.
   const ensurePagefind = async (): Promise<PagefindModule | null> => {
     if (pagefind) return pagefind;
-    try {
-      // @ts-expect-error — Pagefind is a runtime asset, no type info.
-      const mod = (await import(/* @vite-ignore */ '/pagefind/pagefind.js')) as PagefindModule;
-      if (mod?.init) await mod.init();
-      setPagefind(mod);
-      return mod;
-    } catch (err) {
-      console.error('[search] failed to load Pagefind', err);
+    if (typeof window === 'undefined') return null;
+    const w = window as PagefindWindow;
+    const cached: PagefindModule | undefined = w.pagefind;
+    if (cached) {
+      setPagefind(cached);
+      return cached;
+    }
+    // Inject the script if it isn't already in the DOM.
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[data-pagefind]',
+    );
+    if (!existing) {
+      const script = document.createElement('script');
+      script.src = '/pagefind/pagefind.js';
+      script.async = true;
+      script.dataset.pagefind = 'true';
+      document.head.appendChild(script);
+    }
+    // Poll for the global; Pagefind defines window.pagefind synchronously
+    // once the bundle finishes executing.
+    for (let i = 0; i < 50 && !w.pagefind; i += 1) {
+      await new Promise((r) => setTimeout(r, 60));
+    }
+    const pf: PagefindModule | undefined = w.pagefind;
+    if (!pf) {
+      console.error('[search] Pagefind failed to load after 3s');
       setStatus('error');
       return null;
     }
+    if (pf.init) await pf.init();
+    setPagefind(pf);
+    return pf;
   };
 
   const onInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -236,6 +265,11 @@ export function SearchDialog({ messages }: { messages: Messages }) {
 }
 
 // --- Pagefind runtime types (declarations only; runtime is JS) ----------
+
+// Pagefind exposes itself on `window.pagefind` once the browser bundle
+// (/pagefind/pagefind.js) finishes executing. The component reads that
+// global via the PagefindWindow augmentation above; no source-level
+// `import` is needed.
 
 interface PagefindResultRaw {
   id: string;
