@@ -5,6 +5,21 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-31] — polish/search-fixes-v2 — redundant Esc chip removed, Pagefind loader hardened
+
+**Fixed**
+- `apps/web/components/chrome/search-dialog.tsx` — remove the redundant `<form method="dialog">` + `<button class="srch-kbd">Esc</button>` that was overlapping the `<kbd>⌘K</kbd>` chip in the input row (native `<dialog>` already handles Esc via the platform; the explicit button was visually identical to ⌘K and absolutely positioned at the same coordinate, producing the two-chip overlap the user reported).
+- `apps/web/components/chrome/search-dialog.tsx` `ensurePagefind` — replace the blind 3s poll on `window.pagefind` with `onload`/`onerror` listeners on the dynamically injected `<script>`, awaiting a Promise that resolves on load, rejects on error or 15s timeout. Post-script-load poll bumped from 3s (50×60ms) to 10s (100×100ms). Three distinct error messages now surface the actual cause of the "Search failed" path:
+  - "Pagefind script failed to load (network error or 4xx/5xx)"
+  - "Pagefind script timed out after 15s"
+  - "Pagefind bundle loaded but did not register window.pagefind within 10s. The runtime may be incompatible."
+
+**Removed (orphaned by the above)**
+- `apps/web/app/globals.css` — `.srch-dialog-close` + `.srch-dialog-close button` rules.
+- `apps/web/messages/en.json` — `placeholders.searchCloseLabel` i18n key.
+
+3 files changed, +28 / −33. All 5 gates green: typecheck 5/5, lint 0 problems, next build 236/236 (no new routes), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38 pass / 0 fail. HTML spot-check on `/en/blog.html`: no `<form method="dialog">`, no `.srch-dialog-close` element; only the platform-managed Esc behaviour remains.
+
 ### [2026-08-31] — polish/search-fixes — search-trigger layout, dialog centring, theme-toggle thumb, search error diagnostics
 
 **Changed**

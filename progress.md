@@ -82,6 +82,54 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Polish-search-fixes-v2 dialog chip + Pagefind loader — `polish/search-fixes-v2`**
+  **(2026-08-31, off develop):** Two regressions remained after
+  Polish-search-fixes merged. **(a) "icons overlapping"** — actual cause
+  was a redundant `<form method="dialog">` containing `<button class=
+  "srch-kbd">Esc</button>` absolutely positioned at top-right via
+  `.srch-dialog-close { position: absolute; top: 0.6rem; right: 0.6rem; }`,
+  sharing `.srch-kbd` styling with the in-row `<kbd>⌘K</kbd>` chip → two
+  stacked boxes in the dialog's top-right corner (the user's red-circle
+  callout). **Fix is removal**: native `<dialog>` already handles Esc via
+  the platform; the explicit button was redundant AND the source of the
+  overlap. `apps/web/components/chrome/search-dialog.tsx` deletes the
+  `<form>` + button; `apps/web/app/globals.css` deletes `.srch-dialog-
+  close` and `.srch-dialog-close button` rules; `apps/web/messages/
+  en.json` removes orphaned `placeholders.searchCloseLabel`. **(b)
+  "search function still fail"** — the previous PR's diagnostic detail
+  (discriminated-union error message) WORKED: the screenshot's
+  detail line "Search index failed to load. The /pagefind/ bundle may be
+  blocked or unreachable." is exactly the message that PR added. The
+  remaining problem was precision: a blind 3s poll couldn't distinguish
+  three different failure modes. **New logic**: `ensurePagefind`
+  attaches `onload`/`onerror` listeners to the dynamic `<script>` and
+  awaits a Promise that resolves on load, rejects on error or 15s
+  timeout; post-script-load poll bumped from 3s (50×60ms) to 10s
+  (100×100ms). Three distinct error messages now surface the actual
+  cause: "Pagefind script failed to load (network error or 4xx/5xx)" /
+  "Pagefind script timed out after 15s" / "Pagefind bundle loaded but
+  did not register window.pagefind within 10s. The runtime may be
+  incompatible." 3 files changed, +28 / −33. All 5 gates green:
+  typecheck 5/5, lint 0 problems, next build 236/236 (no new routes),
+  verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest
+  38/38 pass / 0 fail. HTML spot-check on `/en/blog.html`: no `<form
+  method="dialog">`, no `.srch-dialog-close` element. Three invented
+  decisions: (a) **removal beats restyling** — keeping the Esc button
+  would mean duplicating platform behaviour with a chip that has
+  to live somewhere; removing it is the only fix that doesn't produce
+  a different overlap; (b) **diagnostic-only, not self-healing** — I
+  deliberately did NOT add a retry loop on Pagefind failure; silent
+  retries mask real network/edge issues and the user needs the actual
+  error to make a routing decision; (c) **15s is the new ceiling**
+  rather than matching the previous 3s — the failure was almost
+  certainly "Vercel edge slow first-load", and the old window was
+  guaranteed to time out; 15s gives the slow path room to settle
+  while still capping user-visible delay. **If "Search failed"
+  reappears in production after this PR, the new error detail line
+  will surface the actual cause (network error / timeout / runtime
+  init failure) — paste it back to chat and the diagnosis is one
+  round-trip away.**
+
 - **Search-trigger + dialog + theme-toggle chrome polish — Polish-search-fixes**
   **(2026-08-31, on `polish/search-fixes` off develop):** Five
   regressions on `develop.nxhhuy.tech` after the Polish batch:
