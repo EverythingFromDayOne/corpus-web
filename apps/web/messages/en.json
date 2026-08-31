@@ -20,8 +20,15 @@
   },
   "placeholders": {
     "comingSoon": "Coming soon",
-    "search": "Search coming soon",
-    "searchHint": "Full-text search is not available yet.",
+    "search": "Search 196 articles…",
+    "searchInput": "Search 196 articles…",
+    "searchDialogLabel": "Search articles",
+    "searchTriggerLabel": "Open search (⌘K)",
+    "searchLoading": "Searching…",
+    "searchEmpty": "No matches.",
+    "searchError": "Search failed. Try again.",
+    "searchCloseLabel": "Close search",
+    "searchHint": "Full-text across every adapting article. ↑↓ to move, ↵ to open, Esc to close.",
     "demoTitle": "Interactive demos",
     "demoHint": "Stepped simulators for the render cycle, the event loop, and the Next.js cache. This panel is a placeholder and does nothing yet.",
     "graphFullView": "Full graph coming soon",
@@ -124,6 +131,7 @@
     "filterLabel": "Filter by corpus",
     "readingTime": "{minutes} min read",
     "folderLabel": "{folder}",
+    "postMetaLabel": "Article metadata",
     "empty": "No articles in this corpus."
   },
   "breadcrumb": {

@@ -173,3 +173,156 @@ body:has(.av-view) .av-header-tog {
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
+
+/* --- Search trigger button (top-bar) --- */
+
+.srch-trigger {
+  /* Override the disabled-looking .srch defaults; this is a real button. */
+  cursor: pointer;
+  opacity: 1;
+  font: inherit;
+  text-align: left;
+}
+
+.srch-trigger:hover,
+.srch-trigger:focus-visible {
+  border-color: var(--color-signal);
+  color: var(--color-display);
+}
+
+.srch-trigger-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Search dialog (Pagefind-backed) --- */
+
+.srch-dialog {
+  border: 1px solid var(--color-graphite);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-body);
+  padding: 0;
+  max-width: min(640px, 92vw);
+  width: 100%;
+  box-shadow: 0 24px 64px color-mix(in srgb, var(--color-ink) 60%, transparent);
+}
+
+.srch-dialog::backdrop {
+  background: color-mix(in srgb, var(--color-ink) 70%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.srch-dialog-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem 0.75rem;
+}
+
+.srch-dialog-input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--color-graphite);
+  padding-bottom: 0.75rem;
+}
+
+.srch-dialog-input input {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font: inherit;
+  font-size: 1rem;
+  color: inherit;
+  padding: 0;
+}
+
+.srch-dialog-input input:focus-visible {
+  outline: 0;
+}
+
+.srch-dialog-kbd {
+  flex: none;
+}
+
+.srch-dialog-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 50vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.srch-dialog-results li {
+  border-radius: var(--radius-sm);
+}
+
+.srch-dialog-results li.is-active {
+  background: color-mix(in srgb, var(--color-signal) 14%, transparent);
+}
+
+.srch-dialog-results a {
+  display: block;
+  padding: 0.5rem 0.6rem;
+  color: inherit;
+  text-decoration: none;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.srch-dialog-results a:hover,
+.srch-dialog-results li.is-active a {
+  color: var(--color-display);
+}
+
+.srch-dialog-excerpt mark {
+  background: color-mix(in srgb, var(--color-signal) 28%, transparent);
+  color: var(--color-display);
+  padding: 0 0.1em;
+  border-radius: 0.15em;
+}
+
+.srch-dialog-status {
+  padding: 0.6rem;
+  font-size: 0.9rem;
+  color: var(--color-muted);
+  font-style: italic;
+}
+
+.srch-dialog-foot {
+  margin: 0;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-graphite);
+  font-size: var(--text-2xs);
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+.srch-dialog-close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  margin: 0;
+}
+
+.srch-dialog-close button {
+  cursor: pointer;
+  font-family: var(--font-mono);
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .srch-dialog {
+    animation: none;
+  }
+}

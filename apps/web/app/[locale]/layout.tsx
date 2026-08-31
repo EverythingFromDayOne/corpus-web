@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import { ArticleChromeProvider } from '@/components/article/article-shell';
+import { SearchDialog } from '@/components/chrome/search-dialog';
 import { SiteHeader } from '@/components/chrome/site-header';
 import { getMessages } from '@/lib/i18n';
 import { isLocale, LOCALES } from '@/lib/locales';
@@ -23,6 +24,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
     <ArticleChromeProvider>
       <SiteHeader locale={locale} messages={messages} />
       {children}
+      <SearchDialog messages={messages} />
     </ArticleChromeProvider>
   );
 }

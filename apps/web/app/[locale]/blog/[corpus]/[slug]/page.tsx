@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ArticleView, corpusBreadcrumb } from '@/components/article/article-view';
+import '@/components/article/blog-content.css';
 import { JsonLd } from '@/components/json-ld';
 import {
   conceptNeighbors,
@@ -123,6 +124,7 @@ export default async function ArticlePage({ params }: PageProps) {
         prevLabel={t(messages, 'article.previous')}
         nextLabel={t(messages, 'article.next')}
         shareUrl={absoluteUrl(canonical)}
+        postHeader
       />
     </>
   );
