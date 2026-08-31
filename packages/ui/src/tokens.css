@@ -21,6 +21,13 @@
   --color-signal-soft: #f2c782;
   --color-signal-dim: #6b5228;
 
+  /* Marketing-accent tokens (DEBT — design-spec §7 section-divider).
+     Thin wrappers over --color-signal so the divider's "luminous" feel
+     (long gradient line + blurred dot) reads as the same accent family
+     used elsewhere on the site, not a parallel palette. */
+  --marketing-accent-line: var(--color-signal);
+  --marketing-accent-label-text: var(--color-signal);
+
   --color-cool: #6aa9d8;        /* concept-tag foreground (DEBT D28) */
   --color-cool-soft: #a4c6e0;
   --color-cool-dim: #2c4659;
@@ -80,6 +87,13 @@
   --color-signal: #a1671a;      /* darkened for 4.5:1 on paper */
   --color-signal-soft: #7d4f12;
   --color-signal-dim: #f0dcb8;
+
+  /* Marketing-accent tokens (design-spec §7 section-divider).
+     Same family as dark mode — defined explicitly so the divider reads
+     consistently across themes. Inherits the WCAG-safe --color-signal
+     from the light-mode block above. */
+  --marketing-accent-line: var(--color-signal);
+  --marketing-accent-label-text: var(--color-signal);
 
   --color-cool: #2b6f9e;
   --color-cool-soft: #6aa9d8;
