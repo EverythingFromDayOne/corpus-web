@@ -82,6 +82,38 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Curriculum timeline visual — Polish-10 (D30 partial close, timeline half)**
+  **(2026-08-31, on `polish/d30-timeline-visual` off develop):** D30
+  said the course overview needed a vertical learning-path timeline
+  visualising the progression `rationale` argues in prose. The data
+  was already there — every `Path.items[i]` carries a `note` field
+  with the per-step rationale. The change is purely visual: 45 +/− 12
+  in `apps/web/components/courses/course-card.tsx` + 1 key in
+  `apps/web/messages/en.json`. `<CurriculumList>` now renders `<ol
+  aria-label="Learning-path timeline">` with left-rail dots (filled
+  for first and last items, hollow for the middle steps), connector
+  segments between non-final dots (rendered as a `<span>` with
+  `border-l border-graphite` — Tailwind utility, no `@theme` add),
+  zero-padded ordinals in `tabular-nums` so the column is consistent,
+  and the `note` restyled into a `border-l-2 italic` callout that
+  distinguishes rationale from lesson title. `<ol>` `aria-label` is
+  the i18n key `courses.curriculumTimelineLabel` ("Learning-path
+  timeline"). Old `border-b` separator dropped — the rail replaces
+  it semantically. All 5 gates green: typecheck 5/5, lint 0 problems,
+  next build 236/236 (no new routes), verify:prerender 196/196+18/18,
+  verify:frontmatter 196/196. HTML spot-check on
+  `/en/courses/react-foundations`: 6 `<li class="timeline-step">`,
+  2 filled dots, 5 connectors, 6 note callouts — matches the data
+  shape exactly. Brand-string + personal-content guards: 0 hits.
+  **D30's FAQ half remains open**: schema has no `Path.faqs` field
+  and adding one would require coordinated corpus-side authoring.
+  Two invented decisions: (a) filled dots for first/last only
+  (semantically "entry" and "exit" of the path; middle steps are
+  hollow progression markers); (b) `note` rendered as a callout
+  (bordered + italic) rather than muted paragraph, because the
+  timeline visual depends on making the rationale visually distinct
+  from the lesson title.
+
 - **Blog kind-filter wiring — Polish-9 (D29 partial close)**
   **(2026-08-31, on `polish/d29-blog-kind-filter` off develop):** D29's row
   said the `/en/blog` chip group was inert. Earlier work shipped the
