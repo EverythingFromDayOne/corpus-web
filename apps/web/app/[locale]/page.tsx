@@ -93,12 +93,20 @@ export default async function HomePage({ params }: PageProps) {
           </div>
         </section>
         <SectionDivider
-          label={t(messages, 'article.sectionDividerLabel')}
+          label={t(messages, 'home.dividerCorpora')}
           className="my-8"
         />
         <div className="ls-wrap">
           <CorpusCards locale={locale} corpora={view.corpora} messages={messages} />
+          <SectionDivider
+            label={t(messages, 'home.dividerAudience')}
+            className="my-10"
+          />
           <AudienceCards messages={messages} />
+          <SectionDivider
+            label={t(messages, 'home.dividerEntry')}
+            className="my-10"
+          />
           <EntryPoints locale={locale} featured={featured} census={view.census} messages={messages} />
           <ReadingConventions messages={messages} />
         </div>
