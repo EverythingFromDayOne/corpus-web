@@ -5,6 +5,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+
+### [2026-08-31] — polish/search-spotlight-ux — Topbar: collapse search trigger to icon-only on mobile (follow-up to PR #108)
+
+**Changed**
+- `apps/web/app/globals.css` — `.srch` gained `min-width: 0` so the flex child can shrink past its content size and engage `text-overflow: ellipsis` when the topbar overflows at mobile widths; new `@media (max-width: 640px)` rule collapses `.srch-trigger` to a 34×34 icon-only button (matching the theme toggle's geometry) by hiding `.srch-trigger-input` and `.srch-kbd` and zeroing padding. The full input already lives inside the dialog (Spotlight-style per PR #108); iOS Safari uses the same collapse pattern for its own search affordance.
+
+**Stats:** 1 file (+26/-2). All 5 gates green: typecheck 5/5, lint 0 problems, next build 236/236 (no new routes), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38 pass / 0 fail. Verified in the served CSS bundle (`.next/static/chunks/30s__szcvb5cx.css`): `@media (max-width:640px){.srch-trigger{justify-content:center;width:34px;height:34px;padding:0}.srch-trigger-input,.srch-trigger .srch-kbd{display:none}}` — exactly the rule shape written. User mobile spot-check on `develop.nxhhuy.tech` is the functional gate.
+
 ### [2026-08-31] — polish/search-spotlight-ux — Mobile dialog bulletproofing (follow-up to PR #108)
 
 **Changed**

@@ -82,6 +82,38 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Topbar: collapse search trigger to icon-only on mobile — Polish-search-spotlight-ux topbar follow-up**
+  **(2026-08-31, on `polish/search-spotlight-ux` off develop @ `72239fe`,
+  PR #108 update):** A red-circle annotation on a mobile screenshot
+  showed the topbar search input being clipped invisibly against
+  the viewport's right edge — only the magnifier icon and the
+  first two letters of "Search…" were visible, the rest was hidden
+  by `.topbar-wrap`'s `overflow: hidden`. **Root cause:** the
+  topbar layout is
+  `[hamburger-toggle] [logo] [Home Courses Articles] [SearchTrigger 16rem] [ThemeToggle]`
+  (~640px of content competing for ~390px on iPhone). The search
+  trigger had `width: 16rem; max-width: 16rem` and no `min-width:
+  0`, so the flex child refused to shrink and `.topbar-wrap`'s
+  `overflow: hidden` clipped it against the viewport's right
+  edge. **Fix:** added `min-width: 0` to `.srch` so the flex child
+  CAN shrink on intermediate widths (tablets where the input
+  should ellipsis-truncate rather than clip); new `@media (max-width:
+  640px)` rule that collapses `.srch-trigger` to a 34×34 icon-only
+  button (matching the theme toggle's geometry) by hiding
+  `.srch-trigger-input` and `.srch-kbd` and zeroing padding. The
+  full input already lives inside the dialog (Spotlight-style per
+  PR #108). iOS Safari uses the same collapse pattern for its own
+  search affordance. **Pure CSS, no JS change** — no client-side
+  conditional rendering, no hydration cost. 1 file (+26/-2).
+  Verified in the served CSS bundle at
+  `.next/static/chunks/30s__szcvb5cx.css`:
+  `@media (max-width:640px){.srch-trigger{justify-content:center;width:34px;height:34px;padding:0}.srch-trigger-input,.srch-trigger .srch-kbd{display:none}}`
+  — exactly the rule shape written. All 5 gates green:
+  typecheck 5/5, lint 0 problems, next build 236/236 (no new
+  routes), verify:prerender 196/196+18/18, verify:frontmatter
+  196/196, vitest 38/38. User mobile spot-check on
+  `develop.nxhhuy.tech` is the functional gate.
+
 - **Mobile dialog: bulletproof top-anchor + touch Done button — Polish-search-spotlight-ux mobile follow-up**
   **(2026-08-31, on `polish/search-spotlight-ux` off develop @ `72239fe`,
   PR #108 update):** Two mobile regressions reported from a Safari

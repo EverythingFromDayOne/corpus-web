@@ -4811,4 +4811,22 @@ Dynamic import returns the ES module namespace directly — no global registrati
 
 **Known issues / next steps:** Both mobile regressions fixed at the code level; verified in the served CSS bundle. Polish residue unchanged.
 
+---## Session 110 — topbar: collapse search trigger to icon-only on mobile — 2026-08-31
+
+**Branch:** `polish/search-spotlight-ux` (continuation of PR #108)
+
+**Files changed:**
+- `apps/web/app/globals.css` — `.srch` (the search-trigger button styling) gained `min-width: 0` so the flex child can shrink past its content size and engage `text-overflow: ellipsis` when the topbar overflows at mobile widths; new `@media (max-width: 640px)` rule that collapses `.srch-trigger` to a 34×34 icon-only button (matching the theme toggle's geometry) by hiding `.srch-trigger-input` and `.srch-kbd` and zeroing padding
+
+**Why:** A red-circle annotation on a mobile screenshot showed the topbar search input being clipped invisibly against the viewport's right edge — only the magnifier icon and the first two letters of "Search…" were visible, the rest was hidden by `.topbar-wrap`'s `overflow: hidden`. Root cause: the topbar layout is `[hamburger-toggle] [logo] [Home Courses Articles] [SearchTrigger 16rem] [ThemeToggle]` (~640px of content competing for ~390px on iPhone). The search trigger had `width: 16rem; max-width: 16rem` and no `min-width: 0`, so the flex child refused to shrink and the topbar-wrap's `overflow: hidden` clipped it against the viewport's right edge. Fix: at `max-width: 640px` collapse the trigger to a 34×34 icon-only button — the magnifier glyph is always visible, the full text input already lives inside the dialog (Spotlight-style per PR #108). iOS Safari uses the same collapse pattern for its own search affordance. Also added `min-width: 0` to `.srch` so the flex child CAN shrink on intermediate widths (e.g. tablets where the input should ellipsis-truncate rather than clip). Verification: rebuilt and probed the served CSS bundle at `.next/static/chunks/30s__szcvb5cx.css` — `@media (max-width:640px){.srch-trigger{justify-content:center;width:34px;height:34px;padding:0}.srch-trigger-input,.srch-trigger .srch-kbd{display:none}}` — exactly the rule shape written. All 5 gates green: typecheck 5/5, lint 0 problems, next build 236/236 (no new routes), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38 pass / 0 fail.
+
+**Invented decisions:**
+- (a) **`@media (max-width: 640px)` breakpoint, not 768px** — 768px (Tailwind's `md:`) is iPad-portrait width, where the topbar still has room for the full input (1024px-class landscape tablets definitely do). 640px captures all iPhone widths (375 / 390 / 414 / 430px portrait) and small Android phones, while leaving iPad-mini portrait (744px) with the desktop-style full input. The user-reported bug was iPhone-width.
+- (b) **34×34 icon-only button matching the theme toggle's geometry** — `.theme-toggle` is already 34×34 (verified in the screenshot's right-edge cluster); making the search trigger the same size on mobile keeps the topbar's right-edge tools visually balanced. Padding goes to `0`, gap is irrelevant with one child, justify-content centers the 14×14 SVG.
+- (c) **Hide `.srch-kbd` along with `.srch-trigger-input`, not just the input** — leaving the `⌘K` chip visible would defeat the purpose (it's a small text element that takes up ~36px of horizontal space and looks orphaned without the input text). Hidden together so the mobile button is just the icon, period.
+- (d) **Branch stays on `polish/search-spotlight-ux`** — same reasoning as Session 109. PR #108 is open with the mobile follow-up already merged; appending another mobile fix is the same PR's work, not a new one.
+- (e) **No JS change** — pure CSS, no client-side conditional rendering needed. The dialog already handles `isTouch` separately. The topbar trigger is the same `<button>` element; CSS just hides its children on mobile. Faster render, no hydration cost.
+
+**Known issues / next steps:** Bug fixed at the code level; verified in the served CSS bundle. Polish residue unchanged. The next obvious follow-up (NOT in scope for this session): consider an `@media (max-width: 480px)` rule that hides the nav-links and surfaces a hamburger drawer on the smallest phones — but that's a cross-component change touching the entire nav, not a one-file polish. Surface it.
+
 ---
