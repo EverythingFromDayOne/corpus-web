@@ -93,8 +93,14 @@
   border-radius: var(--radius-md);
   padding: 0.4rem 0.6rem;
   color: var(--color-muted);
-  max-width: 16rem;
   width: 16rem;
+  /* `min-width: 0` lets the flex child shrink past its content size
+     so the input can engage `text-overflow: ellipsis` when the
+     topbar overflows at mobile widths. Without this, the input
+     would refuse to shrink and the topbar-wrap's `overflow: hidden`
+     would clip it invisibly against the viewport's right edge —
+     the "search input covered on mobile" bug. */
+  min-width: 0;
   box-sizing: border-box;
   white-space: nowrap;
 }
@@ -215,6 +221,27 @@ body:has(.av-view) .av-header-tog {
   opacity: 1;
   font: inherit;
   text-align: left;
+}
+
+/* On mobile widths the topbar overflows: logo + 3 nav links + a
+   16rem search input + theme toggle is ~640px of content competing
+   for a 390px viewport. Hide the input's text + ⌘K chip on
+   `max-width: 640px` so the trigger collapses to a 34×34 icon-only
+   button matching the theme toggle's geometry. The full input
+   lives inside the dialog (already Spotlight-style). iOS Safari's
+   own search affordance uses the same collapse pattern. */
+@media (max-width: 640px) {
+  .srch-trigger {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .srch-trigger-input,
+  .srch-trigger .srch-kbd {
+    display: none;
+  }
 }
 
 .srch-trigger:hover,
