@@ -5,6 +5,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-31] — polish/d29-blog-kind-filter — D29 partial close (blog filter kind axis)
+
+**Changed**
+- `apps/web/components/blog/article-index.tsx` — `Filter` type renamed to `corpus` (state) and a second `useState<Kind | 'all'>` + `useMemo` added; `visible` now composes both axes. Two `role="group"` chip rows render above the article grid: corpus (All / Next.js / Angular / React / NestJS) and kind (All / Concept / Recipe). Shared `renderChip` helper consolidates the 6 buttons. +47/−23.
+- `apps/web/messages/en.json` — `blog.filterLabel` ("Filter by corpus") split into `blog.filterCorpusLabel` + `blog.filterKindLabel`. `blog.empty` rewritten from "No articles in this corpus." to "No articles match these filters." to reflect combined-filter reality. Net +2 keys (3 added, 1 removed).
+
+**Architecture decisions**
+- Two simultaneous chip rows (corpus above kind) instead of tabs — chips-as-filters is the existing convention set by the prior corpus-axis row; consistency beats novelty here.
+- `/en/courses` filter UI is NOT in this PR — only 2 courses ship today and a 2-chip axis for 2 items is dead UI. That half of D29 remains genuinely inert-by-design.
+- Filter state is component-local (`useState`), not URL-param-bound. Multi-axis deep-linking is a Phase-2 concern (D26/D27 area); out of scope here.
+
 ### [2026-08-31] — polish/d25-license-page — `/en/license` page + site footer (D25 close)
 
 **Added**
