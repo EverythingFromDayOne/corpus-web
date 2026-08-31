@@ -82,6 +82,16 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Home hero aurora — Polish-home-hero-aurora**
+  **(2026-08-31, on `polish/home-hero-aurora` off develop @ `00e866d`,
+  PR #120):** Closes the remaining sub-gap of design-spec home §6.
+  1 file +44/-0. Two bloom pseudo-elements on `.ls-hero`:
+  warm bloom from upper-right (`--marketing-accent-bloom` 24%,
+  40×26rem) + cool bloom from lower-left (`--color-cool` 20%,
+  34×22rem). `.ls-hero` parent gets isolation. All 5 gates green;
+  `/en` HTTP 200. Served CSS bundle
+  `/_next/static/chunks/3qr37qa359x-6.css`: all three rules confirmed.
+
 - **Entry-points card bloom + gradient — Polish-home-card-bloom**
   **(2026-08-31, on `polish/home-card-bloom` off develop @ `5810320`,
   PR #119):** Closes a visual-consistency gap exposed by PR #115.

@@ -5318,4 +5318,70 @@ Verification:
   border.
 
 Files changed:
+- `apps/web/components/home/home.css`feat(home): aurora on home hero (design-spec §6)
+
+Closes the remaining sub-gap of design-spec home §6 — per-section
+blooms shipped in PR #116, course-hero aurora shipped in PR #117.
+The home hero still had a single linear-gradient wash + repeating
+rail-grid line texture, with no multi-colour aurora compositing.
+
+Changes:
+
+- `apps/web/components/home/home.css` — added two `::before` /
+  `::after` bloom pseudo-elements to `.ls-hero`:
+  - `::before` — warm bloom from upper-right, `--marketing-accent-bloom`
+    24%, 40×26rem radial ellipse, anchored `top: -4rem; right: -6rem`.
+  - `::after` — cool bloom from lower-left, `--color-cool` 20%,
+    34×22rem radial ellipse, anchored `left: -6rem; bottom: -8rem`.
+  `.ls-hero` parent gets `position: relative; isolation: isolate;
+  overflow: hidden` so the negative-z-index pseudo-elements render
+  behind the section content and the rail-grid texture.
+
+**Invented decisions:**
+
+- **Warm upper-right + cool lower-left** — same aurora pairing as
+  PR #117's `.course-hero-bloom--warm/cool`. Different from the
+  per-section blooms (PR #116) which alternate corners per section;
+  the home hero has its own pairing because it's a single surface,
+  not part of the section chain.
+- **Lower opacity than course hero (24% / 20% vs 30% / 26%)** —
+  the home hero is the page entry. Higher opacity would compete
+  with the title's WCAG contrast (`bg-gradient-to-b from-display
+  to-signal bg-clip-text text-transparent` on `.ls-hero h1`).
+  Course hero gets the stronger treatment because the reader has
+  already scrolled past the home, so title contrast is less
+  critical.
+- **Same warm corner as the corpora per-section bloom (upper-right)**
+  — the warm glow flows top-to-bottom from the hero into the
+  corpora section, creating a continuous warm-bloom read as the
+  reader scrolls. Cool bloom counterweights from the opposite
+  corner so the warm doesn't dominate.
+- **Pseudo-elements rather than extra `<div>` markup** — same
+  pattern as PR #116's per-section blooms. Keeps the home
+  component JSX untouched. `isolation: isolate` on the parent
+  guarantees the negative z-index doesn't escape the hero's
+  stacking context.
+- **No `blur` filter** — the radial gradients already fade to
+  transparent at 65% radius, which gives a soft bloom edge without
+  the rendering cost of `blur-3xl`. Course hero uses blur-3xl on
+  larger blooms; home hero blooms are smaller and the gradient
+  fade is sufficient.
+
+Verification:
+- All 5 gates green: typecheck 5/5, lint 0, next build PASS
+  (Pagefind 222 pages / 28910 words — unchanged, no new content),
+  verify:prerender 196/196+18/18, verify:frontmatter 196/196,
+  vitest 38/38.
+- End-to-end probe via `pnpm --filter @corpus/web start`:
+  `/en` → HTTP 200. Served CSS bundle
+  `/_next/static/chunks/3qr37qa359x-6.css`: all three rules
+  (`.ls-hero` with isolation, `.ls-hero:before` warm bloom,
+  `.ls-hero:after` cool bloom) confirmed.
+
+Known issues / next steps:
+- Polish residue unchanged: D20 Shiki (new-dep blocker),
+  D22 OG image (DNS+Vercel routing), D30 FAQ half (corpus-side
+  schema). D38 still blocks CI on every PR.
+
+Files changed:
 - `apps/web/components/home/home.css`

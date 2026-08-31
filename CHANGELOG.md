@@ -34,6 +34,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 **Stats:** 1 file +21/-3. All 5 gates green: typecheck 5/5, lint 0, next build PASS (Pagefind 222 pages / 28910 words — unchanged, no new content), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. End-to-end probe: `/en` HTTP 200 with 6 `.ls-card` + 1 `.ls-card.ls-card-soon`. Served CSS bundle `/_next/static/chunks/3l_gepy4mjwqz.css`: all three rules (`.ls-card`, `a.ls-card:hover`, `a.ls-card:focus-visible`) confirmed. PR #119.
 
+### [2026-08-31] — polish/home-hero-aurora — aurora on home hero (design-spec §6)
+
+**Added**
+- `apps/web/components/home/home.css` — two bloom pseudo-elements on `.ls-hero`: `::before` warm bloom from upper-right (`--marketing-accent-bloom` 24%, 40×26rem radial ellipse), `::after` cool bloom from lower-left (`--color-cool` 20%, 34×22rem). `.ls-hero` parent gets `position: relative; isolation: isolate; overflow: hidden` so the negative-z-index pseudo-elements render behind the section content and the existing rail-grid texture.
+
+**Stats:** 1 file +44/-0. All 5 gates green: typecheck 5/5, lint 0, next build PASS (Pagefind 222 pages / 28910 words — unchanged, no new content), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. End-to-end probe: `/en` HTTP 200. Served CSS bundle `/_next/static/chunks/3qr37qa359x-6.css`: all three rules (`.ls-hero` with isolation, `.ls-hero:before` warm bloom, `.ls-hero:after` cool bloom) confirmed. PR #120.
+
 ### [2026-08-31] — polish/blog-card-kind-badge — kind badge overlay on `/en/blog` article cards
 
 **Changed**
