@@ -82,6 +82,50 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Search-trigger + dialog + theme-toggle chrome polish — Polish-search-fixes**
+  **(2026-08-31, on `polish/search-fixes` off develop):** Five
+  regressions on `develop.nxhhuy.tech` after the Polish batch:
+  (1) moon icon tight to left; (2) search placeholder clipped to
+  "Search 196 a."; (3) dialog top-left instead of centred;
+  (4) search panel icons collapsed; (5) "Search failed" non-
+  diagnostic. **Fixes 1–4 are real layout/CSS bugs**, addressed in
+  `apps/web/components/chrome/search-trigger.tsx` (drop leading SEARCH
+  label, replace with `<svg>` magnifier), `apps/web/components/chrome/
+  theme-toggle.tsx` (thumb `translate-x-9 → translate-x-8` + icon
+  spans `shrink-0 text-[0.95rem] leading-none`), and
+  `apps/web/app/globals.css` (`.srch` widens from `15rem max` to
+  fixed `16rem`; `.srch-dialog` becomes `position: fixed; inset: 0;
+  margin: auto; height: max-content; max-height: 70vh;` for true
+  viewport-centre; `.srch-dialog-input` gap `0.5rem → 0.75rem` with
+  explicit `.srch-dialog-input > svg { flex: none; width: 16px;
+  height: 16px; color: var(--color-muted); }` so the magnifier
+  doesn't squish). **Fix 5 surfaces the underlying error**: `status`
+  becomes a discriminated union `{ kind: 'idle' | 'loading' |
+  'ready' | 'empty' } | { kind: 'error'; message: string }`; both
+  error paths (Pagefind bundle failed to load; `pf.search` threw)
+  extract the underlying `Error.message` and render it below the
+  "Search failed. Try again." line in monospaced grey text. Pure
+  diagnostic — Pagefind's success path is unchanged. Dead-code
+  removal: `.srch input { … }` rule deleted (trigger never had an
+  `<input>` child — leftover from the disabled placeholder, inert
+  under `.srch-trigger`). 4 files changed, +79 / −35. All 5 gates
+  green: typecheck 5/5, lint 0 problems, next build 236/236 (no new
+  routes), verify:prerender 196/196+18/18, verify:frontmatter
+  196/196. HTML spot-check on `/en/blog.html`: search trigger now
+  `<svg>` + full `Search 196 articles…` + `⌘K`, no ellipsis.
+  Brand-string + personal-content guards: 0 hits. Three invented
+  decisions: (a) widen `.srch` to fixed 16rem instead of `max-width:
+  16rem` — the trigger sits in the right-edge of the topbar where
+  flexible widths cause it to expand/shrink on unrelated re-layouts;
+  (b) drop the SEARCH label rather than shrink it — the search icon
+  visually serves the same role; (c) discriminated union on `status`
+  rather than a parallel `errorMessage` field — keeps state shape
+  coherent and forces every error path to capture the message.
+  **If "Search failed" reappears in production, the new error
+  detail line will surface the underlying `Error.message`
+  (worker init / wasm MIME / fetch 404 etc.) — paste it back to
+  chat and the diagnosis is one round-trip away.**
+
 - **Related-articles unresolved affordance — Polish-11 (D32 close)**
   **(2026-08-31, on `polish/d32-related-articles-polish` off develop):**
   D32 said related articles were rendered as plain text when their
