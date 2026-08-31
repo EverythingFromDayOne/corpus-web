@@ -82,6 +82,39 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Section-divider upgrade + repeat pattern on `/en` — Polish-section-divider**
+  **(2026-08-31, on `polish/section-divider` off develop @ `9ea3719`,
+  PR #111):** `<SectionDivider>` already existed and was used once on
+  `/en` and once on `/en/blog` but was a stub: 64px solid
+  `--color-graphite` lines, 4px solid dots, no blur, no token.
+  Design-spec §7 calls for `<line> <dot> <label> <dot> <line>` with
+  subtle blur (0.5px on lines, 1px on dots) using `--marketing-accent-line`
+  token, and the pattern to **repeat** between every major section. Fix:
+  (1) added `--marketing-accent-line` and `--marketing-accent-label-text`
+  (dark + light modes) to `packages/ui/src/tokens.css`, both resolving
+  to `var(--color-signal)` so the divider reads as the same accent
+  family used elsewhere; (2) upgraded `section-divider.tsx` to spec
+  geometry (72px gradient lines from-transparent-to-token, 5px blurred
+  dots, lines blurred at 0.5px); (3) replaced the single divider on
+  `/en` with three — `The corpora` (hero → corpus-cards), `Who this is
+  for` (corpus-cards → audience-cards), `Three ways in` (audience-cards
+  → entry-points); (4) added 3 i18n keys under existing `home.*`
+  namespace. **Reading-conventions has no divider above it** — the
+  entry-points CTA + reading-conventions form a tight sign-off pair,
+  separating them would over-punctuate the page tail. **Invented
+  decisions:** inline `style={{ color: 'var(...)' }}` for the label
+  (tokens not in `@theme`, Tailwind's `text-*` doesn't know them);
+  `bg-[color:var(--marketing-accent-line)]` Tailwind v4 arbitrary-value
+  for dot + gradient-line-end fills; `blur(0.5px)` / `blur(1px)` via
+  inline `filter` because Tailwind v4 has no sub-pixel blur utilities.
+  4 files +36/-13. Verified `/en` HTTP 200 in 42ms; 3
+  `role="separator"` elements with correct labels in rendered HTML
+  (was 1). Tokens confirmed in served CSS bundle
+  `/_next/static/chunks/14m90zs304wxw.css`. All 5 gates green:
+  typecheck 5/5, lint 0 problems, next build PASS (Pagefind indexed
+  222 pages / 28902 words), verify:prerender 196/196+18/18,
+  verify:frontmatter 196/196, vitest 38/38.
+
 - **`apps/web` `start` script — Polish-web-start-script**
   **(2026-08-31, on `polish/web-start-script` off develop @ `74b454c`,
   PR #110):** `apps/web/package.json` was missing the standard `start`

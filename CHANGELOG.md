@@ -5,6 +5,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-31] — polish/section-divider — section-divider upgrade + repeat pattern on `/en`
+
+**Changed**
+- `packages/ui/src/tokens.css` — added `--marketing-accent-line` and `--marketing-accent-label-text` (dark + light modes), both resolving to `var(--color-signal)` so the divider reads as the same accent family used on the CTA buttons / brand stripe / accents elsewhere.
+- `apps/web/components/section-divider.tsx` — upgraded to match design-spec §7: 72px gradient lines (`from-transparent to-var(--marketing-accent-line)`), 5px blurred dots (`filter: blur(1px)`), lines blurred at 0.5px, label colour from the marketing-accent token; decorative lines + dots are `aria-hidden`.
+- `apps/web/app/[locale]/page.tsx` — replaced the single divider between hero and the `<div className="ls-wrap">` with **three dividers** that repeat the pattern between every major section on `/en`: `The corpora` (hero → corpus-cards), `Who this is for` (corpus-cards → audience-cards), `Three ways in` (audience-cards → entry-points). The `/en/blog` divider is unchanged.
+- `apps/web/messages/en.json` — added 3 keys under existing `home.*` namespace: `dividerCorpora`, `dividerAudience`, `dividerEntry`.
+
+**Stats:** 4 files (+36/-13). All 5 gates green: typecheck 5/5, lint 0 problems, next build PASS (Pagefind indexed 222 pages / 28902 words), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. Verified `/en` HTTP 200 in 42ms; 3 `role="separator"` elements with the correct labels in the rendered HTML (was 1, now 3). Tokens `--marketing-accent-line` and `--marketing-accent-label-text` confirmed in served CSS bundle `/_next/static/chunks/14m90zs304wxw.css` in both `@theme` and `:root[data-theme=light]`. PR #111.
+
 ### [2026-08-31] — polish/web-start-script — `apps/web` `start` script
 
 **Changed**
