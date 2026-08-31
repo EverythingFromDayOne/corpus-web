@@ -106,6 +106,27 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
   global instead of `await import()`; both `placeholders.search` and
   `placeholders.searchInput` carry the same string for future split.
   DEBT D21 closed. `origin/main` now 17 commits behind `origin/develop`.
+
+- **D20 §2 + blog §5/§10/§15 polish batch — Polish-5**
+  **(2026-08-31, on `polish/d20-batch-5-blog-typography` off develop):**
+  5 small additive items from the design-spec backlog: hero bloom +
+  gradient text on `/en` (home §2, mirrors the course-detail hero from
+  PR #86); `.blog-content` typography block (blog §15 High — 16px/1.7
+  lh/768px reading column, scoped `[data-blog]`); post-header template
+  for blog posts (badge + H1 + 4-piece meta row, new
+  `apps/web/components/article/post-header.tsx`); second use site of
+  `<SectionDivider>` on `/en/blog`; new `[data-blog]` wrapper layout
+  (`apps/web/app/[locale]/blog/layout.tsx`) + 15 `--blog-*` scoped
+  tokens (dark + light) in `packages/ui/src/tokens.css`. All 3 gates
+  green: typecheck 5/5, next build 236/236, verify:prerender
+  196/196+18/18. Five invented decisions: off-develop branch (same
+  Polish-3/Polish-5 justification), `[data-blog]` on a wrapping div
+  not `<html>` (App Router constraint, spec §14 caveat), reading
+  column folded into the typography commit rather than split out,
+  post-header meta swaps author/date for corpus/kind/baseline
+  (personal-content boundary + roadmap §15.1 "no dates"), 16px/1.7 lh
+  (spec's own §14 caveat measurement call). `origin/main` now 14
+  commits behind `origin/develop`.
 - **View Transitions API on lesson content (D20 §8) — Polish-5**
   **(2026-08-31, on `polish/d20-view-transitions` off develop):**
   Inline `style={{ viewTransitionName: 'lesson-content' }}` on the

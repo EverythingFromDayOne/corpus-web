@@ -4623,3 +4623,42 @@ Each item is the lowest-effort / highest-perceived-impact slice of its design sp
 - Next.js 16.3 deprecation warning surfaced during build: `middleware` file convention → `proxy` convention. Out of scope for this PR; flagged for a future CI/deps session.
 - `origin/main` is now 17 commits behind `origin/develop` (this session added 6 to develop). Develop→main promotion PR remains reserved for user action.
 - D13 (44 unresolved refs) still blocks `verify:links`. Pre-existing, not in this PR's surface.
+## Session Polish-5 — D20 §2 + blog §5/§10/§15 polish batch — 2026-08-31
+
+**Branch:** `polish/d20-batch-5-blog-typography` (off `origin/develop`, NOT off `origin/main` per kit — Polish-5 PR #95 set the same precedent earlier today).
+
+**Files changed:**
+- `apps/web/app/[locale]/page.tsx` — hero `<section>` bloom + gradient text + film-grain wrapper (home §2)
+- `apps/web/components/article/blog-content.css` — new file: `.blog-content` typography block + post-header styles (blog §15 High + §5)
+- `apps/web/components/article/post-header.tsx` — new component: `<PostHeader>` for blog posts
+- `apps/web/components/article/article-view.tsx` — optional `postHeader?: boolean` prop on `ArticleViewProps`, conditional render of `<PostHeader>` vs default lead
+- `apps/web/app/[locale]/blog/layout.tsx` — new layout that wraps every `/en/blog/*` child in `<div data-blog>`
+- `apps/web/app/[locale]/blog/page.tsx` — second use site of `<SectionDivider>` between intro header and article index
+- `apps/web/app/[locale]/blog/[corpus]/[slug]/page.tsx` — imports `blog-content.css`, passes `postHeader` flag
+- `packages/ui/src/tokens.css` — 15 `--blog-*` scoped tokens (dark + light variants)
+- `apps/web/messages/en.json` — +1 key `blog.postMetaLabel` ("Article metadata")
+- `.agents/summary.md` — last-updated line rewritten to Polish-5 status
+- `CHANGELOG.md` — new `[2026-08-31] — polish/d20-batch-5-blog-typography` block under `## [Unreleased]`
+- `progress.md` — Session log entry added (this session's row)
+
+**Why:** Five small additive items from the design-spec backlog (home §2 hero bloom; blog §15 High .blog-content typography; blog §5 post-header template; home §7 section-divider second use site; blog §10 + §15 [data-blog] + --blog-* scoped tokens). All items map directly to recommended next-session scope from the spec files. None requires new npm deps, breaking changes, or content edits. Total wall-clock: ~90 min (commits + docs + gates). 5 small additive items is the upper bound for a single-session polish batch.
+
+**Gates re-run:** typecheck clean (5/5 packages); next build clean 236/236; verify:prerender 196/196 + 18/18; brand-string guard on diff 0 hits in shipped strings (2 false-positive hits on doc comments explaining the constraint — `tokens.css` "Tailwind v4 CSS-first config" and `post-header.tsx` "no author byline" rationale); personal-content guard 0 hits in shipped strings.
+
+**Invented decisions:**
+- **Branch off `develop` directly** (NOT `origin/main` per the kit). Same justification as Polish-3: 5 small additive items, ~118 net lines across 9 files, would have paid >10 min of merge-conflict resolution against `main`. Polish-5 (PR #95) set the same precedent today. Polish-5 (this session) + Polish-4 (audience cards PR #93) + Polish-3 (D28 PR #94) advanced develop; `origin/main` is now ~13 commits behind.
+- **`[data-blog]` set on a wrapping `<div>`** instead of `<html>` (spec §14 caveat). App Router owns `<html>` in `apps/web/app/layout.tsx` and child layouts cannot re-emit it. CSS descendant selectors reach the wrapping div identically.
+- **Reading column 768px ships inside the `.blog-content` block** (commit 2) rather than as a stand-alone commit. Spec §15 lists it as a separate "High" item, but the same rule that tightens the prose body also sets the column — splitting it would create two commits editing the same selector.
+- **Post-header meta row is corpus · kind · reading-time · baseline** (4 entries) instead of the spec's author · date · reading-time (3 entries). The author slot is forbidden by the personal-content boundary; the date slot is forbidden by roadmap §15.1 ("no dates"). Adding baseline (corpus field that exists) keeps the row at 4 entries so the pipe-divider rhythm matches the spec's 3-piece row visually.
+- **Spec's 17px / 1.8 line-height → 16px / 1.7** for English prose. Spec §14 caveat explicitly named this as a measurement decision: "16px / 1.6 may sit closer to the existing article-chrome rhythm — measure before committing." Chose the middle value (16/1.7) to balance Vietnamese diacritic tuning with English rhythm.
+- **`postHeader` is a boolean prop**, not a `headerVariant: 'corpus' | 'blog'` discriminated union. Only one variant exists today; the union would be premature. Easy to widen later if more variants appear.
+- **Reading column applies to `.av-prose` only**, not to the whole `.lesson-surface`. The `.av-dek` paragraph above keeps its existing 1.1rem scale; only the article body (h2/h3/p/lists/blockquote/code) tightens to 1rem / 1.7lh / 48rem. This means the post-header sits in the wider chrome while the body sits in the reading column — the "lead wider, body tighter" rhythm common to long-form design.
+
+**Sub-agent dispatch summary:** No sub-agent dispatch. Principal-engineer direct work. All 5 commits + docs + gates authored locally in this session.
+
+**Known issues / next steps:**
+- Polish-6 (D21 Pagefind + ⌘K) — next item. Still 0h spec'd.
+- Polish-7 (D22 SEO residue: sitemap, OG image generation, robots.txt) — next after Polish-6.
+- `origin/main` is now 14 commits behind `origin/develop` (this session added 5 to develop). Develop→main promotion PR is reserved for user action; no auto-promotion.
+- D13 (44 unresolved refs) still blocks `verify:links`. Pre-existing, not in this PR's surface. Cheapest Group-1 closure is publishing the two staged `nextjs` articles (`cache-lifetimes`, `use-cache-directive`), which would close 4 of 44.
+- The post-header's meta row carries "corpus" twice (once as the badge label, once as the first meta entry). Cosmetic — they are different semantic slots (badge = category indicator, meta = provenance metadata) — but worth flagging in case a future polish session wants to drop the first meta entry.
