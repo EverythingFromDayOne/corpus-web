@@ -52,6 +52,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 **Stats:** 3 files +202/-31. All 5 gates green: typecheck 5/5, lint 0, next build PASS (Pagefind 222 pages / 28910 words — unchanged, no new content), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. End-to-end probe: `/en/blog` HTTP 200 in 77ms with 196 cards rendered. Served CSS bundle `/_next/static/chunks/1biv76ekbgbzb.css`: all new rules confirmed. PR #121.
 
+### [2026-08-31] — polish/course-card-redesign — course card redesign (PR #122 follow-on to blog card)
+
+**Changed**
+- `apps/web/components/courses/course-card.tsx` — refactored `CourseCard` to match the blog card's three-tier structure from PR #121: eyebrow row (corpus + lesson count + reading time + optional level pill) → larger title (`text-2xl font-semibold`) → 3-line description (`-webkit-line-clamp: 3`) → optional rationale blockquote (also `-webkit-line-clamp: 3`). Hover lift bumped to `translate-y-1`. Card class composes `course-card ls-blog-card` (reuses bloom + gradient base). Removed the now-unused `corporaLabel()` helper.
+
+**Added**
+- `apps/web/app/globals.css` — added `.course-card*` family: `.course-card` (padding override), `.course-card-bar` (gradient line→bloom + bloom box-shadow, matches `.blog-card-bar`), `.course-card-crumb` (mono caps typography hook), `.course-card-level` (level pill, bloom family), `.course-card-title`, `.course-card-desc`, `.course-card-rationale`.
+
+**Stats:** 2 files +85/-12. All 5 gates green: typecheck 5/5, lint 0, next build PASS (Pagefind 222 pages / 28910 words — unchanged, no new content), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. End-to-end probe: `/en/courses` HTTP 200 in 47ms with 2 course cards rendered. Served CSS bundle `/_next/static/chunks/3v3grxlrl71bi.css` confirms all `.course-card*` rules. PR #122.
+
 ### [2026-08-31] — polish/blog-card-kind-badge — kind badge overlay on `/en/blog` article cards
 
 **Changed**

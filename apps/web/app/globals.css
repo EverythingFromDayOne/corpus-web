@@ -423,6 +423,66 @@ body:has(.av-view) .av-header-tog {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--marketing-accent-bloom) 40%, transparent);
 }
 
+/* ---------- Course card redesign (PR #122, polish/course-card-redesign) ----------
+   Pairs with the blog card redesign (PR #121) — same three-tier
+   hierarchy (eyebrow crumbs → larger title → description → optional
+   rationale) for visual consistency across listing surfaces. Reuses
+   `.ls-blog-card` for the bloom + gradient base treatment (same
+   accent family, lower opacity for the course index context). */
+
+.course-card {
+  padding: 1.5rem 1.5rem 1.5rem 2rem;
+}
+
+.course-card-bar {
+  background: linear-gradient(
+    180deg,
+    var(--marketing-accent-line) 0%,
+    var(--marketing-accent-bloom) 100%
+  );
+  box-shadow: 0 0 8px color-mix(in srgb, var(--marketing-accent-bloom) 50%, transparent);
+}
+
+.course-card-crumb {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.course-card-level {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  padding: 0.18rem 0.55rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--marketing-accent-line) 55%, var(--color-graphite));
+  background: color-mix(in srgb, var(--marketing-accent-bloom) 12%, transparent);
+  color: var(--color-display);
+}
+
+.course-card-title {
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.course-card-desc {
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.course-card-rationale {
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .topbar-pill-cta:hover {
   color: var(--color-display);
   border-color: var(--color-muted);
