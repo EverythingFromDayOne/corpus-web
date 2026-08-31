@@ -5055,6 +5055,56 @@ Invented decisions:
   bloom 18%` underneath the existing PR #109 lift shadow). The
   press/lift state now has both a vertical lift AND a glow — the
   card lifts AND brightens.
+**Known issues / next steps:** Polish residue unchanged: D20 Shiki (new-dep blocker), D22 OG image (DNS+Vercel routing), D30 FAQ half (corpus-side schema), `develop` → `main` promotion (yours; 8 PRs queued, 43+ commits after PRs #107 → #113). D38 still blocks CI on every PR (`verify-links` failing on 44 unresolved `related` refs); every PR needs admin override until D13 closes or `verify-links` flips to advisory. **Session cadence cap: hit** — seven polish batches chained in this run (PRs #107 → #113 → #114).feat(home): per-section blooms (design-spec §6)
+
+Closes design-spec home §6's "Gap: no per-section blooms, no noise
+overlays" half-gap — per-section blooms only; the noise-overlay half
+is closed by the existing `film-grain` on the hero (PR earlier in the
+session).
+
+Changes:
+
+- `apps/web/components/home/home.css` — added `::before` bloom layer
+  to three home sections:
+  - `.ls-sec:not(.ls-audience)` (the **corpora** section) blooms from
+    the upper-right with `radial-gradient` of
+    `--marketing-accent-bloom 22%` (using the bloom tier added in
+    PR #115).
+  - `.ls-sec + .ls-sec:not(.ls-audience)` (the **entry-points**
+    section, sibling) blooms from the lower-left with
+    `--marketing-accent-deep 18%` (using the deep tier added in
+    PR #115).
+  - `.ls-audience` (the audience section) blooms from the lower-right
+    with `--marketing-accent-bloom 16%`.
+  Each parent gets `position: relative; isolation: isolate;` so the
+  pseudo-element renders behind the section content (z-index: -1) and
+  the isolation creates a new stacking context so the negative z-index
+  doesn't bleed into siblings.
+
+**Invented decisions:**
+
+- **Each bloom is anchored to a different corner** (top-right for
+  corpora, lower-left for entry-points, bottom-right for audience) so
+  successive blooms don't visually stack on the same axis when
+  scrolling. Three blooms from three corners creates a diagonal
+  "lit from multiple angles" feel.
+- **Two bloom-tier + one deep-tier** — corpora (top of page) uses
+  bloom (warmer, more attention-grabbing); entry-points (mid-page)
+  uses deep (cooler, recedes); audience uses bloom (warmer, the
+  social-proof section deserves more warmth). The gradient-tokens
+  alternate intentionally to read as ambient depth, not a uniform
+  haze.
+- **Pseudo-elements rather than extra `<div>` markup** — keeps
+  the section JSX untouched. `::before` is the canonical place for
+  decorative background content; `isolation: isolate` on the parent
+  guarantees the negative z-index doesn't escape the section's
+  stacking context.
+- **Opacity intentionally low (16-22%)** — the per-section blooms
+  are ambient depth, not competing visual elements. The hero bloom
+  (existing, on `<section className="ls-hero">`) is at 25% because
+  it's the page entry. The per-section blooms sit at 22%/18%/16%
+  reading top-to-bottom so the page "calms down" as the reader
+  scrolls into the deeper sections.
 
 Verification:
 - All 5 gates green: typecheck 5/5, lint 0 problems, next build
@@ -5069,6 +5119,11 @@ Verification:
   confirmed with both `radial-gradient` bloom and `linear-gradient`
   deep layer; `:hover` swaps to `50%/22%` and adds the second glow
   ring.
+  `/en` → HTTP 200 in 52ms.
+- Inspected served CSS bundle
+  `/_next/static/chunks/408wotcfathbv.css`: all three `::before`
+  rules confirmed with their respective `--marketing-accent-*`
+  gradient layers and corner anchoring.
 
 Known issues / next steps:
 - Polish residue unchanged: D20 Shiki (new-dep blocker), D22 OG
@@ -5084,3 +5139,6 @@ Files changed:
 - `packages/ui/src/tokens.css`
 - `apps/web/components/blog/article-index.tsx`
 - `apps/web/app/globals.css`
+
+Files changed:
+- `apps/web/components/home/home.css`

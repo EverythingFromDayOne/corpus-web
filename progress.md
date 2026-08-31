@@ -113,7 +113,16 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
   unchanged, no new content), verify:prerender 196/196+18/18,
   verify:frontmatter 196/196, vitest 38/38. **Session cadence cap:
   hit** — eight polish batches chained this run.
-
+- **Per-section blooms — Polish-per-section-blooms**
+  **(2026-08-31, on `polish/per-section-blooms` off develop @ `e563d87`,
+  PR #116):** Closed design-spec home §6's "Gap: no per-section blooms"
+  half-gap. 1 file +54/-1 in `apps/web/components/home/home.css`.
+  Three `::before` bloom layers on home sections, each anchored to a
+  different corner so successive blooms don't stack on the same axis:
+  corpora (top-right, bloom 22%), entry-points (lower-left, deep 18%),
+  audience (bottom-right, bloom 16%). Each parent gets `position:
+  relative; isolation: isolate;`. All 5 gates green; `/en` HTTP 200
+  in 52ms; served CSS bundle confirms all three `::before` rules.
 - **Topbar pill CTA + backdrop-blur — Polish-topbar-pill-cta**
   **(2026-08-31, on `polish/topbar-pill-cta` off develop @ `cdee66b`,
   PR #114):** Closed design-spec §1's "no pill-style CTA, no
