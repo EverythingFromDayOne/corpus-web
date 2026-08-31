@@ -4853,4 +4853,26 @@ Dynamic import returns the ES module namespace directly — no global registrati
 
 **Known issues / next steps:** Polish residue unchanged: D20 Shiki (new-dep blocker), D22 OG image (DNS+Vercel routing), D30 FAQ half (corpus-side schema), `develop` → `main` promotion (yours; now 34 commits queued with PR #108 added). The polish residue also includes the `apps/web/package.json` missing `"start"` script (1-line addition), and the smallest-phone hamburger drawer (`@media (max-width: 480px)` hides nav-links + reveals a drawer — cross-component change).
 
+---## Session 112 — `apps/web` `start` script — 2026-08-31
+
+**Branch:** `polish/web-start-script` (off `develop` @ `74b454c`, post-PR #109 merge)
+
+**Files changed:**
+- `apps/web/package.json` — added `"start": "next start --port 3000"` to scripts
+
+**Why:** After PR #109 squash-merged onto develop at `74b454c`, picked the next smallest additive polish. `apps/web/package.json` was missing the standard `start` script that exists in every other Next.js project — `pnpm --filter @corpus/web start` errored with `ERR_PNPM_RECURSIVE_RUN_NO_SCRIPT`, forcing every prod-serve probe in earlier sessions (notably PR #108's mobile-follow-up verification, where I had to fall back to `cd apps/web && npx --no-install next start --port 3000`). Adding `"start": "next start --port 3000"` makes `pnpm --filter @corpus/web start` work like the rest of the workspace — `pnpm --filter @corpus/web dev` and `pnpm --filter @corpus/web build` already work, this completes the trio.
+
+**Invented decisions:**
+- (a) **`"next start --port 3000"` matches the `"dev"` script's `--port 3000` flag** — the `dev` script explicitly sets the port (`next dev --port 3000`), so the `start` script does too. Without the flag, `next start` defaults to port 3000 anyway, but explicitly setting it makes the contract clear (matches `dev`, predictable across runs, immune to Next.js default-port changes in future versions).
+- (b) **Inserted alphabetically-ish after `"build"` and before `"postbuild"`** — npm/pnpm scripts run in declaration order; `prebuild` and `postbuild` are lifecycle hooks for `build`, so `start` goes between them to keep `build` and its hooks contiguous. (pnpm doesn't actually require this; it's a readability choice — the `dev → prebuild → build → start → postbuild → search:index → lint → typecheck → test` order reads left-to-right like a Makefile.)
+- (c) **No new deps** — uses `next` which is already a dependency. Zero risk.
+- (d) **No CHANGELOG-worthy user-facing change** — this is a tooling ergonomics fix, not a feature. Will note it in CHANGELOG under a brief "Changed" bullet so the docs stay complete, but it's a one-liner.
+
+**Verification:**
+- `pnpm --filter @corpus/web start` (background): boots Next.js 16.3.1, "Ready in ~5s", `GET /en` HTTP 200 in 34ms, `/pagefind/pagefind.js` HTTP 200. The fix works end-to-end.
+- All 5 gates green: typecheck 5/5, lint 0 problems, build OK (cache hit — the script addition doesn't touch TS), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38.
+- One-line change, no JS / no CSS / no schema. Trivial review surface.
+
+**Known issues / next steps:** Polish residue unchanged: D20 Shiki (new-dep blocker), D22 OG image (DNS+Vercel routing), D30 FAQ half (corpus-side schema), `develop` → `main` promotion (yours; 36 commits queued after PRs #107 + #108 + #109). Other small additive candidates: smallest-phone hamburger drawer (`@media (max-width: 480px)` hides nav-links + reveals a drawer — cross-component change). After this PR the developer-ergonomics gap is closed and the next item is more substantive.
+
 ---

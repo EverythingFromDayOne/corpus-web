@@ -5,6 +5,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-31] — polish/web-start-script — `apps/web` `start` script
+
+**Changed**
+- `apps/web/package.json` — added `"start": "next start --port 3000"` to scripts (between `build` and `postbuild`). Completes the standard Next.js script trio (`dev` / `build` / `start`); was previously missing, forcing every prod-serve probe to fall back to `cd apps/web && npx --no-install next start --port 3000`. No new deps.
+
+**Stats:** 1 file +1. All 5 gates green: typecheck 5/5, lint 0 problems, build OK (cache hit), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. Verified `pnpm --filter @corpus/web start` boots Next.js 16.3.1, `GET /en` HTTP 200 in 34ms, `/pagefind/pagefind.js` HTTP 200. PR #110.
+
 ### [2026-08-31] — polish/blog-card-hover — `/en/blog` article-card hover lift
 
 **Changed**

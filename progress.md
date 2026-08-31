@@ -82,6 +82,27 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **`apps/web` `start` script — Polish-web-start-script**
+  **(2026-08-31, on `polish/web-start-script` off develop @ `74b454c`,
+  PR #110):** `apps/web/package.json` was missing the standard `start`
+  script that exists in every other Next.js project. `pnpm --filter
+  @corpus/web start` errored with `ERR_PNPM_RECURSIVE_RUN_NO_SCRIPT`,
+  forcing every prod-serve probe in earlier sessions (notably PR #108's
+  mobile-follow-up verification) to fall back to `cd apps/web && npx
+  --no-install next start --port 3000`. Fix: added `"start": "next
+  start --port 3000"` between `build` and `postbuild` to complete the
+  standard Next.js script trio (`dev` / `build` / `start`). The
+  `--port 3000` flag matches the `dev` script's explicit port for
+  predictable contract. **No new deps** — uses `next` which is already a
+  dependency. **Invented decision:** alphabetical-ish insertion between
+  `build` and `postbuild` (pnpm doesn't require this; readability choice
+  — keeps `build` and its lifecycle hooks contiguous). 1 file +1 line.
+  Verified `pnpm --filter @corpus/web start` boots Next.js 16.3.1,
+  `GET /en` HTTP 200 in 34ms, `/pagefind/pagefind.js` HTTP 200. All 5
+  gates green: typecheck 5/5, lint 0 problems, build OK (cache hit),
+  verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest
+  38/38. PR #110.
+
 - **Article-card hover lift on `/en/blog` — Polish-blog-card-hover**
   **(2026-08-31, on `polish/blog-card-hover` off develop @ `bd33ebd`,
   PR #109):** After PR #108 squash-merged to develop at `bd33ebd`,
