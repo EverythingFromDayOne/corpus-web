@@ -5,6 +5,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-31] — polish/blog-card-hover — `/en/blog` article-card hover lift
+
+**Changed**
+- `apps/web/components/blog/article-index.tsx` — `<a>` article-card className: `transition-colors` → `transition-[transform,box-shadow,border-color]`; added `group-hover:-translate-y-0.5` and `group-hover:shadow-[0_4px_12px_color-mix(in_srgb,var(--color-ink)_30%,transparent)]`. Cards now lift slightly on hover, giving the tactile "pick me up" cue that the existing left-accent bar + border colour swap alone didn't deliver. Tailwind v4 emits both hover rules inside `@media (hover: hover){...}` so touch devices get only the existing colour/border feedback. No new deps, no new component, one-file change.
+
+**Stats:** 1 file +1/-1. All 5 gates green: typecheck 5/5, lint 0 problems, next build PASS (Pagefind indexed 222 pages / 28902 words), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38 pass / 0 fail. Verified the rendered className in the served HTML and both rules in the served CSS bundle (`/_next/static/chunks/33zmoq-xlm6uy.css`). User visual smoke on `develop.nxhhuy.tech` is the functional gate.
 
 ### [2026-08-31] — polish/search-spotlight-ux — Topbar: collapse search trigger to icon-only on mobile (follow-up to PR #108)
 

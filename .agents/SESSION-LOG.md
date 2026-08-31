@@ -4829,4 +4829,28 @@ Dynamic import returns the ES module namespace directly — no global registrati
 
 **Known issues / next steps:** Bug fixed at the code level; verified in the served CSS bundle. Polish residue unchanged. The next obvious follow-up (NOT in scope for this session): consider an `@media (max-width: 480px)` rule that hides the nav-links and surfaces a hamburger drawer on the smallest phones — but that's a cross-component change touching the entire nav, not a one-file polish. Surface it.
 
+---## Session 111 — `/en/blog` article-card hover polish — 2026-08-31
+
+**Branch:** `polish/blog-card-hover` (off `develop` @ `bd33ebd`, post-PR #108 merge)
+
+**Files changed:**
+- `apps/web/components/blog/article-index.tsx` — `<a>` article-card className: `transition-colors` → `transition-[transform,box-shadow,border-color]`; added `group-hover:-translate-y-0.5` and `group-hover:shadow-[0_4px_12px_color-mix(in_srgb,var(--color-ink)_30%,transparent)]`
+
+**Why:** PR #108 squash-merged onto develop at `bd33ebd`. After merge, picked the next polish item. The surface I'm working on is `/en/blog`, where the article-index grid renders cards. The cards already have (a) a vertical accent bar that draws in from the left on hover (`group-hover:scale-y-100` on a `scale-y-0` span), and (b) a border-color transition (`hover:border-signal`). What's missing is any kind of *lift* — the cards just sit there. With a left accent + a border colour swap, they read as "this is the row" but not as "this is the row I want to click." Adding a small upward translate (`-translate-y-0.5` = `-2px`) plus a soft drop shadow makes the card lift off the surface, giving it the tactile "pick me up" cue that the colour swap alone doesn't deliver.
+
+**Invented decisions:**
+- (a) **`-translate-y-0.5` instead of `scale-105`** — earlier sessions and the user mention of design-spec §5 implied "scale the thumbnail"; the actual implementation has no thumbnail, so `scale-105` would just enlarge the text-card slightly without giving the desired lift. `translate-y-0.5` (Tailwind's default spacing scale × -0.5 = -2px) is the right amount: small enough that it doesn't feel jumpy, large enough to be perceived as motion. The decision to use translate instead of scale is a deliberate response to "the design has no thumbnail" — I checked the source before committing.
+- (b) **Soft drop-shadow with `color-mix(in_srgb, var(--color-ink) 30%, transparent)`** — the design system already uses `color-mix` in this exact pattern (verified in PR #108's dialog rule and elsewhere in globals.css). Keeps the shadow tinted toward the page's ink color instead of pure black, so it blends with the dark theme. The 30% opacity is small enough to be a hint, not a halo.
+- (c) **`transition-[transform,box-shadow,border-color]` instead of `transition-all`** — `transition-all` is the lazy default and would animate every property change (e.g. a future change of `padding` or `font-size` would tween). Explicitly listing only the three properties that change on hover is faster, more predictable, and avoids surprise animations later. `transform` is needed for the translate, `box-shadow` for the shadow, `border-color` preserves the existing accent.
+- (d) **No new component, no new file** — the existing `<a>` already has the right Tailwind className plumbing. One-file change.
+- (e) **`(hover: hover)` media query handled by Tailwind v4 automatically** — the served CSS bundle emits the hover rules inside `@media (hover: hover){...}` so they don't fire on touch devices (where `group-hover` doesn't fire anyway, but the boundary is explicit). Touch users get only the existing border-colour change and the left accent bar, which is sufficient visual feedback for tap.
+
+**Verification:**
+- All 5 gates green at HEAD: typecheck 5/5 (cache hit, no JS type changes), lint 0 problems, next build PASS (Pagefind indexed 222 pages / 28902 words), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38.
+- Probed `/en/blog` via `npx next start` (HTTP 200 in 47ms) and inspected the rendered HTML: the first article card has className `border-graphite bg-surface hover:border-signal block rounded-md border p-4 pl-5 no-underline transition-[transform,box-shadow,border-color] duration-300 group-hover:-translate-y-0.5 group-hover:shadow-[0_4px_12px_color-mix(in_srgb,var(--color-ink)_30%,transparent)]` — exactly what I wrote.
+- Probed the served CSS bundle at `/_next/static/chunks/33zmoq-xlm6uy.css`: both rules present inside `@media (hover: hover){...}`. The translate rule emits as `.group-hover\:-translate-y-0\.5:is(:where(.group):hover *){--tw-translate-y:calc(var(--spacing) * -.5);translate:var(--tw-translate-x) var(--tw-translate-y)}`. The shadow rule emits similarly. Tailwind v4 uses the `--tw-translate-x/y` custom-property pattern (new since v3).
+- User visual smoke on `develop.nxhhuy.tech` after Vercel deploys the new branch is the functional gate.
+
+**Known issues / next steps:** Polish residue unchanged: D20 Shiki (new-dep blocker), D22 OG image (DNS+Vercel routing), D30 FAQ half (corpus-side schema), `develop` → `main` promotion (yours; now 34 commits queued with PR #108 added). The polish residue also includes the `apps/web/package.json` missing `"start"` script (1-line addition), and the smallest-phone hamburger drawer (`@media (max-width: 480px)` hides nav-links + reveals a drawer — cross-component change).
+
 ---
