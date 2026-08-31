@@ -5,10 +5,21 @@ import { ThemeToggle } from './theme-toggle';
 import { SearchTrigger } from './search-trigger';
 import { NavLinks } from './nav-links';
 import { NavProgressBar } from './nav-progress-bar';
-import { homePath } from '@/lib/routes';
+import { homePath, coursePath } from '@/lib/routes';
 import type { Locale } from '@/lib/locales';
 
-export function SiteHeader({ locale, messages }: { locale: Locale; messages: Messages }) {
+export function SiteHeader({
+  locale,
+  messages,
+  featured,
+}: {
+  locale: Locale;
+  messages: Messages;
+  /** First course from `view.courses`; when set, the topbar renders a
+   *  pill-shaped CTA "Start the course" linking to it. When unset,
+   *  the pill is hidden (e.g., on routes without a featured course). */
+  featured?: { slug: string; title: string };
+}) {
   return (
     <header className="topbar">
       <NavProgressBar />
@@ -27,6 +38,15 @@ export function SiteHeader({ locale, messages }: { locale: Locale; messages: Mes
         <NavLinks locale={locale} messages={messages} />
         <div className="topbar-tools">
           <SearchTrigger messages={messages} />
+          {featured ? (
+            <a
+              href={coursePath(locale, featured.slug)}
+              className="topbar-pill-cta"
+              aria-label={t(messages, 'topbar.pillCtaAriaLabel', { title: featured.title })}
+            >
+              {t(messages, 'topbar.pillCta')}
+            </a>
+          ) : null}
           <ThemeToggle label={t(messages, 'nav.themeToggle')} />
         </div>
       </div>

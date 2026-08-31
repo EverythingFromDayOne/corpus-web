@@ -8,6 +8,10 @@
     "orgUrl": "https://github.com/EverythingFromDayOne",
     "orgLink": "GitHub organization"
   },
+  "topbar": {
+    "pillCta": "Start the course",
+    "pillCtaAriaLabel": "Start the {title} course"
+  },
   "nav": {
     "home": "Home",
     "courses": "Courses",
