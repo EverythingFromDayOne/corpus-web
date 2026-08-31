@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { ArticleHeaderToggle } from '@/components/article/article-shell';
 import { t, type Messages } from '@/lib/i18n';
 import { ThemeToggle } from './theme-toggle';
-import { SearchPlaceholder } from './search-placeholder';
+import { SearchTrigger } from './search-trigger';
 import { NavLinks } from './nav-links';
 import { homePath } from '@/lib/routes';
 import type { Locale } from '@/lib/locales';
@@ -24,7 +24,7 @@ export function SiteHeader({ locale, messages }: { locale: Locale; messages: Mes
         </a>
         <NavLinks locale={locale} messages={messages} />
         <div className="topbar-tools">
-          <SearchPlaceholder messages={messages} />
+          <SearchTrigger messages={messages} />
           <ThemeToggle label={t(messages, 'nav.themeToggle')} />
         </div>
       </div>
