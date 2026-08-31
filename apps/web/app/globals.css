@@ -233,20 +233,46 @@ body:has(.av-view) .av-header-tog {
 
 /* --- Search dialog (Pagefind-backed) --- */
 
-.srch-dialog {
+/* Spotlight-style: anchored near the top of the viewport, fixed height,
+   results scroll inside the dialog so arriving hits never re-grow the
+   panel. The earlier centred-modal layout had `height: max-content`
+   with a 50vh inner cap, which produced visible layout thrash as
+   results arrived. Fixed height + inner scroll fixes that at the root.
+
+   The selector is scoped to `[open]` so the layout only applies when
+   the dialog is actually open. Without the [open] qualifier, our
+   `display: flex` + `position: fixed` would override the user-agent
+   stylesheet's `dialog:not([open]) { display: none }` and the dialog
+   would render visibly on first paint, before any `showModal()` call.
+   The explicit `[open]` selector wins by specificity AND matches the
+   exact pre-existing UA rule shape. */
+.srch-dialog[open] {
   position: fixed;
-  inset: 0;
-  margin: auto;
+  top: 10vh;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
   border: 1px solid var(--color-graphite);
   border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-body);
   padding: 0;
-  max-width: min(640px, 92vw);
-  width: 100%;
-  height: max-content;
+  width: min(640px, 92vw);
+  height: min(560px, 70vh);
   max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   box-shadow: 0 24px 64px color-mix(in srgb, var(--color-ink) 60%, transparent);
+}
+
+/* Defensive: explicit `display: none` on the closed state. The UA
+   stylesheet already provides this, but a future Tailwind reset could
+   strip it. Keeping it here means the dialog stays invisible until
+   `showModal()` is called — and `Esc` / backdrop-click can actually
+   re-hide it because the visual state matches the [open] state. */
+.srch-dialog:not([open]) {
+  display: none;
 }
 
 .srch-dialog::backdrop {
@@ -257,16 +283,18 @@ body:has(.av-view) .av-header-tog {
 .srch-dialog-inner {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem 1.25rem 0.75rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 0;
 }
 
 .srch-dialog-input {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.6rem;
   border-bottom: 1px solid var(--color-graphite);
-  padding: 0.25rem 0.25rem 0.75rem;
+  padding: 0.65rem 1rem;
+  flex: none;
 }
 
 .srch-dialog-input > svg {
@@ -293,23 +321,60 @@ body:has(.av-view) .av-header-tog {
   outline: 0;
 }
 
+/* Hide the WebKit search-cancel pseudo-element on type="search" — we
+   ship our own clear button, and the native one is invisible in some
+   themes and visible at random in others. */
+.srch-dialog-input input::-webkit-search-cancel-button {
+  appearance: none;
+  -webkit-appearance: none;
+  display: none;
+}
+
 .srch-dialog-kbd {
   flex: none;
+}
+
+.srch-dialog-clear {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  border: 0;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+  padding: 0;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.srch-dialog-clear:hover,
+.srch-dialog-clear:focus-visible {
+  background: color-mix(in srgb, var(--color-signal) 14%, transparent);
+  color: var(--color-display);
+  outline: 0;
 }
 
 .srch-dialog-results {
   list-style: none;
   margin: 0;
-  padding: 0;
-  max-height: 50vh;
+  padding: 0.4rem 0.4rem;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
+  overscroll-behavior: contain;
 }
 
 .srch-dialog-results li {
   border-radius: var(--radius-sm);
+  scroll-margin-block: 0.25rem;
 }
 
 .srch-dialog-results li.is-active {
@@ -317,28 +382,59 @@ body:has(.av-view) .av-header-tog {
 }
 
 .srch-dialog-results a {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
   padding: 0.5rem 0.6rem;
   color: inherit;
   text-decoration: none;
-  font-size: 0.95rem;
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
-.srch-dialog-results a:hover,
-.srch-dialog-results li.is-active a {
+/* Hover follows active so mouse users see the same highlight the
+   keyboard user gets. */
+.srch-dialog-results a:hover {
   color: var(--color-display);
+}
+
+.srch-dialog-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-display);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.srch-dialog-meta {
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  color: var(--color-muted);
+  text-transform: none;
+}
+
+.srch-dialog-excerpt {
+  font-size: 0.85rem;
+  color: var(--color-body);
+  line-height: 1.4;
+  /* Clamp excerpt to two lines — excerpts can be long, and Spotlight
+     gives every hit equal real estate. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .srch-dialog-excerpt mark {
   background: color-mix(in srgb, var(--color-signal) 28%, transparent);
   color: var(--color-display);
-  padding: 0 0.1em;
+  padding: 0 1px;
   border-radius: 0.15em;
 }
 
 .srch-dialog-status {
-  padding: 0.6rem;
+  padding: 0.75rem 0.6rem;
   font-size: 0.9rem;
   color: var(--color-muted);
   font-style: italic;
@@ -347,23 +443,25 @@ body:has(.av-view) .av-header-tog {
   gap: 0.25rem;
 }
 
-.srch-dialog-error-detail {
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
+.srch-dialog-status--idle {
   font-style: normal;
-  letter-spacing: 0.02em;
-  color: color-mix(in srgb, var(--color-muted) 70%, var(--color-body));
-  word-break: break-word;
+  color: var(--color-muted);
+}
+
+.srch-dialog-error-detail {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+  font-size: 0.8rem;
+  color: var(--color-muted);
 }
 
 .srch-dialog-foot {
+  flex: none;
   margin: 0;
-  padding-top: 0.5rem;
+  padding: 0.5rem 1rem;
   border-top: 1px solid var(--color-graphite);
-  font-size: var(--text-2xs);
+  font-size: 0.75rem;
   color: var(--color-muted);
-  font-family: var(--font-mono);
-  letter-spacing: 0.04em;
+  text-align: center;
 }
 
 @media (prefers-reduced-motion: reduce) {

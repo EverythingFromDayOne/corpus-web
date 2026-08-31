@@ -29,6 +29,8 @@
     "searchLoadingIndex": "Loading search index…",
     "searchEmpty": "No matches.",
     "searchError": "Search failed. Try again.",
+    "searchClearLabel": "Clear search",
+    "searchHintIdle": "Type to search across every adapting article.",
     "searchHint": "Full-text across every adapting article. ↑↓ to move, ↵ to open, Esc to close.",
     "demoTitle": "Interactive demos",
     "demoHint": "Stepped simulators for the render cycle, the event loop, and the Next.js cache. This panel is a placeholder and does nothing yet.",
