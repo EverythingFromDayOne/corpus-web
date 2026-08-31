@@ -5488,4 +5488,86 @@ Known issues / next steps:
 Files changed:
 - `apps/web/app/globals.css`
 - `apps/web/components/blog/article-index.tsx`
-- `apps/web/messages/en.json`
+- `apps/web/messages/en.json`feat(courses): course card redesign (PR #122 follow-on to blog card)
+
+Closes the second half of the Sydexa-style card refresh on
+listing surfaces. Mirrors the three-tier hierarchy introduced
+on `/en/blog` in PR #121 so the two listing pages now share a
+visual language.
+
+Changes:
+
+- `apps/web/components/courses/course-card.tsx` — refactored the
+  `CourseCard` JSX to match the blog card's three-tier structure:
+  1. **Eyebrow row** — corpus + lesson count + reading time as
+     small mono caps (with `·` separators), plus a new
+     `course-card-level` pill when `course.level` is set (uses
+     `--marketing-accent-bloom` family).
+  2. **Title** — bumped to `text-2xl font-semibold`, tighter
+     letter-spacing (-0.01em), line-height 1.2.
+  3. **Description** — `-webkit-line-clamp: 3` for visual
+     consistency with the blog card.
+  4. **Rationale callout** — `course.rationale` (when present)
+     rendered as a `border-l-2 italic` blockquote-style aside,
+     capped at 3 lines. Was previously buried in the meta line
+     and easy to miss.
+  Hover lift bumped to `translate-y-1`. Card class composes
+  `course-card ls-blog-card` so it inherits the bloom + gradient
+  base treatment from PR #115. Removed the now-unused
+  `corporaLabel()` helper.
+- `apps/web/app/globals.css` — added `.course-card*` family:
+  `.course-card` (padding override for the wider card),
+  `.course-card-bar` (gradient line→bloom + bloom box-shadow,
+  same as `.blog-card-bar`), `.course-card-crumb` (mono caps
+  typography hook), `.course-card-level` (level pill),
+  `.course-card-title` (typography hook), `.course-card-desc`,
+  `.course-card-rationale`. The course-card reuses the existing
+  `.ls-blog-card` bloom + gradient base by composing the class.
+
+**Invented decisions:**
+
+- **Reuse `.ls-blog-card` for the bloom + gradient base** rather
+  than re-implementing it on `.course-card`. The blog card and
+  course card share the same accent family, so re-applying the
+  same gradient + bloom layering (just with different padding
+  overrides) keeps the visual language unified.
+- **Drop `corporaLabel()` helper** — was used for the
+  "drawn from corpora" line that combined corpora into a comma
+  list. With the redesigned eyebrow row showing one corpus
+  (the first/primary one) instead, the helper is dead code.
+- **Course rationale shown only when `course.rationale` exists**
+  — `CourseView.rationale` is non-empty for the two existing
+  courses but may be empty for future ones. Gating the
+  blockquote aside on truthiness prevents an empty blockquote
+  rendering under every card.
+- **No "drawn from corpora" suffix anymore** — the meta line
+  used to read "6 lessons · 115 min read · drawn from React".
+  In the new design, the primary corpus is in the eyebrow row
+  and the lesson count + reading time stay readable. Adding
+  "drawn from" again would over-cram the eyebrow.
+- **`.course-card-level` pill uses bloom (warm) family, not the
+  cool cyan that the blog-card kind pills use** — the level
+  indicator is part of the course surface (warm accent), while
+  the concept/recipe kind indicator is part of the blog surface
+  (cool accent for concepts, warm for recipes). The split keeps
+  the warm/cool semantic alignment.
+
+Verification:
+- All 5 gates green: typecheck 5/5, lint 0, next build PASS
+  (Pagefind 222 pages / 28910 words — unchanged, no new content),
+  verify:prerender 196/196+18/18, verify:frontmatter 196/196,
+  vitest 38/38.
+- End-to-end probe via `pnpm --filter @corpus/web start`:
+  `/en/courses` → HTTP 200 in 47ms with 2 course cards rendered
+  (matches `view.courses.length`). Served CSS bundle
+  `/_next/static/chunks/3v3grxlrl71bi.css` confirms all
+  `.course-card*` rules.
+
+Known issues / next steps:
+- Polish residue unchanged: D20 Shiki (new-dep blocker),
+  D22 OG image (DNS+Vercel routing), D30 FAQ half (corpus-side
+  schema). D38 still blocks CI on every PR.
+
+Files changed:
+- `apps/web/app/globals.css`
+- `apps/web/components/courses/course-card.tsx`

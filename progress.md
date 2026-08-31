@@ -82,6 +82,15 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Course card redesign — Polish-course-card-redesign**
+  **(2026-08-31, on `polish/course-card-redesign` off develop @ `d5b0d21`,
+  PR #122):** Mirrors the blog card three-tier hierarchy from
+  PR #121. 2 files +85/-12. Eyebrow crumbs → larger title →
+  3-line description → optional rationale blockquote. Hover
+  lift `translate-y-1`. Reuses `.ls-blog-card` bloom + gradient
+  base. All 5 gates green; `/en/courses` HTTP 200 in 47ms with
+  2 cards.
+
 - **Blog card + filter + sort redesign — Polish-blog-card-redesign**
   **(2026-08-31, on `polish/blog-card-redesign` off develop @ `c274847`,
   PR #121):** Closes the "academic feel" gap on `/en/blog`. 3 files
