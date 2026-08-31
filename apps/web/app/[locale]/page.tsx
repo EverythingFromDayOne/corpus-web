@@ -68,11 +68,17 @@ export default async function HomePage({ params }: PageProps) {
         }}
       />
       <div className="ls-home">
-        <section className="ls-hero">
-          <div className="ls-wrap">
+        <section className="ls-hero film-grain relative overflow-hidden">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -inset-x-12 -inset-y-8 rounded-full bg-signal-dim opacity-25 blur-3xl"
+          />
+          <div className="ls-wrap relative">
             <p className="meta">{t(messages, 'home.eyebrow')}</p>
-            <h1>{t(messages, 'home.title')}</h1>
-            <p className="ls-dek">{t(messages, 'home.thesis')}</p>
+            <h1 className="bg-gradient-to-b from-display to-signal bg-clip-text text-transparent">
+              {t(messages, 'home.title')}
+            </h1>
+            <p className="ls-dek relative">{t(messages, 'home.thesis')}</p>
             <CensusReadout census={view.census} messages={messages} />
             <div className="ls-cta">
               {featured ? (
