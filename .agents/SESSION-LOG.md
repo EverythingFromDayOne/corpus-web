@@ -4903,4 +4903,27 @@ Dynamic import returns the ES module namespace directly — no global registrati
 
 **Known issues / next steps:** Polish residue unchanged: D20 Shiki (new-dep blocker), D22 OG image (DNS+Vercel routing), D30 FAQ half (corpus-side schema), `develop` → `main` promotion (yours; 37 commits queued after PRs #107-#110). Next additive polish candidates from the design-spec table: hero bloom + gradient text (home §2, ~1h), film-grain noise overlay (home §2, ~30min), View Transitions API on lessons (lessons §3, ~30min), share buttons (blog §16, ~1h).
 
+---## Session 114 — `/en/blog` article-card kind badge overlay — 2026-08-31
+
+**Branch:** `polish/blog-card-kind-badge` (off `develop` @ `606474d`, post-PR #111 merge)
+
+**Files changed:**
+- `apps/web/components/blog/article-index.tsx` — converted the per-article `.map(article => ( ... ))` from inline JSX to a function body so we can compute `kindClass` + `kindLabel` per article. Added a `<span className="tag-soon ls-tag-concept">Concept</span>` / `<span className="tag-soon ls-tag-recipe">Recipe</span>` badge to the meta row of every card. Wrapped the meta `<p>` in `flex flex-wrap items-center gap-2` so the badge + corpus + reading-time share one row but wrap if needed on narrow widths.
+
+**Why:** After PR #111 merged, picked the next smallest additive polish. My earlier "design-spec backlog" surface (in the `Polish items left` turn) had listed film-grain, hero bloom, view-transitions, and share buttons as 30-min candidates — every one of them turned out to already be implemented (`film-grain` is in globals.css, hero bloom + gradient-text are on the `<h1>`, view-transitions CSS rules are in `lesson-animations.css` + `view-transition-name` is set on `<main>`, share-buttons is a real `<ShareButtons>` component). Honest re-scoping: I went back to the design-spec files and grep'd for `Gap:` annotations. The only **real** gap in the small-additive space was design-spec blog §3 — "the dark-gradient + bloom + ALL CAPS treatment is the signature look; flat-color or no-gradient cards would feel comparatively muted." The cards currently have no kind badge, even though every article already has `article.kind: 'concept' | 'recipe'` (the data is there, it's just not rendered). The `.ls-tag-concept` and `.ls-tag-recipe` CSS classes already exist in `apps/web/components/home/home.css` (cool color for concept, signal color for recipe), used elsewhere on the home page for entry-point chips. Reusing them here closes the gap in ~30min with zero new CSS and zero new i18n keys.
+
+**Invented decisions:**
+- (a) **Reuse `.tag-soon .ls-tag-concept` / `.ls-tag-recipe` instead of inventing new tag classes** — those classes already exist in `home.css` for home-page entry-point chips (CONCEPT/RECIPE pills), with the spec's exact colors (cool for concept, signal for recipe). Tailwind v4 doesn't care about file boundaries — class names are global. Same visual language across home and blog.
+- (b) **`flex flex-wrap items-center gap-2` on the meta row** instead of a one-line `·`-separated string — the original markup used a single inline `<p>` with `·` separators. Adding the badge in-line breaks the inline flow; flex-wrap preserves the natural reading order (badge first, then corpus · reading-time) and lets the row wrap on narrow widths without ugly overflow. Same pattern as the home-page entry-point chip rows.
+- (c) **`aria-label="Kind: Concept"` on the badge** — the visible text alone ("Concept") reads correctly to sighted users; assistive tech needs the context "Kind: Concept" so the badge isn't announced as a standalone orphan. Uses the existing `article.kind` i18n key ("Kind") as the prefix — keeps the announcement schema-clean.
+- (d) **Badge before corpus name in the meta row** — the kind badge carries the higher-priority meta (what type of article this is); corpus + reading-time are secondary metadata. Putting the badge first mirrors how the home-page entry-point chips put the pill at the start of the row. Reading order: title → description → "Concept | Next.js · 8 min".
+- (e) **No new i18n keys** — `article.kindConcept` ("Concept") and `article.kindRecipe` ("Recipe") already exist for the kind filter chips above the article grid; reused here. `article.kind` ("Kind") also exists as the filter chip group's accessible label.
+
+**Verification:**
+- All 5 gates green: typecheck 5/5, lint 0 problems, next build PASS (Pagefind indexed 222 pages / 28909 words — was 28902 before; +7 words from the new aria-label strings), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38.
+- `/en/blog` HTTP 200 in 22ms via `pnpm --filter @corpus/web start`. Inspected the rendered HTML: **196 `tag-soon ls-tag-*` badges** total — **134 `concept` + 62 `recipe`** — matches the catalog split (1:1 with every article in `view.articles`). Each badge has `aria-label="Kind: Concept"` or `Kind: Recipe` for assistive tech.
+- User visual smoke on `develop.nxhhuy.tech` is the functional gate.
+
+**Known issues / next steps:** Polish residue unchanged: D20 Shiki (new-dep blocker), D22 OG image (DNS+Vercel routing), D30 FAQ half (corpus-side schema), `develop` → `main` promotion (yours; 39 commits queued after PRs #107 → #111). **Session cadence cap: hit** — six polish batches chained in this run (PRs #107 + #108 + #109 + #110 + #111 + #112). Per corpus-web skill §"Session cadence", this batch is the maximum-per-session and the next PR should pause for visual smoke + CTO review.
+
 ---

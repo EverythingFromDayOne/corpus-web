@@ -5,6 +5,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-31] — polish/blog-card-kind-badge — kind badge overlay on `/en/blog` article cards
+
+**Changed**
+- `apps/web/components/blog/article-index.tsx` — converted the per-article `.map(article => ( ... ))` from inline JSX to a function body so we can compute `kindClass` + `kindLabel` per article. Added a `<span class="tag-soon ls-tag-concept">Concept</span>` / `<span class="tag-soon ls-tag-recipe">Recipe</span>` badge to the meta row of every card. Wrapped the meta `<p>` in `flex flex-wrap items-center gap-2` so the badge + corpus + reading-time share one row but wrap if needed on narrow widths.
+
+**Stats:** 1 file +18/-13. All 5 gates green: typecheck 5/5, lint 0 problems, next build PASS (Pagefind indexed 222 pages / 28909 words — +7 words from new aria-labels), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. Verified `/en/blog` HTTP 200 in 22ms; 196 `tag-soon ls-tag-*` badges total (134 `concept` + 62 `recipe`) in the rendered HTML — matches the catalog split 1:1 with every article in `view.articles`. PR #112.
+
 ### [2026-08-31] — polish/section-divider — section-divider upgrade + repeat pattern on `/en`
 
 **Changed**
