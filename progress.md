@@ -82,6 +82,15 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Blog card + filter + sort redesign — Polish-blog-card-redesign**
+  **(2026-08-31, on `polish/blog-card-redesign` off develop @ `c274847`,
+  PR #121):** Closes the "academic feel" gap on `/en/blog`. 3 files
+  +202/-31. New three-tier card hierarchy (eyebrow pill row →
+  larger title → 3-line description). New `.blog-filter-bar` with
+  pill chips (bloom solid fill on active) + sort dropdown
+  (A→Z / Z→A / Shortest / Longest). 5 new i18n keys. All 5 gates
+  green; `/en/blog` HTTP 200 in 77ms with 196 cards.
+
 - **Home hero aurora — Polish-home-hero-aurora**
   **(2026-08-31, on `polish/home-hero-aurora` off develop @ `00e866d`,
   PR #120):** Closes the remaining sub-gap of design-spec home §6.

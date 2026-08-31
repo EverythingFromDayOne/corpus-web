@@ -5384,4 +5384,108 @@ Known issues / next steps:
   schema). D38 still blocks CI on every PR.
 
 Files changed:
-- `apps/web/components/home/home.css`
+- `apps/web/components/home/home.css`feat(blog): card + filter + sort redesign
+
+Closes the "academic feel" gap on `/en/blog`. Replaces the dense
+flat card + flat chip row with a product-y three-tier hierarchy
+that pairs better with the existing per-section blooms on the home
+page and the blog post skeleton (PR #118).
+
+Changes:
+
+- `apps/web/components/blog/article-index.tsx` — added a third
+  state axis (`sort`) and split the card into a dedicated
+  `renderCard()` for hierarchy clarity. New card structure:
+  1. **Top eyebrow row** — kind pill (Concept / Recipe) on the left,
+     then corpus + reading time as small mono caps, mono font.
+  2. **Title** — bumped from `text-lg` to `text-xl font-semibold`
+     with tighter letter-spacing (-0.01em).
+  3. **Description** — `-webkit-line-clamp: 3` so the card body
+     reads as a 3-line teaser regardless of source length.
+  Hover lift bumped from `translate-y-0.5` to `translate-y-1` for
+  stronger elevation feedback. The blog-filter-bar wraps the chip
+  rows in a single bordered container so the two axes (corpus +
+  kind) read as one control surface. New `<select>` for sort is
+  pushed right with `ml-auto`.
+- `apps/web/app/globals.css` — new classes:
+  - `.blog-card` — overrides the card padding (1.25rem sides, 1.5rem
+    left) so the new left bar has room.
+  - `.blog-card-bar` — replaces the flat orange `bg-signal` accent
+    with a 2-stop gradient (`line → bloom`) and a soft bloom
+    box-shadow.
+  - `.blog-card-kind` + `--concept` / `--recipe` — pill-style status
+    chip, mono font, color-coded (cool cyan for concept, signal
+    amber for recipe) with light fill.
+  - `.blog-card-title`, `.blog-card-desc` — typography hooks.
+  - `.blog-corpus-heading` + `.blog-corpus-count` — adds a baseline
+    border under each corpus heading and an inline count chip
+    showing articles per corpus.
+  - `.blog-filter-bar` — bordered container wrapping the chips +
+    sort select.
+  - `.blog-filter-chip` + `--on` / `--off` — pill-shaped chips
+    with `--marketing-accent-bloom` background for the active
+    state (instead of the previous border-only treatment).
+  - `.blog-sort-select` — uppercase mono select element styled to
+    match the chip family.
+- `apps/web/messages/en.json` — added 5 keys under `blog.*`:
+  `sortLabel`, `sortAz`, `sortZa`, `sortShortest`, `sortLongest`.
+  Single-brace `{minutes}` interpolation preserved per the i18n
+  helper convention.
+
+**Invented decisions:**
+
+- **Sort options are A→Z / Z→A / Shortest first / Longest first**
+  rather than "Newest / Oldest" because `ArticleListItem` has no
+  creation date — adding one would mean a corpus-side schema change
+  (D-content work). Reading-length sort is a meaningful ordering
+  axis for a corpus site ("give me 5-minute reads", "give me the
+  deep-dive") and uses the existing `minutes` field.
+- **Kind pills are colored, not just labeled.** Concept = cool cyan,
+  Recipe = signal amber. The signal/cool split is already in the
+  token system (D28 promoted `--color-cool` as the concept-tag
+  family). Coloring by kind makes the distinction readable at a
+  glance, which the previous monochrome `.tag-soon` could not.
+- **Filter chips use `--marketing-accent-bloom` solid fill for
+  "on" state, not the previous `--color-signal` border treatment.**
+  This is the same pattern the topbar pill CTA uses (PR #114), so
+  the active-state visual language is consistent across the site.
+- **`.blog-filter-bar` is a single bordered container** rather
+  than two separate row containers. The previous design had
+  corpus + kind on separate rows with no visual unification; the
+  bar gives them a single control surface that reads more like
+  a product filter strip.
+- **`translate-y-1` on hover (vs `translate-y-0.5`)** — the
+  visual lift is twice as obvious. The bloom + gradient treatment
+  on the card already makes hover feel rich; the stronger
+  translate creates a clear "card is lifting" affordance.
+- **`-webkit-line-clamp: 3` on description** — some articles in
+  the corpus have 5+ line descriptions. Capping at 3 lines keeps
+  the cards visually consistent regardless of source length.
+
+Verification:
+- All 5 gates green: typecheck 5/5, lint 0, next build PASS
+  (Pagefind 222 pages / 28910 words — unchanged, no new content),
+  verify:prerender 196/196+18/18, verify:frontmatter 196/196,
+  vitest 38/38.
+- End-to-end probe via `pnpm --filter @corpus/web start`:
+  `/en/blog` → HTTP 200 in 77ms with all 196 articles rendered.
+  Class counts: 196 `ls-blog-card blog-card`, 8 chips total
+  (2 `--on` = default corpus + default kind, 6 `--off` for the
+  remaining axes), 1 sort `<select>`, 4 corpus heading rows
+  (nextjs/react/angular/nestjs), 4 corpus count chips.
+- Inspected served CSS bundle
+  `/_next/static/chunks/1biv76ekbgbzb.css`: `.blog-filter-chip--on`
+  confirmed with bloom background + box-shadow; `.blog-corpus-heading`
+  confirmed with border-bottom baseline + flex; `.blog-card-kind--concept`
+  confirmed with cool-cyan color + tinted border.
+
+Known issues / next steps:
+- Polish residue unchanged: D20 Shiki (new-dep blocker),
+  D22 OG image (DNS+Vercel routing), D30 FAQ half (corpus-side
+  schema). D38 still blocks CI on every PR.
+- Future: PR #122 (course card redesign) follows this PR.
+
+Files changed:
+- `apps/web/app/globals.css`
+- `apps/web/components/blog/article-index.tsx`
+- `apps/web/messages/en.json`

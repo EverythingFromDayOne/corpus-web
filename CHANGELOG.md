@@ -41,6 +41,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 **Stats:** 1 file +44/-0. All 5 gates green: typecheck 5/5, lint 0, next build PASS (Pagefind 222 pages / 28910 words — unchanged, no new content), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. End-to-end probe: `/en` HTTP 200. Served CSS bundle `/_next/static/chunks/3qr37qa359x-6.css`: all three rules (`.ls-hero` with isolation, `.ls-hero:before` warm bloom, `.ls-hero:after` cool bloom) confirmed. PR #120.
 
+### [2026-08-31] — polish/blog-card-redesign — blog card + filter + sort redesign
+
+**Changed**
+- `apps/web/components/blog/article-index.tsx` — added `sort` state axis (`az` / `za` / `short` / `long`), split card into `renderCard()`. New card structure: kind pill + corpus + reading time (mono caps eyebrow row) → larger title (`text-xl font-semibold`) → 3-line description (`-webkit-line-clamp: 3`). Hover lift bumped to `translate-y-1`. Blog-filter-bar wraps chip rows in a single bordered container with sort `<select>` pushed right via `ml-auto`.
+- `apps/web/app/globals.css` — new classes: `.blog-card`, `.blog-card-bar` (gradient accent line→bloom + bloom box-shadow), `.blog-card-kind` + `--concept` / `--recipe` (cool cyan vs signal amber pills, mono caps), `.blog-card-title`, `.blog-card-desc`, `.blog-corpus-heading` + `.blog-corpus-count`, `.blog-filter-bar`, `.blog-filter-chip` + `--on` (bloom solid fill, matches topbar pill CTA from PR #114) / `--off`, `.blog-sort-select`.
+
+**Added**
+- `apps/web/messages/en.json` — added 5 keys under `blog.*`: `sortLabel`, `sortAz`, `sortZa`, `sortShortest`, `sortLongest`.
+
+**Stats:** 3 files +202/-31. All 5 gates green: typecheck 5/5, lint 0, next build PASS (Pagefind 222 pages / 28910 words — unchanged, no new content), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. End-to-end probe: `/en/blog` HTTP 200 in 77ms with 196 cards rendered. Served CSS bundle `/_next/static/chunks/1biv76ekbgbzb.css`: all new rules confirmed. PR #121.
+
 ### [2026-08-31] — polish/blog-card-kind-badge — kind badge overlay on `/en/blog` article cards
 
 **Changed**
