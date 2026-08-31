@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { ArticleView, corpusBreadcrumb } from '@/components/article/article-view';
 import '@/components/article/blog-content.css';
 import { JsonLd } from '@/components/json-ld';
+import { LessonSkeleton } from '@/components/lesson-skeleton';
 import {
   conceptNeighbors,
   getArticle,
@@ -109,23 +111,25 @@ export default async function ArticlePage({ params }: PageProps) {
           ],
         }}
       />
-      <ArticleView
-        locale={locale}
-        messages={messages}
-        view={view}
-        article={article}
-        markdown={markdown}
-        chrome={{ variant: 'corpus' }}
-        breadcrumb={crumbs}
-        prev={prev}
-        next={next}
-        prevHref={prev ? articlePath(locale, prev.repo, prev.articleId) : null}
-        nextHref={next ? articlePath(locale, next.repo, next.articleId) : null}
-        prevLabel={t(messages, 'article.previous')}
-        nextLabel={t(messages, 'article.next')}
-        shareUrl={absoluteUrl(canonical)}
-        postHeader
-      />
+      <Suspense fallback={<LessonSkeleton />}>
+        <ArticleView
+          locale={locale}
+          messages={messages}
+          view={view}
+          article={article}
+          markdown={markdown}
+          chrome={{ variant: 'corpus' }}
+          breadcrumb={crumbs}
+          prev={prev}
+          next={next}
+          prevHref={prev ? articlePath(locale, prev.repo, prev.articleId) : null}
+          nextHref={next ? articlePath(locale, next.repo, next.articleId) : null}
+          prevLabel={t(messages, 'article.previous')}
+          nextLabel={t(messages, 'article.next')}
+          shareUrl={absoluteUrl(canonical)}
+          postHeader
+        />
+      </Suspense>
     </>
   );
 }
