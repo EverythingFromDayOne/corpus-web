@@ -5,6 +5,19 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-31] — polish/search-esm-import — Pagefind load via dynamic ESM import (root-cause fix for "Search failed")
+
+**Fixed**
+- `apps/web/components/chrome/search-dialog.tsx` — replaced the script-tag-injection + `window.pagefind` polling flow with a single dynamic `import('/pagefind/pagefind.js')`. Pagefind 1.x ships its browser bundle as a native ES module (ends with `export{createInstance,…,search}`); injecting it as a classic `<script>` caused a silent SyntaxError on the trailing `export`, so the bundle parsed but never assigned anything to `window.pagefind`. The 10s `window.pagefind` poll then expired with "bundle loaded but did not register window.pagefind within 10s" — which is exactly what the user reported across the past 3 sessions. Dynamic `import()` returns the module namespace directly, so `await mod.init()` then `await mod.search(query)` work without any global registration.
+
+**Changed**
+- `apps/web/components/chrome/search-dialog.tsx` — `pf.getFragment(r, opts?)` replaced with `r.data()` (the canonical Pagefind API). The prior call was always undefined — there is no `getFragment` export on the Pagefind 1.x bundle.
+- `apps/web/components/chrome/search-dialog.tsx` — collapsed the three-tier "script failed to load / script timed out / did not register window.pagefind" error taxonomy into a single `Pagefind failed to initialise: <cause>` message. Dynamic `import()` rejects once with a real cause (network, MIME, parse); the three-state classifier only made sense for the script-tag world.
+
+**Stats:** 1 file changed, -70 / +44. All 5 gates green: typecheck 5/5, lint 0 problems, next build 236/236 (no new routes), verify:prerender 196/196 + 18/18, verify:frontmatter 196/196, vitest 38/38 pass / 0 fail. Verified end-to-end via Chrome DevTools Protocol on both dev and prod builds: typing "angular" in `/en/courses` ⌘K dialog returns 8 real ranked Angular articles (module-federation, builders, routing, angular-material, getting-started, template-driven-forms, guards-resolvers, angular-elements) with `<mark>angular</mark>` excerpts.
+
+**Vercel Auth-SSO hypothesis refuted:** the 302 → `vercel.com/sso-api` paths on `develop.nxhhuy.tech` were a red herring. The bug was the script-tag-vs-ESM-parser mismatch from day one; the Vercel redirect just happened to mask it differently. The user's Vercel dashboard config action item (Path-based bypass for `/pagefind/*`) is no longer required for the search to function. If kept, it's still recommended as a defense-in-depth measure so Pagefind's worker fetches don't carry the deployment-protection cookie.
+
 ### [2026-08-31] — polish/loading-ux — search loading feedback + nav progress bar
 
 **Added**
