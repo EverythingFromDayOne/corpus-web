@@ -5,6 +5,23 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-31] — polish/d25-license-page — `/en/license` page + site footer (D25 close)
+
+**Added**
+- `apps/web/app/[locale]/license/page.tsx` — RSC, prerendered for every registered locale (today: `en` only). CC BY 4.0 attribution block + per-surface notes for code samples and adapted articles + link to creativecommons.org + `mailto:` block for re-use questions. Sole carve-out from the no-personal-content rule that CC BY 4.0 demands. JSON-LD is `WebPage` with `license: "...creativecommons.org/licenses/by/4.0/"`, NOT a `Person` block.
+- `apps/web/components/chrome/site-footer.tsx` — first site footer; renders the same `nxhhuy@gmail.com` contact + inline `/[locale]/license` link.
+
+**Changed**
+- `apps/web/app/[locale]/layout.tsx` — mounts `<SiteFooter>` after `{children}` inside `<ArticleChromeProvider>`. Appears on every locale page without per-page wiring.
+- `apps/web/lib/routes.ts` — new `licensePath(locale)` helper.
+- `apps/web/messages/en.json` — 15-key `license.*` namespace (`heading`, `shortHeading`, `youMay`, `share1`/`share2`, `codeSamplesHeading`/`codeSamplesBody`, `adaptedHeading`/`adaptedBody`, `moreHeading`/`moreBody`, `ccLink`, `contactHeading`/`contactBody`, `footerContact`, `footerLicenseLink`) and `nav.license`.
+
+**Architecture decisions**
+- `LICENSE_HOLDER_EMAIL` per-file constant — no shared module, no env var. Deployment-invariant.
+- Footer is layout-level, NOT part of `<SiteHeader>`. Keeps `SiteHeader > {children} > SiteFooter` stack clean.
+- `<PageShell messages={messages}>` for the licence body — same chrome pattern as courses/blog/articles.
+- Allowed personal-context surfaces are limited to `nxhhuy@gmail.com` (footer + `/[locale]/license`) and `nxhhuy.tech` (hostname). No bio, byline, author, avatar, hire-me, About, Team, or contact channel appears anywhere else.
+
 ### [2026-08-31] — polish/d22-seo-residue — D22 SEO residue partial close (sitemap + robots.txt)
 
 **Added**

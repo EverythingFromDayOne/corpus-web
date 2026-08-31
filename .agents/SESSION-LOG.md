@@ -4604,6 +4604,23 @@ Each item is the lowest-effort / highest-perceived-impact slice of its design sp
 - Polish-8 = D25 `/en/license` page (next batch). D29 category filters, D32 related-articles section, D35 sidecar schema, D36 tier-2 interactive layer all still open.
 - `origin/main` now ~17 commits behind `origin/develop`.
 - D22 OG image piece needs a dedicated session where the user green-lights the `cdn.nxhhuy.tech` DNS + Vercel routing setup.
+
+---
+
+## Polish-8 — D25 `/en/license` page + site footer (D25 close)
+
+**Branch:** `polish/d25-license-page` cut off `origin/develop` (`efe88e8`).
+**Files changed:** 5 files / 194 insertions / 1 deletion.
+- `apps/web/app/[locale]/license/page.tsx` (new): RSC, prerendered for every registered locale. CC BY 4.0 + per-surface notes + creativecommons.org link + `mailto:` block.
+- `apps/web/components/chrome/site-footer.tsx` (new): first site footer.
+- `apps/web/app/[locale]/layout.tsx`: mounts `<SiteFooter>`.
+- `apps/web/lib/routes.ts`: new `licensePath(locale)`.
+- `apps/web/messages/en.json`: 15-key `license.*` + `nav.license`.
+
+**Why:** D25 row in `docs/DEBT.md`. Sole carve-out for CC BY 4.0.
+**Gates re-run:** typecheck 5/5; next build 236/236 + `○ /en/license`; verify:prerender 196/196 + 18/18; verify:frontmatter 196/196.
+**Invented decisions:** per-file `LICENSE_HOLDER_EMAIL` constant (not shared module, not env var); footer is layout-level not header-level; `LOCALES.map(...)` static params even though only `en` is registered today; `WebPage` JSON-LD with `license` field never `Person`; branch off develop.
+**Known issues / next steps:** PRs #96 / #97 / #98 still MERGEABLE on develop (per kit: docs wraps union-merge, in-place edits need hand-rebase). D13 still blocks `verify:links`. Polish-9 candidates: D20 Shiki (item 10 ⚪), D29 category-filter wiring, D32 related-articles section. `origin/main` ~17 commits behind `origin/develop`.
 ## Session Polish-6 — D21 Pagefind + ⌘K — 2026-08-31
 
 **Branch:** `polish/d21-pagefind` (off `origin/develop`, NOT off `origin/main` per kit — same precedent as Polish-3/Polish-5/Polish-5-batch-5).

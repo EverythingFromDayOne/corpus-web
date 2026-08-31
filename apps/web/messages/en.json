@@ -16,7 +16,8 @@
     "themeToggle": "Toggle colour theme",
     "primary": "Primary",
     "search": "Search",
-    "searchKbd": "⌘K"
+    "searchKbd": "⌘K",
+    "license": "License"
   },
   "placeholders": {
     "comingSoon": "Coming soon",
@@ -34,6 +35,25 @@
     "graphFullView": "Full graph coming soon",
     "demoLabsTitle": "Demo labs",
     "demoLabsHint": "Runnable applications, not articles. Coming soon."
+  },
+  "license": {
+    "title": "License",
+    "heading": "Licence and attribution",
+    "shortHeading": "Unless otherwise noted, every article, lesson, and piece of code in this corpus is published under the Creative Commons Attribution 4.0 International (CC BY 4.0) licence.",
+    "youMay": "You may share — copy and redistribute the material in any medium or format — and adapt — remix, transform, and build upon the material — for any purpose, including commercially, provided that you:",
+    "share1": "<strong>Attribute</strong> the work to <em>corpus-web</em> with a link to the licence and indicate if any changes were made.",
+    "share2": "<strong>Do not apply legal terms or technological measures</strong> that legally restrict others from doing anything the licence permits.",
+    "codeSamplesHeading": "Code samples",
+    "codeSamplesBody": "Inline code samples short enough to count as fair use under the Berne Convention are released under the same CC BY 4.0 terms as the surrounding text. Larger self-contained components live under the same licence and carry an SPDX-License-Identifier comment at the top of the file when it ships via any package whose source-of-truth is this corpus.",
+    "adaptedHeading": "Adapted content",
+    "adaptedBody": "Articles adapted from third-party sources are marked at the top of the article body with a provenance block. The licence above covers the adaptation only — the upstream licence (when present) is the licence that governs the original wording. Where the upstream licence is more permissive than CC BY 4.0, the upstream licence governs.",
+    "moreHeading": "Where to read the full licence",
+    "moreBody": "The full legal text of CC BY 4.0 lives at the official Creative Commons site. It is the authoritative reference for the licence above; the summary on this page is informational only and is not a substitute for the licence text.",
+    "ccLink": "Read CC BY 4.0 on creativecommons.org",
+    "contactHeading": "Contact",
+    "contactBody": "Licence questions, attribution corrections, and re-use requests go to:",
+    "footerContact": "Licence questions: {email}",
+    "footerLicenseLink": "Read the licence"
   },
   "home": {
     "title": "A verified reference corpus",
