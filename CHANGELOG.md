@@ -5,6 +5,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-31] — polish/per-section-blooms — per-section blooms (design-spec §6)
+
+**Added**
+- `apps/web/components/home/home.css` — three `::before` bloom layers on home sections (corpora / entry-points / audience), each anchored to a different corner with `radial-gradient` of `--marketing-accent-bloom` (22% / 16%) or `--marketing-accent-deep` (18%). Parents get `position: relative; isolation: isolate;` so the pseudo renders behind section content.
+
+**Stats:** 1 file +54/-1. All 5 gates green: typecheck 5/5, lint 0, next build PASS (Pagefind 222 pages / 28910 words — unchanged, no new content), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. End-to-end probe: `/en` HTTP 200 in 52ms. Served CSS bundle `/_next/static/chunks/408wotcfathbv.css`: all three `::before` rules confirmed. PR #116.
+
 ### [2026-08-31] — polish/blog-card-kind-badge — kind badge overlay on `/en/blog` article cards
 
 **Changed**
