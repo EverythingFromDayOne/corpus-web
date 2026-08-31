@@ -248,9 +248,19 @@ body:has(.av-view) .av-header-tog {
    exact pre-existing UA rule shape. */
 .srch-dialog[open] {
   position: fixed;
-  top: 10vh;
+  /* `inset: auto` defeats the user-agent default `dialog { inset: 0 }`,
+     which would re-centre the dialog vertically via `margin: auto` and
+     cause the panel to " jump up" as results arrive and the dialog's
+     height changes. With `inset: auto`, only the explicit `top` and
+     `left` below apply, and the dialog is anchored to the top of the
+     viewport regardless of its height. */
+  inset: auto;
+  top: max(1rem, env(safe-area-inset-top, 0px));
   left: 50%;
-  transform: translateX(-50%);
+  /* `translate(-50%, 0)` — no Y translation — keeps the dialog
+     horizontally centred AND pinned to the top, so the list growing
+     inside the panel never moves the panel itself. */
+  transform: translate(-50%, 0);
   margin: 0;
   border: 1px solid var(--color-graphite);
   border-radius: var(--radius-md);
@@ -258,8 +268,14 @@ body:has(.av-view) .av-header-tog {
   color: var(--color-body);
   padding: 0;
   width: min(640px, 92vw);
-  height: min(560px, 70vh);
-  max-height: 70vh;
+  /* Use 100dvh (dynamic viewport height) on mobile so the panel
+     respects the iOS Safari URL-bar collapse — and subtract safe-area
+     insets so it never overflows behind the notch / home indicator. */
+  max-height: calc(
+    100dvh - 2 * max(1rem, env(safe-area-inset-top, 0px)) -
+      env(safe-area-inset-bottom, 0px)
+  );
+  height: auto;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -334,26 +350,41 @@ body:has(.av-view) .av-header-tog {
   flex: none;
 }
 
-.srch-dialog-clear {
+.srch-dialog-clear,
+.srch-dialog-done {
   flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  min-height: 22px;
   border-radius: var(--radius-sm);
   border: 0;
   background: transparent;
   color: var(--color-muted);
   cursor: pointer;
-  padding: 0;
+  padding: 0 0.4rem;
   transition:
     background-color 120ms ease,
     color 120ms ease;
 }
 
+.srch-dialog-clear {
+  width: 22px;
+  padding: 0;
+}
+
+.srch-dialog-done {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-display);
+}
+
 .srch-dialog-clear:hover,
-.srch-dialog-clear:focus-visible {
+.srch-dialog-clear:focus-visible,
+.srch-dialog-done:hover,
+.srch-dialog-done:focus-visible {
   background: color-mix(in srgb, var(--color-signal) 14%, transparent);
   color: var(--color-display);
   outline: 0;

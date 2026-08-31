@@ -267,7 +267,40 @@ export function SearchDialog({ messages }: { messages: Messages }) {
     return () => dialog.removeEventListener('close', reset);
   }, []);
 
+  // Touch detection — used to surface an explicit "Done" button on
+  // touch devices where there is no "outside the dialog" to tap on
+  // (mobile / tablet fullscreen). `(hover: none)` is the canonical
+  // media query for coarse-pointer / no-hover devices; matches iOS
+  // Safari, Android Chrome, and most tablets. Desktop with a touch
+  // screen also qualifies, which is fine — the Done button is
+  // harmless on desktop and Esc / backdrop-click still work there.
+  const [isTouch, setIsTouch] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mql = window.matchMedia('(hover: none)');
+    const apply = () => setIsTouch(mql.matches);
+    apply();
+    // Safari < 14 uses addListener; modern browsers use addEventListener.
+    if (mql.addEventListener) {
+      mql.addEventListener('change', apply);
+      return () => mql.removeEventListener('change', apply);
+    }
+    mql.addListener(apply);
+    return () => mql.removeListener(apply);
+  }, []);
+
+  const onDone = () => {
+    dialogRef.current?.close();
+  };
+
   const showClear = query.length > 0;
+  // On touch + empty query, show "Done" instead of the ⌘K chip —
+  // gives the user a visible close affordance. On touch + non-empty,
+  // the clear-X is still shown (it wipes the query; tapping it twice
+  // brings up Done because the query clears on first tap). On
+  // desktop, always show ⌘K / clear-X (Esc + backdrop-click handle
+  // close).
+  const showDone = isTouch && !showClear;
 
   return (
     <dialog
@@ -327,6 +360,15 @@ export function SearchDialog({ messages }: { messages: Messages }) {
                 <line x1="6" y1="6" x2="18" y2="18" />
                 <line x1="18" y1="6" x2="6" y2="18" />
               </svg>
+            </button>
+          ) : showDone ? (
+            <button
+              type="button"
+              className="srch-dialog-done"
+              aria-label={t(messages, 'placeholders.searchDoneLabel')}
+              onClick={onDone}
+            >
+              {t(messages, 'placeholders.searchDone')}
             </button>
           ) : (
             <kbd className="srch-kbd srch-dialog-kbd">
