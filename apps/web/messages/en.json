@@ -140,6 +140,7 @@
     "startFirst": "Start the first lesson",
     "viewCurriculum": "View curriculum",
     "curriculumHeading": "Curriculum",
+    "curriculumTimelineLabel": "Learning-path timeline",
     "position": "{n}.",
     "level": "Level {level}",
     "drawnFrom": "Drawn from {corpora}"
