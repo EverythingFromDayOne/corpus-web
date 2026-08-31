@@ -245,6 +245,8 @@ function RelatedList({
   article: ArticleListItem;
 }) {
   if (article.related.length === 0) return null;
+  const unresolvedTitle = t(messages, 'article.relatedUnresolvedTitle');
+  const unresolvedBody = t(messages, 'article.relatedUnresolvedBody');
   return (
     <section className="av-related" aria-labelledby="av-related-heading">
       <h2 id="av-related-heading">{t(messages, 'article.related')}</h2>
@@ -252,9 +254,28 @@ function RelatedList({
         {article.related.map((ref) => {
           const href = relatedItemHref(view, locale, ref.uid);
           const title = view.byUid[ref.uid]?.title ?? ref.raw;
+          if (!href) {
+            return (
+              <li key={`${ref.uid}:${ref.raw}`} className="av-related-unresolved">
+                <span
+                  className="av-related-unresolved-mark"
+                  aria-hidden="true"
+                  title={unresolvedBody}
+                >
+                  ◌
+                </span>
+                <span
+                  className="av-related-unresolved-link text-muted italic"
+                  aria-label={`${title} — ${unresolvedTitle}`}
+                >
+                  {title}
+                </span>
+              </li>
+            );
+          }
           return (
             <li key={`${ref.uid}:${ref.raw}`}>
-              {href ? <a href={href}>{title}</a> : <span>{title}</span>}
+              <a href={href}>{title}</a>
             </li>
           );
         })}

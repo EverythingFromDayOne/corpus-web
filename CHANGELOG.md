@@ -5,6 +5,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-31] — polish/d32-related-articles-polish — D32 close (related unresolved-ref affordance)
+
+**Changed**
+- `apps/web/components/article/article-view.tsx` — `RelatedList` splits the per-ref render into two paths. Resolved refs keep the existing `<a href>` behaviour. Unresolved refs render `<li class="av-related-unresolved">` containing a `◌` mark (`aria-hidden="true"` + `title="This article is referenced by the corpus but has not shipped yet…"` tooltip) and the ref's `raw` slug as `<span class="… italic" aria-label="<title> — related, not yet available">`. The plain `<a>` / `<span>` ternary is replaced with an early-return if-block. 24 +/− 1.
+- `apps/web/messages/en.json` — adds `article.relatedUnresolvedTitle` ("related, not yet available") and `article.relatedUnresolvedBody` ("This article is referenced by the corpus but has not shipped yet. The link will go live when its content is published.") under the existing `article.*` namespace. Both keys feed assistive tech (`aria-label`) and the visual tooltip (`title`). +2 keys.
+
+**Architecture decisions**
+- `◌` glyph (U+25CC "dotted circle") rather than a written "(unavailable)" — a glyph keeps visual weight low so the list still reads as related articles rather than a list of failures. The 102 affected articles still appear in the related section; only the unresolved ones carry the marker.
+- `title` tooltip chosen over an inline description — keeps the list visually clean while still surfacing the explanation on hover (and via `aria-label` for assistive tech, which doesn't read `title`).
+- HTML spot-check on `/en/blog/nextjs/cache-components-model`: 5 related → 1 `<a href>` + 4 `av-related-unresolved` `<li>`s, exactly matching the catalog's 1+4 split. **D32 closed; D13 stays informational per develop's empty required-status-checks context.**
+
 ### [2026-08-31] — polish/d30-timeline-visual — D30 partial close (learning-path timeline visual)
 
 **Changed**

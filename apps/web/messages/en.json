@@ -189,6 +189,8 @@
     "blocksVerified": "{count} blocks verified",
     "viewSource": "View source",
     "related": "Related",
+    "relatedUnresolvedTitle": "related, not yet available",
+    "relatedUnresolvedBody": "This article is referenced by the corpus but has not shipped yet. The link will go live when its content is published.",
     "pageNav": "Page",
     "previous": "Previous",
     "next": "Next",

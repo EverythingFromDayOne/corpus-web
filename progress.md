@@ -82,6 +82,37 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Related-articles unresolved affordance — Polish-11 (D32 close)**
+  **(2026-08-31, on `polish/d32-related-articles-polish` off develop):**
+  D32 said related articles were rendered as plain text when their
+  target didn't resolve. The section already existed; what was
+  missing was the visual distinction between working refs and
+  unresolved ones (D13). This PR styles the unresolved case with
+  a `◌` glyph prefix + `text-muted italic` styling + `aria-label`
+  ("<slug> — related, not yet available") + a hover tooltip
+  explaining the gap. 24 +/− 1 in `article-view.tsx` + 2 keys in
+  `en.json`. `RelatedList` splits the per-ref render into two
+  paths (resolved = `<a href>`; unresolved = styled `<span>` with
+  the affordance); the plain `<a>` / `<span>` ternary collapses to
+  an early-return if-block — clearer than nested ternaries on a
+  path with two distinct visual outcomes. Catalog measurement:
+  102 articles carry ≥1 unresolved edge (495 unresolved of 289
+  total related edges). HTML spot-check on
+  `/en/blog/nextjs/cache-components-model`: 5 related → 1 `<a
+  href>` + 4 `av-related-unresolved` `<li>`s, exactly matching the
+  catalog's 1+4 split. All 5 gates green: typecheck 5/5, lint 0
+  problems, next build 236/236 (no new routes), verify:prerender
+  196/196+18/18, verify:frontmatter 196/196. Brand-string +
+  personal-content guards: 0 hits. Two invented decisions:
+  (a) `◌` glyph rather than a written "(unavailable)" — a glyph
+  keeps the visual weight low so the list still reads as related
+  articles rather than a list of failures; (b) `title` tooltip
+  chosen over an inline description to keep the list visually
+  clean while still surfacing the explanation on hover (and via
+  `aria-label` for assistive tech, which doesn't read `title`).
+  **D32 closed; D13 stays open (44 forward-reference unresolved
+  per `verify-links`).**
+
 - **Curriculum timeline visual — Polish-10 (D30 partial close, timeline half)**
   **(2026-08-31, on `polish/d30-timeline-visual` off develop):** D30
   said the course overview needed a vertical learning-path timeline
