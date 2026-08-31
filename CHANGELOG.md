@@ -5,6 +5,19 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-31] — polish/search-fixes — search-trigger layout, dialog centring, theme-toggle thumb, search error diagnostics
+
+**Changed**
+- `apps/web/components/chrome/search-trigger.tsx` — drop leading `<span class="meta">SEARCH</span>` label, replace with inline `<svg>` magnifier glyph (the same icon the dialog uses). Single-component change, +14/−3.
+- `apps/web/components/chrome/theme-toggle.tsx` — thumb translates to `translate-x-8` (was `translate-x-9`), icon spans get `shrink-0` + `text-[0.95rem] leading-none` so the moon/sun sit centred in their halves instead of being clipped against the thumb.
+- `apps/web/components/chrome/search-dialog.tsx` — `status` becomes a discriminated union `{ kind: 'idle' | 'loading' | 'ready' | 'empty' } | { kind: 'error'; message: string }`; both error paths (Pagefind bundle failed to load; `pf.search` threw) extract the underlying `Error.message` and render it below the "Search failed. Try again." line in monospaced grey text. Pure diagnostic — success path unchanged.
+- `apps/web/app/globals.css` — `.srch` widens from `15rem max-width` to a fixed `16rem width`; `.srch-dialog` becomes `position: fixed; inset: 0; margin: auto; height: max-content; max-height: 70vh;` for true viewport-centring (native `<dialog>` doesn't centre unless both `inset` and `margin:auto` are applied); `.srch-dialog-input` gap widens to `0.75rem` with explicit `.srch-dialog-input > svg { flex: none; width: 16px; height: 16px; color: var(--color-muted); }`; `.srch-dialog-status` becomes a flex column with a 0.25rem gap; new `.srch-dialog-error-detail` for the mono-font error message. Dead-code removal: `.srch input { … }` rule deleted (trigger never had an `<input>` child — leftover from the disabled placeholder, inert under `.srch-trigger`).
+
+**Architecture decisions**
+- Widen `.srch` to fixed 16rem rather than `max-width: 16rem` — the trigger sits in the right-edge of the topbar where flexible widths cause it to expand/shrink on unrelated re-layouts; fixed width is predictable.
+- Drop the SEARCH label rather than shrink it — the search icon visually serves the same role, and dropping the redundant text gives the placeholder room to render in full.
+- Discriminated union on `status` rather than a parallel `errorMessage: string` field — keeps state shape coherent and forces every error path to capture the message (TypeScript won't let you emit `{ kind: 'error' }` without the `message` field).
+
 ### [2026-08-31] — polish/d32-related-articles-polish — D32 close (related unresolved-ref affordance)
 
 **Changed**

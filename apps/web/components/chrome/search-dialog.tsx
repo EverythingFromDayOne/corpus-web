@@ -8,6 +8,13 @@ import { t, type Messages } from '@/lib/i18n';
 // so callers don't have to.
 type PagefindWindow = Window & { pagefind?: PagefindModule };
 
+type SearchStatus =
+  | { kind: 'idle' }
+  | { kind: 'loading' }
+  | { kind: 'ready' }
+  | { kind: 'empty' }
+  | { kind: 'error'; message: string };
+
 /**
  * Full-text search dialog backed by Pagefind.
  *
@@ -25,9 +32,7 @@ export function SearchDialog({ messages }: { messages: Messages }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<PagefindResultFragment[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
-  const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'empty' | 'error'>(
-    'idle',
-  );
+  const [status, setStatus] = useState<SearchStatus>({ kind: 'idle' });
   const [pagefind, setPagefind] = useState<PagefindModule | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -110,8 +115,9 @@ export function SearchDialog({ messages }: { messages: Messages }) {
     }
     const pf: PagefindModule | undefined = w.pagefind;
     if (!pf) {
+      const message = 'Search index failed to load. The /pagefind/ bundle may be blocked or unreachable.';
       console.error('[search] Pagefind failed to load after 3s');
-      setStatus('error');
+      setStatus({ kind: 'error', message });
       return null;
     }
     if (pf.init) await pf.init();
@@ -126,23 +132,24 @@ export function SearchDialog({ messages }: { messages: Messages }) {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!next.trim()) {
       setResults([]);
-      setStatus('idle');
+      setStatus({ kind: 'idle' });
       return;
     }
     debounceRef.current = setTimeout(async () => {
       const pf = await ensurePagefind();
       if (!pf) return;
-      setStatus('loading');
+      setStatus({ kind: 'loading' });
       try {
         const search = await pf.search(next);
         const fragments = (await Promise.all(
           search.results.slice(0, 8).map((r) => pf.getFragment(r as PagefindResultRaw)),
         )) as PagefindResultFragment[];
         setResults(fragments);
-        setStatus(fragments.length === 0 ? 'empty' : 'ready');
+        setStatus({ kind: fragments.length === 0 ? 'empty' : 'ready' });
       } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
         console.error('[search] query failed', err);
-        setStatus('error');
+        setStatus({ kind: 'error', message });
       }
     }, 80);
   };
@@ -167,7 +174,7 @@ export function SearchDialog({ messages }: { messages: Messages }) {
       setQuery('');
       setResults([]);
       setActiveIdx(0);
-      setStatus('idle');
+      setStatus({ kind: 'idle' });
     };
     dialog.addEventListener('close', reset);
     return () => dialog.removeEventListener('close', reset);
@@ -217,16 +224,19 @@ export function SearchDialog({ messages }: { messages: Messages }) {
           className="srch-dialog-results"
           aria-live="polite"
         >
-          {status === 'loading' && (
+          {status.kind === 'loading' && (
             <li className="srch-dialog-status">{t(messages, 'placeholders.searchLoading')}</li>
           )}
-          {status === 'empty' && (
+          {status.kind === 'empty' && (
             <li className="srch-dialog-status">{t(messages, 'placeholders.searchEmpty')}</li>
           )}
-          {status === 'error' && (
-            <li className="srch-dialog-status">{t(messages, 'placeholders.searchError')}</li>
+          {status.kind === 'error' && (
+            <li className="srch-dialog-status">
+              <span>{t(messages, 'placeholders.searchError')}</span>
+              <span className="srch-dialog-error-detail">{(status as { kind: 'error'; message: string }).message}</span>
+            </li>
           )}
-          {status === 'ready' &&
+          {status.kind === 'ready' &&
             results.map((r, i) => (
               <li
                 id={`srch-r-${i}`}
