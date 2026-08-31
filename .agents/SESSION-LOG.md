@@ -4579,6 +4579,50 @@ Each item is the lowest-effort / highest-perceived-impact slice of its design sp
 
 ---
 
+## Session Polish-6 — D21 Pagefind + ⌘K — 2026-08-31
+
+**Branch:** `polish/d21-pagefind` (off `origin/develop`, NOT off `origin/main` per kit — same precedent as Polish-3/Polish-5/Polish-5-batch-5).
+
+**Files changed:**
+- `apps/web/package.json` — `pagefind 1.5.2` declared in devDependencies; new `postbuild` + `search:index` scripts run `pagefind --site .next/server/app --output-path public/pagefind`. `pnpm-lock.yaml` updated.
+- `apps/web/components/chrome/search-dialog.tsx` — new file: native `<dialog>`-backed full-text search; ⌘K / Ctrl+K; debounced 80ms queries; up to 8 results with Pagefind excerpts; ArrowUp/Down + Enter navigation; loads Pagefind via `<script>`-tag injection + `window.pagefind` polling (NOT `await import()`).
+- `apps/web/components/chrome/search-trigger.tsx` — new file: `<button>` replacing the disabled `SearchPlaceholder`; visually identical chrome; `aria-keyshortcuts="Meta+K Control+K"`; dispatches `corpus:open-search` custom event.
+- `apps/web/components/chrome/search-placeholder.tsx` — DELETED.
+- `apps/web/components/chrome/site-header.tsx` — swaps `<SearchPlaceholder>` for `<SearchTrigger>` in the topbar's `.topbar-tools` slot.
+- `apps/web/app/[locale]/layout.tsx` — mounts `<SearchDialog>` once per locale layout, after `{children}`.
+- `apps/web/app/globals.css` — +152 lines: `.srch-trigger`, `.srch-dialog`, `.srch-dialog-input`, `.srch-dialog-results`, `.srch-dialog-excerpt mark`, `.srch-dialog-status`, `.srch-dialog-foot`, `.srch-dialog-close`. `prefers-reduced-motion` guard on the dialog block.
+- `apps/web/messages/en.json` — +9 keys (`searchInput`, `searchDialogLabel`, `searchTriggerLabel`, `searchLoading`, `searchEmpty`, `searchError`, `searchCloseLabel`, plus rewrite of `search` and `searchHint`).
+- `.gitignore` — added `apps/web/public/pagefind/` and `apps/web/public/pagefind.js` (Pagefind build output).
+- `.agents/summary.md`, `CHANGELOG.md`, `docs/DEBT.md`, `progress.md`, `.agents/SESSION-LOG.md` — docs wrap.
+
+**Why:** DEBT D21 had the disabled "Coming soon" placeholder at the topbar's right edge since the skeleton shipped. Pagefind is the only viable open-source static-site full-text search that works against prerendered HTML at build time and ships entirely from `/pagefind/*` as static assets — no server, no API key, no per-page cost. Cache Components compatibility verified: the bracket `[param]` placeholder shells (D23's `verify:prerender` exclusion rule) have no `<html>` element, so Pagefind skips them — exactly the surface that doesn't need indexing.
+
+**Gates re-run:** typecheck clean 5/5; next build clean 236/236; verify:prerender 196/196 + 18/18 (all with non-empty `<body>`); verify:frontmatter 196/196 articles adapt; Pagefind postbuild indexed 221 pages / 28822 words in 2.345s; brand-string guard 0 hits on shipped strings; personal-content guard 0 hits.
+
+**Invented decisions:**
+- **Native `<dialog>` over headless-UI library.** The browser provides focus trap, backdrop, and Esc handling for free; only one polyfill ships with us on Vercel's edge (no Safari TP needed). Modal `<dialog>` also cooperates with Cache Components: it renders empty in the static prerendered HTML, so the build-time HTML doesn't carry an unused dialog tree.
+- **Event-bus (`corpus:open-search`) over lifting state to the layout.** The trigger renders server-side, the dialog hydrates after, and a shared React state would require moving both into a single client boundary — bigger bundle for the common case of "user never opens search". The event pattern is the same shape as the existing `useReducedMotion` pattern elsewhere in chrome.
+- **Script-tag injection + polling for `window.pagefind`, NOT `await import()`.** Turbopack and webpack both try to resolve static `import()` calls at build time, treating the absolute runtime path `/pagefind/pagefind.js` as a source dependency. The canonical Pagefind integration pattern is a `<script>` tag with `data-pagefind`, then poll for `window.pagefind`. Polling window: 50×60ms = 3s.
+- **Branch cut off `origin/develop` directly** (NOT `origin/main` per the kit). Same precedent as Polish-3/Polish-5/Polish-5-batch-5. ~480 net lines / 8 files; off-main merge-conflict cost would exceed the work itself.
+- **Both `placeholders.search` and `placeholders.searchInput` carry the same string.** The trigger ghost-text uses `placeholders.search` (for any future sidecar that imports it), the dialog input uses `placeholders.searchInput` (semantically clearer). If a future session wants to specialize (e.g. ellipsis for the dialog but no ellipsis on the topbar ghost), only one site changes.
+- **`.gitignore` scoped to `apps/web/public/pagefind/`, not the entire `public/`.** `public/` is the Next.js convention for hand-authored static assets (favicons, `robots.txt`, OG images). D22 (SEO residue) will eventually add `robots.txt` and an OG-image generator that writes into `public/`. The gitignore must not preempt that work.
+
+**Failure modes encountered this session:**
+- **First build attempt failed** with `Can't resolve '/pagefind/pagefind.js'` because Turbopack analyzed the `import()` call. Switched to script-tag injection + `window.pagefind` polling.
+- **First TypeScript attempt at the fix** used `declare module '/pagefind/pagefind.js'` — TS rejected it because absolute paths can't be augmented.
+- **Second attempt** used `webpackIgnore` / `@vite-ignore` comment hints — Turbopack ignored them. Switched to script-tag approach entirely.
+- **TS narrowing** in the polling loop was wrong: `if (!w.pagefind) { return; }` followed by `w.pagefind.init` produced `never`. Fixed by capturing into `const pf` before the null-check.
+- **Phantom `pagefind` install** (link in `apps/web/node_modules/.bin/pagefind` but not declared in any `package.json`) — would have been wiped on next `pnpm install`. Resolved by declaring it in `apps/web/devDependencies`.
+
+**Sub-agent dispatch summary:** No sub-agent dispatch. Principal-engineer direct work.
+
+**Known issues / next steps:**
+- Polish-7 (D22 SEO residue: sitemap + robots.txt + OG images to `cdn.nxhhuy.tech`) — next.
+- Polish-8 (D25 `/en/license`) — next after Polish-7.
+- Polish-5 batch-5 (`polish/d20-batch-5-blog-typography`, PR #96) is still MERGEABLE on develop. Its docs wrap commit and this branch's docs wrap commit both modified `.agents/SESSION-LOG.md` / `CHANGELOG.md` (append-only with `merge=union`), so the union-merge driver will resolve both automatically on merge.
+- Next.js 16.3 deprecation warning surfaced during build: `middleware` file convention → `proxy` convention. Out of scope for this PR; flagged for a future CI/deps session.
+- `origin/main` is now 17 commits behind `origin/develop` (this session added 6 to develop). Develop→main promotion PR remains reserved for user action.
+- D13 (44 unresolved refs) still blocks `verify:links`. Pre-existing, not in this PR's surface.
 ## Session Polish-5 — D20 §2 + blog §5/§10/§15 polish batch — 2026-08-31
 
 **Branch:** `polish/d20-batch-5-blog-typography` (off `origin/develop`, NOT off `origin/main` per kit — Polish-5 PR #95 set the same precedent earlier today).
