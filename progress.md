@@ -82,6 +82,37 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Kind badge overlay on `/en/blog` article cards — Polish-blog-card-kind-badge**
+  **(2026-08-31, on `polish/blog-card-kind-badge` off develop @ `606474d`,
+  PR #112):** Cards on `/en/blog` rendered title + description + corpus ·
+  reading-time but had no visual indication of **what kind** of article
+  each one was (concept vs recipe), even though every `ArticleListItem`
+  already carries `kind: 'concept' | 'recipe'` in the catalog. Closed
+  design-spec blog §3's "category badge overlay" gap by reusing the
+  existing `.tag-soon .ls-tag-concept` / `.ls-tag-recipe` CSS classes
+  (already in `apps/web/components/home/home.css` for home-page
+  entry-point chips, with the spec's exact colors — cool for concept,
+  signal for recipe). **Honest re-scoping note:** my earlier
+  "design-spec backlog" surface (in the Polish-items-left turn) listed
+  film-grain, hero bloom, view-transitions, and share buttons as 30-min
+  candidates — all four turned out to be already implemented. Re-grep'd
+  for `Gap:` annotations and found this was the only real small-additive
+  gap. **Invented decisions:** (a) reuse `.tag-soon .ls-tag-concept` /
+  `.ls-tag-recipe` from home.css instead of inventing new tag classes
+  (same visual language across home and blog); (b) `flex flex-wrap
+  items-center gap-2` on the meta row so the badge fits cleanly with the
+  existing corpus + reading-time; (c) `aria-label="Kind: …"` uses the
+  existing `article.kind` i18n key as the prefix (no new i18n keys);
+  (d) badge before corpus name in the meta row (kind carries the
+  higher-priority meta). 1 file +18/-13. Verified `/en/blog` HTTP 200 in
+  22ms; 196 `tag-soon ls-tag-*` badges total (134 `concept` + 62
+  `recipe`) in the rendered HTML — matches the catalog split 1:1 with
+  every article in `view.articles`. All 5 gates green: typecheck 5/5,
+  lint 0 problems, next build PASS (Pagefind indexed 222 pages / 28909
+  words — +7 words from new aria-labels), verify:prerender 196/196+18/18,
+  verify:frontmatter 196/196, vitest 38/38. **Session cadence cap: hit**
+  — six polish batches chained in this run.
+
 - **Section-divider upgrade + repeat pattern on `/en` — Polish-section-divider**
   **(2026-08-31, on `polish/section-divider` off develop @ `9ea3719`,
   PR #111):** `<SectionDivider>` already existed and was used once on
