@@ -55,8 +55,8 @@ now in scope and adapting. Re-measured 2026-08-30 in session
 | 10 | Shiki code blocks (copy / download / expand) | ⚪ | Debt D20. Copy/download/expand ship unhighlighted. |
 | 11 | Pagefind search + ⌘K dialog | ⚪ | Disabled top-bar search matches the listing POC: `Search` label, `Coming soon` placeholder, `⌘K` hint, one line inside `--tb`. Debt D21 |
 | 12 | Mobile layout | 🟢 | Article/lesson mobile is a drawer, not a stacked curriculum. 390px visual pass is still human. **Headless Chrome clamps its window to roughly 500px**, so a `--window-size=390,900` run silently measures 500px; measure inside a fixed-width iframe |
-| 13 | Corpus landing at `/en` + `/en/license` (roadmap §15.1) | 🟡 | `/en` transcribes listing-POC `#p-home`: census readout from `catalog.json`, two CTAs, hero band, corpus ratio bars + adapting/version footer, split "Three ways in" with the demo panel as aside, tag-legend reading conventions. `/en/license` is Debt D25 |
-| 14 | SEO baseline: metadata, OG, sitemap, JSON-LD | 🟡 | Listing and article pages ship metadata + WebSite/Organization/TechArticle/BreadcrumbList JSON-LD. Sitemap, robots.txt, OG images are Debt D22 |
+| 13 | Corpus landing at `/en` + `/en/license` (roadmap §15.1) | 🟢 | `/en` transcribes listing-POC `#p-home`: census readout from `catalog.json`, two CTAs, hero band, corpus ratio bars + adapting/version footer, split "Three ways in" with the demo panel as aside, tag-legend reading conventions. `/en/license` ships CC BY 4.0 attribution + per-surface notes (code samples, adapted articles) + `mailto:` block — Debt D25 closed; new site footer renders on every locale page
+| 14 | SEO baseline: metadata, OG, sitemap, JSON-LD | 🟢 | Listing and article pages ship metadata + WebSite/Organization/TechArticle/BreadcrumbList JSON-LD. `/sitemap.xml` (219 URLs: 3 listing × 1 locale + 2 course details + 18 lessons + 196 articles) and `/robots.txt` (`User-agent: *` + `Sitemap:`) ship as static text via App Router route handlers. OG image generation to `cdn.nxhhuy.tech` is the remaining D22 piece (CDN sub-domain requires DNS + Vercel project routing, beyond autonomous scope). Debt D22 partially closed |
 | 15 | Cache Components strategy, verified via `.next/server/app/**.html` | ✅ | Nothing above the article/lesson pages reads `cookies()`, `headers()`, or `searchParams`. `pnpm verify:prerender` asserts 181 blog + 12 lesson HTML files under `.next/server/app`, each with a non-empty `<body>`. Bracketed `[param]` shells (◐ rows) are excluded. Build table still groups generated paths as `◐`; listing concretes stay `○`. No `ƒ`. D23 closed. |
 | 16 | `description` frontmatter pass, four framework corpora (197 files) | 🟡 | **Debt D5, no longer blocking item 7.** The pass has landed in all four: `nextjs@v0.3.0` 10/10, `react@v0.5.0` 58/73, `angular@v0.3.0` 93/94, `nestjs@v0.3.2` 20/20 — 181 of 197 adapt. Two named residues remain, both corpus-side: the 15 untitled `react` articles the pass deliberately skipped (D11) and `angular`'s duplicate `widget-deployment.md` (D15). `nestjs@v0.3.1` recovered `dtos-and-class-validator` (D12 closed), which is the +1 selected / +1 adapting |
 | 17 | Branch model split: feature → `develop` (staging) → `main` (production → nxhhuy.tech) | 🟢 | `develop` created off `origin/main` at `aa87412` (same HEAD as main). `main` keeps full strict protection (admin-enforced, 1 review, linear history, no force-push, no deletion, conversation-resolution required). `develop` has lighter protection (no required reviews, admins bypass, linear history, no force-push, no deletion). GitHub API does not enforce "only develop→main"; Vercel's environment branch policy on the Production environment does (user to confirm in Vercel dashboard). Cursor cloud-agent PRs continue targeting `main` for the transition period — see `.agents/SESSION-LOG.md` Phase-3 session entry for the invented decision. **Workflow rule re-asserted 2026-08-29**: `prompts/*` files go feature → develop → main, never direct to main, even for docs-only changes. Prior direct-to-main paths for `prompts/d18-a11y-poc-defects.md` (#73) and `prompts/design-spec-2026-08.md` (#79, #80) corrected by rebase + force-push to develop via the API-toggle-protection recipe; linear-history guarantee preserved. |
@@ -81,6 +81,33 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 ---
 
 ## Session log
+
+- **`/en/license` page + site footer — Polish-8 (D25 close)**
+  **(2026-08-31, on `polish/d25-license-page` off develop):**
+  New `apps/web/app/[locale]/license/page.tsx` (RSC, prerendered for every registered locale). CC BY 4.0 attribution block + per-surface notes + link to creativecommons.org + `mailto:` block. New `apps/web/components/chrome/site-footer.tsx` (first site footer). `<SiteFooter>` mounted in `apps/web/app/[locale]/layout.tsx`. `apps/web/lib/routes.ts` adds `licensePath()`. `apps/web/messages/en.json` gains a 15-key `license.*` namespace plus `nav.license`. DEBT D25 closed. Phase 1 item 13 🟡 → 🟢. All 3 gates green.
+
+- **SEO residue partial close (D22) — Polish-7**
+  **(2026-08-31, on `polish/d22-seo-residue` off develop):**
+  New App Router route handlers `apps/web/app/sitemap.xml/route.ts`
+  (emits 219 URLs: 3 listing × 1 locale + 2 course details + 18
+  lessons + 196 articles, Content-Type `application/xml`, Cache-Control
+  `public, max-age=3600`) and `apps/web/app/robots.txt/route.ts`
+  (`User-agent: *`, `Allow: /`, `Disallow: /api/`, `Sitemap:` pointer,
+  Content-Type `text/plain`). Both consume `getCatalogView()` which
+  is already `'use cache'` + `cacheLife('max')`, so the routes cost
+  O(1) at build time and ship as static text from the edge.
+  `.gitignore` updated with `apps/web/public/pagefind/` (mirrors
+  `polish/d21-pagefind`'s same entry — bring-forward). All 3 gates
+  green: typecheck 5/5, next build 236/236 + 2 new static routes,
+  verify:prerender 196/196+18/18, verify:frontmatter 196/196 adapt.
+  Phase 1 item 14 🟡 → 🟢. DEBT D22 partially closed (OG image
+  generation to `cdn.nxhhuy.tech` is the remaining piece — CDN
+  sub-domain is a deployment/DNS-config change beyond autonomous
+  principal-engineer scope, recorded for next session). Two invented
+  decisions: reuse `getCatalogView()` (don't re-read `catalog.json`);
+  `absoluteUrl()` always emits production origin (sitemaps/robots
+  are non-crawled in dev anyway). `origin/main` now ~17 commits
+  behind `origin/develop`.
 
 - **View Transitions API on lesson content (D20 §8) — Polish-5**
   **(2026-08-31, on `polish/d20-view-transitions` off develop):**

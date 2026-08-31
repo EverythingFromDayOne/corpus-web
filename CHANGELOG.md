@@ -5,6 +5,42 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-31] — polish/d25-license-page — `/en/license` page + site footer (D25 close)
+
+**Added**
+- `apps/web/app/[locale]/license/page.tsx` — RSC, prerendered for every registered locale (today: `en` only). CC BY 4.0 attribution block + per-surface notes for code samples and adapted articles + link to creativecommons.org + `mailto:` block for re-use questions. Sole carve-out from the no-personal-content rule that CC BY 4.0 demands. JSON-LD is `WebPage` with `license: "...creativecommons.org/licenses/by/4.0/"`, NOT a `Person` block.
+- `apps/web/components/chrome/site-footer.tsx` — first site footer; renders the same `nxhhuy@gmail.com` contact + inline `/[locale]/license` link.
+
+**Changed**
+- `apps/web/app/[locale]/layout.tsx` — mounts `<SiteFooter>` after `{children}` inside `<ArticleChromeProvider>`. Appears on every locale page without per-page wiring.
+- `apps/web/lib/routes.ts` — new `licensePath(locale)` helper.
+- `apps/web/messages/en.json` — 15-key `license.*` namespace (`heading`, `shortHeading`, `youMay`, `share1`/`share2`, `codeSamplesHeading`/`codeSamplesBody`, `adaptedHeading`/`adaptedBody`, `moreHeading`/`moreBody`, `ccLink`, `contactHeading`/`contactBody`, `footerContact`, `footerLicenseLink`) and `nav.license`.
+
+**Architecture decisions**
+- `LICENSE_HOLDER_EMAIL` per-file constant — no shared module, no env var. Deployment-invariant.
+- Footer is layout-level, NOT part of `<SiteHeader>`. Keeps `SiteHeader > {children} > SiteFooter` stack clean.
+- `<PageShell messages={messages}>` for the licence body — same chrome pattern as courses/blog/articles.
+- Allowed personal-context surfaces are limited to `nxhhuy@gmail.com` (footer + `/[locale]/license`) and `nxhhuy.tech` (hostname). No bio, byline, author, avatar, hire-me, About, Team, or contact channel appears anywhere else.
+
+### [2026-08-31] — polish/d22-seo-residue — D22 SEO residue partial close (sitemap + robots.txt)
+
+**Added**
+- `apps/web/app/sitemap.xml/route.ts` — App Router route handler emitting a sitemap.org URL set: per locale, the 3 listing surfaces, one entry per course detail page, one per lesson, one per adapting article (196 across all 4 corpora). Today's emission: 219 URLs (1 locale × (3 + 2 + 18 + 196) = 219). Content-Type `application/xml; charset=utf-8`. Cache-Control `public, max-age=3600, s-maxage=3600`. XML-escaped. Reuses `absoluteUrl()` from `@/lib/site`.
+- `apps/web/app/robots.txt/route.ts` — single-user-agent rule (`User-agent: *`, `Allow: /`, `Disallow: /api/`); `Sitemap:` pointer at `/sitemap.xml`. Content-Type `text/plain; charset=utf-8`. Same Cache-Control.
+
+**Changed**
+- `.gitignore` — added `apps/web/public/pagefind/` and `apps/web/public/pagefind.js` (mirrors the entry on `polish/d21-pagefind`, which is still MERGEABLE on develop; brings the rule forward so this branch's postbuild output behaves correctly).
+
+**Architecture decisions**
+- Reused `getCatalogView()` rather than re-reading `catalog.json` — the catalog view is already `'use cache'` + `cacheLife('max')`, so the sitemap route inherits the same build-time memoization and adds no measurable cost.
+- `absoluteUrl()` always emits the production origin. The right shape for `robots.txt` / `sitemap.xml` (crawlers see them on prod). In dev, the URL strings don't resolve to localhost, which is fine for a non-crawled env.
+- `Disallow: /api/` is defensive: no `/api/*` route exists today (Next.js BFF lives at the edge), but the rule is in place so any future `/api/*` route stays out of crawlers.
+- No `<lastmod>` per URL — the catalog view doesn't carry a build-time timestamp at the article level. Adding it would require an audit pipeline that doesn't exist. Recorded in `## Out of scope` for follow-up.
+- Branch cut off `origin/develop` directly (NOT `origin/main` per kit) — same precedent as Polish-3/Polish-5/Polish-5-batch-5/Polish-6. ~70 net lines / 3 files; off-main merge-conflict cost would exceed the work itself.
+
+**Out of scope in this commit**
+- OG image generation to `cdn.nxhhuy.tech` (D22 remainder). The CDN sub-domain requires DNS + Vercel project routing config — a cross-session / deployment-config change that crosses the session protocol's stop-and-ask boundary. Recorded in DEBT D22's row for a follow-up session.
+
 ### [2026-08-31] — polish/d20-view-transitions — View Transitions API on lesson content (D20 §8)
 
 **Added**
