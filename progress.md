@@ -82,6 +82,54 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Search Spotlight-style UX + 4 regressions fixed — Polish-search-spotlight-ux**
+  **(2026-08-31, on `polish/search-spotlight-ux` off develop @ `72239fe`,
+  PR #108 — to be opened):** Four issues reported via screenshots after
+  the PR #106/PR #107 batch merged: (1) search modal visible on first
+  load before any user interaction; (2) clicking outside the modal or
+  pressing Esc would not close it; (3) typing a query left the dialog
+  stuck on "Searching…" for minutes; (4) deleting the query
+  word-by-word left stale results on screen. **(1)–(2) root cause:**
+  my new CSS rule on `.srch-dialog` (`position: fixed; display: flex;`)
+  overrode the user-agent stylesheet's `dialog:not([open]) { display:
+  none }`, so the dialog painted visibly without `showModal()` having
+  been called. Native `<dialog>` blocks clicks on its own element when
+  not modal, so the backdrop-click handler ran against the *visible*
+  dialog, not against the backdrop (because no `::backdrop` existed
+  when `showModal()` had never been called). Fix: scope the layout to
+  `.srch-dialog[open]`; add explicit defensive
+  `.srch-dialog:not([open]) { display: none }`. **(3) root cause:**
+  Pagefind's index is built by the `postbuild` hook, which only runs
+  after `pnpm build`. In `pnpm dev` the dynamic
+  `import('/pagefind/pagefind.js')` rejects, the error path runs and
+  sets `status: 'error'`, but the user reported seeing "Searching…"
+  — almost certainly because (1) made the dialog visible without
+  `showModal()` having been called, so the synchronous
+  `setStatus({ kind: 'loading' })` from `onInput` was the visible
+  state. Fix: match the rejected-import message against dev-mode
+  signals and append an actionable hint pointing the user at
+  `pnpm start`. **(4) root cause:** a slow in-flight `pf.search()`
+  for "react use" could resolve after a faster "react" query had
+  already set `results`, and there was no guard. Fix: monotonic
+  `requestIdRef` stamps every fired query; the debounced handler
+  captures the id and bails the response if a newer keystroke has
+  already superseded it. **UX upgrades:** inline clear-X button
+  replacing the `⌘K` chip when query is non-empty (Spotlight
+  convention); fixed-height top-anchored panel with
+  `flex: 1 1 auto; min-height: 0` on the inner results list so it
+  scrolls inside the panel instead of re-growing it; `scrollIntoView({ block: 'nearest' })` on active row change; modular result row
+  (bold title + small muted breadcrumb + two-line-clamped excerpt)
+  derived from the URL via `titleFromUrl()` + `breadcrumbFromUrl()`;
+  idle-state hint in the empty list. 2 files +192/-78, 1 i18n file
+  +2 keys, all 5 gates green (typecheck 5/5, lint 0, next build
+  236/236, verify:prerender 196/196+18/18, verify:frontmatter
+  196/196, vitest 38/38). Verified the closed-state visibility fix in
+  the served CSS bundle (both `.srch-dialog[open]{...}` AND
+  `.srch-dialog:not([open]){display:none}` are emitted; initial SSR
+  HTML has `<dialog class="srch-dialog" aria-label="Search
+  articles">` with NO `open` attribute). User spot-check on
+  `develop.nxhhuy.tech` is the functional gate.
+
 - **Pagefind load via dynamic ESM import — Polish-search-esm-import**
   **(2026-08-31, on `polish/search-esm-import` off develop @ 8426adc,
   PR #107):** **Root-cause fix for the user-reported "Search failed"

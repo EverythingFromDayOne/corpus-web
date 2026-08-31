@@ -5,6 +5,25 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-31] — polish/search-spotlight-ux — Spotlight-style search dialog + 4 regressions fixed
+
+**Added**
+- `apps/web/messages/en.json` — `placeholders.searchClearLabel` ("Clear search") + `placeholders.searchHintIdle` ("Type to search across every adapting article.") under existing `placeholders` namespace (kit §6 i18n rule)
+
+**Changed**
+- `apps/web/components/chrome/search-dialog.tsx` — full rewrite of layout and behaviour:
+  - **Race-guarded query**: monotonic `requestIdRef` stamps every fired query; the debounced handler captures the id and bails the response if a newer keystroke has already superseded it or the dialog has closed. Fixes "delete word-by-word leaves stale results."
+  - **Inline clear-X button** replaces the `⌘K` chip in the input row when query is non-empty; click wipes query and refocuses the input. Spotlight convention.
+  - **Backdrop click-to-close**: capture-phase listener on the `<dialog>` element checks `e.target === dialog` and calls `dialog.close()`. Fixes "click outside the modal doesn't close it."
+  - **Fixed-height top-anchored panel**: results list has `flex: 1 1 auto; min-height: 0` so it scrolls inside the panel instead of re-growing it. Fixes "panel tears as results arrive."
+  - **`scrollIntoView({ block: 'nearest' })`** on the active `<li>` when the user arrows through results — keeps the keyboard-active row visible without scrolling off-screen neighbours.
+  - **Modular result row**: bold title + small muted breadcrumb + two-line-clamped excerpt, derived from the URL (`titleFromUrl`, `breadcrumbFromUrl` helpers). Spotlight row shape.
+  - **Idle-state hint** in the empty list: "Type to search across every adapting article."
+  - **Dev-mode Pagefind-missing actionable error**: when the dynamic `import('/pagefind/pagefind.js')` rejects with a dev-mode signal (`/Failed to fetch|404|MIME type|Loading module|Loading chunk|NetworkError/i`), the error message appends "the Pagefind index is only built by `pnpm build`; use `pnpm start` to serve a production build, or run `pnpm --filter @corpus/web search:index` to regenerate it." Fixes "Searching… forever in dev."
+- `apps/web/app/globals.css` — `.srch-dialog[open]` scoped layout (was `.srch-dialog`, which overrode the UA `dialog:not([open]) { display: none }` rule and caused the dialog to render visibly on first paint, before any `showModal()` call); explicit defensive `.srch-dialog:not([open]) { display: none }` to keep it that way under future Tailwind resets; fixed-height panel (`min(560px, 70vh)`) with the inner results list as a flex column (`flex: 1 1 auto; min-height: 0; overflow-y: auto`) so it scrolls inside the panel; row layout for title/meta/excerpt; two-line excerpt clamp via `-webkit-line-clamp: 2`; hidden native `::-webkit-search-cancel-button` (we ship our own).
+
+**Stats:** 2 files changed (+192/-78), 1 i18n file (+2 keys). All 5 gates green: typecheck 5/5, lint 0 problems, next build 236/236 (no new routes), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. Verified the closed-state visibility fix in the served CSS bundle (both `.srch-dialog[open]{...}` and `.srch-dialog:not([open]){display:none}` are emitted, and the initial SSR HTML has `<dialog class="srch-dialog" aria-label="Search articles">` with NO `open` attribute — so the modal genuinely stays invisible until `showModal()`). User spot-check on `develop.nxhhuy.tech` is the functional gate.
+
 ### [2026-08-31] — polish/search-esm-import — Pagefind load via dynamic ESM import (root-cause fix for "Search failed")
 
 **Fixed**
