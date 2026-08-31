@@ -3,10 +3,6 @@ import { t, type Messages } from '@/lib/i18n';
 import type { Locale } from '@/lib/locales';
 import { coursePath, lessonPath } from '@/lib/routes';
 
-function corporaLabel(course: CourseView, messages: Messages): string {
-  return course.corpora.map((repo) => t(messages, `corpora.${repo}.label`)).join(', ');
-}
-
 export function CourseCard({
   locale,
   course,
@@ -18,20 +14,49 @@ export function CourseCard({
   messages: Messages;
   className?: string;
 }) {
+  const desc = course.description;
+  const level = course.level;
   return (
     <a
       href={coursePath(locale, course.slug)}
-      className={`border-graphite bg-surface hover:border-signal block rounded-md border p-6 pl-7 no-underline transition-colors duration-300 ${className ?? ''}`}
+      className={`course-card ls-blog-card relative block rounded-lg border p-6 pl-7 no-underline transition-[transform,box-shadow,border-color,background] duration-300 group-hover:-translate-y-1 ${className ?? ''}`}
     >
-      <h2 className="text-2xl">{course.title}</h2>
-      <p className="mt-3">{course.description}</p>
-      <p className="meta mt-4">
-        {t(messages, 'courses.lessons', { count: course.lessonCount })}
-        {' · '}
-        {t(messages, 'courses.readingTime', { minutes: course.minutes })}
-        {' · '}
-        {t(messages, 'courses.drawnFrom', { corpora: corporaLabel(course, messages) })}
-      </p>
+      <span
+        aria-hidden="true"
+        className="course-card-bar absolute inset-y-0 left-0 w-1 origin-top scale-y-0 rounded-full transition-transform duration-300 group-hover:scale-y-100"
+      />
+      <div className="course-card-head flex flex-wrap items-center gap-2">
+        <span className="course-card-crumb text-muted">
+          {t(messages, `corpora.${course.corpora[0] ?? 'react'}.label`)}
+        </span>
+        <span className="course-card-crumb text-muted">·</span>
+        <span className="course-card-crumb text-muted">
+          {t(messages, 'courses.lessons', { count: course.lessonCount })}
+        </span>
+        <span className="course-card-crumb text-muted">·</span>
+        <span className="course-card-crumb text-muted">
+          {t(messages, 'courses.readingTime', { minutes: course.minutes })}
+        </span>
+        {level ? (
+          <>
+            <span className="course-card-crumb text-muted">·</span>
+            <span className="course-card-level">
+              {t(messages, 'courses.level', { level })}
+            </span>
+          </>
+        ) : null}
+      </div>
+      <h2 className="course-card-title text-display mt-3 text-2xl font-semibold">
+        {course.title}
+      </h2>
+      {desc ? (
+        <p className="course-card-desc text-muted mt-3 text-sm">{desc}</p>
+      ) : null}
+      {course.rationale ? (
+        <p className="course-card-rationale text-muted mt-4 border-graphite border-l-2 pl-3 text-sm italic">
+          {course.rationale}
+        </p>
+      ) : null}
     </a>
   );
 }
