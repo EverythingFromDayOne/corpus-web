@@ -35,12 +35,12 @@ export function ThemeToggle({ label }: { label: string }) {
       <span
         aria-hidden="true"
         className={`bg-signal absolute top-1 left-1 size-7 rounded-full transition-transform duration-300 ease-in-out motion-reduce:transition-none ${
-          isLight ? 'translate-x-0' : 'translate-x-9'
+          isLight ? 'translate-x-0' : 'translate-x-8'
         }`}
       />
       <span
         aria-hidden="true"
-        className={`relative z-10 flex size-7 items-center justify-center text-sm transition-colors duration-300 ease-in-out motion-reduce:transition-none ${
+        className={`relative z-10 flex size-7 shrink-0 items-center justify-center text-[0.95rem] leading-none transition-colors duration-300 ease-in-out motion-reduce:transition-none ${
           isLight ? 'text-ink' : 'text-muted'
         }`}
       >
@@ -48,7 +48,7 @@ export function ThemeToggle({ label }: { label: string }) {
       </span>
       <span
         aria-hidden="true"
-        className={`relative z-10 flex size-7 items-center justify-center text-sm transition-colors duration-300 ease-in-out motion-reduce:transition-none ${
+        className={`relative z-10 flex size-7 shrink-0 items-center justify-center text-[0.95rem] leading-none transition-colors duration-300 ease-in-out motion-reduce:transition-none ${
           isLight ? 'text-muted' : 'text-ink'
         }`}
       >
