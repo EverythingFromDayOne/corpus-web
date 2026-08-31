@@ -132,7 +132,7 @@ export function ArticleIndex({
                         />
                         <a
                           href={articlePath(locale, article.repo, article.articleId)}
-                          className="border-graphite bg-surface hover:border-signal block rounded-md border p-4 pl-5 no-underline transition-colors duration-300"
+                          className="border-graphite bg-surface hover:border-signal block rounded-md border p-4 pl-5 no-underline transition-[transform,box-shadow,border-color] duration-300 group-hover:-translate-y-0.5 group-hover:shadow-[0_4px_12px_color-mix(in_srgb,var(--color-ink)_30%,transparent)]"
                         >
                           <p className="text-display text-lg">{article.title}</p>
                           <p className="text-muted mt-2 text-sm">{article.description}</p>
