@@ -112,6 +112,45 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
   words — +7 words from new aria-labels), verify:prerender 196/196+18/18,
   verify:frontmatter 196/196, vitest 38/38. **Session cadence cap: hit**
   — six polish batches chained in this run.
+- **Search dialog: strip `.html` suffix from Pagefind result URLs — Fix-search-dialog-html-suffix**
+  **(2026-08-31, on `fix/search-dialog-html-suffix` off develop @ `606474d`,
+  PR #113):** Regression from PR #108 — every Pagefind result URL
+  ended in `.html` (Pagefind indexes the static HTML files Next.js
+  produces during `next build`), but the site's runtime router serves
+  the same pages at the non-`.html` path. Visual surface was the user's
+  iPhone Safari smoke after PR #112: 5th highlighted row showed
+  "Getting Started.html" and the click landed on
+  `https://develop.nxhhuy.tech/en/blog/angular/getting-started.html` →
+  404. Fix: added `normalizeUrl(url)` helper that strips a trailing
+  `.html`; applied in 4 places — `<a href>`, `<li key>`, Enter-key
+  `window.location.href`, and inside `titleFromUrl` (so the visible
+  title reads "Getting Started" not "Getting Started.html"). Also
+  applied inside `breadcrumbFromUrl` defensively. Confirmed via
+  Pagefind fragment inspection: 222 unique URLs in
+  `apps/web/public/pagefind/fragment/*.pf_fragment`, **0 without
+  `.html`, 100% with `.html`** — so the fix is universal.
+  **Invented decisions:** (a) single `normalizeUrl` helper applied in
+  4 places, not just `<a href>`, so the React `key={r.url}` mounts the
+  same DOM element whether the URL ends in `.html` or not; (b)
+  `replace(/\.html$/, '')` (anchored to end of string) instead of
+  `replace('.html', '')` (unanchored) — a hypothetical URL like
+  `/en/blog/old.html-tag/foo` would not get corrupted; (c) fix at the
+  dialog layer, not at the catalog layer — the catalog does not expose
+  Pagefind URLs; the Pagefind index is consumed exclusively by
+  `search-dialog.tsx`. Pushing normalization into the dialog keeps the
+  catalog's API neutral and limits the blast radius of the change.
+  **Missed in PR #108 because** the verification path
+  (`pnpm verify:prerender`) tests prerendered routes, not URL handling
+  inside the client-side dialog, and the dev-server visual smoke at
+  the time was blocked by Vercel Auth (`/pagefind/*` returning 302 to
+  `vercel.com/sso-api`) so the dialog itself couldn't be exercised
+  end-to-end. End-to-end route probe: `GET /en/blog/angular/getting-started`
+  → HTTP 200; `GET /en/blog/angular/getting-started.html` → HTTP 404.
+  Inspected served JS bundle `/_next/static/chunks/07b5ecodjn4zt.js` —
+  `replace(/\.html$/,"")` confirmed in the bundle. 1 file +16/-4.
+  All 5 gates green: typecheck 5/5, lint 0 problems, next build PASS
+  (Pagefind indexed 222 pages / 28902 words), verify:prerender
+  196/196+18/18, verify:frontmatter 196/196, vitest 38/38.
 
 - **Section-divider upgrade + repeat pattern on `/en` — Polish-section-divider**
   **(2026-08-31, on `polish/section-divider` off develop @ `9ea3719`,

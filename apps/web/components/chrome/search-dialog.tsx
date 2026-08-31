@@ -247,7 +247,7 @@ export function SearchDialog({ messages }: { messages: Messages }) {
       if (results.length === 0) return;
       setActiveIdx((i) => (i - 1 + results.length) % results.length);
     } else if (e.key === 'Enter' && results[activeIdx]?.url) {
-      window.location.href = results[activeIdx].url;
+      window.location.href = normalizeUrl(results[activeIdx].url);
     }
   };
 
@@ -415,10 +415,10 @@ export function SearchDialog({ messages }: { messages: Messages }) {
                 id={`srch-r-${i}`}
                 role="option"
                 aria-selected={i === activeIdx}
-                key={r.url}
+                key={normalizeUrl(r.url)}
                 className={i === activeIdx ? 'is-active' : undefined}
               >
-                <a href={r.url}>
+                <a href={normalizeUrl(r.url)}>
                   <span className="srch-dialog-title">{titleFromUrl(r.url)}</span>
                   <span className="srch-dialog-meta">{breadcrumbFromUrl(r.url)}</span>
                   <span
@@ -440,6 +440,21 @@ export function SearchDialog({ messages }: { messages: Messages }) {
 }
 
 /**
+ * Pagefind indexes the static HTML files Next.js produces during
+ * `next build`, so every result URL ends in `.html`. The site's
+ * runtime router, however, serves the same pages at the non-`.html`
+ * path (e.g. `/en/blog/angular/getting-started`), so clicking a
+ * `.html` URL hits the 404 fallback. This helper strips the suffix
+ * so the dialog links land on real routes.
+ *
+ * Also applied to `titleFromUrl` below so the visible title reads
+ * "Getting Started" rather than "Getting Started.html".
+ */
+function normalizeUrl(url: string): string {
+  return url.replace(/\.html$/, '');
+}
+
+/**
  * Derive a human title from the Pagefind result URL.
  * `/en/blog/nextjs/cache-components-model` → "Cache components model".
  * Falls back to the last path segment if the URL has no recognisable
@@ -447,7 +462,7 @@ export function SearchDialog({ messages }: { messages: Messages }) {
  */
 function titleFromUrl(url: string): string {
   try {
-    const path = new URL(url, 'https://nxhhuy.tech').pathname;
+    const path = new URL(normalizeUrl(url), 'https://nxhhuy.tech').pathname;
     const segments = path.split('/').filter(Boolean);
     const last = segments[segments.length - 1] ?? '';
     if (!last) return url;
@@ -468,7 +483,7 @@ function titleFromUrl(url: string): string {
  */
 function breadcrumbFromUrl(url: string): string {
   try {
-    const path = new URL(url, 'https://nxhhuy.tech').pathname;
+    const path = new URL(normalizeUrl(url), 'https://nxhhuy.tech').pathname;
     const segments = path.split('/').filter(Boolean);
     // Drop the locale (always first) and the slug (always last).
     const middle = segments.slice(1, -1);
