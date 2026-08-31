@@ -82,6 +82,90 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Search loading feedback + nav progress bar — Polish-loading-ux**
+  **(2026-08-31, on `polish/loading-ux` off develop):** Two user-reported
+  UX gaps closed. **(1) Search dialog idle for 2-10s while Pagefind
+  bundle loads.** User said "currently no loading cause UX feel like no
+  responding from our website." Root cause: `apps/web/components/chrome/
+  search-dialog.tsx` `onInput` only set `status: 'loading'` after the
+  80ms debounce AND after `ensurePagefind()` returned. On Vercel's edge
+  the bundle fetch can take 2-10s; during that window the dialog
+  visually sat at idle. Fix: set `status: 'loading'` synchronously in
+  `onInput` (before the debounce) so the user sees "Loading search
+  index…" the moment they press a key. Status text branched on
+  `pagefind !== null` so we get two distinct messages:
+  bundle-loading → "Loading search index…"; query-in-flight →
+  "Searching…". Added `apps/web/messages/en.json` key
+  `placeholders.searchLoadingIndex`. **(2) No visual feedback during
+  client-side route navigation.** User referenced sydexa.com/blog's
+  blue progress bar at the top of the viewport. Root cause: Next 16
+  App Router has no `router.events` (Pages Router only) and no global
+  navigation-pending signal. Default behaviour gives no signal between
+  click and new page being interactive — pages either load instantly
+  or feel hung. Fix: **NEW** `apps/web/components/chrome/
+  nav-progress-bar.tsx` — client component with two-pronged detection:
+  (a) capture-phase click listener on `document` intercepts clicks on
+  `<a>` tags pointing to internal routes. Filter: href starts with `/`,
+  no `target=_blank`, no `download`, no modifier keys, no same-page
+  hash, `data-no-progress` opt-out. Fires `start()` synchronously.
+  (b) `usePathname()` effect detects when the route actually changed.
+  Fires `done()` which animates to 100% and fades out. State machine:
+  idle → in-progress (12% → 45% at +220ms → 72% at +700ms → 85% at
+  +1400ms) → complete (100% on path change) → idle. Pure CSS
+  transitions via inline `--nav-progress` custom property. No Framer
+  Motion, no new deps. Mounted in `apps/web/components/chrome/
+  site-header.tsx`. CSS in `apps/web/app/globals.css` `.nav-progress`
+  + `.nav-progress.is-active` + reduced-motion guard. Position fixed
+  at top, z-index 60 (above topbar, below dialog overlays so it never
+  blocks focus).
+
+  **Why two-pronged, not just one:** Next 16 App Router removed
+  `router.events`. The only canonical signals left are `usePathname`
+  (post-hoc, fires after the new page is ready) and `useLinkStatus`
+  (per-link, not global). Click interception alone misses browser
+  back/forward and programmatic navigation. Pathname-only would show
+  the bar appearing *after* load completed, the opposite of what we
+  want. Two together give "we know something is loading" (click) AND
+  "we know it actually finished" (pathname change). Three invented
+  decisions: (a) **dual signal rather than wrapper Link** —
+  wrapping every `<Link>` in the codebase would mean touching 30+
+  call sites; a single global delegated listener captures all of them
+  with one component; (b) **fill 12→45→72→85 instead of smooth
+  linear** — NProgress-style "indeterminate drift" feels more honest
+  than a smooth fake-percentage when we don't actually know how long
+  the route takes to load; (c) **CSS custom property for width** —
+  setting `style="--nav-progress: X%"` on the bar lets us update only
+  one inline prop per frame instead of triggering React re-renders
+  on every transition tick.
+
+  **Unfixed blocker, NOT code-fixable**: the user-reported "Search
+  failed" on Vercel preview. Direct probe of `https://develop.nxhhuy
+  .tech/pagefind/pagefind.js` (and `/pagefind/pagefind-worker.js`,
+  `/pagefind/pagefind-entry.json`, `/pagefind/wasm.en.pagefind`,
+  `/pagefind/index/*`, `/pagefind/fragment/*`) all return **HTTP 302**
+  to `https://vercel.com/sso-api?url=...`. Root cause: Vercel's
+  **Deployment Protection** ("Vercel Authentication") is ON for
+  Preview deployments on this project. Pagefind's Web Worker fetches
+  don't carry the auth cookie, so every request gets 302'd to the
+  SSO wall. Bundle never registers `window.pagefind` → "Pagefind
+  bundle loaded but did not register window.pagefind within 10s" →
+  "Search failed." This is a **Vercel dashboard config** problem, not
+  a code problem. Cannot be solved by code or `vercel.json`. User
+  action: Vercel dashboard → corpus-web → Settings → Deployment
+  Protection → "Path-based bypass" → add `/pagefind/*`. Once that's
+  done, search should work end-to-end on preview.
+
+  5 files changed (1 new), +174 / −1. All 5 gates green: typecheck
+  5/5, lint 0 problems, next build 236/236 (no new routes),
+  verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest
+  38/38 pass / 0 fail. Bundle spot-check: `.nav-progress` rules
+  emitted in `0c7xfp-vyquts.css`; `Loading search index` string in
+  `193kfli8rostc.js`. **Next (for the new session):** Vercel bypass
+  config action item for user. Polish residue remaining: D20 Shiki
+  (new npm dep blocker), D22 OG image (DNS + Vercel routing scope),
+  D30 FAQ half (corpus-side schema), develop → main promotion
+  (user-initiated PR).
+
 - **Polish-search-fixes-v2 dialog chip + Pagefind loader — `polish/search-fixes-v2`**
   **(2026-08-31, off develop):** Two regressions remained after
   Polish-search-fixes merged. **(a) "icons overlapping"** — actual cause

@@ -5,6 +5,19 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-31] — polish/loading-ux — search loading feedback + nav progress bar
+
+**Added**
+- `apps/web/components/chrome/nav-progress-bar.tsx` (NEW) — client component with two-pronged detection: (a) capture-phase click listener on `document` fires `start()` synchronously on `<a>` clicks to internal routes (filtered: href starts with `/`, no `target=_blank`, no `download`, no modifier keys, no same-page hash, `data-no-progress` opt-out); (b) `usePathname()` effect fires `done()` which animates to 100% and fades. State machine: idle → in-progress (12% → 45% → 72% → 85%) → complete (100%) → idle.
+- `apps/web/components/chrome/site-header.tsx` — mounts `<NavProgressBar />` at the top of the header.
+- `apps/web/app/globals.css` — `.nav-progress` + `.nav-progress.is-active` + reduced-motion guard. `position: fixed; top: 0; height: 2px; width: var(--nav-progress, 0%); background: var(--color-signal); z-index: 60;`. Pure CSS transitions (no Framer Motion, no new deps).
+- `apps/web/messages/en.json` — `placeholders.searchLoadingIndex: "Loading search index…"`.
+
+**Changed**
+- `apps/web/components/chrome/search-dialog.tsx` `onInput` — sets `status: 'loading'` synchronously (before the 80ms debounce) so the dialog shows feedback the instant the user types, instead of sitting visually idle for 2-10s while `ensurePagefind()` fetches the bundle. Status text branches on `pagefind !== null`: bundle-loading → "Loading search index…"; query in flight → "Searching…".
+
+5 files changed (1 new), +174 / −1. All 5 gates green: typecheck 5/5, lint 0 problems, next build 236/236 (no new routes), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38 pass / 0 fail. Bundle spot-check: `.nav-progress` rules emitted in `0c7xfp-vyquts.css`; `Loading search index` string in `193kfli8rostc.js`.
+
 ### [2026-08-31] — polish/search-fixes-v2 — redundant Esc chip removed, Pagefind loader hardened
 
 **Fixed**
