@@ -11,6 +11,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `apps/web/components/home/home.css` — three `::before` bloom layers on home sections (corpora / entry-points / audience), each anchored to a different corner with `radial-gradient` of `--marketing-accent-bloom` (22% / 16%) or `--marketing-accent-deep` (18%). Parents get `position: relative; isolation: isolate;` so the pseudo renders behind section content.
 
 **Stats:** 1 file +54/-1. All 5 gates green: typecheck 5/5, lint 0, next build PASS (Pagefind 222 pages / 28910 words — unchanged, no new content), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. End-to-end probe: `/en` HTTP 200 in 52ms. Served CSS bundle `/_next/static/chunks/408wotcfathbv.css`: all three `::before` rules confirmed. PR #116.
+### [2026-08-31] — polish/course-hero-aurora — course hero aurora/glow (design-spec §7)
+
+**Added**
+- `apps/web/app/globals.css` — `.course-hero-bloom--warm` (warm bloom from lower-right, `--marketing-accent-bloom 30%`) and `.course-hero-bloom--cool` (cool bloom from lower-left, `--color-cool 26%`). Both are radial ellipses with `blur-3xl`. Lives in globals.css (not home.css) because the course overview page doesn't import home.css.
+
+**Changed**
+- `apps/web/app/[locale]/courses/[course]/page.tsx` — replaced the single `bg-signal-dim opacity-25 blur-3xl` bloom div in the course hero `<header>` with two new bloom divs using `.course-hero-bloom--warm` and `.course-hero-bloom--cool`. Header gets the `course-hero` class for future hook-point.
+
+**Stats:** 2 files +43/-3. All 5 gates green: typecheck 5/5, lint 0, next build PASS (Pagefind 222 pages / 28910 words — unchanged, no new content), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. End-to-end probe: `/en/courses/react-foundations` HTTP 200 with both bloom divs in served HTML. Served CSS bundle `/_next/static/chunks/29ofgg-ni5quy.css` confirms both rules. PR #117.
 
 ### [2026-08-31] — polish/blog-card-kind-badge — kind badge overlay on `/en/blog` article cards
 

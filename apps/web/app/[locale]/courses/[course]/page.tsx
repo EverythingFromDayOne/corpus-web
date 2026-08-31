@@ -111,9 +111,14 @@ export default async function CourseDetailPage({ params }: PageProps) {
           <li>{course.title}</li>
         </ol>
       </nav>
-<header className="film-grain relative mt-6 overflow-hidden">        <div
+      <header className="course-hero film-grain relative mt-6 overflow-hidden">
+        <div
           aria-hidden="true"
-          className="pointer-events-none absolute -inset-x-12 -inset-y-8 rounded-full bg-signal-dim opacity-25 blur-3xl"
+          className="course-hero-bloom course-hero-bloom--warm pointer-events-none absolute -inset-x-12 -inset-y-8 rounded-full blur-3xl"
+        />
+        <div
+          aria-hidden="true"
+          className="course-hero-bloom course-hero-bloom--cool pointer-events-none absolute -inset-x-12 -inset-y-8 rounded-full blur-3xl"
         />
         <h1 className="relative text-4xl bg-gradient-to-b from-display to-signal bg-clip-text text-transparent">
           {course.title}

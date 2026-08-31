@@ -5105,6 +5105,49 @@ Changes:
   it's the page entry. The per-section blooms sit at 22%/18%/16%
   reading top-to-bottom so the page "calms down" as the reader
   scrolls into the deeper sections.
+**Known issues / next steps:** Polish residue unchanged: D20 Shiki (new-dep blocker), D22 OG image (DNS+Vercel routing), D30 FAQ half (corpus-side schema), `develop` → `main` promotion (yours; 8 PRs queued, 43+ commits after PRs #107 → #113). D38 still blocks CI on every PR (`verify-links` failing on 44 unresolved `related` refs); every PR needs admin override until D13 closes or `verify-links` flips to advisory. **Session cadence cap: hit** — seven polish batches chained in this run (PRs #107 → #113 → #114).feat(lessons): course hero aurora/glow (design-spec §7)
+
+Closes design-spec lessons §7's "Opportunity: Add a subtle
+purple/cyan glow on the course hero" gap.
+
+Changes:
+
+- `apps/web/app/[locale]/courses/[course]/page.tsx` — replaced the
+  single `bg-signal-dim opacity-25 blur-3xl` bloom div in the course
+  hero `<header>` with two new bloom divs using the new
+  `.course-hero-bloom--warm` and `.course-hero-bloom--cool` classes.
+  Header gets the `course-hero` class for future hook-point.
+- `apps/web/app/globals.css` — added `.course-hero-bloom--warm`
+  (warm bloom from lower-right, `--marketing-accent-bloom 30%`)
+  and `.course-hero-bloom--cool` (cool bloom from lower-left,
+  `--color-cool 26%`). Both are radial ellipses with `blur-3xl`,
+  sized ~32-36rem × 22-24rem. The two blooms composite to read as
+  an aurora (purple/cyan/pink family) rather than a flat warm wash.
+
+**Invented decisions:**
+
+- **Warm + cool rather than warm + warm** — the spec calls out
+  "purple/cyan/pink" as the aurora palette. The site's accent
+  system is `--color-signal` (warm/orange-amber) for primary and
+  `--color-cool` (cyan-blue) for the secondary "concept" tag
+  family. Composing bloom (warm) + cool (cyan) yields the purple +
+  cyan half of the spec's "purple/cyan/pink" target. The pink
+  half is already present at the title gradient
+  (`bg-gradient-to-b from-display to-signal`).
+- **Lives in `globals.css`, not `home.css`** — the course overview
+  page is at `/en/courses/[course]` and doesn't import `home.css`.
+  Adding the rules to `globals.css` (always loaded) keeps the
+  course-hero rules available without a new CSS import.
+- **Lower-anchored blooms, not upper** — the title sits at the top
+  of the header; blooms anchored to the lower corners rise from
+  below, framing the title without competing with it for the
+  same visual axis.
+- **Per-bloom opacity 30% / 26%, not higher** — the composite needs
+  to read as ambient depth, not as a competing visual element.
+  The previous single bloom was 25%; the new composite is
+  effectively two layered 25%-ish blooms, but each layer is
+  reduced to keep the total composite light. Title contrast
+  (gradient text on `--color-surface`) stays above WCAG.
 
 Verification:
 - All 5 gates green: typecheck 5/5, lint 0 problems, next build
@@ -5124,6 +5167,12 @@ Verification:
   `/_next/static/chunks/408wotcfathbv.css`: all three `::before`
   rules confirmed with their respective `--marketing-accent-*`
   gradient layers and corner anchoring.
+  `/en/courses/react-foundations` → HTTP 200.
+  Served HTML contains both `course-hero-bloom--warm` and
+  `course-hero-bloom--cool` divs.
+- Inspected served CSS bundle
+  `/_next/static/chunks/29ofgg-ni5quy.css`: both rules confirmed
+  with their respective radial-gradient + corner anchoring.
 
 Known issues / next steps:
 - Polish residue unchanged: D20 Shiki (new-dep blocker), D22 OG
@@ -5142,3 +5191,9 @@ Files changed:
 
 Files changed:
 - `apps/web/components/home/home.css`
+  `develop` → `main` promotion (yours; 11 PRs queued). D38 still
+  blocks CI on every PR; every PR needs admin override.
+
+Files changed:
+- `apps/web/app/[locale]/courses/[course]/page.tsx`
+- `apps/web/app/globals.css`
