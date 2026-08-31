@@ -82,6 +82,39 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Article-card hover lift on `/en/blog` — Polish-blog-card-hover**
+  **(2026-08-31, on `polish/blog-card-hover` off develop @ `bd33ebd`,
+  PR #109):** After PR #108 squash-merged to develop at `bd33ebd`,
+  picked the next polish item. The `/en/blog` article cards already
+  had a vertical accent bar that draws in from the left on hover
+  (`group-hover:scale-y-100` on a `scale-y-0` span) and a border-color
+  transition (`hover:border-signal`). What was missing was any kind of
+  *lift* — the cards just sat there. With a left accent + border
+  colour swap they read as "this is the row" but not as "this is the
+  row I want to click." Fix: added `group-hover:-translate-y-0.5`
+  (Tailwind default spacing × -0.5 = -2px; small enough not to feel
+  jumpy, large enough to be perceived as motion) +
+  `group-hover:shadow-[0_4px_12px_color-mix(in_srgb,var(--color-ink)_30%,transparent)]`
+  (tinted toward the page's ink color so it blends with the dark
+  theme; 30% opacity keeps it a hint, not a halo). Changed
+  `transition-colors` to `transition-[transform,box-shadow,border-color]`
+  to explicitly list only the three properties that change on hover
+  (avoids `transition-all`'s future-padding/font-size-surprise).
+  **Invented decision:** `translate-y-0.5` instead of `scale-105`
+  because the cards have no thumbnail — `scale-105` would just enlarge
+  the text slightly, not deliver the lift the design needs. Tailwind v4
+  emits both hover rules inside `@media (hover: hover){...}` so touch
+  devices get only the existing colour/border feedback (correct —
+  touch already has its own press state). 1 file +1/-1. All 5 gates
+  green: typecheck 5/5, lint 0 problems, next build PASS (Pagefind
+  indexed 222 pages / 28902 words), verify:prerender 196/196+18/18,
+  verify:frontmatter 196/196, vitest 38/38. Verified the rendered
+  className in served HTML and both rules in served CSS bundle
+  (`/_next/static/chunks/33zmoq-xlm6uy.css`): the translate rule
+  emits as
+  `.group-hover\:-translate-y-0\.5:is(:where(.group):hover *){--tw-translate-y:calc(var(--spacing) * -.5);translate:var(--tw-translate-x) var(--tw-translate-y)}`.
+  User visual smoke on `develop.nxhhuy.tech` is the functional gate.
+
 - **Topbar: collapse search trigger to icon-only on mobile — Polish-search-spotlight-ux topbar follow-up**
   **(2026-08-31, on `polish/search-spotlight-ux` off develop @ `72239fe`,
   PR #108 update):** A red-circle annotation on a mobile screenshot
