@@ -82,6 +82,15 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Blog post skeleton fallback — Polish-blog-post-skeleton**
+  **(2026-08-31, on `polish/blog-post-skeleton` off develop @ `e563d87`,
+  PR #118):** Closed the "blog post skeleton placeholder" half of
+  design-spec §9. 1 file +3/-2. Imported `Suspense` and `LessonSkeleton`,
+  wrapped `<ArticleView>` in `<Suspense fallback={<LessonSkeleton />}>`
+  on `/en/blog/[corpus]/[slug]`. Reused existing skeleton rather than
+  building a separate `BlogPostSkeleton`. All 5 gates green;
+  HTTP 200 on the article render.
+
 - **Blog card gradient + bloom + three-tier accent tokens — Polish-blog-card-gradient-bloom**
   **(2026-08-31, on `polish/blog-card-gradient-bloom` off develop @ `e563d87`,
   PR #115):** Closed two Gap annotations in one PR. (a) blog §3's
@@ -117,27 +126,22 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
   **(2026-08-31, on `polish/per-section-blooms` off develop @ `e563d87`,
   PR #116):** Closed design-spec home §6's "Gap: no per-section blooms"
   half-gap. 1 file +54/-1 in `apps/web/components/home/home.css`.
-  Three `::before` bloom layers on home sections, each anchored to a
-  different corner so successive blooms don't stack on the same axis:
-  corpora (top-right, bloom 22%), entry-points (lower-left, deep 18%),
-  audience (bottom-right, bloom 16%). Each parent gets `position:
-  relative; isolation: isolate;`. All 5 gates green; `/en` HTTP 200
-  in 52ms; served CSS bundle confirms all three `::before` rules.
+  Three `::before` bloom layers on home sections, each anchored
+  to a different corner so successive blooms don't stack on the
+  same axis: corpora (top-right, bloom 22%), entry-points
+  (lower-left, deep 18%), audience (bottom-right, bloom 16%).
+  Each parent gets `position: relative; isolation: isolate;`.
+  All 5 gates green; `/en` HTTP 200 in 52ms; served CSS bundle
+  confirms all three `::before` rules.
 - **Course hero aurora/glow — Polish-course-hero-aurora**
   **(2026-08-31, on `polish/course-hero-aurora` off develop @ `e563d87`,
   PR #117):** Closed design-spec lessons §7 "Opportunity: Add a
   subtle purple/cyan glow on the course hero" gap. 2 files +43/-3.
-  Two-bloom aurora (warm right + cool left, blur-3xl radial ellipses)
-  replaces single warm bloom on `/en/courses/[course]`. CSS lives in
-  globals.css. All 5 gates green; HTTP 200 with both bloom divs.
+  Two-bloom aurora (warm right + cool left, blur-3xl radial
+  ellipses) replaces single warm bloom on `/en/courses/[course]`.
+  CSS lives in globals.css. All 5 gates green; HTTP 200 with both
+  bloom divs.
 
-- **Per-section blooms — Polish-per-section-blooms**
-  **(2026-08-31, on `polish/per-section-blooms` off develop @ `e563d87`,
-  PR #116):** Closed design-spec home §6 "Gap: no per-section blooms".
-  1 file +54/-1. Three `::before` bloom layers on home sections, each
-  anchored to a different corner: corpora (top-right, bloom 22%),
-  entry-points (lower-left, deep 18%), audience (bottom-right, bloom
-  16%). All 5 gates green; `/en` HTTP 200 in 52ms.
 - **Topbar pill CTA + backdrop-blur — Polish-topbar-pill-cta**
   **(2026-08-31, on `polish/topbar-pill-cta` off develop @ `cdee66b`,
   PR #114):** Closed design-spec §1's "no pill-style CTA, no

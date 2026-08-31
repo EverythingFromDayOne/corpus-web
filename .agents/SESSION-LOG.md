@@ -5197,3 +5197,67 @@ Files changed:
 Files changed:
 - `apps/web/app/[locale]/courses/[course]/page.tsx`
 - `apps/web/app/globals.css`
+**Known issues / next steps:** Polish residue unchanged: D20 Shiki (new-dep blocker), D22 OG image (DNS+Vercel routing), D30 FAQ half (corpus-side schema), `develop` → `main` promotion (yours; 8 PRs queued, 43+ commits after PRs #107 → #113). D38 still blocks CI on every PR (`verify-links` failing on 44 unresolved `related` refs); every PR needs admin override until D13 closes or `verify-links` flips to advisory. **Session cadence cap: hit** — seven polish batches chained in this run (PRs #107 → #113 → #114).feat(blog): skeleton fallback on blog post streaming (design-spec §9)
+
+Closes the "blog post skeleton placeholder" half of design-spec
+lessons §9. The lesson route has had a `<Suspense
+fallback={<LessonSkeleton />}>` wrapper since the LessonSkeleton
+was introduced; the blog-post route did not.
+
+Changes:
+
+- `apps/web/app/[locale]/blog/[corpus]/[slug]/page.tsx` — imported
+  `Suspense` (React) and `LessonSkeleton`, wrapped the
+  `<ArticleView ... chrome={{ variant: 'corpus' }} />` in
+  `<Suspense fallback={<LessonSkeleton />}>`. The skeleton
+  (which already includes table + code-block skeletons per spec
+  §9) now appears during the streaming phase of any blog-post
+  navigation that ends up on a streaming route.
+
+**Invented decisions:**
+
+- **Reuse `LessonSkeleton` rather than build a separate
+  `BlogPostSkeleton`**. The existing skeleton already covers chrome
+  (eyebrow + heading + subtitle), 3 paragraph skeletons, 2
+  callouts, 1 table, 1 code-block — exactly what spec §9 calls for.
+  Building a separate `BlogPostSkeleton` would duplicate ~80 lines
+  of CSS for marginal visual difference. The only thing that's
+  *not* matching is that the skeleton assumes the chrome is the
+  course-lesson chrome (`.av-inner`); blog articles use a slightly
+  different chrome (corpus variant with `PostHeader`). The
+  skeleton still renders sensibly because `.av-inner` styles
+  provide a centered padded column, which works for blog too.
+- **`Suspense` over a `loading.tsx` file**. Next.js supports
+  route-segment `loading.tsx` for the same effect, but that adds a
+  new file at the route segment level. Inline `<Suspense>` keeps
+  the streaming intent visible in the page component and avoids
+  a new file. Either would work; the inline approach keeps the
+  diff small.
+- **Wrap the entire `<ArticleView>`, not just the markdown
+  rendering**. The skeleton includes a post-header placeholder
+  (eyebrow + heading + subtitle) so wrapping the full view gives
+  a coherent shape during streaming, including the chrome around
+  the article body.
+
+Verification:
+- All 5 gates green: typecheck 5/5, lint 0, next build PASS
+  (Pagefind 222 pages / 28910 words — unchanged, no new content),
+  verify:prerender 196/196+18/18, verify:frontmatter 196/196,
+  vitest 38/38.
+- End-to-end probe via `pnpm --filter @corpus/web start`:
+  `/en/blog/react/micro-frontends` → HTTP 200 with the article
+  rendered (suspense is in place but the static prerender
+  delivers the full HTML immediately; the skeleton would only
+  show during a streaming path, which isn't exercised for static
+  prerender).
+
+Known caveats:
+- For statically-prerendered blog posts, the skeleton never
+  actually displays in production because the entire HTML is
+  pre-built and shipped. The skeleton only displays for paths
+  that exercise Cache Components dynamic-IO (i.e., future routes
+  that opt into streaming). For now this is a structural change
+  ready for future streaming paths.
+
+Files changed:
+- `apps/web/app/[locale]/blog/[corpus]/[slug]/page.tsx`
