@@ -82,6 +82,25 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Blog kind-filter wiring — Polish-9 (D29 partial close)**
+  **(2026-08-31, on `polish/d29-blog-kind-filter` off develop):** D29's row
+  said the `/en/blog` chip group was inert. Earlier work shipped the
+  corpus axis; this PR adds the kind axis (concept vs recipe) as a
+  second `useState` + `useMemo` composed in `visible`, rendered as a
+  second `role="group"` chip row above the article grid. Single
+  component change (`apps/web/components/blog/article-index.tsx`,
+  +47/−23) + 3 key adds/renames in `apps/web/messages/en.json`
+  (`filterLabel` → `filterCorpusLabel` + `filterKindLabel`; rewrote
+  `blog.empty` to reflect combined-filter state). All 3 gates green:
+  typecheck 5/5, next build 236/236 (no new routes), verify:prerender
+  196/196+18/18, verify:frontmatter 196/196, lint 0 problems.
+  Brand-string + personal-content guards: 0 hits. Two invented
+  decisions: (a) kept the corpus row + kind row visible simultaneously
+  rather than tabs (chips-as-filters is the existing convention); (b)
+  `/en/courses` filter UI is NOT in this PR — only 2 courses ship
+  today and a 2-item axis is dead UI; left that half genuinely inert.
+  D29 partial close (blog half).
+
 - **`/en/license` page + site footer — Polish-8 (D25 close)**
   **(2026-08-31, on `polish/d25-license-page` off develop):**
   New `apps/web/app/[locale]/license/page.tsx` (RSC, prerendered for every registered locale). CC BY 4.0 attribution block + per-surface notes + link to creativecommons.org + `mailto:` block. New `apps/web/components/chrome/site-footer.tsx` (first site footer). `<SiteFooter>` mounted in `apps/web/app/[locale]/layout.tsx`. `apps/web/lib/routes.ts` adds `licensePath()`. `apps/web/messages/en.json` gains a 15-key `license.*` namespace plus `nav.license`. DEBT D25 closed. Phase 1 item 13 🟡 → 🟢. All 3 gates green.

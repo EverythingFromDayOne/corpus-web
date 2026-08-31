@@ -148,11 +148,12 @@
     "title": "Articles",
     "description": "Every adapting article, grouped by corpus and folder.",
     "filterAll": "All",
-    "filterLabel": "Filter by corpus",
+    "filterCorpusLabel": "Filter by corpus",
+    "filterKindLabel": "Filter by kind",
     "readingTime": "{minutes} min read",
     "folderLabel": "{folder}",
     "postMetaLabel": "Article metadata",
-    "empty": "No articles in this corpus."
+    "empty": "No articles match these filters."
   },
   "breadcrumb": {
     "label": "Breadcrumb",

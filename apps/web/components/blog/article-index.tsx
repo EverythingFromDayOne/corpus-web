@@ -7,7 +7,8 @@ import { t, type Messages } from '@/lib/i18n';
 import type { Locale } from '@/lib/locales';
 import { articlePath } from '@/lib/routes';
 
-type Filter = 'all' | RepoId;
+type CorpusFilter = 'all' | RepoId;
+type KindFilter = 'all' | ArticleListItem['kind'];
 
 export function ArticleIndex({
   locale,
@@ -18,11 +19,17 @@ export function ArticleIndex({
   articles: ArticleListItem[];
   messages: Messages;
 }) {
-  const [filter, setFilter] = useState<Filter>('all');
+  const [corpus, setCorpus] = useState<CorpusFilter>('all');
+  const [kind, setKind] = useState<KindFilter>('all');
 
   const visible = useMemo(
-    () => (filter === 'all' ? articles : articles.filter((article) => article.repo === filter)),
-    [articles, filter],
+    () =>
+      articles.filter((article) => {
+        if (corpus !== 'all' && article.repo !== corpus) return false;
+        if (kind !== 'all' && article.kind !== kind) return false;
+        return true;
+      }),
+    [articles, corpus, kind],
   );
 
   const groups = useMemo(() => {
@@ -40,29 +47,68 @@ export function ArticleIndex({
     return byRepo;
   }, [visible]);
 
-  const filters: Array<{ id: Filter; label: string }> = [
+  const corpusFilters: Array<{ id: CorpusFilter; label: string }> = [
     { id: 'all', label: t(messages, 'blog.filterAll') },
     ...REPOS.map((repo) => ({ id: repo, label: t(messages, `corpora.${repo}.label`) })),
   ];
+  const kindFilters: Array<{ id: KindFilter; label: string }> = [
+    { id: 'all', label: t(messages, 'blog.filterAll') },
+    { id: 'concept', label: t(messages, 'article.kindConcept') },
+    { id: 'recipe', label: t(messages, 'article.kindRecipe') },
+  ];
+
+  function renderChip({
+    selected,
+    label,
+    onClick,
+  }: {
+    selected: boolean;
+    label: string;
+    onClick: () => void;
+  }) {
+    return (
+      <button
+        type="button"
+        aria-pressed={selected}
+        onClick={onClick}
+        className={`rounded-md border px-3 py-1.5 text-sm ${
+          selected
+            ? 'border-signal text-signal'
+            : 'border-graphite text-muted hover:text-display'
+        }`}
+      >
+        {label}
+      </button>
+    );
+  }
 
   return (
     <div>
-      <div role="group" aria-label={t(messages, 'blog.filterLabel')} className="mt-8 flex flex-wrap gap-2">
-        {filters.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            aria-pressed={filter === item.id}
-            onClick={() => setFilter(item.id)}
-            className={`rounded-md border px-3 py-1.5 text-sm ${
-              filter === item.id
-                ? 'border-signal text-signal'
-                : 'border-graphite text-muted hover:text-display'
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
+      <div
+        role="group"
+        aria-label={t(messages, 'blog.filterCorpusLabel')}
+        className="mt-8 flex flex-wrap gap-2"
+      >
+        {corpusFilters.map((item) =>
+          renderChip({
+            selected: corpus === item.id,
+            label: item.label,
+            onClick: () => setCorpus(item.id),
+          }),
+        )}
+      </div>
+      <div
+        role="group"
+        aria-label={t(messages, 'blog.filterKindLabel')}
+        className="mt-3 flex flex-wrap gap-2"
+      >
+        {kindFilters.map((item) =>
+          renderChip({
+            selected: kind === item.id,
+            label: item.label,
+            onClick: () => setKind(item.id),
+          }),
+        )}
       </div>
 
       {visible.length === 0 ? (
