@@ -82,6 +82,46 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Pagefind load via dynamic ESM import — Polish-search-esm-import**
+  **(2026-08-31, on `polish/search-esm-import` off develop @ 8426adc,
+  PR #107):** **Root-cause fix for the user-reported "Search failed"
+  on develop.nxhhuy.tech.** Three prior sessions' work improved
+  error visibility (PR #104), hardened the loader (PR #105), and
+  added loading feedback (PR #106), but none of them addressed the
+  actual bug. Pagefind 1.x ships `/pagefind/pagefind.js` as a
+  native ES module — the file ends with
+  `export{createInstance,debouncedSearch,destroy,filters,init,mergeIndex,options,preload,search};`.
+  Our `SearchDialog` was injecting it via classic `<script src>`
+  with no `type="module"`. The browser parses fine until the very
+  last line, then hits the `export` keyword and throws
+  `Uncaught SyntaxError: Unexpected token 'export'`. The
+  `script.onload` event fires anyway (the file did download), so
+  `ensurePagefind()` proceeded to poll `window.pagefind` for 10s,
+  never found it, and surfaced "Pagefind bundle loaded but did not
+  register window.pagefind within 10s." Same error on every
+  environment — localhost, Vercel preview, production — masking
+  the actual cause with different symptoms. Fix: replace the
+  script-tag-and-poll dance with a single dynamic
+  `await import('/pagefind/pagefind.js')`. Returns the ES module
+  namespace directly — no global registration needed. `init()` then
+  `search()` then `r.data()` per Pagefind's canonical API.
+  Discovered secondary bug in same patch: the old code called
+  `pf.getFragment(r, opts?)` which is not a Pagefind API — the
+  correct call is `r.data()`. Verified end-to-end via Chrome
+  DevTools Protocol on both dev and prod builds: typing "angular"
+  on `/en/courses` ⌘K dialog returns 8 ranked Angular articles
+  (module-federation, builders, routing, etc.) with
+  `<mark>angular</mark>` excerpts. **Vercel Auth-SSO hypothesis
+  refuted**: the 302 → vercel.com/sso-api redirect was masking the
+  parse error, not causing it. With the dynamic-import fix, search
+  works on localhost without any Vercel config. 1 file changed,
+  -70 / +44. All 5 gates green: typecheck 5/5, lint 0 problems,
+  next build 236/236, verify:prerender 196/196+18/18,
+  verify:frontmatter 196/196, vitest 38/38. **Next:** user
+  spot-checks search on develop.nxhhuy.tech — Vercel Auth bypass
+  for `/pagefind/*` is still recommended as defense-in-depth but
+  no longer required for the search to work.
+
 - **Search loading feedback + nav progress bar — Polish-loading-ux**
   **(2026-08-31, on `polish/loading-ux` off develop):** Two user-reported
   UX gaps closed. **(1) Search dialog idle for 2-10s while Pagefind

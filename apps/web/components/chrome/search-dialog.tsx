@@ -3,10 +3,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { t, type Messages } from '@/lib/i18n';
 
-// Pagefind exposes itself on `window.pagefind` once the browser bundle
-// at `/pagefind/pagefind.js` finishes executing. Augment the Window type
-// so callers don't have to.
-type PagefindWindow = Window & { pagefind?: PagefindModule };
+// Pagefind 1.x ships `/pagefind/pagefind.js` as a native ES module
+// (the file ends with `export{createInstance,debouncedSearch,…}`), so
+// the canonical load is a dynamic `import()` — *not* a <script> tag.
+// A classic <script src> would parse the `export` keyword as a
+// SyntaxError, never assign anything to `window.pagefind`, and the
+// page would sit at "bundle loaded but did not register window.pagefind"
+// forever. Dynamic import also keeps the fetch on the same origin
+// (so Vercel Preview auth cookies, when present, travel with it).
+type PagefindModule = {
+  init?: () => Promise<void>;
+  search: (q: string) => Promise<PagefindSearchResponse>;
+  options?: (opts: Record<string, unknown>) => Promise<void>;
+};
 
 type SearchStatus =
   | { kind: 'idle' }
@@ -84,64 +93,39 @@ export function SearchDialog({ messages }: { messages: Messages }) {
   }, []);
 
   // Lazy-load Pagefind on first open. The browser bundle is at
-  // /pagefind/pagefind.js (served from public/pagefind/). Turbopack and
-  // webpack both try to resolve static `import()` calls at build time,
-  // so we load Pagefind the recommended way: inject a <script> tag,
-  // wait for the global to be defined, then use `window.pagefind`.
+  // /pagefind/pagefind.js (served from public/pagefind/). It's a
+  // native ES module (ends with `export{…}`), so we load it via
+  // dynamic `import()` — a <script> tag would SyntaxError on the
+  // trailing `export` and never register anything. The browser
+  // caches the URL across calls, so concurrent openers share one
+  // fetch; we cache the resolved module in a useState to avoid
+  // re-importing on every keystroke.
   const ensurePagefind = async (): Promise<PagefindModule | null> => {
     if (pagefind) return pagefind;
     if (typeof window === 'undefined') return null;
-    const w = window as PagefindWindow;
-    const cached: PagefindModule | undefined = w.pagefind;
-    if (cached) {
-      setPagefind(cached);
-      return cached;
-    }
-    // Inject the script if it isn't already in the DOM. Use onload/onerror
-    // to capture the actual load outcome rather than polling blindly —
-    // on Vercel's edge network a slow first-load can blow past a 3s poll.
-    const existing = document.querySelector<HTMLScriptElement>('script[data-pagefind]');
-    if (!existing) {
-      const script = document.createElement('script');
-      script.src = '/pagefind/pagefind.js';
-      script.async = true;
-      script.dataset.pagefind = 'true';
-      document.head.appendChild(script);
-      try {
-        await new Promise<void>((resolve, reject) => {
-          script.addEventListener('load', () => resolve(), { once: true });
-          script.addEventListener(
-            'error',
-            () => reject(new Error('Pagefind script failed to load (network error or 4xx/5xx)')),
-            { once: true },
-          );
-          // Hard cap at 15s — beyond that we surface the failure rather than
-          // appearing unresponsive.
-          setTimeout(() => reject(new Error('Pagefind script timed out after 15s')), 15000);
-        });
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        console.error('[search] Pagefind script load failed', err);
-        setStatus({ kind: 'error', message });
-        return null;
-      }
-    }
-    // Poll for the global; Pagefind defines window.pagefind synchronously
-    // once the bundle finishes executing. Up to 10s with a 100ms back-off.
-    for (let i = 0; i < 100 && !w.pagefind; i += 1) {
-      await new Promise((r) => setTimeout(r, 100));
-    }
-    const pf: PagefindModule | undefined = w.pagefind;
-    if (!pf) {
+    try {
+      // Dynamic `import()` of a runtime-resolved URL. The bundle lives
+      // in apps/web/public/pagefind/pagefind.js and is served at the
+      // site root at /pagefind/pagefind.js. Turbopack/webpack must not
+      // try to resolve it at build time — both honour `webpackIgnore`
+      // (Turbopack reads it from the source). The `as PagefindModule`
+      // cast silences TS7016 because no .d.ts ships with the bundle.
+      const mod = (await import(
+        /* webpackIgnore: true */ /* @ts-expect-error runtime URL — public asset */
+        '/pagefind/pagefind.js'
+      )) as PagefindModule;
+      if (mod.init) await mod.init();
+      setPagefind(mod);
+      return mod;
+    } catch (err) {
       const message =
-        'Pagefind bundle loaded but did not register window.pagefind within 10s. The runtime may be incompatible.';
-      console.error('[search] Pagefind failed to register window.pagefind');
+        err instanceof Error
+          ? `Pagefind failed to initialise: ${err.message}`
+          : 'Pagefind failed to initialise: unknown error';
+      console.error('[search] Pagefind failed to initialise', err);
       setStatus({ kind: 'error', message });
       return null;
     }
-    if (pf.init) await pf.init();
-    setPagefind(pf);
-    return pf;
   };
 
   const onInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -166,7 +150,7 @@ export function SearchDialog({ messages }: { messages: Messages }) {
       try {
         const search = await pf.search(next);
         const fragments = (await Promise.all(
-          search.results.slice(0, 8).map((r) => pf.getFragment(r as PagefindResultRaw)),
+          search.results.slice(0, 8).map((r) => r.data()),
         )) as PagefindResultFragment[];
         setResults(fragments);
         setStatus({ kind: fragments.length === 0 ? 'empty' : 'ready' });
@@ -293,11 +277,10 @@ export function SearchDialog({ messages }: { messages: Messages }) {
 }
 
 // --- Pagefind runtime types (declarations only; runtime is JS) ----------
-
-// Pagefind exposes itself on `window.pagefind` once the browser bundle
-// (/pagefind/pagefind.js) finishes executing. The component reads that
-// global via the PagefindWindow augmentation above; no source-level
-// `import` is needed.
+//
+// The runtime lives in /pagefind/pagefind.js (ESM bundle built by
+// `pagefind --site public` at postbuild time). We import it dynamically
+// from `ensurePagefind`; the module namespace matches PagefindModule.
 
 interface PagefindResultRaw {
   id: string;
@@ -322,13 +305,4 @@ interface PagefindSearchResponse {
   results: PagefindResultRaw[];
   total: number;
   searchDuration: number;
-}
-
-interface PagefindModule {
-  init?: () => Promise<void>;
-  search: (q: string) => Promise<PagefindSearchResponse>;
-  getFragment: (
-    r: PagefindResultRaw,
-    opts?: { before?: number; after?: number },
-  ) => Promise<PagefindResultFragment>;
 }

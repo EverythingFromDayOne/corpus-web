@@ -4742,3 +4742,30 @@ Two user-reported UX gaps closed in one PR. **(1) Search dialog idle for 2-10s w
 **Unfixed blocker, NOT code-fixable**: the user-reported "Search failed" detail on Vercel preview deployments. Direct probe of `https://develop.nxhhuy.tech/pagefind/pagefind.js` (and `/pagefind/pagefind-worker.js`, `/pagefind/pagefind-entry.json`, `/pagefind/wasm.en.pagefind`, `/pagefind/index/*`, `/pagefind/fragment/*`) all return **HTTP 302** to `https://vercel.com/sso-api?url=...`. The cause: Vercel's **Deployment Protection** ("Vercel Authentication") is ON for Preview deployments on this project. Pagefind's Web Worker fetches don't carry the auth cookie, so every request gets 302'd to the SSO wall. The bundle never registers `window.pagefind` → "Pagefind bundle loaded but did not register window.pagefind within 10s" → "Search failed." This is a **Vercel dashboard config** problem, not a code problem. Cannot be solved by code or `vercel.json`. User action: Vercel dashboard → corpus-web → Settings → Deployment Protection → "Path-based bypass" → add `/pagefind/*`. Once that's done, search should work end-to-end on preview.
 
 **Next (for the new session):** Vercel bypass config action item for user. Polish residue remaining: D20 Shiki (new npm dep blocker), D22 OG image (DNS + Vercel routing scope), D30 FAQ half (corpus-side schema), develop → main promotion (user-initiated PR).
+
+## 2026-08-31 — polish/search-esm-import (PR #107, branch `polish/search-esm-import`)
+
+**Root cause of "Search failed on develop.nxhhuy.tech" finally identified.** Three prior sessions' worth of work improved error visibility (PR #104), hardened the loader (PR #105), added loading feedback (PR #106) — none of them addressed the actual bug. Pagefind 1.x ships `/pagefind/pagefind.js` as a **native ES module**: the file ends with `export{createInstance,debouncedSearch,destroy,filters,init,mergeIndex,options,preload,search};`. Our `SearchDialog` was injecting it via `<script src="/pagefind/pagefind.js">` (classic script, no `type="module"`). The browser parses the bundle fine until the very last line, then hits the `export` keyword and throws `Uncaught SyntaxError: Unexpected token 'export'`. The `script.onload` event fires anyway (the file did download — it just couldn't evaluate), so `ensurePagefind()` proceeded to poll `window.pagefind` for 10s, never finding it, then surfaced "Pagefind bundle loaded but did not register window.pagefind within 10s. The runtime may be incompatible." Same code path, same error on every environment: localhost (the user-reported screenshot), Vercel preview (which I had incorrectly attributed to Vercel's auth-SSO 302 redirect), and production.
+
+**Fix**: replace the entire 70-line script-tag + onload/onerror + 10s-poll dance with a single dynamic `import('/pagefind/pagefind.js')`:
+```ts
+const mod = (await import(/* webpackIgnore */ '/pagefind/pagefind.js')) as PagefindModule;
+if (mod.init) await mod.init();
+setPagefind(mod);
+return mod;
+```
+Dynamic import returns the ES module namespace directly — no global registration needed. `init()` then `search()` then `r.data()` per Pagefind's canonical API.
+
+**Discovered secondary bug in same patch**: the old code called `pf.getFragment(r, opts?)`, which is not a Pagefind API. The bundle exports `createInstance`, `search`, `options`, `preload`, `init`, `filters`, `destroy`, `debouncedSearch`, `mergeIndex` — no `getFragment`. The correct call is `await r.data()` (returns `{url, excerpt, meta}`). Replaced.
+
+**Verified end-to-end** via Chrome DevTools Protocol on both `pnpm dev` (port 3000) and `pnpm start` (production build):
+- Standalone `/pagefind-test.html` (with `<script type="module">` doing `import('/pagefind/pagefind.js')`): export keys = all 9 expected names; `search("angular")` returns 198 results; first hit is `/en/blog/angular/module-federation.html` with `<mark>Angular.</mark>` excerpt.
+- Full flow on `/en/courses`: ⌘K → type "angular" → dialog shows 8 ranked results (module-federation, builders, routing, angular-material, getting-started, template-driven-forms, guards-resolvers, angular-elements), each with `<mark>angular</mark>` highlights in excerpts. No "Search failed" error. No "Loading search index…" stuck state.
+
+**Vercel Auth-SSO hypothesis refuted.** The 302 → vercel.com/sso-api path on develop.nxhhuy.tech is real (every `/pagefind/*` request gets redirected), but it was masking the underlying parse error, not causing it. With the dynamic-import fix, the search works on localhost without any Vercel config change. The user's Vercel dashboard action item (Path-based bypass for `/pagefind/*`) is no longer required for search to function — though it's still a sensible defense-in-depth measure so Pagefind's worker fetches don't carry the deployment-protection cookie.
+
+**Invented decisions:**
+- (a) Replaced the three-tier "script failed to load / script timed out / did not register window.pagefind" error taxonomy with a single "Pagefind failed to initialise: <cause>" message. Dynamic `import()` rejects once with a real cause (network, MIME, parse); the three-state classifier only made sense for the script-tag world where load and parse were observable separately.
+- (b) Kept the synchronous `setStatus({kind:'loading'})` in `onInput` from PR #106 so the dialog still shows "Loading search index…" feedback immediately. The dynamic import is fast enough that "Searching…" follows within ~50ms rather than ~3s.
+
+1 file changed, -70 / +44. All 5 gates green: typecheck 5/5, lint 0 problems, next build 236/236 (no new routes), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38 pass / 0 fail. Chrome CDP-driven verification on both dev and prod servers. **Next:** user spot-checks on develop.nxhhuy.tech — Vercel Auth wall will need bypass config (or be turned off) for the search index to load. Polish residue: D20 Shiki, D22 OG image, D30 FAQ half, develop → main promotion.
