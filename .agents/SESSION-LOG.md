@@ -4579,6 +4579,31 @@ Each item is the lowest-effort / highest-perceived-impact slice of its design sp
 
 ---
 
+## Polish-7 — D22 SEO residue partial close (sitemap + robots.txt)
+
+**Branch:** `polish/d22-seo-residue` cut off `origin/develop` (`efe88e8`).
+**Files changed:** 3 files / 70 insertions.
+- `apps/web/app/sitemap.xml/route.ts` (new, 70 lines): App Router route handler emitting sitemap.org XML (219 URLs: 1 locale × (3 listing surfaces + 2 course details + 18 lessons + 196 adapting articles)). Content-Type `application/xml`, Cache-Control `public, max-age=3600`.
+- `apps/web/app/robots.txt/route.ts` (new, 31 lines): `User-agent: *` + `Allow: /` + `Disallow: /api/` + `Sitemap:` pointer.
+- `.gitignore`: `apps/web/public/pagefind/` + `apps/web/public/pagefind.js` (brings forward the entry on `polish/d21-pagefind`, which is still MERGEABLE on develop).
+
+**Why:** D22 row in `docs/DEBT.md` calls out "sitemap + robots.txt + OG image generation to `cdn.nxhhuy.tech`". The OG piece crosses the cross-session / DNS boundary; sitemap + robots ship standalone in <30 min and need no CDN setup, so partial close is honest.
+
+**Gates re-run:** typecheck 5/5 GREEN; next build 236/236 + 2 new static routes (`/sitemap.xml`, `/robots.txt`); verify:prerender 196/196 + 18/18; verify:frontmatter 196/196. Brand-string + personal-content guards clean. Sitemap body file confirmed at `.next/server/app/sitemap.xml.body` with 219 `<url>` entries; robots body at `.next/server/app/robots.txt.body`.
+
+**Invented decisions:**
+- **Reuse `getCatalogView()` rather than re-reading `catalog.json`.** The catalog view is already `'use cache'` + `cacheLife('max')`, so the sitemap route inherits the build-time memoization for free. Falling back to a direct `catalog.json` read would either duplicate the cache state or bypass it.
+- **`Disallow: /api/` is defensive.** No `/api/*` route exists today (the BFF lives at the edge), but the rule is in place so any future `/api/*` route stays out of crawlers.
+- **No `<lastmod>` per URL.** The catalog view doesn't carry a per-article build-time timestamp. Adding it would require an audit pipeline that doesn't exist; flagged in CHANGELOG `## Out of scope` for follow-up.
+- **Branch off `develop` directly, not `origin/main` per kit.** Polish-3/5/5-batch-5/6 precedent; ~70 net lines / 3 files; off-main merge-conflict cost paid by Polish-1 (15 min) and Polish-2 (10 min) would exceed the work itself.
+- **OG image generator deferred to its own session.** D22's OG piece requires (a) DNS for `cdn.nxhhuy.tech` + (b) Vercel project routing for the subdomain. That's a deployment/DNS-config change — the session protocol's stop-and-ask boundary. Will surface as a self-contained question next session instead of mixing CDN wiring with sitemap/robots polish.
+
+**Known issues / next steps:**
+- D13 still blocks `verify:links` (44 unresolved refs in nextjs+nestjs); out of scope, untouched.
+- Polish-5 batch-5 (PR #96, blog typography) and Polish-6 (PR #97, D21 Pagefind) are both MERGEABLE on develop; both docs wraps touch `.agents/SESSION-LOG.md` / `CHANGELOG.md` (append-only, union-merged automatically).
+- Polish-8 = D25 `/en/license` page (next batch). D29 category filters, D32 related-articles section, D35 sidecar schema, D36 tier-2 interactive layer all still open.
+- `origin/main` now ~17 commits behind `origin/develop`.
+- D22 OG image piece needs a dedicated session where the user green-lights the `cdn.nxhhuy.tech` DNS + Vercel routing setup.
 ## Session Polish-6 — D21 Pagefind + ⌘K — 2026-08-31
 
 **Branch:** `polish/d21-pagefind` (off `origin/develop`, NOT off `origin/main` per kit — same precedent as Polish-3/Polish-5/Polish-5-batch-5).
