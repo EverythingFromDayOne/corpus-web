@@ -22,3 +22,5 @@ apps/web/public/pagefind.js
 # Do NOT ignore content/. Submodules are gitlinks tracked by this repo;
 # a content/ ignore would be inert and would read as protection while
 # providing none. See scripts/verify-submodules.mjs.
+# Hermes is a tool for managing environment variables in a project.
+.hermes/
