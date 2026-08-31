@@ -5,6 +5,18 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-31] — polish/d30-timeline-visual — D30 partial close (learning-path timeline visual)
+
+**Changed**
+- `apps/web/components/courses/course-card.tsx` — `<CurriculumList>` re-rendered as a vertical learning-path timeline: left-rail filled dots (first + last items only), `border-l border-graphite` connector segments between non-final steps (rendered as `<span>` siblings, not CSS pseudo-elements — Tailwind utility, no `@theme` add), zero-padded ordinals in `tabular-nums`, and the per-step `note` rendered as a `border-l-2 italic` callout that distinguishes rationale from lesson title. `<ol>` carries `aria-label="Learning-path timeline"` for assistive tech. Old `border-b` separator removed — the rail replaces it semantically. 45 +/− 12.
+- `apps/web/messages/en.json` — adds `courses.curriculumTimelineLabel` ("Learning-path timeline") under the existing `courses.*` namespace. +1 key.
+
+**Architecture decisions**
+- Filled dots for first + last items only — semantically "entry" and "exit" of the path. Middle steps are hollow progression markers. Visual emphasis goes on the path's endpoints, not its interior.
+- Connector segments rendered as `<span>` siblings, not CSS `::before` pseudo-elements — Tailwind utility-driven keeps the change contained to `course-card.tsx`; no new CSS file or `@theme` token.
+- `note` rendered as a callout (bordered + italic) rather than muted paragraph — the timeline visual depends on making the rationale visually distinct from the lesson title. Without this distinction the rail becomes decoration.
+- D30's FAQ accordion half remains open — `Path` schema has no `faqs` field; needs coordinated corpus-side authoring before that half can ship. Not in this PR's scope.
+
 ### [2026-08-31] — polish/d29-blog-kind-filter — D29 partial close (blog filter kind axis)
 
 **Changed**
