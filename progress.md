@@ -53,7 +53,7 @@ now in scope and adapting. Re-measured 2026-08-30 in session
 | 8 | Full route tree, every completed article renders | ✅ | 181 adapting articles at `/en/blog/[corpus]/[slug]`. 16 excluded 404. Lesson pairs from `react-render-cycle` at `/en/courses/[course]/lessons/[slug]`. The session-1 `/concepts` spike stays deleted. |
 | 9 | Chrome: sidebar, breadcrumb, TOC rail, prev/next | ✅ | One `ArticleView`, two wrappers. Listing POC pinned shell + article POC body. Rail ticks are depth-2 parts only, `<button>` with hover and `:focus-visible` labels; `overflow: visible` so labels are not clipped. 18×2px ticks unchanged. Scroll-spy is last heading above the 20% reading line; the last part / 100% override is max scroll, or a bottom zone (`remaining ≤ 0.2 × viewport`) with the last heading on screen and unable to reach that line. D18 closed: sidebar search is labelled, completed links announce, closed mobile drawer is `inert`. |
 | 10 | Shiki code blocks (copy / download / expand) | ⚪ | Debt D20. Copy/download/expand ship unhighlighted. |
-| 11 | Pagefind search + ⌘K dialog | ⚪ | Disabled top-bar search matches the listing POC: `Search` label, `Coming soon` placeholder, `⌘K` hint, one line inside `--tb`. Debt D21 |
+| 11 | Pagefind search + ⌘K dialog | ✅ | `polish/d21-pagefind` off develop: `<SearchDialog>` (native `<dialog>`) mounted at `[locale]/layout` level, `<SearchTrigger>` `<button>` replaces the disabled `SearchPlaceholder` at the topbar's right edge. Pagefind 1.5.2 declared in `apps/web/devDependencies`; `postbuild` hook indexes `.next/server/app/en/**.html` into `apps/web/public/pagefind/` (221 pages, 28822 words, ~13 files at `/pagefind/*`). Opens on ⌘K / Ctrl+K; debounced 80ms queries; up to 8 results with Pagefind excerpts; ArrowUp/Down + Enter navigation. Native `<dialog>` handles Esc + focus trap + backdrop. Bracket `[param]` Cache Components placeholder shells are skipped because they have no `<html>` element. Debt D21 closed |
 | 12 | Mobile layout | 🟢 | Article/lesson mobile is a drawer, not a stacked curriculum. 390px visual pass is still human. **Headless Chrome clamps its window to roughly 500px**, so a `--window-size=390,900` run silently measures 500px; measure inside a fixed-width iframe |
 | 13 | Corpus landing at `/en` + `/en/license` (roadmap §15.1) | 🟢 | `/en` transcribes listing-POC `#p-home`: census readout from `catalog.json`, two CTAs, hero band, corpus ratio bars + adapting/version footer, split "Three ways in" with the demo panel as aside, tag-legend reading conventions. `/en/license` ships CC BY 4.0 attribution + per-surface notes (code samples, adapted articles) + `mailto:` block — Debt D25 closed; new site footer renders on every locale page
 | 14 | SEO baseline: metadata, OG, sitemap, JSON-LD | 🟢 | Listing and article pages ship metadata + WebSite/Organization/TechArticle/BreadcrumbList JSON-LD. `/sitemap.xml` (219 URLs: 3 listing × 1 locale + 2 course details + 18 lessons + 196 articles) and `/robots.txt` (`User-agent: *` + `Sitemap:`) ship as static text via App Router route handlers. OG image generation to `cdn.nxhhuy.tech` is the remaining D22 piece (CDN sub-domain requires DNS + Vercel project routing, beyond autonomous scope). Debt D22 partially closed |
@@ -109,6 +109,51 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
   are non-crawled in dev anyway). `origin/main` now ~17 commits
   behind `origin/develop`.
 
+- **Pagefind + ⌘K (D21) — Polish-6**
+  **(2026-08-31, on `polish/d21-pagefind` off develop):**
+  `pagefind 1.5.2` declared in `apps/web/devDependencies`; new
+  `postbuild` + `search:index` scripts run `pagefind --site
+  .next/server/app --output-path public/pagefind`. New client components
+  `apps/web/components/chrome/search-dialog.tsx` (native `<dialog>`,
+  ⌘K / Ctrl+K, ArrowUp/Down + Enter, debounced 80ms queries, up to 8
+  Pagefind excerpts) and `apps/web/components/chrome/search-trigger.tsx`
+  (a real `<button>` replacing the disabled `.srch` `<label>`). Wired
+  into `apps/web/app/[locale]/layout.tsx` (mounts `<SearchDialog>` once
+  per locale) and `apps/web/components/chrome/site-header.tsx` (swaps
+  in `<SearchTrigger>`). DELETED `apps/web/components/chrome/search-placeholder.tsx`.
+  +152 lines of CSS in `apps/web/app/globals.css` (`.srch-trigger`,
+  `.srch-dialog`, `.srch-dialog-input`, `.srch-dialog-results`,
+  `.srch-dialog-excerpt mark`, `.srch-dialog-status`, `.srch-dialog-foot`,
+  `.srch-dialog-close`). +9 keys in `apps/web/messages/en.json`. All 3
+  gates green; Pagefind indexed 221 pages / 28822 words in 2.345s. Five
+  invented decisions: native `<dialog>` over headless-UI library;
+  event-bus (`corpus:open-search`) over lifted React state;
+  script-tag injection over static `import()` (Turbopack refuses to
+  bundle absolute runtime paths); poll 50×60ms for `window.pagefind`
+  global instead of `await import()`; both `placeholders.search` and
+  `placeholders.searchInput` carry the same string for future split.
+  DEBT D21 closed. `origin/main` now 17 commits behind `origin/develop`.
+
+- **D20 §2 + blog §5/§10/§15 polish batch — Polish-5**
+  **(2026-08-31, on `polish/d20-batch-5-blog-typography` off develop):**
+  5 small additive items from the design-spec backlog: hero bloom +
+  gradient text on `/en` (home §2, mirrors the course-detail hero from
+  PR #86); `.blog-content` typography block (blog §15 High — 16px/1.7
+  lh/768px reading column, scoped `[data-blog]`); post-header template
+  for blog posts (badge + H1 + 4-piece meta row, new
+  `apps/web/components/article/post-header.tsx`); second use site of
+  `<SectionDivider>` on `/en/blog`; new `[data-blog]` wrapper layout
+  (`apps/web/app/[locale]/blog/layout.tsx`) + 15 `--blog-*` scoped
+  tokens (dark + light) in `packages/ui/src/tokens.css`. All 3 gates
+  green: typecheck 5/5, next build 236/236, verify:prerender
+  196/196+18/18. Five invented decisions: off-develop branch (same
+  Polish-3/Polish-5 justification), `[data-blog]` on a wrapping div
+  not `<html>` (App Router constraint, spec §14 caveat), reading
+  column folded into the typography commit rather than split out,
+  post-header meta swaps author/date for corpus/kind/baseline
+  (personal-content boundary + roadmap §15.1 "no dates"), 16px/1.7 lh
+  (spec's own §14 caveat measurement call). `origin/main` now 14
+  commits behind `origin/develop`.
 - **View Transitions API on lesson content (D20 §8) — Polish-5**
   **(2026-08-31, on `polish/d20-view-transitions` off develop):**
   Inline `style={{ viewTransitionName: 'lesson-content' }}` on the

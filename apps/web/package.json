@@ -7,6 +7,8 @@
     "dev": "next dev --port 3000",
     "prebuild": "node ../../scripts/build-slug-allowlist.mjs",
     "build": "next build",
+    "postbuild": "pagefind --site .next/server/app --output-path public/pagefind || true",
+    "search:index": "pagefind --site .next/server/app --output-path public/pagefind",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test test/*.test.ts"
@@ -28,6 +30,7 @@
     "@types/node": "^22.19.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
+    "pagefind": "1.5.2",
     "postcss": "^8.5.0",
     "tailwindcss": "4.3.3",
     "tsx": "4.23.12",
