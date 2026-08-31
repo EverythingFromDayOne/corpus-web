@@ -4,12 +4,14 @@ import { t, type Messages } from '@/lib/i18n';
 import { ThemeToggle } from './theme-toggle';
 import { SearchTrigger } from './search-trigger';
 import { NavLinks } from './nav-links';
+import { NavProgressBar } from './nav-progress-bar';
 import { homePath } from '@/lib/routes';
 import type { Locale } from '@/lib/locales';
 
 export function SiteHeader({ locale, messages }: { locale: Locale; messages: Messages }) {
   return (
     <header className="topbar">
+      <NavProgressBar />
       <a
         href="#content"
         className="bg-signal text-ink sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-3 focus:py-1"

@@ -154,6 +154,11 @@ export function SearchDialog({ messages }: { messages: Messages }) {
       setStatus({ kind: 'idle' });
       return;
     }
+    // Surface "loading" immediately so the user sees feedback the
+    // moment they type — without this, the dialog stays visually
+    // idle while `ensurePagefind` loads the bundle, which on Vercel's
+    // edge network can take 2–10s and feels like the app is hung.
+    setStatus({ kind: 'loading' });
     debounceRef.current = setTimeout(async () => {
       const pf = await ensurePagefind();
       if (!pf) return;
@@ -244,7 +249,11 @@ export function SearchDialog({ messages }: { messages: Messages }) {
           aria-live="polite"
         >
           {status.kind === 'loading' && (
-            <li className="srch-dialog-status">{t(messages, 'placeholders.searchLoading')}</li>
+            <li className="srch-dialog-status">
+              {pagefind
+                ? t(messages, 'placeholders.searchLoading')
+                : t(messages, 'placeholders.searchLoadingIndex')}
+            </li>
           )}
           {status.kind === 'empty' && (
             <li className="srch-dialog-status">{t(messages, 'placeholders.searchEmpty')}</li>

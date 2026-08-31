@@ -26,6 +26,7 @@
     "searchDialogLabel": "Search articles",
     "searchTriggerLabel": "Open search (⌘K)",
     "searchLoading": "Searching…",
+    "searchLoadingIndex": "Loading search index…",
     "searchEmpty": "No matches.",
     "searchError": "Search failed. Try again.",
     "searchHint": "Full-text across every adapting article. ↑↓ to move, ↵ to open, Esc to close.",
