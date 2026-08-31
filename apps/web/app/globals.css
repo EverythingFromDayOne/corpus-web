@@ -613,3 +613,40 @@ body:has(.av-view) .av-header-tog {
     animation: none;
   }
 }
+
+/* --- Course hero aurora/glow (design-spec lessons §7) ---
+   Two radial blooms composited on the course-overview hero to create
+   a "lit from multiple angles" aurora effect. The original single
+   bloom (bg-signal-dim opacity-25) was a one-color wash; this
+   upgrade layers a warm bloom (lower-right) and a cool bloom
+   (lower-left) to read as a multi-colour aurora rather than a flat
+   glow. Reduced per-bloom opacity (30% / 26%) keeps the composite
+   beneath the title text's WCAG contrast threshold. Lives in
+   globals.css (not home.css) because the course overview page
+   doesn't import home.css. */
+.course-hero-bloom--warm {
+  top: auto;
+  left: auto;
+  right: -8rem;
+  bottom: -10rem;
+  width: 36rem;
+  height: 24rem;
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--marketing-accent-bloom) 30%, transparent) 0%,
+    transparent 70%
+  );
+}
+
+.course-hero-bloom--cool {
+  top: auto;
+  left: -8rem;
+  bottom: -8rem;
+  width: 32rem;
+  height: 22rem;
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--color-cool) 26%, transparent) 0%,
+    transparent 70%
+  );
+}
