@@ -247,6 +247,45 @@ body:has(.av-view) .av-header-tog {
   transition: border-color 300ms ease, color 300ms ease, background-color 300ms ease;
 }
 
+/* --- Blog article card (design-spec blog §3 "dark-gradient + bloom + ALL CAPS") ---
+   Subtle accent-gradient background + bloom under-layer + lift on hover.
+   Uses the marketing-accent three-tier (line / deep / bloom) for a layered
+   "lit from behind" feel without raising the card off-page. The bloom is
+   a soft radial behind the card's lower-right corner; the gradient is
+   corner-to-corner from graphite → signal-dim at 12% opacity. */
+.ls-blog-card {
+  background-image:
+    radial-gradient(
+      circle at 85% 100%,
+      color-mix(in srgb, var(--marketing-accent-bloom) 30%, transparent) 0%,
+      transparent 55%
+    ),
+    linear-gradient(
+      135deg,
+      var(--color-surface) 0%,
+      color-mix(in srgb, var(--marketing-accent-deep) 12%, var(--color-surface)) 100%
+    );
+  border-color: var(--color-graphite);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--marketing-accent-bloom) 0%, transparent);
+}
+
+.ls-blog-card:hover {
+  border-color: color-mix(in srgb, var(--marketing-accent-bloom) 60%, var(--color-graphite));
+  background-image:
+    radial-gradient(
+      circle at 85% 100%,
+      color-mix(in srgb, var(--marketing-accent-bloom) 50%, transparent) 0%,
+      transparent 60%
+    ),
+    linear-gradient(
+      135deg,
+      var(--color-surface) 0%,
+      color-mix(in srgb, var(--marketing-accent-deep) 22%, var(--color-surface)) 100%
+    );
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-ink) 30%, transparent),
+    0 0 24px color-mix(in srgb, var(--marketing-accent-bloom) 18%, transparent);
+}
+
 .topbar-pill-cta:hover {
   color: var(--color-display);
   border-color: var(--color-muted);
