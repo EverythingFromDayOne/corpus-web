@@ -163,6 +163,11 @@
     "filterCorpusLabel": "Filter by corpus",
     "filterKindLabel": "Filter by kind",
     "readingTime": "{minutes} min read",
+    "sortLabel": "Sort",
+    "sortAz": "A → Z",
+    "sortZa": "Z → A",
+    "sortShortest": "Shortest first",
+    "sortLongest": "Longest first",
     "folderLabel": "{folder}",
     "postMetaLabel": "Article metadata",
     "empty": "No articles match these filters."

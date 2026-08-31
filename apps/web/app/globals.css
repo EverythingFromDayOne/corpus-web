@@ -286,6 +286,143 @@ body:has(.av-view) .av-header-tog {
     0 0 24px color-mix(in srgb, var(--marketing-accent-bloom) 18%, transparent);
 }
 
+/* ---------- Blog card redesign (PR #121, polish/blog-card-redesign) ----------
+   Replaces the previous dense academic card with a more product-y
+   three-tier hierarchy: status pills on top, larger title, body
+   description, and an explicit hover lift (translate-y-1) for
+   stronger elevation feedback. Pairs with .blog-filter-bar and
+   .blog-corpus-heading below. */
+
+.blog-card {
+  padding: 1.25rem 1.25rem 1.25rem 1.5rem;
+}
+
+.blog-card-bar {
+  background: linear-gradient(
+    180deg,
+    var(--marketing-accent-line) 0%,
+    var(--marketing-accent-bloom) 100%
+  );
+  box-shadow: 0 0 8px color-mix(in srgb, var(--marketing-accent-bloom) 50%, transparent);
+}
+
+.blog-card-kind {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  padding: 0.18rem 0.55rem;
+  border-radius: 9999px;
+  border: 1px solid var(--color-graphite);
+  white-space: nowrap;
+}
+
+.blog-card-kind--concept {
+  color: var(--color-cool);
+  border-color: color-mix(in srgb, var(--color-cool) 55%, var(--color-graphite));
+  background: color-mix(in srgb, var(--color-cool) 8%, transparent);
+}
+
+.blog-card-kind--recipe {
+  color: var(--color-signal);
+  border-color: color-mix(in srgb, var(--color-signal) 55%, var(--color-graphite));
+  background: color-mix(in srgb, var(--color-signal) 10%, transparent);
+}
+
+.blog-card-corpus {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.blog-card-title {
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.blog-card-desc {
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.blog-corpus-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--color-graphite);
+}
+
+.blog-corpus-count {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--color-graphite);
+  border-radius: 9999px;
+}
+
+/* ---------- Blog filter bar + chips ---------- */
+
+.blog-filter-bar {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-graphite);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-surface) 60%, transparent);
+}
+
+.blog-filter-chip {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.85rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.blog-filter-chip--off {
+  background: transparent;
+  border: 1px solid var(--color-graphite);
+  color: var(--color-muted);
+}
+
+.blog-filter-chip--off:hover {
+  border-color: color-mix(in srgb, var(--marketing-accent-line) 50%, var(--color-graphite));
+  color: var(--color-display);
+}
+
+.blog-filter-chip--on {
+  background: var(--marketing-accent-bloom);
+  border: 1px solid var(--marketing-accent-line);
+  color: var(--color-ink);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--marketing-accent-bloom) 30%, transparent),
+    0 4px 12px color-mix(in srgb, var(--marketing-accent-bloom) 20%, transparent);
+}
+
+.blog-sort-select {
+  background-color: var(--color-surface);
+  color: var(--color-display);
+  border-color: var(--color-graphite);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.blog-sort-select:focus-visible {
+  outline: none;
+  border-color: var(--marketing-accent-line);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--marketing-accent-bloom) 40%, transparent);
+}
+
 .topbar-pill-cta:hover {
   color: var(--color-display);
   border-color: var(--color-muted);
