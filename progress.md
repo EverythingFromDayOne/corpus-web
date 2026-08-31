@@ -82,6 +82,128 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Topbar: collapse search trigger to icon-only on mobile — Polish-search-spotlight-ux topbar follow-up**
+  **(2026-08-31, on `polish/search-spotlight-ux` off develop @ `72239fe`,
+  PR #108 update):** A red-circle annotation on a mobile screenshot
+  showed the topbar search input being clipped invisibly against
+  the viewport's right edge — only the magnifier icon and the
+  first two letters of "Search…" were visible, the rest was hidden
+  by `.topbar-wrap`'s `overflow: hidden`. **Root cause:** the
+  topbar layout is
+  `[hamburger-toggle] [logo] [Home Courses Articles] [SearchTrigger 16rem] [ThemeToggle]`
+  (~640px of content competing for ~390px on iPhone). The search
+  trigger had `width: 16rem; max-width: 16rem` and no `min-width:
+  0`, so the flex child refused to shrink and `.topbar-wrap`'s
+  `overflow: hidden` clipped it against the viewport's right
+  edge. **Fix:** added `min-width: 0` to `.srch` so the flex child
+  CAN shrink on intermediate widths (tablets where the input
+  should ellipsis-truncate rather than clip); new `@media (max-width:
+  640px)` rule that collapses `.srch-trigger` to a 34×34 icon-only
+  button (matching the theme toggle's geometry) by hiding
+  `.srch-trigger-input` and `.srch-kbd` and zeroing padding. The
+  full input already lives inside the dialog (Spotlight-style per
+  PR #108). iOS Safari uses the same collapse pattern for its own
+  search affordance. **Pure CSS, no JS change** — no client-side
+  conditional rendering, no hydration cost. 1 file (+26/-2).
+  Verified in the served CSS bundle at
+  `.next/static/chunks/30s__szcvb5cx.css`:
+  `@media (max-width:640px){.srch-trigger{justify-content:center;width:34px;height:34px;padding:0}.srch-trigger-input,.srch-trigger .srch-kbd{display:none}}`
+  — exactly the rule shape written. All 5 gates green:
+  typecheck 5/5, lint 0 problems, next build 236/236 (no new
+  routes), verify:prerender 196/196+18/18, verify:frontmatter
+  196/196, vitest 38/38. User mobile spot-check on
+  `develop.nxhhuy.tech` is the functional gate.
+
+- **Mobile dialog: bulletproof top-anchor + touch Done button — Polish-search-spotlight-ux mobile follow-up**
+  **(2026-08-31, on `polish/search-spotlight-ux` off develop @ `72239fe`,
+  PR #108 update):** Two mobile regressions reported from a Safari
+  iOS session after PR #108 was visible on `develop.nxhhuy.tech`:
+  (1) "modal is set center for now whenever the result show up then
+  the whole modal get pushed into the top cause weird animation";
+  (2) "currently im on my mobile an cannot click outside to close
+  the modal". **(1) Root cause:** PR #108's CSS only set `top: 10vh;
+  left: 50%; transform: translateX(-50%)` on `.srch-dialog[open]`,
+  but the UA stylesheet ships `dialog { inset: 0 }` which expands
+  to `top: 0; right: 0; bottom: 0; left: 0`. My `top` overrode the
+  first but `bottom: 0; right: 0` remained active, and combined with
+  the default `margin: auto`, the dialog re-centred vertically as
+  its height grew (because `bottom: 0` and `margin: auto` cooperate
+  to keep vertical margins equal). Fix: explicit `inset: auto`
+  clears all four insets, then `top: max(1rem, env(safe-area-inset-top,
+  0px))` + `left: 50%` + `transform: translate(-50%, 0)` (no Y
+  translation) anchor the dialog to the top regardless of height.
+  `max-height: calc(100dvh - 2 * safe-area-top - safe-area-bottom)`
+  keeps the panel inside the dynamic viewport on iOS Safari
+  URL-bar collapse. **(2) Root cause:** backdrop-click is a
+  desktop-only affordance — on touch (no outside area to tap) the
+  user has no way to close the dialog except Esc, which mobile
+  keyboards don't always expose. Fix: `matchMedia('(hover: none)')`
+  touch detection with Safari < 14 `addListener` fallback; when
+  the device matches AND no query is typed, render
+  `<button class="srch-dialog-done">Done</button>` in the input
+  slot (same place the `⌘K` chip lives on desktop); tap calls
+  `dialog.close()`. 2 code files + 1 i18n file (+37/-15). Verified
+  in the served CSS bundle: `.srch-dialog[open]` rule emits with
+  `inset:auto`, `top:max(1rem, env(safe-area-inset-top,0px))`,
+  `transform:translate(-50%)` (Lightning CSS minified the
+  `,0` default away — semantically identical), `max-height:calc(100dvh - 2 * max(1rem, env(safe-area-inset-top,0px)) - env(safe-area-inset-bottom,0px))`.
+  `srch-dialog-done` selector present. All 5 gates green:
+  typecheck 5/5, lint 0 problems, next build 236/236 (no new
+  routes), verify:prerender 196/196+18/18, verify:frontmatter
+  196/196, vitest 38/38. User mobile spot-check on
+  `develop.nxhhuy.tech` is the functional gate. **Note:** Vercel
+  Auth still blocks `/pagefind/*` on preview — the search index
+  won't load on mobile preview, but the dialog chrome and Done
+  button are visible without it.
+
+- **Search Spotlight-style UX + 4 regressions fixed — Polish-search-spotlight-ux**
+  **(2026-08-31, on `polish/search-spotlight-ux` off develop @ `72239fe`,
+  PR #108 — to be opened):** Four issues reported via screenshots after
+  the PR #106/PR #107 batch merged: (1) search modal visible on first
+  load before any user interaction; (2) clicking outside the modal or
+  pressing Esc would not close it; (3) typing a query left the dialog
+  stuck on "Searching…" for minutes; (4) deleting the query
+  word-by-word left stale results on screen. **(1)–(2) root cause:**
+  my new CSS rule on `.srch-dialog` (`position: fixed; display: flex;`)
+  overrode the user-agent stylesheet's `dialog:not([open]) { display:
+  none }`, so the dialog painted visibly without `showModal()` having
+  been called. Native `<dialog>` blocks clicks on its own element when
+  not modal, so the backdrop-click handler ran against the *visible*
+  dialog, not against the backdrop (because no `::backdrop` existed
+  when `showModal()` had never been called). Fix: scope the layout to
+  `.srch-dialog[open]`; add explicit defensive
+  `.srch-dialog:not([open]) { display: none }`. **(3) root cause:**
+  Pagefind's index is built by the `postbuild` hook, which only runs
+  after `pnpm build`. In `pnpm dev` the dynamic
+  `import('/pagefind/pagefind.js')` rejects, the error path runs and
+  sets `status: 'error'`, but the user reported seeing "Searching…"
+  — almost certainly because (1) made the dialog visible without
+  `showModal()` having been called, so the synchronous
+  `setStatus({ kind: 'loading' })` from `onInput` was the visible
+  state. Fix: match the rejected-import message against dev-mode
+  signals and append an actionable hint pointing the user at
+  `pnpm start`. **(4) root cause:** a slow in-flight `pf.search()`
+  for "react use" could resolve after a faster "react" query had
+  already set `results`, and there was no guard. Fix: monotonic
+  `requestIdRef` stamps every fired query; the debounced handler
+  captures the id and bails the response if a newer keystroke has
+  already superseded it. **UX upgrades:** inline clear-X button
+  replacing the `⌘K` chip when query is non-empty (Spotlight
+  convention); fixed-height top-anchored panel with
+  `flex: 1 1 auto; min-height: 0` on the inner results list so it
+  scrolls inside the panel instead of re-growing it; `scrollIntoView({ block: 'nearest' })` on active row change; modular result row
+  (bold title + small muted breadcrumb + two-line-clamped excerpt)
+  derived from the URL via `titleFromUrl()` + `breadcrumbFromUrl()`;
+  idle-state hint in the empty list. 2 files +192/-78, 1 i18n file
+  +2 keys, all 5 gates green (typecheck 5/5, lint 0, next build
+  236/236, verify:prerender 196/196+18/18, verify:frontmatter
+  196/196, vitest 38/38). Verified the closed-state visibility fix in
+  the served CSS bundle (both `.srch-dialog[open]{...}` AND
+  `.srch-dialog:not([open]){display:none}` are emitted; initial SSR
+  HTML has `<dialog class="srch-dialog" aria-label="Search
+  articles">` with NO `open` attribute). User spot-check on
+  `develop.nxhhuy.tech` is the functional gate.
+
 - **Pagefind load via dynamic ESM import — Polish-search-esm-import**
   **(2026-08-31, on `polish/search-esm-import` off develop @ 8426adc,
   PR #107):** **Root-cause fix for the user-reported "Search failed"
