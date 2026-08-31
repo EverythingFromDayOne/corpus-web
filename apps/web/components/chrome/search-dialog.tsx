@@ -97,26 +97,45 @@ export function SearchDialog({ messages }: { messages: Messages }) {
       setPagefind(cached);
       return cached;
     }
-    // Inject the script if it isn't already in the DOM.
-    const existing = document.querySelector<HTMLScriptElement>(
-      'script[data-pagefind]',
-    );
+    // Inject the script if it isn't already in the DOM. Use onload/onerror
+    // to capture the actual load outcome rather than polling blindly —
+    // on Vercel's edge network a slow first-load can blow past a 3s poll.
+    const existing = document.querySelector<HTMLScriptElement>('script[data-pagefind]');
     if (!existing) {
       const script = document.createElement('script');
       script.src = '/pagefind/pagefind.js';
       script.async = true;
       script.dataset.pagefind = 'true';
       document.head.appendChild(script);
+      try {
+        await new Promise<void>((resolve, reject) => {
+          script.addEventListener('load', () => resolve(), { once: true });
+          script.addEventListener(
+            'error',
+            () => reject(new Error('Pagefind script failed to load (network error or 4xx/5xx)')),
+            { once: true },
+          );
+          // Hard cap at 15s — beyond that we surface the failure rather than
+          // appearing unresponsive.
+          setTimeout(() => reject(new Error('Pagefind script timed out after 15s')), 15000);
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error('[search] Pagefind script load failed', err);
+        setStatus({ kind: 'error', message });
+        return null;
+      }
     }
     // Poll for the global; Pagefind defines window.pagefind synchronously
-    // once the bundle finishes executing.
-    for (let i = 0; i < 50 && !w.pagefind; i += 1) {
-      await new Promise((r) => setTimeout(r, 60));
+    // once the bundle finishes executing. Up to 10s with a 100ms back-off.
+    for (let i = 0; i < 100 && !w.pagefind; i += 1) {
+      await new Promise((r) => setTimeout(r, 100));
     }
     const pf: PagefindModule | undefined = w.pagefind;
     if (!pf) {
-      const message = 'Search index failed to load. The /pagefind/ bundle may be blocked or unreachable.';
-      console.error('[search] Pagefind failed to load after 3s');
+      const message =
+        'Pagefind bundle loaded but did not register window.pagefind within 10s. The runtime may be incompatible.';
+      console.error('[search] Pagefind failed to register window.pagefind');
       setStatus({ kind: 'error', message });
       return null;
     }
@@ -259,16 +278,6 @@ export function SearchDialog({ messages }: { messages: Messages }) {
         <p className="srch-dialog-foot">
           {t(messages, 'placeholders.searchHint')}
         </p>
-
-        <form method="dialog" className="srch-dialog-close">
-          <button
-            type="submit"
-            aria-label={t(messages, 'placeholders.searchCloseLabel')}
-            className="srch-kbd"
-          >
-            Esc
-          </button>
-        </form>
       </div>
     </dialog>
   );
