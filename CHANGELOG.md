@@ -5,6 +5,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-08-31] — polish/search-spotlight-ux — Mobile dialog bulletproofing (follow-up to PR #108)
+
+**Changed**
+- `apps/web/app/globals.css` — `.srch-dialog[open]` rewritten to fully defeat the UA `dialog { inset: 0 }` rule that was centring the dialog and causing it to "jump up" when results arrived. Explicit `inset: auto` clears all four insets; `top: max(1rem, env(safe-area-inset-top, 0px))` clears the iOS notch and Dynamic Island; `transform: translate(-50%, 0)` (no Y translation) keeps the dialog pinned to the top regardless of its height; `max-height: calc(100dvh - 2 * safe-area-top - safe-area-bottom)` so the panel never overflows the iOS Safari URL-bar collapse. New `.srch-dialog-done` button style with shared base between clear-X and Done.
+- `apps/web/components/chrome/search-dialog.tsx` — touch detection via `matchMedia('(hover: none)')` (with Safari < 14 `addListener` fallback); render branch shows a `<button>Done</button>` in the input-row slot on touch devices when the query is empty, giving an explicit close affordance that works without a backdrop to tap. Desktop is unaffected — Esc + backdrop-click still work there.
+- `apps/web/messages/en.json` — `placeholders.searchDone` ("Done") + `placeholders.searchDoneLabel` ("Close search") under existing `placeholders` namespace (kit §6).
+
+**Stats:** 2 code files + 1 i18n file (+37/-15). All 5 gates green: typecheck 5/5, lint 0 problems, next build 236/236 (no new routes), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38 pass / 0 fail. Verified the bulletproof CSS rule in the served bundle (`apps/web/.next/static/chunks/1v9knuy2qpoi4.css`): `.srch-dialog[open]{inset:auto;top:max(1rem, env(safe-area-inset-top,0px));...transform:translate(-50%);max-height:calc(100dvh - 2 * max(1rem, env(safe-area-inset-top,0px)) - env(safe-area-inset-bottom,0px));...}` — exactly the rule shape written. `srch-dialog-done` selector present. User mobile spot-check on `develop.nxhhuy.tech` is the functional gate (note: Vercel Auth SSO still blocks `/pagefind/*` on preview until you toggle the bypass — search index won't load on mobile preview, but the dialog chrome and Done button are visible).
+
 ### [2026-08-31] — polish/search-spotlight-ux — Spotlight-style search dialog + 4 regressions fixed
 
 **Added**

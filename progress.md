@@ -82,6 +82,48 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Mobile dialog: bulletproof top-anchor + touch Done button — Polish-search-spotlight-ux mobile follow-up**
+  **(2026-08-31, on `polish/search-spotlight-ux` off develop @ `72239fe`,
+  PR #108 update):** Two mobile regressions reported from a Safari
+  iOS session after PR #108 was visible on `develop.nxhhuy.tech`:
+  (1) "modal is set center for now whenever the result show up then
+  the whole modal get pushed into the top cause weird animation";
+  (2) "currently im on my mobile an cannot click outside to close
+  the modal". **(1) Root cause:** PR #108's CSS only set `top: 10vh;
+  left: 50%; transform: translateX(-50%)` on `.srch-dialog[open]`,
+  but the UA stylesheet ships `dialog { inset: 0 }` which expands
+  to `top: 0; right: 0; bottom: 0; left: 0`. My `top` overrode the
+  first but `bottom: 0; right: 0` remained active, and combined with
+  the default `margin: auto`, the dialog re-centred vertically as
+  its height grew (because `bottom: 0` and `margin: auto` cooperate
+  to keep vertical margins equal). Fix: explicit `inset: auto`
+  clears all four insets, then `top: max(1rem, env(safe-area-inset-top,
+  0px))` + `left: 50%` + `transform: translate(-50%, 0)` (no Y
+  translation) anchor the dialog to the top regardless of height.
+  `max-height: calc(100dvh - 2 * safe-area-top - safe-area-bottom)`
+  keeps the panel inside the dynamic viewport on iOS Safari
+  URL-bar collapse. **(2) Root cause:** backdrop-click is a
+  desktop-only affordance — on touch (no outside area to tap) the
+  user has no way to close the dialog except Esc, which mobile
+  keyboards don't always expose. Fix: `matchMedia('(hover: none)')`
+  touch detection with Safari < 14 `addListener` fallback; when
+  the device matches AND no query is typed, render
+  `<button class="srch-dialog-done">Done</button>` in the input
+  slot (same place the `⌘K` chip lives on desktop); tap calls
+  `dialog.close()`. 2 code files + 1 i18n file (+37/-15). Verified
+  in the served CSS bundle: `.srch-dialog[open]` rule emits with
+  `inset:auto`, `top:max(1rem, env(safe-area-inset-top,0px))`,
+  `transform:translate(-50%)` (Lightning CSS minified the
+  `,0` default away — semantically identical), `max-height:calc(100dvh - 2 * max(1rem, env(safe-area-inset-top,0px)) - env(safe-area-inset-bottom,0px))`.
+  `srch-dialog-done` selector present. All 5 gates green:
+  typecheck 5/5, lint 0 problems, next build 236/236 (no new
+  routes), verify:prerender 196/196+18/18, verify:frontmatter
+  196/196, vitest 38/38. User mobile spot-check on
+  `develop.nxhhuy.tech` is the functional gate. **Note:** Vercel
+  Auth still blocks `/pagefind/*` on preview — the search index
+  won't load on mobile preview, but the dialog chrome and Done
+  button are visible without it.
+
 - **Search Spotlight-style UX + 4 regressions fixed — Polish-search-spotlight-ux**
   **(2026-08-31, on `polish/search-spotlight-ux` off develop @ `72239fe`,
   PR #108 — to be opened):** Four issues reported via screenshots after
