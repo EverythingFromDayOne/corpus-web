@@ -28,3 +28,7 @@ export function articlePath(locale: Locale, corpus: RepoId, slug: string): strin
 export function blogCorpusPath(locale: Locale, corpus: RepoId): string {
   return `${blogPath(locale)}#${corpus}`;
 }
+
+export function licensePath(locale: Locale): string {
+  return `/${locale}/license`;
+}
