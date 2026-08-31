@@ -4925,5 +4925,33 @@ Dynamic import returns the ES module namespace directly — no global registrati
 - User visual smoke on `develop.nxhhuy.tech` is the functional gate.
 
 **Known issues / next steps:** Polish residue unchanged: D20 Shiki (new-dep blocker), D22 OG image (DNS+Vercel routing), D30 FAQ half (corpus-side schema), `develop` → `main` promotion (yours; 39 commits queued after PRs #107 → #111). **Session cadence cap: hit** — six polish batches chained in this run (PRs #107 + #108 + #109 + #110 + #111 + #112). Per corpus-web skill §"Session cadence", this batch is the maximum-per-session and the next PR should pause for visual smoke + CTO review.
+---## Session 115 — Search dialog: strip `.html` suffix from Pagefind URLs — 2026-08-31
+
+**Branch:** `fix/search-dialog-html-suffix` (off `develop` @ `606474d`, post-PR #112 merge)
+
+**Files changed:**
+- `apps/web/components/chrome/search-dialog.tsx` — added `normalizeUrl(url)` helper that strips a trailing `.html` from the path; applied it in 4 places: `<li key=...>`, `<a href=...>`, the Enter-key `window.location.href = ...` handler, and inside `titleFromUrl` (so the visible title reads "Getting Started" not "Getting Started.html"). Also applied defensively inside `breadcrumbFromUrl` (symmetry — the breadcrumb strips the last segment, so `.html` wouldn't appear today, but applying normalization here means future URL-format changes don't surface as `.html` in crumbs).
+
+**Why (regression trace):** User's iPhone Safari smoke after PR #112 surfaced two visual bugs in the search dialog:
+
+1. **Search result titles displayed the `.html` extension**: `Getting Started.html`, `Module Federation.html`, `Builders.html`, etc. (visible in user screenshot 1 — 5th highlighted row).
+2. **Clicking a search result landed on the Next.js 404 page**: `https://develop.nxhhuy.tech/en/blog/angular/getting-started.html` — `No webpage was found` (visible in user screenshot 2).
+
+Both bugs came from PR #108 (Spotlight-style search dialog rewrite). Root cause: **Pagefind indexes the static HTML files Next.js produces during `next build`, so every Pagefind result URL ends in `.html`. The site's runtime router serves the same pages at the non-`.html` path (`/en/blog/angular/getting-started`).** I missed this in PR #108 because the verification path (`pnpm verify:prerender`) tests prerendered routes — not URL handling inside the client-side search dialog — and the dev-server visual smoke at the time was blocked by Vercel Auth (`/pagefind/*` returning 302 to `vercel.com/sso-api`), so the search dialog itself couldn't be exercised on `develop.nxhhuy.tech` end-to-end.
+
+**Confirmed via Pagefind fragment inspection**: 222 unique URLs in `apps/web/public/pagefind/fragment/*.pf_fragment`, **0 without `.html`, 100% with `.html`**. So the fix is universal — strip the suffix from every URL.
+
+**Invented decisions:**
+- (a) **Single `normalizeUrl` helper, applied in 4 places** (not just `<a href>`) — also normalized the React `key={r.url}` (otherwise two URLs that differ only in trailing slash would mount distinct keys when they should mount the same DOM element after normalization); also normalized the Enter-key `window.location.href` assignment (the keyboard handler is a separate code path from the click handler); also normalized inside `titleFromUrl` (so the visible title reads "Getting Started" not "Getting Started.html"); also normalized inside `breadcrumbFromUrl` defensively (the breadcrumb currently drops the last segment, so `.html` doesn't appear today, but future URL-format changes shouldn't surface `.html` in crumbs).
+- (b) **`replace(/\.html$/, '')` (anchored to end of string)** instead of `replace('.html', '')` (unanchored) — `.html$` only strips when it's the trailing extension, not when it appears mid-path (defensive: a hypothetical URL like `/en/blog/old.html-tag/foo` would not get corrupted).
+- (c) **Fix at the dialog layer, not at the catalog layer** — the catalog (`apps/web/lib/catalog.ts`) does not currently expose Pagefind URLs; the Pagefind index is consumed exclusively by `search-dialog.tsx`. Pushing the normalization into the dialog keeps the catalog's API neutral and limits the blast radius of the change.
+
+**Verification:**
+- All 5 gates green: typecheck 5/5, lint 0 problems, next build PASS (Pagefind indexed 222 pages / 28902 words — unchanged), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38.
+- End-to-end route probe via `pnpm --filter @corpus/web start`: `GET /en/blog/angular/getting-started` returns **HTTP 200**; `GET /en/blog/angular/getting-started.html` returns **HTTP 404**. So the normalized URL lands on a real route; the broken URL doesn't.
+- Inspected the served JS bundle at `/_next/static/chunks/07b5ecodjn4zt.js`: `replace(/\.html$/,"")` confirmed in the bundle — `normalizeUrl` is shipped to the client and will strip `.html` from every Pagefind URL.
+- User visual smoke on `develop.nxhhuy.tech` is the functional gate.
+
+**Known issues / next steps:** Polish residue unchanged: D20 Shiki (new-dep blocker), D22 OG image (DNS+Vercel routing), D30 FAQ half (corpus-side schema), `develop` → `main` promotion (yours; 41 commits queued after PRs #107 → #112). **Session cadence cap: hit** — six polish batches chained in this run plus this regression fix (PR #113).
 
 ---
