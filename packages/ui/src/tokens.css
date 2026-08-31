@@ -28,6 +28,7 @@
   --marketing-accent-line: var(--color-signal);
   --marketing-accent-label-text: var(--color-signal);
   --marketing-accent-bloom: var(--color-signal-soft);
+  --marketing-accent-deep: var(--color-signal-dim);
 
   --color-cool: #6aa9d8;        /* concept-tag foreground (DEBT D28) */
   --color-cool-soft: #a4c6e0;
@@ -96,6 +97,7 @@
   --marketing-accent-line: var(--color-signal);
   --marketing-accent-label-text: var(--color-signal);
   --marketing-accent-bloom: var(--color-signal-soft);
+  --marketing-accent-deep: var(--color-signal-dim);
 
   --color-cool: #2b6f9e;
   --color-cool-soft: #6aa9d8;

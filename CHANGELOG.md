@@ -11,6 +11,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `apps/web/components/blog/article-index.tsx` — converted the per-article `.map(article => ( ... ))` from inline JSX to a function body so we can compute `kindClass` + `kindLabel` per article. Added a `<span class="tag-soon ls-tag-concept">Concept</span>` / `<span class="tag-soon ls-tag-recipe">Recipe</span>` badge to the meta row of every card. Wrapped the meta `<p>` in `flex flex-wrap items-center gap-2` so the badge + corpus + reading-time share one row but wrap if needed on narrow widths.
 
 **Stats:** 1 file +18/-13. All 5 gates green: typecheck 5/5, lint 0 problems, next build PASS (Pagefind indexed 222 pages / 28909 words — +7 words from new aria-labels), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. Verified `/en/blog` HTTP 200 in 22ms; 196 `tag-soon ls-tag-*` badges total (134 `concept` + 62 `recipe`) in the rendered HTML — matches the catalog split 1:1 with every article in `view.articles`. PR #112.
+### [2026-08-31] — polish/blog-card-gradient-bloom — blog card gradient + bloom + three-tier accent tokens
+
+**Added**
+- `packages/ui/src/tokens.css` — `--marketing-accent-deep` token in both dark + light modes (resolves to `var(--color-signal-dim)`). Closes the design-spec home §10 third-tier half-gap.
+- `apps/web/app/globals.css` — `.ls-blog-card` rule: layered radial-gradient (bloom at 85% 100%) + linear-gradient (deep corner-to-corner). `:hover` deepens both and adds bloom-halo box-shadow.
+
+**Changed**
+- `apps/web/components/blog/article-index.tsx` — blog card className swapped from `bg-surface hover:border-signal` to `.ls-blog-card`. Preserved PR #109 hover lift via `group-hover:-translate-y-0.5`.
+
+**Stats:** 3 files +47/-1. All 5 gates green: typecheck 5/5, lint 0, next build PASS (Pagefind 222 pages / 28910 words), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. End-to-end probe: `/en/blog` HTTP 200 in 17ms, 196 `.ls-blog-card` elements. Inspected served CSS bundle `/_next/static/chunks/3pff4gvci3-y0.css`: gradient + bloom layers confirmed. PR #115.
+
 ### [2026-08-31] — polish/topbar-pill-cta — topbar pill CTA + backdrop-blur (design-spec §1)
 
 **Changed**
