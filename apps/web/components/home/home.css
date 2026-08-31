@@ -80,6 +80,50 @@
       transparent 0 79px,
       color-mix(in srgb, var(--color-graphite) 45%, transparent) 79px 80px
     );
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+/* Aurora on the home hero (design-spec home §6 sub-gap).
+   Two radial blooms composited behind the rail-grid texture to
+   read as a multi-colour aurora. Warm bloom from upper-right
+   (matches the per-section bloom for corpora on the next section
+   down, so the warm glow flows top-to-bottom). Cool bloom from
+   lower-left, opposite corner, for the aurora offset. Opacity
+   intentionally lower than the course-hero aurora (PR #117)
+   because the home hero is the page entry — softer than the
+   per-section blooms on the sectioned body below. */
+.ls-hero::before {
+  content: "";
+  z-index: -1;
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--marketing-accent-bloom) 24%, transparent) 0%,
+    transparent 65%
+  );
+  pointer-events: none;
+  position: absolute;
+  top: -4rem;
+  right: -6rem;
+  width: 40rem;
+  height: 26rem;
+}
+
+.ls-hero::after {
+  content: "";
+  z-index: -1;
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--color-cool) 20%, transparent) 0%,
+    transparent 65%
+  );
+  pointer-events: none;
+  position: absolute;
+  left: -6rem;
+  bottom: -8rem;
+  width: 34rem;
+  height: 22rem;
 }
 
 .ls-hero .ls-wrap {
