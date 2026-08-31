@@ -82,6 +82,38 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Blog card gradient + bloom + three-tier accent tokens — Polish-blog-card-gradient-bloom**
+  **(2026-08-31, on `polish/blog-card-gradient-bloom` off develop @ `e563d87`,
+  PR #115):** Closed two Gap annotations in one PR. (a) blog §3's
+  "Gap: the dark-gradient + bloom + ALL CAPS treatment is the
+  signature look; flat-color or no-gradient cards would feel
+  comparatively muted" — replaced flat `bg-surface hover:border-signal`
+  className on the blog card with a new `.ls-blog-card` class that
+  layers (1) `radial-gradient(circle at 85% 100%, bloom 30%, transparent)`
+  providing the soft bloom at the card's lower-right corner, (2)
+  `linear-gradient(135deg, surface 0%, deep 12%)` providing
+  corner-to-corner subtle accent gradient. `:hover` deepens the bloom
+  to 50% and the gradient to 22%, adds a `box-shadow` with the
+  existing PR #109 soft-shadow PLUS a new bloom-halo (`0 0 24px
+  bloom 18%`). Preserved the existing PR #109 hover lift. (b) home
+  §10 third-tier half-gap — added the missing `--marketing-accent-deep`
+  token to `packages/ui/src/tokens.css` (both dark + light modes),
+  resolving to `var(--color-signal-dim)`. Three-tier accent token
+  set is now complete: `--marketing-accent-line` /
+  `--marketing-accent-label-text` / `--marketing-accent-bloom` /
+  `--marketing-accent-deep`. **Invented decisions:** (a) bloom is
+  radial, deep is linear (spec §3 "dark gradient + bloom + ALL
+  CAPS"); (b) bloom at `85% 100%` (lower-right) — bottom-corner reads
+  as "lit from below"; (c) deep at 12% opacity at rest, 22% on hover
+  — subtle enough to not compete with title text; (d) box-shadow on
+  hover adds a second glow ring underneath the PR #109 lift shadow.
+  3 files +47/-1. End-to-end probe: `/en/blog` HTTP 200 in 17ms, 196
+  `.ls-blog-card` elements. All 5 gates green: typecheck 5/5,
+  lint 0, next build PASS (Pagefind 222 pages / 28910 words —
+  unchanged, no new content), verify:prerender 196/196+18/18,
+  verify:frontmatter 196/196, vitest 38/38. **Session cadence cap:
+  hit** — eight polish batches chained this run.
+
 - **Topbar pill CTA + backdrop-blur — Polish-topbar-pill-cta**
   **(2026-08-31, on `polish/topbar-pill-cta` off develop @ `cdee66b`,
   PR #114):** Closed design-spec §1's "no pill-style CTA, no

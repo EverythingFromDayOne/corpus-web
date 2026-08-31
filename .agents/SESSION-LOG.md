@@ -4985,4 +4985,102 @@ Both bugs came from PR #108 (Spotlight-style search dialog rewrite). Root cause:
 - Inspected served CSS bundle at `/_next/static/chunks/0gkb-h3ln31dp.css`: `.topbar-pill-cta` rule confirmed with `border-radius: 9999px` (pill), `backdrop-filter: blur(2px)`, `border: 1px solid var(--color-graphite)`, hover + active states for `border-color: var(--marketing-accent-bloom)`.
 - User visual smoke on `develop.nxhhuy.tech` is the functional gate.
 
-**Known issues / next steps:** Polish residue unchanged: D20 Shiki (new-dep blocker), D22 OG image (DNS+Vercel routing), D30 FAQ half (corpus-side schema), `develop` → `main` promotion (yours; 8 PRs queued, 43+ commits after PRs #107 → #113). D38 still blocks CI on every PR (`verify-links` failing on 44 unresolved `related` refs); every PR needs admin override until D13 closes or `verify-links` flips to advisory. **Session cadence cap: hit** — seven polish batches chained in this run (PRs #107 → #113 → #114).
+**Known issues / next steps:** Polish residue unchanged: D20 Shiki (new-dep blocker), D22 OG image (DNS+Vercel routing), D30 FAQ half (corpus-side schema), `develop` → `main` promotion (yours; 8 PRs queued, 43+ commits after PRs #107 → #113). D38 still blocks CI on every PR (`verify-links` failing on 44 unresolved `related` refs); every PR needs admin override until D13 closes or `verify-links` flips to advisory. **Session cadence cap: hit** — seven polish batches chained in this run (PRs #107 → #113 → #114).feat(blog): card gradient + bloom (design-spec §3) + three-tier accent tokens
+
+Closes the design-spec blog §3 "Gap: the dark-gradient + bloom + ALL
+CAPS treatment is the signature look; flat-color or no-gradient cards
+would feel comparatively muted" gap.
+
+Closes the design-spec home §10 "Gap: no `*-bloom` tier, no separate
+line/label tokens" half-gap — three-tier accent tokens now complete:
+`--marketing-accent-line`, `--marketing-accent-label-text`,
+`--marketing-accent-bloom`, **and the missing
+`--marketing-accent-deep`** (the third tier from §10, added in this
+PR).
+
+Changes:
+
+- `packages/ui/src/tokens.css` — added `--marketing-accent-deep` to
+  the marketing-accent block in both dark and light modes. Resolves
+  to `var(--color-signal-dim)` (existing token: dark=#6b5228, light
+  =#f0dcb8) so the deep tier reads as the "muted accent background"
+  family — same dim variant used by the hero bloom.
+- `apps/web/components/blog/article-index.tsx` — replaced the
+  flat-color `bg-surface hover:border-signal` className on the blog
+  card with the new `.ls-blog-card` class so the gradient + bloom
+  layer can apply (kept the existing PR #109 hover lift via
+  `group-hover:-translate-y-0.5`).
+- `apps/web/app/globals.css` — added `.ls-blog-card` rule:
+  layered `background-image` of
+  (a) a `radial-gradient(circle at 85% 100%, bloom 30%, transparent)`
+     providing the soft bloom at the card's lower-right corner, and
+  (b) a `linear-gradient(135deg, surface 0%, deep 12%)` providing
+     the corner-to-corner subtle accent gradient.
+  `:hover` deepens the bloom (50%) and the gradient (22%), adds
+  a `box-shadow` with the existing PR #109 soft-shadow plus a new
+  bloom-halo (`0 0 24px bloom 18%`). All three tiers
+  (`accent-line` / `accent-deep` / `accent-bloom`) are now used
+  on the page.
+
+Why (architectural):
+- **Three-tier accent token set is now complete.** Before this PR
+  we had `--marketing-accent-line` (divider line color, PR #111)
+  and `--marketing-accent-bloom` (topbar pill CTA press state, PR
+  #114) but no `--marketing-accent-deep`. The home §10 spec
+  explicitly calls out three tiers — "Primary / deeper purple
+  (gradient stop, badge) / soft purple (blooms, glows)" — so this
+  PR closes the half-gap.
+- **Cards now have a "lit from behind" feel without leaving the
+  card surface.** The bloom is layered as the upper background
+  gradient and the deep gradient is the lower; the card itself
+  doesn't actually shift geometry. The `transform: translateY(-0.5)`
+  is preserved from PR #109 (sibling-PR hover lift).
+- **Token reuse, not parallel palette.** All four accent tokens
+  resolve to existing `--color-signal*` variants. No new colour
+  values; the site keeps the single accent family.
+
+Invented decisions:
+- (a) **Bloom is radial, deep is linear.** Spec §3 says "dark
+  gradient + bloom + ALL CAPS". Bloom reads as a glow → radial
+  gradient is the natural shape. Deep reads as a subtle background
+  shift → corner-to-corner linear is the natural shape.
+- (b) **Bloom at `85% 100%` (lower-right).** Bottom-corner bloom
+  reads as "the card is being lit by something below it" — fits
+  the spec's "dark gradient + bloom" intent (back-lit).
+- (c) **Deep at `12%` opacity at rest, `22%` on hover.** Subtle
+  enough to not compete with the article title text (`text-display
+  text-lg`), strong enough to be visibly different from the flat
+  surface it replaces.
+- (d) **Box-shadow on hover adds a second glow ring** (`0 0 24px
+  bloom 18%` underneath the existing PR #109 lift shadow). The
+  press/lift state now has both a vertical lift AND a glow — the
+  card lifts AND brightens.
+
+Verification:
+- All 5 gates green: typecheck 5/5, lint 0 problems, next build
+  PASS (Pagefind 222 pages / 28910 words — unchanged, no new
+  content), verify:prerender 196/196+18/18, verify:frontmatter
+  196/196, vitest 38/38.
+- End-to-end probe via `pnpm --filter @corpus/web start`:
+  `/en/blog` → HTTP 200 in 0.017s, **196 `.ls-blog-card` elements**
+  in rendered HTML (one per article card).
+- Inspected served CSS bundle
+  `/_next/static/chunks/3pff4gvci3-y0.css`: `.ls-blog-card` rule
+  confirmed with both `radial-gradient` bloom and `linear-gradient`
+  deep layer; `:hover` swaps to `50%/22%` and adds the second glow
+  ring.
+
+Known issues / next steps:
+- Polish residue unchanged: D20 Shiki (new-dep blocker), D22 OG
+  image (DNS+Vercel routing), D30 FAQ half (corpus-side schema),
+  `develop` → `main` promotion (yours; 9 PRs queued, 43+ commits).
+  D38 still blocks CI on every PR (`verify-links` failing on 44
+  unresolved `related` refs); every PR needs admin override.
+- **Session cadence cap: hit** — eight polish batches chained this
+  session (PRs #107 → #114 → #115). Stop here per corpus-web skill
+  §"Session cadence"; surface remaining items before chaining more.
+
+Files changed:
+- `packages/ui/src/tokens.css`
+- `apps/web/components/blog/article-index.tsx`
+- `apps/web/app/globals.css`
