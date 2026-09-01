@@ -5570,4 +5570,137 @@ Known issues / next steps:
 
 Files changed:
 - `apps/web/app/globals.css`
-- `apps/web/components/courses/course-card.tsx`
+- `apps/web/components/courses/course-card.tsx`feat(blog): sidebar tree + main pane (PR #123, two-column relayout)
+
+Closes the "double group section" gap on `/en/blog`. Replaces the
+corpus → folder → cards cascade (PR #121) with a single active
+hierarchy pattern: a 280px left sidebar shows every corpus →
+folder as a clickable tree, the right pane shows exactly that
+folder's articles. Selected from 4 mockups in
+`docs/scratch/blog-mockups/C-sidebar-tree.html`.
+
+Changes:
+
+- `apps/web/components/blog/article-index.tsx` — complete rewrite
+  of the layout shell. The `ArticleIndex` component now renders a
+  2-column CSS Grid (`.blog-layout`) with:
+  1. **Left sidebar** (`.blog-sidebar`): a `position: sticky;
+     top: 1.5rem;` container holding the article tree:
+     - "All corpora" (`.blog-tree-corpus--all`) at the top, shows
+       the total article count.
+     - For each repo (in `REPOS` order: react → nextjs → angular
+       → nestjs): a corpus header (`.blog-tree-corpus`) with the
+       corpus name + corpus total. Inside, an "All folders" row
+       + one row per folder (`.blog-tree-folder`), each with the
+       folder's article count.
+     - Active node has a bloom-tinted background
+       (`--marketing-accent-bloom 22%`) via `.blog-tree-folder--on`.
+  2. **Right pane** (`.blog-pane`): the existing card grid from
+     PR #121, plus a new header (`.blog-pane-head`) with a
+     signal-coloured corpus eyebrow + folder name + count chip.
+     Filter row (`Kind` + sort `<select>`) is preserved from PR
+     #121, just relocated below the pane header.
+  Active-corpus + active-folder + kind + sort all in URL-less state.
+  Switching from one folder to another is a single click; the
+  pane swaps without a network round-trip (the entire article
+  list is in memory already from the catalog aggregation).
+- `apps/web/app/globals.css` — appended `.blog-layout` family:
+  - `.blog-layout` — `display: grid; grid-template-columns: 280px
+    1fr; align-items: start;`.
+  - `.blog-sidebar` — sticky positioning, bordered container,
+    max-height `calc(100vh - 3rem)`, internal scroll.
+  - `.blog-tree-section` / `.blog-tree-corpus` /
+    `.blog-tree-corpus--all` / `.blog-tree-corpus--on` / corpus
+    count badge — the corpus section headings.
+  - `.blog-tree-folders` / `.blog-tree-folder` /
+    `.blog-tree-folder--on` / `.blog-tree-folder-name` / folder
+    count badge — the folder buttons (full-width, mono caps).
+  - `.blog-pane` / `.blog-pane-head` / `.blog-pane-eyebrow` /
+    `.blog-pane-title` / `.blog-pane-count` — pane header.
+  - `.blog-pane-filters` / `.blog-pane-empty` — pane sub-sections.
+  - `.blog-cards` — `grid-template-columns:
+    repeat(auto-fill, minmax(290px, 1fr))` (overrides the
+    previous `.mt-3 grid gap-4` from PR #121 to keep the same
+    responsive behavior).
+  - `@media (max-width: 900px)` — sidebar stacks below pane on
+    narrow viewports.
+- `apps/web/messages/en.json` — added 4 keys under `blog.*`:
+  `sidebarLabel` ("Article tree"), `sidebarAll` ("All corpora"),
+  `sidebarAllFolders` ("All folders"), `paneCount` ("{count}
+  articles"). Single-brace `{count}` interpolation, no ICU
+  plurals (the existing `t()` helper uses `\{(\w+)\}` regex,
+  doesn't support `{count, plural, ...}` syntax).
+
+**Invented decisions:**
+
+- **Tree is button-driven, not URL-driven.** URL-driven (e.g.,
+  `?repo=react&folder=foundations`) would let readers share deep
+  links. But it would also need a server-side re-render path or
+  a `useSearchParams` hook, both of which interact awkwardly
+  with Next.js Cache Components. For 196 articles in a corpus
+  site (vs. a blog where social sharing matters), URL state is
+  over-engineered. **Can be added later as a 1-PR follow-on.**
+- **Active node is a bloom background, not a left bar.**
+  `.blog-tree-folder--on` uses `color-mix(--marketing-accent-bloom
+  22%, transparent)` background. The blog card uses a left bar
+  for hover; using the same visual language here would create
+  visual confusion with the cards. Background tint reads more
+  like a sidebar selection affordance.
+- **Corpus ordering is the `REPOS` array order** (react,
+  nextjs, angular, nestjs) — already the canonical order
+  elsewhere on the site (the home page entry-points, the
+  catalog, etc.). Re-using that ordering means the sidebar
+  matches every other corpus reference on the site.
+- **Sidebar scrolls internally with `max-height:
+  calc(100vh - 3rem)`** rather than the whole page scrolling.
+  The 53-folder Angular section would push the sidebar below the
+  fold on shorter viewports if it didn't scroll independently.
+- **"All folders" button inside each corpus section.** When you
+  pick a corpus but no specific folder, the pane shows all
+  articles from that corpus. The "All folders" affordance makes
+  that path discoverable without needing a separate "all"
+  button per corpus.
+- **Pane count reads "{count} articles"** (always plural). The
+  existing `t()` helper doesn't support ICU plurals. Adding a
+  simple plural-aware `t()` is a separate concern (would touch
+  the i18n helper, all consumers, the test suite). For a corpus
+  site with hundreds of articles per corpus, "0 articles" / "1
+  article" / "2 articles" is mostly visible only in the empty
+  state where {count} is 0 anyway. Acceptable trade-off.
+- **No URL persistence on active node** (see above). **Known
+  limitation**: deep-linking to a specific folder requires
+  sharing the URL after manually navigating to the folder. **Open
+  issue**: tracked as a follow-on in `.agents/SESSION-LOG.md`.
+- **`@media (max-width: 900px)`** for sidebar stacking. Below
+  900px viewport width, the sidebar is `position: static` and
+  has a `max-height: 20rem` cap so it doesn't dominate the
+  viewport on small phones. Above 900px, the sidebar is sticky
+  and the pane scrolls naturally. Picked 900px as the breakpoint
+  because (a) it matches the size where the 280px sidebar +
+  1100px pane + 1.5rem×2 padding no longer fits in 900px and
+  (b) the `next/font` layout uses the same breakpoint.
+
+Verification:
+- All 5 gates green: typecheck 5/5, lint 0, next build PASS
+  (Pagefind 222 pages / 28910 words — unchanged), verify:prerender
+  196/196+18/18, verify:frontmatter 196/196, vitest 38/38.
+- End-to-end probe via `pnpm --filter @corpus/web start`:
+  `/en/blog` → HTTP 200 in 83ms. Class counts: 1 `blog-layout`,
+  1 `blog-sidebar`, 9 `blog-tree-corpus` (1 "All corpora" + 4
+  corpus headers + 4 "All folders" inside corpus sections), 172
+  raw matches for `blog-tree-folder` substring (matches both CSS
+  class references and actual `<button>` elements), 57 actual
+  `<button>` elements with the class (verified by regex), 1
+  default-active `blog-tree-folder--on` ("All corpora" by
+  default), 1 `blog-pane-title`, 1 `blog-pane-count`, 1
+  `blog-cards`, 196 `ls-blog-card blog-card` article cards.
+- Inspected served CSS bundle `/_next/static/chunks/1ctczfks94_gm.css`:
+  `.blog-layout` confirmed with `grid-template-columns: 280px 1fr`,
+  `.blog-tree-folder--on` confirmed with bloom-tinted background
+  (`#f2c78238`), `.blog-pane-title` confirmed with `font-size: 1.5rem;
+  font-weight: 600`.
+
+Files changed:
+- `apps/web/app/globals.css`
+- `apps/web/components/blog/article-index.tsx`
+- `apps/web/messages/en.json`
