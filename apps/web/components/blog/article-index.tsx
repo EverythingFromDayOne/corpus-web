@@ -21,38 +21,14 @@ export function ArticleIndex({
   messages: Messages;
 }) {
   const [corpus, setCorpus] = useState<CorpusFilter>('all');
+  const [activeFolder, setActiveFolder] = useState<string | null>(null);
   const [kind, setKind] = useState<KindFilter>('all');
   const [sort, setSort] = useState<SortKey>('az');
 
-  const visible = useMemo(
-    () =>
-      articles
-        .filter((article) => {
-          if (corpus !== 'all' && article.repo !== corpus) return false;
-          if (kind !== 'all' && article.kind !== kind) return false;
-          return true;
-        })
-        .slice()
-        .sort((a, b) => {
-          switch (sort) {
-            case 'az':
-              return a.title.localeCompare(b.title);
-            case 'za':
-              return b.title.localeCompare(a.title);
-            case 'short':
-              return a.minutes - b.minutes || a.title.localeCompare(b.title);
-            case 'long':
-              return b.minutes - a.minutes || a.title.localeCompare(b.title);
-            default:
-              return 0;
-          }
-        }),
-    [articles, corpus, kind, sort],
-  );
-
-  const groups = useMemo(() => {
+  // Stable map of (repo → folder → articles[]) for the sidebar tree.
+  const tree = useMemo(() => {
     const byRepo = new Map<RepoId, Map<string, ArticleListItem[]>>();
-    for (const article of visible) {
+    for (const article of articles) {
       let folders = byRepo.get(article.repo);
       if (!folders) {
         folders = new Map();
@@ -63,23 +39,38 @@ export function ArticleIndex({
       folders.set(article.folder, list);
     }
     return byRepo;
-  }, [visible]);
+  }, [articles]);
 
-  const corpusFilters: Array<{ id: CorpusFilter; label: string }> = [
-    { id: 'all', label: t(messages, 'blog.filterAll') },
-    ...REPOS.map((repo) => ({ id: repo, label: t(messages, `corpora.${repo}.label`) })),
-  ];
-  const kindFilters: Array<{ id: KindFilter; label: string }> = [
-    { id: 'all', label: t(messages, 'blog.filterAll') },
-    { id: 'concept', label: t(messages, 'article.kindConcept') },
-    { id: 'recipe', label: t(messages, 'article.kindRecipe') },
-  ];
-  const sortOptions: Array<{ id: SortKey; label: string }> = [
-    { id: 'az', label: t(messages, 'blog.sortAz') },
-    { id: 'za', label: t(messages, 'blog.sortZa') },
-    { id: 'short', label: t(messages, 'blog.sortShortest') },
-    { id: 'long', label: t(messages, 'blog.sortLongest') },
-  ];
+  // Pane content: filtered + sorted articles for the active corpus / folder.
+  const paneArticles = useMemo(() => {
+    return articles
+      .filter((article) => {
+        if (corpus !== 'all' && article.repo !== corpus) return false;
+        if (activeFolder !== null && article.folder !== activeFolder) return false;
+        if (kind !== 'all' && article.kind !== kind) return false;
+        return true;
+      })
+      .slice()
+      .sort((a, b) => {
+        switch (sort) {
+          case 'az':
+            return a.title.localeCompare(b.title);
+          case 'za':
+            return b.title.localeCompare(a.title);
+          case 'short':
+            return a.minutes - b.minutes || a.title.localeCompare(b.title);
+          case 'long':
+            return b.minutes - a.minutes || a.title.localeCompare(b.title);
+          default:
+            return 0;
+        }
+      });
+  }, [articles, corpus, activeFolder, kind, sort]);
+
+  // Pane header: corpus eyebrow + folder name + total count.
+  const paneCorpus = corpus === 'all' ? null : corpus;
+  const paneFolder = activeFolder;
+  const paneCount = paneArticles.length;
 
   function renderChip({
     selected,
@@ -121,7 +112,7 @@ export function ArticleIndex({
         >
           <span
             aria-hidden="true"
-            className="blog-card-bar absolute inset-y-0 left-0 w-1 origin-top scale-y-0 rounded-full bg-signal transition-transform duration-300 group-hover:scale-y-100"
+            className="blog-card-bar absolute inset-y-0 left-0 w-1 origin-top scale-y-0 rounded-full transition-transform duration-300 group-hover:scale-y-100"
           />
           <div className="blog-card-head flex items-center gap-2">
             <span className={kindClass} aria-label={`${t(messages, 'article.kind')}: ${kindLabel}`}>
@@ -144,76 +135,134 @@ export function ArticleIndex({
     );
   }
 
-  return (
-    <div>
-      <div className="blog-filter-bar mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
-        <div
-          role="group"
-          aria-label={t(messages, 'blog.filterCorpusLabel')}
-          className="flex flex-wrap gap-2"
-        >
-          {corpusFilters.map((item) =>
-            renderChip({
-              selected: corpus === item.id,
-              label: item.label,
-              onClick: () => setCorpus(item.id),
-            }),
-          )}
-        </div>
-        <div
-          role="group"
-          aria-label={t(messages, 'blog.filterKindLabel')}
-          className="flex flex-wrap gap-2"
-        >
-          {kindFilters.map((item) =>
-            renderChip({
-              selected: kind === item.id,
-              label: item.label,
-              onClick: () => setKind(item.id),
-            }),
-          )}
-        </div>
-        <label className="blog-sort ml-auto flex items-center gap-2 text-sm">
-          <span className="text-muted">{t(messages, 'blog.sortLabel')}</span>
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as SortKey)}
-            className="blog-sort-select rounded-md border px-3 py-1.5 text-sm"
-          >
-            {sortOptions.map((opt) => (
-              <option key={opt.id} value={opt.id}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+  const kindFilters: Array<{ id: KindFilter; label: string }> = [
+    { id: 'all', label: t(messages, 'blog.filterAll') },
+    { id: 'concept', label: t(messages, 'article.kindConcept') },
+    { id: 'recipe', label: t(messages, 'article.kindRecipe') },
+  ];
+  const sortOptions: Array<{ id: SortKey; label: string }> = [
+    { id: 'az', label: t(messages, 'blog.sortAz') },
+    { id: 'za', label: t(messages, 'blog.sortZa') },
+    { id: 'short', label: t(messages, 'blog.sortShortest') },
+    { id: 'long', label: t(messages, 'blog.sortLongest') },
+  ];
 
-      {visible.length === 0 ? (
-        <p className="text-muted mt-10">{t(messages, 'blog.empty')}</p>
-      ) : (
-        <div className="mt-10 space-y-12">
-          {[...groups.entries()].map(([repo, folders]) => (
-            <section key={repo} id={repo} aria-labelledby={`corpus-${repo}`}>
-              <h2
-                id={`corpus-${repo}`}
-                className="blog-corpus-heading text-display text-2xl font-semibold"
+  const allCount = articles.length;
+
+  return (
+    <div className="blog-layout mt-8 grid gap-8">
+      {/* Sidebar tree (left) */}
+      <aside className="blog-sidebar" aria-label={t(messages, 'blog.sidebarLabel')}>
+        <button
+          type="button"
+          className={`blog-tree-corpus blog-tree-corpus--all ${corpus === 'all' && activeFolder === null ? 'blog-tree-folder--on' : ''}`}
+          onClick={() => {
+            setCorpus('all');
+            setActiveFolder(null);
+          }}
+        >
+          <span>{t(messages, 'blog.sidebarAll')}</span>
+          <span className="blog-tree-folder-count">{allCount}</span>
+        </button>
+        {[...REPOS].map((repo) => {
+          const folders = tree.get(repo);
+          if (!folders || folders.size === 0) return null;
+          const corpusTotal = [...folders.values()].reduce((acc, l) => acc + l.length, 0);
+          const isCorpusOpen = corpus === repo;
+          return (
+            <div key={repo} className="blog-tree-section">
+              <button
+                type="button"
+                className={`blog-tree-corpus ${isCorpusOpen ? 'blog-tree-corpus--on' : ''}`}
+                onClick={() => {
+                  setCorpus(repo);
+                  setActiveFolder(null);
+                }}
               >
-                {t(messages, `corpora.${repo}.label`)}
-                <span className="blog-corpus-count ml-3 align-middle text-base font-normal text-muted">
-                  {[...folders.values()].reduce((acc, l) => acc + l.length, 0)}
-                </span>
-              </h2>
-              {[...folders.entries()].map(([folder, items]) => (
-                <div key={folder} className="mt-6">
-                  <h3 className="meta text-muted">{folder}</h3>
-                  <ul className="mt-3 grid gap-4">{items.map(renderCard)}</ul>
-                </div>
-              ))}
-            </section>
-          ))}
+                <span>{t(messages, `corpora.${repo}.label`)}</span>
+                <span className="blog-tree-corpus-count">{corpusTotal}</span>
+              </button>
+              <div className="blog-tree-folders">
+                <button
+                  type="button"
+                  className={`blog-tree-folder ${isCorpusOpen && activeFolder === null ? 'blog-tree-folder--on' : ''}`}
+                  onClick={() => {
+                    setCorpus(repo);
+                    setActiveFolder(null);
+                  }}
+                >
+                  <span>{t(messages, 'blog.sidebarAllFolders')}</span>
+                  <span className="blog-tree-folder-count">{corpusTotal}</span>
+                </button>
+                {[...folders.entries()]
+                  .sort(([a], [b]) => a.localeCompare(b))
+                  .map(([folder, items]) => (
+                    <button
+                      key={folder}
+                      type="button"
+                      className={`blog-tree-folder ${isCorpusOpen && activeFolder === folder ? 'blog-tree-folder--on' : ''}`}
+                      onClick={() => {
+                        setCorpus(repo);
+                        setActiveFolder(folder);
+                      }}
+                    >
+                      <span className="blog-tree-folder-name">{folder}</span>
+                      <span className="blog-tree-folder-count">{items.length}</span>
+                    </button>
+                  ))}
+              </div>
+            </div>
+          );
+        })}
+      </aside>
+
+      {/* Main pane (right) */}
+      <div className="blog-pane">
+        <div className="blog-pane-head">
+          <span className="blog-pane-eyebrow">
+            {paneCorpus ? t(messages, `corpora.${paneCorpus}.label`) : t(messages, 'blog.sidebarAll')}
+          </span>
+          <h2 className="blog-pane-title">
+            {paneFolder ?? (paneCorpus ? t(messages, 'blog.sidebarAllFolders') : t(messages, 'blog.sidebarAll'))}
+          </h2>
+          <span className="blog-pane-count">
+            {t(messages, 'blog.paneCount', { count: paneCount })}
+          </span>
         </div>
-      )}
+
+        <div className="blog-filter-bar blog-pane-filters">
+          <span className="blog-filter-label">{t(messages, 'blog.filterKindLabel')}</span>
+          <div className="flex flex-wrap gap-2" role="group" aria-label={t(messages, 'blog.filterKindLabel')}>
+            {kindFilters.map((item) =>
+              renderChip({
+                selected: kind === item.id,
+                label: item.label,
+                onClick: () => setKind(item.id),
+              }),
+            )}
+          </div>
+          <label className="blog-sort ml-auto flex items-center gap-2 text-sm">
+            <span className="text-muted">{t(messages, 'blog.sortLabel')}</span>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortKey)}
+              className="blog-sort-select rounded-md border px-3 py-1.5 text-sm"
+            >
+              {sortOptions.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        {paneArticles.length === 0 ? (
+          <p className="blog-pane-empty text-muted mt-10">{t(messages, 'blog.empty')}</p>
+        ) : (
+          <ul className="blog-cards mt-6 grid gap-4">{paneArticles.map(renderCard)}</ul>
+        )}
+      </div>
     </div>
   );
 }
