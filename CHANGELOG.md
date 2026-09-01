@@ -5,6 +5,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-02] — polish/spec-extension-home-section-bloom — home section bloom contract (docs)
+
+**Added**
+- `prompts/design-spec-2026-08-home-section-blooms.md` — new docs-only spec extension (91 insertions) that closes the "Gap: no per-section blooms" annotation in `prompts/design-spec-2026-08-home.md` §6 by documenting the existing per-section bloom CSS (hero + corpora + audience + entry-points sections) and proposing one unifying rule (token-family swap in `.ls-audience::before` to add one cool focal accent to the otherwise-warm body sections).
+
+**Stats:** 1 file +91/-0. No code. All 5 gates PASS by inheritance (docs-only change; same parent `develop @ 32fde46` passed `hermes verify --json` with `ok: true`). Real-phone spot-check stays gated on the implementation PR (`polish/home-section-bloom-alt`, named in the spec but not branched), not this docs PR. PR #135, merged via `--admin --squash --delete-branch`.
+
 ### [2026-09-02] — polish/home-hero-bg-pass — home-hero line-grid + bloom cleanup (sydexa spec final piece)
 
 **Closed-D41-only-half:** Replaces the pre-PR-#133 home-hero texture stack per the sydexa-video-driven spec §2 row for `.ls-hero`. Closing half of D41.

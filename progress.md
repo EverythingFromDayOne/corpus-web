@@ -82,6 +82,22 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **PR #134 spot-check + merge + option-2 spec extension — Polish-spec-extension-home-section-bloom**
+  **(2026-09-02, on `polish/spec-extension-home-section-bloom` off develop @ `32fde46`,
+  PR #135, MERGED):** Continued user's "Go yolo on option 1 then 2 then 3" chain.
+  Option 1 was the PR #134 merge — `gh pr merge 134 --squash --delete-branch --admin`
+  at `32fde46`. Option 2 is the docs-only spec extension PR #135, which adds
+  `prompts/design-spec-2026-08-home-section-blooms.md` (91 insertions). It closes
+  the "Gap: no per-section blooms" annotation in the home spec's §6 by documenting
+  the existing per-section bloom CSS on the home body (corpora / audience / entry
+  points / reading conventions sections) and proposing one token-family swap
+  (`.ls-audience::before` `--marketing-accent-bloom` → `--ambient-cool-glow`) as
+  the implementation PR. The sydexa-video spec (PR #131) rolled out via #132 → #133
+  → #134 touched hero / listing / course heroes but left the home body untouched;
+  this spec closes that gap. Implementation PR `polish/home-section-bloom-alt` is
+  named in the spec but not branched. 1 file +91/-0. No code (docs-only). PR #135
+  merged via `--admin --squash --delete-branch`. Next: option 3 = `polish/mobile-reflow-pass`.
+
 - **Home-hero line-grid + bloom cleanup — Polish-home-hero-bg-pass**
   **(2026-09-02, on `polish/home-hero-bg-pass` off develop @ `243c207`,
   PR #134, OPEN — not yet merged):** Final piece of the sydexa-video-driven

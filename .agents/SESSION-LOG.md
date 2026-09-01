@@ -6540,3 +6540,25 @@ Branch is **NOT** merged (`--admin` deliberately skipped per user's "go yolo on 
 - After this chain completes (post-PR-#134 merge), one natural next polish item is `polish/mobile-reflow-pass` (per session 132's standing rule "make sure u verify on small device also" — needs a multi-viewport spot-check pass once the home hero stabilises)
 
 ---
+## Session 137 — option 1 merge + option 2 spec extension — 2026-09-02
+
+**Branch:** `polish/spec-extension-home-section-bloom` off `develop @ 32fde46` (post-PR-#134)
+
+**Files changed:**
+- `prompts/design-spec-2026-08-home-section-blooms.md` (NEW, 91 insertions) — docs-only spec extension that closes the "Gap: no per-section blooms" annotation in the home spec's §6 by documenting the existing per-section bloom CSS (hero + corpora + audience + entry-points) and proposing one unifying rule.
+
+**Why:** Continued the user's "Go yolo on option 1 then 2 then 3 'polish/mobile-reflow-pass' one by one, each option create 1 PR" directive. Option 1 was the PR #134 merge (already merged with `gh pr merge --admin --squash --delete-branch` at `32fde46`); option 2 is the docs-only spec extension PR #135.
+
+The sydexa-video-driven background spec rollout (PRs #131 → #132 → #133 → #134) touched the home hero, listing surfaces, and course heroes, but left the **home body** (corpora / audience / entry points / reading conventions sections) untouched. The existing per-section bloom CSS in `apps/web/components/home/home.css` lines 225–309 was authored ad-hoc across PR #116/#125/#128 and never got a unifying spec. This file documents that contract, identifies the warm-only body inconsistency (the sydexa spec calls for alternating warm/cool accents across page-level sections), and proposes one token-family swap (`.ls-audience::before` `--marketing-accent-bloom` → `--ambient-cool-glow`) as the implementation PR.
+
+**Invented decisions:**
+- **Token-family-swap scope (1-char token rename in 1 rule).** Audiences section keeps its 16% colour-mix, bottom-right anchor, 36×22 rem radial — only the token changes. Smallest possible visual delta; self-contained; reversible.
+- **Out of scope: line-grid on body sections.** Combining Rule 2 (bloom token) + Rule 3 (line-grid overlay) in one PR is too much for a single review. Grid-on-body goes in a separate spec/PR when the bloom token change proves durable.
+- **Implementation PR named but not branched.** The spec names `polish/home-section-bloom-alt` as the follow-on code PR but doesn't branch it in this session — keeps the docs-only PR clean for review. Real-phone spot-check requirement stays on the code PR, not this one.
+
+**Known issues / next steps:**
+- Next: option 3 of the user's three-option chain — `polish/mobile-reflow-pass`. Per the user's "no need ask me" directive, going straight to it.
+- Polish residue from session 132 still untouched: D20 Shiki (new dep), D22 OG image (DNS+Vercel), D30 FAQ half, D33 attribution, D24 tier-1, Lenis. All stop-and-ask.
+- New candidate follow-on from this session: `polish/home-section-bloom-alt` (1-char token swap in `.ls-audience::before`, after spec lands + real-phone spot-check approves the proposal in section §3 of the new spec).
+
+---
