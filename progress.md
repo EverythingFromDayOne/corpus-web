@@ -82,6 +82,25 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Home-hero line-grid + bloom cleanup — Polish-home-hero-bg-pass**
+  **(2026-09-02, on `polish/home-hero-bg-pass` off develop @ `243c207`,
+  PR #134, OPEN — not yet merged):** Final piece of the sydexa-video-driven
+  spec rollout. Per spec §2 row for `.ls-hero`: drop `film-grain`, drop the
+  redundant `bg-signal-dim opacity-25 blur-3xl` JSX bloom div, add
+  `ls-ambient-grid` (28% colour-mix override for ≈8% effective opacity vs the
+  18% listing-surface default from PR #133), scrub the pre-PR-#133 rail-grid
+  `repeating-linear-gradient` CSS from `.ls-hero`. Keep the surface-tint
+  `linear-gradient(180deg, ...)` canvas gradient (spec §1 Rule 1: canvas
+  stays the same, only texture layer changed). Keep both `::before` warm
+  upper-right aurora + `::after` cool lower-left aurora (spec explicitly says
+  keep both). Deliberately **do NOT add** `ls-ambient-glow` on `.ls-hero` —
+  the cool `::after` IS the Rule 2 off-center accent; adding the modifier
+  would re-introduce the double-bloom problem. 2 files +44/-14. All 5 gates
+  PASS. Live probe: `/en` renders correctly; CSS bundle contains the new
+  override rule with `var(--ambient-cool-grid)` 28% colour-mix. **Branch
+  open** for your real-phone spot-check before `--admin` merge per the
+  user's "go yolo on option1" directive. PR #134 closes D41 fully.
+
 - **Line-grid + cool corner glow on listing surfaces — Polish-grid-overlay-and-corner-glow**
   **(2026-09-02, on `polish/grid-overlay-and-corner-glow` off develop @ `8b87e09`,
   PR #133):** PR #3 in the sydexa-video-driven spec rollout (PR #131 was the

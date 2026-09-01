@@ -6514,3 +6514,29 @@ Live probe: `curl /en/blog` renders `<div className="blog-pane ls-ambient-grid l
 - The two new tokens (`--ambient-cool-glow`, `--ambient-cool-grid`) are currently used only by `.ls-ambient-grid::before` and `.ls-ambient-glow::after`; if the follow-on home-hero pass needs them at 8% opacity (vs 18% colour-mix on listing surfaces), the existing rules may need a `--ambient-opacity` token or per-surface override. Not addressed here.
 
 ---
+## Session 136 — home-hero line-grid + bloom cleanup, PR #134 — 2026-09-02
+
+**Branch:** `polish/home-hero-bg-pass` off `develop @ 243c207`
+
+**Files changed:**
+- `apps/web/app/[locale]/page.tsx` — dropped `film-grain` from `<section className="ls-hero ...">`, dropped the redundant `bg-signal-dim opacity-25 blur-3xl` JSX bloom div, added `ls-ambient-grid` modifier, added long explanatory comment block citing spec §2 row for `.ls-hero`
+- `apps/web/components/home/home.css` — scrubbed the `repeating-linear-gradient` rail-grid CSS from `.ls-hero`, kept the vertical surface-tint `linear-gradient(180deg, ...)` canvas gradient (per spec §1 Rule 1: "canvas stays the same, only texture layer changed"), added `.ls-hero.ls-ambient-grid::before` override bumping the colour-mix from 18% (listing-surface default) to 28% (≈8% effective per spec §2 row for `.ls-hero`)
+
+**Why:** Final piece of the sydexa-video-driven background spec rollout (PR #131 was docs; PR #132 was `.course-hero`; PR #133 was listing surfaces; this is the home hero). Closes D41 fully — not just partially as PR #133 did. The user-facing rule "real-phone spot-check required before merge" applied because the home hero is the page entry, and the change touches multiple layered effects (drop film-grain, drop redundant bloom, scrub rail-grid CSS, add line-grid override).
+
+Live probe: `curl /en → HTTP 200 in 53ms`. `<section className>` is `"ls-hero ls-ambient-grid relative overflow-hidden"` — film-grain removed, `ls-ambient-grid` added. 0 occurrences of `film-grain` and `bg-signal-dim opacity-25`; 1 occurrence of `ls-ambient-grid`; deliberately 0 occurrences of `ls-ambient-glow` per spec. CSS bundle `/_next/static/chunks/1rozjahj49v0f.css` contains `.ls-hero` rule (without rail-grid), `.ls-hero.ls-ambient-grid::before` rule with `28%` colour-mix on `var(--ambient-cool-grid)`, and preserved `.ls-hero::before` warm upper-right aurora.
+
+Branch is **NOT** merged (`--admin` deliberately skipped per user's "go yolo on option1" instruction where option 1 was "do NOT --admin merge — leave it for your eyes first"). PR #134 open at https://github.com/EverythingFromDayOne/corpus-web/pull/134.
+
+**Invented decisions:**
+- **`ls-ambient-glow` deliberately NOT added to `.ls-hero`.** `.ls-hero::after` already provides a quiet cool accent (lower-left anchor). Adding the modifier would apply a second `::after` pseudo override that fights for the same pseudo-element (the existing aurora's `left/bottom/width/height` would get reset to `inset: 0` — visually wrong). Documented in the JSX comment.
+- **`ls-ambient-grid::before` colour-mix bumped from 18% to 28%** on `.ls-hero` only via the `.ls-hero.ls-ambient-grid::before` override. The 28% lands at ≈8% effective opacity against the dark navy canvas with the surface-tint gradient composited. Listing surfaces stay at 18% per PR #133.
+- **Surface-tint `linear-gradient(180deg, ...)` kept** (not scrubbed with the rail-grid CSS). It's a canvas gradient, not a texture. Spec §1 Rule 1 explicitly says "dark navy canvas, already shipped, re-asserted".
+
+**Known issues / next steps:**
+- PR #134 needs user real-phone spot-check (per the PR body checklist) before merge
+- Once merged, D41 closes fully
+- Polish residue from session 132 still untouched: D20 Shiki (new dep), D22 OG image (DNS+Vercel), D30 FAQ half, D33 attribution, D24 tier-1, Lenis — all stop-and-ask
+- After this chain completes (post-PR-#134 merge), one natural next polish item is `polish/mobile-reflow-pass` (per session 132's standing rule "make sure u verify on small device also" — needs a multi-viewport spot-check pass once the home hero stabilises)
+
+---

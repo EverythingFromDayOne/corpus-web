@@ -5,6 +5,18 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-02] — polish/home-hero-bg-pass — home-hero line-grid + bloom cleanup (sydexa spec final piece)
+
+**Closed-D41-only-half:** Replaces the pre-PR-#133 home-hero texture stack per the sydexa-video-driven spec §2 row for `.ls-hero`. Closing half of D41.
+
+**Changed**
+- `apps/web/app/[locale]/page.tsx` — dropped `film-grain` from `<section className="ls-hero ...">`, dropped the redundant `bg-signal-dim opacity-25 blur-3xl` JSX bloom div (one of three layers fighting for the same warm-anchor point), added `ls-ambient-grid` modifier to the `<section>`. Long explanatory comment block citing spec §2 row.
+- `apps/web/components/home/home.css` — scrubbed the `repeating-linear-gradient` rail-grid CSS from `.ls-hero` (Rule 3: one grid, one declaration); kept the vertical surface-tint `linear-gradient(180deg, ...)` canvas gradient (per spec §1 Rule 1: "canvas stays the same, only texture layer changed"); added `.ls-hero.ls-ambient-grid::before` override bumping the colour-mix from 18% (listing-surface default) to 28% (≈8% effective per spec §2 for `.ls-hero`).
+
+**Stats:** 2 files +44/-14. All 5 gates PASS. Live probe on `pnpm start` localhost:3000: `/en` renders `<section className="ls-hero ls-ambient-grid relative overflow-hidden">` (film-grain dropped, ambient-grid added); 0 occurrences of `film-grain` and `bg-signal-dim opacity-25`; 1 occurrence of `ls-ambient-grid`; deliberately 0 occurrences of `ls-ambient-glow` per spec. CSS bundle `/_next/static/chunks/1rozjahj49v0f.css` contains the new `.ls-hero.ls-ambient-grid::before` rule with `28%` colour-mix against `var(--ambient-cool-grid)`, the preserved `.ls-hero::before` warm upper-right aurora (40rem × 26rem radial), and the scrubbed `.ls-hero` rule (no rail-grid CSS gradient). **Branch open — not `--admin`-merged** (per user's "go yolo on option1" directive where option 1 was "leave it open for your eyes first"): https://github.com/EverythingFromDayOne/corpus-web/pull/134.
+
+**Closes D41 fully** (not just partially as PR #133 did): course-hero via PR #132, listing-surface via PR #133, home-hero via this PR. Real-phone spot-check on Vercel preview required before merge.
+
 ### [2026-09-02] — polish/grid-overlay-and-corner-glow — listing-surface ambient (sydexa spec ports)
 
 **Added**
