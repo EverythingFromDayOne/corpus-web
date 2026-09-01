@@ -6246,4 +6246,122 @@ verification still needed.
 
 **Files changed:**
 - `apps/web/app/globals.css`
-- `apps/web/components/courses/course-card.tsx`
+- `apps/web/components/courses/course-card.tsx`feat(article+quiz): flashcard mobile header wrap + quiz error logging
+
+Closes 2 bugs reported after PR #128:
+
+**Bug #1 — Quiz submit/check fails on Vercel Preview**
+
+User reported clicking "Check answer" on `/en/blog/react/thinking-in-react`
+shows "Couldn't check that answer. Try again." even though the quiz
+data is shipped correctly via the override YAML.
+
+**Root cause (deployment-side, not code):** Vercel Authentication
+is enabled for Preview deployments on `develop.nxhhuy.tech`. Every
+unauthenticated POST to a protected route — including the POST
+that React's server-action client issues to invoke
+`gradeQuizAnswer` — gets a 401 response with body
+`{"error":{"message":"Protected deployment","code":"401"},
+"protection":{"vercel_auth_enabled":true,...}}`. The Quiz
+widget's `onSubmit` catch block fires, `setFailed(true)` runs,
+the generic `quizError` message displays.
+
+Reproduced on `develop.nxhhuy.tech` via curl:
+```
+POST https://develop.nxhhuy.tech/en/blog/react/thinking-in-react
+Content-Type: application/json
+Next-Action: 405a91fa616ab9587351727d74af2c1ad049e44e90
+→ HTTP 401 "Protected deployment"
+```
+
+Verified locally that the action itself works correctly:
+```
+POST http://localhost:3000/en/blog/react/thinking-in-react
+Next-Action: 405a91fa616ab9587351727d74af2c1ad049e44e90
+→ HTTP 200 { selectedLabel: "A", correctLabel: "B",
+             isCorrect: false, explanation: "..." }
+```
+
+**Code-side change:** The previous `catch {}` block silently
+swallowed the underlying error. This PR changes it to
+`catch (error) { console.error(...) }` so dev tools shows the
+actual failure. The user-facing message stays the generic
+`quizError` key — distinguishing "auth blocker" from "code
+error" in the UI would require leaking deployment
+configuration details that don't belong on a public reading
+surface.
+
+**This bug is fully fixable only by enabling Vercel path-based
+bypass for `/api/*` (or the article route URL itself) — the
+user has flagged this as their own dashboard action item.
+Until that config lands, the error message stays generic but
+is at least debuggable.**
+
+**Bug #2 — Flashcard header overflow on mobile**
+
+User reported the `Review` eyebrow + title + `1 / 3` progress
+counter in the flashcard widget overflows past the viewport
+edge on mobile. The flashcard header is:
+
+```html
+<header class="av-flashcard-hd">
+  <span>Review</span>
+  <span>The three ideas behind the model</span>
+  <span>1 / 3</span>
+</header>
+```
+
+`.av-flashcard-hd` is `display: flex; justify-content:
+space-between; gap: 0.75rem` with NO `min-width: 0` on the
+title span. The flex math treats the title row as
+`min-content`, which on a 375px viewport is wider than the
+flashcard container (which has `.85rem .9rem 1rem` padding).
+The title either gets clipped with an ellipsis or pushes the
+progress counter off-screen.
+
+Fix: added `@media (max-width: 480px)` rule:
+- `flex-wrap: wrap` lets the progress counter drop to a new
+  line if the title doesn't fit beside it
+- `min-width: 0` + `flex: 1 1 auto` on the title span
+- `flex: 0 0 auto; font-size: 0.68rem` on the progress span
+  so it stays compact on phones
+
+**Invented decisions:**
+
+- **Two-span `[data-blog]` flashcard selector** using
+  `:nth-child(2)` and `:nth-child(3)` — these match the
+  JSX child order: eyebrow span, title span, progress span.
+  Stable against ordering changes inside the flashcard itself.
+- **`flex-wrap: wrap` not `column`** — keeps the header on
+  one line when the title is short (e.g., "Concept 1") and
+  only wraps when the title is long. Column layout would
+  waste vertical space for short titles.
+- **`font-size: 0.68rem` on progress** — without this the
+  progress counter would crowd the eyebrow when the title
+  wraps. Sub-0.7rem is fine for non-essential metadata.
+- **Console.error only, not a new i18n key** — the underlying
+  failure is a deployment config issue, not a content
+  problem. Showing users "Vercel auth is blocking this"
+  would be a confusing error message that doesn't help them
+  reach the fix (which lives in the user's dashboard, not
+  this codebase).
+
+**Known issues / next steps:**
+
+- **Bug #1 is fixed on the dev-tools side only.** Once the
+  user enables Vercel path-based bypass for `/api/*` (or the
+  article route URL), the Quiz widget will work end-to-end
+  on Vercel Preview. Until then, dev tools console shows
+  the 401 detail.
+- **The article body text overflow observed on mobile**
+  (separate complaint not in this PR) is plausibly caused
+  by chrome-on-macOS DPR rendering at 750px CSS pixels even
+  with `--force-device-scale-factor=1`. Real-phone
+  verification still pending. NOT fixed here.
+
+**Files changed:**
+- `apps/web/components/article/lesson-tokens.css` —
+  added `@media (max-width: 480px) { .av-flashcard-hd ... }`
+  block (33 lines including comment)
+- `packages/mdx-components/src/quiz.tsx` — changed `catch {}`
+  to `catch (error) { console.error(...) }` (1 line diff)

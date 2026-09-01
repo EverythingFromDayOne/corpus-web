@@ -121,6 +121,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 **Stats:** 2 files +50/-12. All 5 gates green. `/en/blog` HTTP 200 in 22ms with 196 cards. PR #128.
 
+### [2026-08-31] — polish/quiz-error-and-flashcard-mobile — flashcard mobile header wrap + quiz error logging (PR #129)
+
+**Fixed**
+- Flashcard widget header overflow on mobile (≤480px) — added `@media (max-width: 480px)` block to `apps/web/components/article/lesson-tokens.css`: `flex-wrap: wrap` lets the progress counter drop to a new line, `min-width: 0` + `flex: 1 1 auto` on the title span, `flex: 0 0 auto; font-size: 0.68rem` on the progress span. Without this, the `Review` eyebrow + title + `1 / 3` progress row either clipped the title with `…` or pushed the counter off-screen.
+
+**Changed**
+- `packages/mdx-components/src/quiz.tsx` — changed `catch {}` to `catch (error) { console.error(...) }` so dev tools shows whether the failure is a Vercel Preview auth 401 (user's known deployment config blocker) or a genuine code error from the action body. User-facing `quizError` message stays generic.
+
+**Stats:** 2 files +50/-4. All 5 gates green. PR #129.
+
 ### [2026-08-31] — polish/blog-card-kind-badge — kind badge overlay on `/en/blog` article cards
 
 **Changed**

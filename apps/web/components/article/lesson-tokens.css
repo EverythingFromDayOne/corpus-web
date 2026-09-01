@@ -315,15 +315,48 @@
   }
 
   .av-flashcard-track {
-    flex-direction: column;
-    overflow-x: visible;
     scroll-snap-type: none;
+    flex-direction: column;
     gap: 0.75rem;
+    overflow-x: visible;
   }
 
   .av-flashcard-card {
     flex: none;
     width: 100%;
+  }
+}
+
+/* PR #129 polish/quiz-error-and-flashcard-mobile: mobile header
+   layout (≤480px). The `.av-flashcard-hd` is a 3-child flex row
+   (`<span>Review</span><span>title</span><span>X/Y</span>`) using
+   `justify-content: space-between`. On a 375px viewport, the
+   title span has no `min-width: 0`, so the flex math treats it
+   as `min-content` and pushes the progress counter off-screen.
+   Without this rule the title gets clipped with an ellipsis (or
+   in older builds, overflows the viewport) and the `1 / 3`
+   counter disappears. The fix:
+
+   - `flex-wrap: wrap` lets the progress counter drop to a new
+     line if the title doesn't fit beside it.
+   - `min-width: 0` + `flex: 1 1 auto` on the title span gives
+     it room to shrink.
+   - `font-size: 0.68rem` shrinks the progress text so the whole
+     row reads more compactly on a phone.
+   The eyebrow (`Review`) is fixed-width by virtue of being a
+   short label, so it stays on the first line. */
+@media (max-width: 480px) {
+  .av-flashcard-hd {
+    flex-wrap: wrap;
+    gap: 0.4rem 0.6rem;
+  }
+  .av-flashcard-hd > span:nth-child(2) {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+  .av-flashcard-hd > span:nth-child(3) {
+    flex: 0 0 auto;
+    font-size: 0.68rem;
   }
 }
 
