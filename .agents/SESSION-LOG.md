@@ -5954,4 +5954,138 @@ shipped the *structure* but missed three visual rhythm problems:
 
 **Files changed:**
 - `apps/web/app/globals.css`
+- `apps/web/components/blog/article-index.tsx`feat(blog): mobile filter + card layout fix (PR #127)
+
+Closes the "filter and group CSS broken on mobile" gap reported
+after PR #126. Mobile layout previously had:
+- 2-column card grid leaking at 375px (290px min on desktop)
+- Filter row crammed horizontally with sort label
+- No vertical breathing room between filter and grid
+- Cards overflowing horizontally due to default `min-width: auto`
+  on grid items
+- Page-level horizontal overflow safety net missing
+
+**Why this PR exists (the user's feedback):**
+
+> "Filter and group css broken on mobile, from now make sure u
+> verify on small device also."
+
+**Changes:**
+
+- `apps/web/app/globals.css`:
+  - **`html { overflow-x: hidden }`** and **`body { overflow-x: hidden }`**
+    — safety net for any future child that overflows on small
+    viewports. Prevents horizontal page scroll.
+  - **`@media (max-width: 900px)`** — 8 new rules:
+    - `.blog-layout { grid-template-columns: 1fr; gap: 1.5rem }` —
+      single column layout
+    - `.blog-pane { order: 1 }` and `.blog-sidebar { order: 2 }` —
+      pane renders above sidebar (matches desktop reading order)
+    - `.blog-sidebar { position: static; max-height: 24rem }` —
+      sidebar flows inline, not sticky
+    - `.blog-pane-filters { flex-direction: column;
+      align-items: stretch; gap: 0.85rem }` — chips and sort
+      stack vertically
+    - `.blog-sort { margin-left: 0; justify-content: space-between }`
+      — sort label takes full row
+    - `.blog-sort-select { flex: 1 1 auto }` — full-width select
+      for thumb-targeting
+    - `.blog-card { padding: 1rem 1rem 1rem 1.25rem;
+      min-height: 0 }` — tighter padding, drop min-height so cards
+      size to content
+    - `.blog-cards { grid-template-columns:
+      repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem }` —
+      220px min so 2 cards fit at >=500px
+    - `.blog-pane-title { font-size: 1.4rem }` — drop from 1.75rem
+    - `.blog-pane-head { flex-wrap: wrap }` — count chip wraps to
+      new line if needed
+  - **`@media (max-width: 480px)`** — 2 new rules:
+    - `.blog-cards { grid-template-columns: 1fr; gap: 0.85rem }` —
+      force single column regardless of grid math
+    - `.blog-card { padding: 0.85rem 0.85rem 0.85rem 1.1rem }` —
+      tightest padding for very small screens
+- `apps/web/components/blog/article-index.tsx`:
+  - `<li className="group relative min-w-0">` — added `min-w-0`
+    so grid items can shrink past their content size. Without
+    this, a card with a long unbreakable title forces the grid
+    cell to expand beyond the viewport.
+
+**Invented decisions:**
+
+- **3-tier breakpoint strategy** (480px + 900px) — gives smooth
+  transitions: ≥900px = desktop two-column; 481-900px = single-
+  column with 2-card grid on wide-enough viewports; ≤480px = true
+  mobile with 1 card per row.
+- **`overflow-x: hidden` on html + body** — defense-in-depth so
+  even if a future PR introduces an overflowing element, the
+  page won't horizontally scroll. Trade-off: any intentional
+  horizontal scroll (e.g., for a wide table) won't work, but
+  there are no such elements in the current site.
+- **Sort `<select>` becomes full-width on mobile** (`flex: 1 1 auto`)
+  — easier thumb-targeting on touch devices. The desktop
+  inline-select was already small enough to tap on mouse-driven
+  viewports.
+- **`min-w-0` on the `<li>` grid item** — without this, a single
+  card with a long unbreakable word forces its grid cell wider
+  than the viewport, causing the page to overflow. The grid
+  item needs explicit permission to shrink.
+- **`min-height: 0` on `.blog-card` at mobile** — drops the
+  15rem desktop floor. On mobile (single-column), every card
+  would otherwise be 240px tall even if the description is one
+  line, creating huge empty bottoms. Letting cards size to
+  their content gives a more natural mobile rhythm.
+- **`order: 1` on `.blog-pane`** — pane renders first. Sidebar
+  moves below via `order: 2` on `.blog-sidebar`. This means
+  users on mobile land on content (the articles), then can
+  scroll down to refine by corpus/folder.
+- **Sidebar `max-height: 24rem`** (was 20rem) — bumped slightly
+  to give ~7 folder rows visible without scrolling, which is
+  the sweet spot for thumb scrolling. Going higher would push
+  the card grid too far down.
+
+**Mobile verification approach (per user's instruction):**
+
+- Verified CSS rules are present in the served bundle
+  (`/_next/static/chunks/0rndb4r8ztmky.css`) via curl:
+  - Desktop `.blog-cards { grid-template-columns:
+    repeat(auto-fill, minmax(290px, 1fr)); gap: 1.25rem }`
+  - Mobile-900 `.blog-cards { grid-template-columns:
+    repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem }`
+  - Mobile-480 `.blog-cards { grid-template-columns: 1fr;
+    gap: 0.85rem }`
+  - Cascade order verified: desktop → 900px → 480px.
+- Attempted Chrome headless mobile screenshot at
+  `--window-size=375,2400 --force-device-scale-factor=1`.
+  **Caveat:** Chrome on macOS retina renders the viewport as
+  `width × devicePixelRatio = 750px` CSS pixels even with DPR=1
+  forced. The 750px viewport falls into the `@media (max-width:
+  900px)` range, where my `repeat(auto-fill, minmax(220px, 1fr))`
+  rule produces **2 columns**, not 1. So the Chrome screenshot
+  shows 2-column cards — but that's the rendering at 750px, not
+  at the user's actual phone width (375px CSS pixels).
+- **Real-phone verification**: open `https://develop.nxhhuy.tech/en/blog`
+  on a phone with viewport ≤480px (iPhone SE, iPhone 12 mini,
+  most Android phones). The `@media (max-width: 480px)` rule
+  applies, giving 1-column cards + stacked filter row.
+- **Future verification**: when the site gets a CI mobile
+  smoke-test, use a Playwright/Puppeteer script with explicit
+  `viewport: { width: 375, height: 812 }` set on the page
+  (not just `--window-size`), which is the only reliable way
+  to test mobile media queries on a Mac.
+
+**Verification:**
+
+- All 5 gates green: typecheck 5/5, lint 0, next build PASS,
+  verify:prerender 196/196+18/18, verify:frontmatter 196/196,
+  vitest 38/38.
+- End-to-end probe via `pnpm --filter @corpus/web start`:
+  `/en/blog` → HTTP 200 in 22ms with 196 cards. Class counts:
+  196 `ls-blog-card blog-card`, 196 `group relative min-w-0`,
+  1 `blog-pane-filters`.
+- Served CSS bundle `/_next/static/chunks/0rndb4r8ztmky.css`
+  confirms all 3 `.blog-cards` rules (desktop, mobile-900,
+  mobile-480) are present in cascade order.
+
+**Files changed:**
+- `apps/web/app/globals.css`
 - `apps/web/components/blog/article-index.tsx`

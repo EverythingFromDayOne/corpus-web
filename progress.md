@@ -82,6 +82,21 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Blog mobile fix — Polish-blog-mobile-fix**
+  **(2026-08-31, on `polish/blog-mobile-fix` off develop @ `8c1639d`,
+  PR #127):** Closes "filter and group CSS broken on mobile" gap.
+  2 files +96/-4. `html + body { overflow-x: hidden }` safety net.
+  `@media (max-width: 900px)` with 8 new rules: single-column
+  grid, pane-first ordering, sort stacked below chips, full-width
+  select, 1rem card padding, drop card min-height, 220px grid
+  min, 1.4rem pane title, wrap-enabled pane head. `@media
+  (max-width: 480px)`: force 1-column `grid-template-columns: 1fr`
+  + 0.85rem card padding. `<li>` grid item gets `min-w-0`. All
+  5 gates green; `/en/blog` HTTP 200 in 22ms with 196 cards.
+  **Caveat:** Chrome on macOS retina renders `--window-size=375`
+  as 750px CSS pixels — Chrome screenshots fall into 900px media
+  range (2-col), not 480px (1-col) that real phones use.
+
 - **Blog match mockup C — Polish-blog-match-mockup-c**
   **(2026-08-31, on `polish/blog-match-mockup-c` off develop @
   `1246ed8`, PR #126):** Ports remaining 3 visual rhythm gaps from
