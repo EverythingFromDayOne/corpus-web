@@ -6460,3 +6460,28 @@ Three PRs phased into the spec: (1) `polish/course-hero-grain-removal @ 58ead66`
 - Course-detail body bloom treatment is OUT of this spec — recorded as §6 follow-on if user flags the body as needing per-section blooms (PR #116 set this precedent on `/en`).
 
 ---
+## Session 134 — course-hero grain removal PR #132 — 2026-09-02
+
+**Branch:** `polish/course-hero-grain-removal` off `develop @ 69725c5`
+
+**Files changed:**
+- `apps/web/app/[locale]/courses/[course]/page.tsx` — removed `film-grain` from `<header className>`
+- `apps/web/app/globals.css` — trimmed explanatory comment on `.film-grain > :where(*)` since it no longer references the course hero; CSS rules unchanged (5 insertions, 10 deletions net)
+
+**Why:** PR #132, the user-directed next PR in the sydexa-video spec rollout (PR #131 was the docs/spec). Session 133 left `polish/course-hero-grain-removal @ 58ead66` uncommitted and un-pushed after the gateway interruption; the branch was rebased cleanly onto current `develop @ 69725c5` (PR #131 wrap was on develop, so rebase applied 5 trivial canonical-file conflicts that auto-resolved). Rebase produced new commit `14ba4d5`.
+
+Push, open PR #132, merge via `--admin` (D38 informational override). Final develop HEAD: `1830ecb`. Live verification: `curl /en/courses/react-foundations → HTTP 200 in 54ms`, `<header>` className is `"course-hero relative mt-6 overflow-hidden"` (no `film-grain`), 2 `.course-hero-bloom` divs preserved (warm + cool), 0 occurrences of `film-grain` anywhere on the course detail page.
+
+This closes the user-flagged "course-hero too ugly" feedback from session 132's grain fix discussion (the session where `.film-grain::after { z-index: -1 }` was fixed to `z-index: 0`, which made the grain visible — but the visible grain over the heavy bloom composition turned out to read as "dirty CRT screen").
+
+**Invented decisions:**
+- **Single commit, single concern** — surgical change to the course-hero `<header>` className; CSS rules unchanged. CSS comment trimming is a side effect of the file edit, not a separate change.
+- **Home hero grain kept** — `.ls-hero` on `/en` still uses `film-grain`. The home hero has a softer bloom composition (PR #120's `.ls-hero::before` warm + `.ls-hero::after` cool), so the grain reads as texture there rather than visual noise. The home-hero grain replacement is the next PR in the chain (`polish/grid-overlay-and-corner-glow`, closes D41).
+- **No CI gate changes** — same `--admin` D38 override pattern as all PRs since #113.
+
+**Known issues / next steps:**
+- D41 (Film-grain on home hero reads as visual noise) stays **OPEN** — the D41 row explicitly says it closes only when the home-hero half (PR 3 in the spec's rollout) lands. This PR closed only the course-hero half.
+- Next PR in chain: `polish/grid-overlay-and-corner-glow` — port the rest of the spec (line-grid SVG replacing `.film-grain` on `/.ls-hero`; cool corner glow on `/en/courses` and `.blog-pane`). Closes D41. User-facing pending review of the spec landed in PR #131.
+- Polish residue from session 132 still untouched: D20 Shiki (new dep), D22 OG image (DNS+Vercel), D30 FAQ half, D33 attribution, D24 tier-1, Lenis. All stop-and-ask.
+
+---

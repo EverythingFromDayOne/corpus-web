@@ -5,6 +5,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-02] — polish/course-hero-grain-removal — drop film-grain on course detail hero
+
+**Fixed**
+- `apps/web/app/[locale]/courses/[course]/page.tsx` — removed `film-grain` from `.course-hero <header>` className. Closes the user-flagged "course-hero too ugly" feedback from session 132 (the grain-on-bloom composition read as "dirty CRT screen" once PR #130 made the grain visible).
+- `apps/web/app/globals.css` — trimmed explanatory CSS comment on `.film-grain > :where(*)` since it no longer references the course hero.
+
+**Stats:** 2 files +5/-10. All 5 gates green: typecheck 5/5 PASS (turbo cache hit), next build PASS (Pagefind 222 pages / 29019 words), verify:prerender 196/196+18/18, verify:frontmatter 196/196. End-to-end probe: `GET /en/courses/react-foundations → HTTP 200 in 54ms`. Rendered `<header>` className is `"course-hero relative mt-6 overflow-hidden"` (no `film-grain`); 2 `.course-hero-bloom` divs preserved (warm + cool); 0 occurrences of `film-grain` in the rendered HTML. PR #132.
+
 ### [2026-09-02] — docs/sydexa-bg-analysis-spec — background approach (sydexa-video-driven)
 
 **Added**

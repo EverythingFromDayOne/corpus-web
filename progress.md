@@ -82,6 +82,22 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Drop film-grain from course detail hero — Polish-course-hero-grain-removal**
+  **(2026-09-02, on `polish/course-hero-grain-removal` off develop @ `69725c5`,
+  PR #132):** Follow-on to session 132's grain fix (PR #130) and session 133's
+  sydexa-video spec (PR #131). Single-commit surgical fix: drop `film-grain`
+  from `.course-hero` `<header>` className; both bloom divs (warm + cool) are
+  preserved. 2 files +5/-10. Live probe `GET /en/courses/react-foundations →
+  HTTP 200 in 54ms`, rendered `<header>` className is `"course-hero relative
+  mt-6 overflow-hidden"` (no `film-grain`), 0 occurrences of `film-grain` in
+  the rendered HTML. Closes the user-flagged "course-hero too ugly" feedback
+  from session 132. All 5 gates green: typecheck, build, prerender,
+  frontmatter, plus live curl probe. D41 stays open — only the course-hero
+  half of the residue is closed by this PR; the home-hero half closes when
+  `polish/grid-overlay-and-corner-glow` (next PR in the chain, ports the rest
+  of the sydexa spec) lands. PR #132 merged via `--admin` (D38 informational
+  override, per session-132 handoff pattern).
+
 - **Sydexa background approach — analysis + spec — Docs-sydexa-bg-analysis-spec**
   **(2026-09-02, on `docs/sydexa-bg-analysis-spec` off develop @ `2f4f6b2`,
   PR #131):** Docs-only. 1 file +244/-0. New design spec
