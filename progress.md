@@ -82,6 +82,26 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Line-grid + cool corner glow on listing surfaces — Polish-grid-overlay-and-corner-glow**
+  **(2026-09-02, on `polish/grid-overlay-and-corner-glow` off develop @ `8b87e09`,
+  PR #133):** PR #3 in the sydexa-video-driven spec rollout (PR #131 was the
+  docs/spec; PR #132 was the course-hero grain removal). Ports the Rule 2 (one
+  quiet accent glow per surface off-center) and Rule 3 (faint line-grid overlay
+  ≤10% opacity) treatments for the two listing surfaces that previously had no
+  texture: `/en/blog` `.blog-pane` and `/en/courses`. Two new role-named tokens
+  (`--ambient-cool-glow`, `--ambient-cool-grid`) added to
+  `packages/ui/src/tokens.css`; both resolve to existing `--color-*` values,
+  no new hexes. Single new CSS block `.ls-ambient-grid` + `.ls-ambient-glow`
+  in `apps/web/app/globals.css`; CSS-only pattern (two `linear-gradient`
+  layers + radial pseudo) — no data-URI SVG needed, theme-aware via tokens.
+  4 files +131/-18. Live probe: `/en/blog` + `/en/courses` both render the
+  new className pair; CSS bundle contains both `::before` (grid) and `::after`
+  (glow) rules with the `var(--ambient-cool-*)` references resolved. **Scope
+  narrowed**: home hero `.ls-hero` is NOT touched in this PR — that's a
+  separate `polish/home-hero-bg-pass` follow-on with its own visual
+  confirmation, per spec §2 row for `.ls-hero`. All 5 gates green.
+  Closes listing-surface half of D41.
+
 - **Drop film-grain from course detail hero — Polish-course-hero-grain-removal**
   **(2026-09-02, on `polish/course-hero-grain-removal` off develop @ `69725c5`,
   PR #132):** Follow-on to session 132's grain fix (PR #130) and session 133's

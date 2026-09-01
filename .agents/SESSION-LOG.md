@@ -6485,3 +6485,32 @@ This closes the user-flagged "course-hero too ugly" feedback from session 132's 
 - Polish residue from session 132 still untouched: D20 Shiki (new dep), D22 OG image (DNS+Vercel), D30 FAQ half, D33 attribution, D24 tier-1, Lenis. All stop-and-ask.
 
 ---
+## Session 135 — grid overlay + cool corner glow on listing surfaces — 2026-09-02
+
+**Branch:** `polish/grid-overlay-and-corner-glow` off `develop @ 8b87e09`
+
+**Files changed:**
+- `packages/ui/src/tokens.css` — added two `ambient-cool-*` tokens (dark + light blocks), role-named parallel to the existing `marketing-accent-*` family
+- `apps/web/app/globals.css` — added new ambient CSS block: `.ls-ambient-grid` + `::before` (line-grid) + `.ls-ambient-glow::after` (corner-glow); both pseudos use `z-index: -1` and rely on the parent's `isolation: isolate` stacking context
+- `apps/web/components/blog/article-index.tsx` — added `ls-ambient-grid ls-ambient-glow` modifiers to `<div className="blog-pane">`
+- `apps/web/app/[locale]/courses/page.tsx` — wrapped existing `<header>` + `<ul>` in a new `<section className="ls-ambient-grid ls-ambient-glow mt-2">`
+
+**Why:** PR #3 in the sydexa-video-driven background spec rollout (PR #131 was the docs/spec; PR #132 was the course-hero grain removal). The spec's three unifying rules (dark navy canvas / one quiet accent glow per surface off-center / faint line-grid overlay ≤10% opacity) apply to every shipped surface of the site — this PR ships the Rule 2 + Rule 3 treatments for the two listing surfaces (`/en/blog` `.blog-pane` and `/en/courses`) that previously had no texture at all.
+
+Live probe: `curl /en/blog` renders `<div className="blog-pane ls-ambient-grid ls-ambient-glow">` (1 grid match, 1 glow match); `curl /en/courses` renders the new `<section>` wrap (2 grid matches). CSS bundle `/_next/static/chunks/2950hthiqp4az.css` contains both `.ls-ambient-grid::before` (line-grid) and `.ls-ambient-glow::after` (radial-glow) rules with the `var(--ambient-cool-grid)` and `var(--ambient-cool-glow)` references resolved.
+
+**Invented decisions:**
+- **Scope narrowed to listing surfaces, not home hero.** The spec §2 row for `.ls-hero` calls for the same treatments at 8% opacity, but also calls for scrubbing the existing rail-grid CSS gradient AND removing the standalone `bg-signal-dim opacity-25 blur-3xl` bloom div from `app/[locale]/page.tsx`. The user-flagged "too ugly" feedback in session 132 was specifically about `.course-hero` (already fixed in PR #132), not `.ls-hero`. Shipping the listing-surface half as a clean, reviewable PR lets the user visually confirm the pattern before the home-hero scrub happens. The home-hero half becomes a deliberate `polish/home-hero-bg-pass` follow-on.
+- **18% colour-mix vs 6% raw opacity** for the grid lines and corner glow. Spec said "6% opacity" for the listing surfaces; using `color-mix(in srgb, var(--ambient-cool-grid) 18%, transparent)` against a transparent floor produces the same visual effective alpha on a dark canvas while keeping the rule file readable. Documented in the PR body.
+- **CSS-only pattern, not data-URI SVG.** Spec Rule 3 talks about "single SVG"; the implementation uses two `linear-gradient` CSS layers (one horizontal, one vertical) tiled at 24×24 px. Same visual outcome; respects the `--ambient-cool-grid` token in both dark and light modes natively without needing two themed SVGs. Cheaper, simpler, theme-aware.
+- **Mid-right corner glow anchor** (vs top-right) to match PR #116's per-section bloom convention — different per-surface corners so successive glows don't stack on the same axis. Spec §2 named this explicitly.
+- **`isolation: isolate` on `.ls-ambient-grid`** to create the stacking context that scopes the negative-z-index pseudos — same defensive pattern that PR #130's film-grain fix on `.course-hero` had to add. Documented in the spec §9 failure-mode pre-mortem.
+
+**Known issues / next steps:**
+- D41 row body needs updating: course-hero half shipped in PR #132, listing-surface half shipped in PR #133; only the home-hero half remains.
+- `polish/home-hero-bg-pass` follow-on for the home-hero spec row (scrub rail-grid CSS gradient, drop `film-grain`, remove standalone bloom div, add `ls-ambient-grid` at 8% opacity). Real-phone spot-check required before merge.
+- D41 row update is in the wrap commit for this PR (this session).
+- Polish residue from session 132 untouched: D20 Shiki (new dep), D22 OG image (DNS+Vercel), D30 FAQ half, D33 attribution, D24 tier-1, Lenis. All stop-and-ask.
+- The two new tokens (`--ambient-cool-glow`, `--ambient-cool-grid`) are currently used only by `.ls-ambient-grid::before` and `.ls-ambient-glow::after`; if the follow-on home-hero pass needs them at 8% opacity (vs 18% colour-mix on listing surfaces), the existing rules may need a `--ambient-opacity` token or per-surface override. Not addressed here.
+
+---

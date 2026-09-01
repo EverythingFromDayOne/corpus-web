@@ -5,6 +5,18 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-02] — polish/grid-overlay-and-corner-glow — listing-surface ambient (sydexa spec ports)
+
+**Added**
+- `packages/ui/src/tokens.css` — two new role-named tokens: `--ambient-cool-glow` (dark = `--color-cool-soft`, light = `--color-cool`) and `--ambient-cool-grid` (both themes = `--color-graphite`). Naming follows the `--marketing-accent-*` family convention (PR #111): role-named, not colour-named.
+- `apps/web/app/globals.css` — new ambient CSS block: `.ls-ambient-grid` parent + `::before` line-grid pseudo (24×24 px tile, two `linear-gradient` layers, `color-mix(ambient-cool-grid 18%, transparent)`), `.ls-ambient-glow::after` corner-glow pseudo (radial ellipse 56×36rem at 100% 50%, `color-mix(ambient-cool-glow 18%, transparent)`). Both pseudos use `z-index: -1` and rely on the parent's `isolation: isolate` stacking context to stay scoped.
+
+**Changed**
+- `apps/web/components/blog/article-index.tsx` — `<div className="blog-pane">` → `<div className="blog-pane ls-ambient-grid ls-ambient-glow">`. Ambient modifiers apply on the right-hand main pane of the sidebar tree layout.
+- `apps/web/app/[locale]/courses/page.tsx` — wrapped existing `<header>` + `<ul>` in a new `<section className="ls-ambient-grid ls-ambient-glow mt-2">`. `mt-2` keeps the same visual spacing the original plain `<header>` had.
+
+**Stats:** 4 files +131/-18. All 5 gates green: typecheck 5/5 PASS (cache miss on web — actual tsc run), next build PASS (Pagefind 222 pages / 29019 words — unchanged), verify:prerender 196/196+18/18, verify:frontmatter 196/196. Live probe: `/en/blog` renders `<div className="blog-pane ls-ambient-grid ls-ambient-glow">` (1 grid match, 1 glow match); `/en/courses` renders the new `<section>` wrap (2 grid matches). CSS bundle `/_next/static/chunks/2950hthiqp4az.css` contains both `.ls-ambient-grid::before` (line-grid) and `.ls-ambient-glow::after` (corner-glow) rules with `var(--ambient-cool-grid)` and `var(--ambient-cool-glow)` references; 3 refs to `ambient-cool-glow`, 4 refs to `ambient-cool-grid`. PR #133.
+
 ### [2026-09-02] — polish/course-hero-grain-removal — drop film-grain on course detail hero
 
 **Fixed**
