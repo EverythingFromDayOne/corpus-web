@@ -82,6 +82,29 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Blog + topbar 6-issue polish — Polish-blog-and-topbar-fixes**
+  **(2026-08-31, on `polish/blog-and-topbar-fixes` off develop @
+  `f37010e`, PR #128):** Closes 6 distinct UI bugs reported after
+  PR #127 mobile fix. 2 files +50/-12. (a) Sticky regression:
+  `html { overflow-x: clip }` + `body { overflow-x: clip }` (was
+  `hidden` in PR #127 — `hidden` establishes a scrolling context
+  that breaks `position: sticky` on `.topbar`). (b) Card title
+  2-row clamp: `.blog-card-title` + `.course-card-title` get
+  `-webkit-line-clamp: 2` + ellipsis; long titles truncate. (c)
+  `course-card.tsx` JSX bar mirrors blog card: `scale-y-100 ...
+  group-hover:scale-y-110` (was `scale-y-0 ... group-hover:
+  scale-y-100`, stale from pre-PR #125). (d) Mobile sidebar
+  reorder: `@media (max-width: 900px)` swaps `.blog-pane` /
+  `.blog-sidebar` `order` values; sidebar at top (`order: 1`),
+  pane below (`order: 2`) — reverts PR #127 pane-first so menu
+  is at top of mobile content. (e) Topbar nav links hide at
+  ≤480px (`.topbar-nav { display: none }`); gap tightens to
+  `1rem` at ≤640px; pill CTA + search + theme toggle stay
+  visible at all viewports. (f) `.topbar-pill-cta` switches
+  `var(--font-mono)` → `var(--font-display)` + `font-weight:
+  600` so the pill matches the topbar's Archivo display family.
+  All 5 gates green; `/en/blog` HTTP 200 in 22ms.
+
 - **Blog mobile fix — Polish-blog-mobile-fix**
   **(2026-08-31, on `polish/blog-mobile-fix` off develop @ `8c1639d`,
   PR #127):** Closes "filter and group CSS broken on mobile" gap.
