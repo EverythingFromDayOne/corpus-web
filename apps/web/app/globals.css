@@ -16,6 +16,11 @@
     scroll-behavior: smooth;
     color-scheme: dark light;
     --tb: 3.6rem;
+    /* PR #127 polish/blog-mobile-fix: safety net for any
+       overflowing child on small viewports. Without this, a
+       mis-behaving child (e.g., a long unbreakable word in a
+       card title) could cause horizontal page scroll. */
+    overflow-x: hidden;
   }
 
   body {
@@ -25,6 +30,8 @@
     font-size: var(--text-base);
     line-height: var(--leading-prose);
     -webkit-font-smoothing: antialiased;
+    /* Same overflow-x safety net as html. */
+    overflow-x: hidden;
   }
 
   h1,
@@ -1090,13 +1097,90 @@ body:has(.av-view) .av-header-tog {
   gap: 1.25rem;
 }
 
-/* Sidebar appears below pane on small screens */
+/* Mobile layout (<= 900px): single-column, pane first, sidebar below.
+   Pane-first ordering is achieved by re-ordering the children at the
+   grid level — `.blog-pane` is given `order: 1`, `.blog-sidebar` is
+   given `order: 2`, so the pane renders above the sidebar. */
 @media (max-width: 900px) {
   .blog-layout {
     grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .blog-pane {
+    order: 1;
   }
   .blog-sidebar {
+    order: 2;
     position: static;
-    max-height: 20rem;
+    max-height: 24rem;
+  }
+
+  /* Filter row: stack vertically. The chip group keeps its
+     flex-wrap, but the sort label+select drops below the chips
+     (instead of squeezing into a cramped horizontal row). The
+     `align-items: stretch` makes the sort `<select>` fill the
+     available width for easier thumb-targeting. */
+  .blog-pane-filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.85rem;
+  }
+
+  /* The sort label was `ml-auto` on desktop; on mobile the
+     `ml-auto` would still try to push the label right, which
+     looks wrong in a stacked layout. Reset it. */
+  .blog-sort {
+    margin-left: 0;
+    justify-content: space-between;
+  }
+
+  /* Sort <select>: full-width on mobile for easier tap targets. */
+  .blog-sort-select {
+    flex: 1 1 auto;
+  }
+
+  /* Cards: reduce the desktop padding (1.5rem) to a tighter
+     1rem on mobile so 2 cards can fit per row on >=500px
+     screens and the description has more breathing room. Also
+     drop the min-height — on a single-column mobile layout
+     `min-height: 15rem` would force every card to 240px tall
+     even when the description is one line, creating huge
+     empty bottoms. Let each card size to its content on
+     mobile. */
+  .blog-card {
+    padding: 1rem 1rem 1rem 1.25rem;
+    min-height: 0;
+  }
+
+  /* Cards grid: keep auto-fill but drop the 290px min so 2
+     cards fit per row at >=500px. Below that, falls naturally
+     to single column. */
+  .blog-cards {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+
+  /* Pane title: drop from 1.75rem to 1.4rem on mobile so a
+     long title doesn't wrap onto 3 lines. */
+  .blog-pane-title {
+    font-size: 1.4rem;
+  }
+
+  /* Pane head: allow wrap if the count chip can't fit on the
+     same line as the title. */
+  .blog-pane-head {
+    flex-wrap: wrap;
+  }
+}
+
+/* Extra-narrow viewport (<= 480px): force single-column cards
+   regardless of grid math. Also reduce card padding further. */
+@media (max-width: 480px) {
+  .blog-cards {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+  .blog-card {
+    padding: 0.85rem 0.85rem 0.85rem 1.1rem;
   }
 }

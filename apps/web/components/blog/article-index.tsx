@@ -105,7 +105,7 @@ export function ArticleIndex({
     const corpusLabel = t(messages, `corpora.${article.repo}.label`);
     const desc = article.description;
     return (
-      <li key={article.uid} className="group relative">
+      <li key={article.uid} className="group relative min-w-0">
         <a
           href={articlePath(locale, article.repo, article.articleId)}
           className="ls-blog-card blog-card relative block rounded-lg border p-5 pl-6 no-underline transition-[transform,box-shadow,border-color,background] duration-300 group-hover:-translate-y-2"

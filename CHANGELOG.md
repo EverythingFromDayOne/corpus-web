@@ -96,6 +96,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 **Stats:** 2 files +18/-4. All 5 gates green. End-to-end probe: `/en/blog` HTTP 200 in 76ms with 196 cards. Served CSS bundle `/_next/static/chunks/3t0ljg_it2esu.css` confirms all 6 rule changes present. PR #126.
 
+### [2026-08-31] — polish/blog-mobile-fix — mobile filter + card layout fix (PR #127)
+
+**Changed**
+- `apps/web/app/globals.css` — mobile layout: `html { overflow-x: hidden }` and `body { overflow-x: hidden }` (safety net for horizontal overflow); `@media (max-width: 900px)` with 8 new rules (single-column grid, pane-first ordering via `order: 1/2`, sort stacked below chips, full-width select, tighter card padding 1rem, drop card min-height, 220px grid min, smaller pane title 1.4rem, wrap-enabled pane head); `@media (max-width: 480px)` with 2 new rules (force 1-column cards `grid-template-columns: 1fr`, tightest card padding 0.85rem).
+- `apps/web/components/blog/article-index.tsx` — added `min-w-0` to the `<li>` grid item so cards can shrink past their content size (otherwise a long unbreakable title forces the grid cell to expand beyond the viewport).
+
+**Stats:** 2 files +96/-4. All 5 gates green. End-to-end probe: `/en/blog` HTTP 200 in 22ms with 196 cards. Served CSS bundle `/_next/static/chunks/0rndb4r8ztmky.css` confirms all 3 `.blog-cards` rules (desktop, mobile-900, mobile-480) in cascade order.
+
+**Caveat:** Chrome on macOS retina renders `--window-size=375` as 750px CSS pixels even with `--force-device-scale-factor=1`. Chrome headless screenshots fall into the 900px media query range (2-column cards), not the 480px range (1-column cards) that real phones use. **Real-phone verification needed**: open `https://develop.nxhhuy.tech/en/blog` on a phone with viewport ≤480px to see the 1-column stack. PR #127.
+
 ### [2026-08-31] — polish/blog-card-kind-badge — kind badge overlay on `/en/blog` article cards
 
 **Changed**
