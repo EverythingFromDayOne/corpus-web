@@ -294,6 +294,18 @@ body:has(.av-view) .av-header-tog {
    .blog-corpus-heading below. */
 
 .blog-card {
+  /* PR #126 polish/blog-match-mockup-c: explicit min-height so
+     all cards in the same row align to the tallest card. Without
+     this, cards stretch independently based on description length
+     (some 1-line descriptions leave a tall empty bottom area,
+     others stretch the description to 3 lines and push the meta
+     row down). The added `display: flex; flex-direction: column`
+     + `flex-grow: 1` on the description makes the description fill
+     the remaining vertical space, so the meta row sticks to the
+     bottom of every card. */
+  display: flex;
+  flex-direction: column;
+  min-height: 15rem;
   /* PR #125 polish/blog-rhythm-upgrade: bumped from p-5 pl-6 to
      give the card more interior breathing room (matches mockup C
      visual rhythm). The override here wins over Tailwind utility
@@ -344,6 +356,9 @@ body:has(.av-view) .av-header-tog {
 .blog-card-title {
   letter-spacing: -0.01em;
   line-height: 1.25;
+  /* PR #126 polish/blog-match-mockup-c: don't flex-grow; let
+     .blog-card-desc fill remaining vertical space. */
+  flex: 0 0 auto;
 }
 
 .blog-card-desc {
@@ -352,6 +367,12 @@ body:has(.av-view) .av-header-tog {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  /* PR #126 polish/blog-match-mockup-c: flex-grow so the description
+     fills the remaining vertical space. Combined with the card's
+     `min-height: 15rem` + `flex-direction: column`, this ensures all
+     cards in the same grid row have equal height even when some
+     descriptions are shorter than 3 lines. */
+  flex: 1 1 auto;
 }
 
 .blog-corpus-heading {
@@ -420,6 +441,19 @@ body:has(.av-view) .av-header-tog {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
+}
+
+.blog-sort {
+  /* PR #126 polish/blog-match-mockup-c: mono caps typography on
+     the sort label + select group to match mockup C's `.sort`
+     rule. Without this, the label was inheriting the body
+     sans-serif at 0.875rem (Tailwind's text-sm default), which
+     looked out of place next to the mono-caps chips. */
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
 }
 
 .blog-sort-select:focus-visible {
@@ -1032,7 +1066,19 @@ body:has(.av-view) .av-header-tog {
 }
 
 .blog-pane-filters {
+  /* PR #126 polish/blog-match-mockup-c: split into 2 sides — chips
+     on the left, sort dropdown on the right with `ml-auto`. Mockup
+     C has the sort label + select pushed to the right edge; the
+     gap between chip group and sort label is the visual "breath"
+     that the previous stacked layout was missing. Also adds
+     `margin-bottom: 1.5rem` for breathing room before the card
+     grid (mockup C has the filter row visually separated from
+     the cards section by ~1.5rem of empty space). */
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
   margin-top: 0;
+  margin-bottom: 1.5rem;
 }
 
 .blog-pane-empty {
@@ -1041,6 +1087,7 @@ body:has(.av-view) .av-header-tog {
 
 .blog-cards {
   grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 1.25rem;
 }
 
 /* Sidebar appears below pane on small screens */

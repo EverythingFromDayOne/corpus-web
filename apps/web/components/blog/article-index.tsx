@@ -241,12 +241,12 @@ export function ArticleIndex({
               }),
             )}
           </div>
-          <label className="blog-sort ml-auto flex items-center gap-2 text-sm">
+          <label className="blog-sort ml-auto flex items-center gap-2">
             <span className="text-muted">{t(messages, 'blog.sortLabel')}</span>
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
-              className="blog-sort-select rounded-md border px-3 py-1.5 text-sm"
+              className="blog-sort-select rounded-md border px-3 py-1.5"
             >
               {sortOptions.map((opt) => (
                 <option key={opt.id} value={opt.id}>

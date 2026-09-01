@@ -88,6 +88,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 **Stats:** 2 files +14/-4. All 5 gates green: typecheck 5/5, lint 0, next build PASS (Pagefind 222 pages / 28910 words — unchanged), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. End-to-end probe: `/en/blog` HTTP 200 in 78ms with 196 cards. Served CSS bundle `/_next/static/chunks/1u-ys-9lm3h-w.css` confirms all 4 rules with new values. PR #125.
 
+### [2026-08-31] — polish/blog-match-mockup-c — match mockup C visual rhythm (PR #126)
+
+**Changed**
+- `apps/web/app/globals.css` — 6 rules: `.blog-pane-filters { display:flex; gap:1.5rem; margin-bottom:1.5rem }` (split into 2 halves); `.blog-card { display:flex; flex-direction:column; min-height:15rem }` (uniform-height cards); `.blog-card-desc { flex:1 1 auto }` (desc fills remaining vertical space); `.blog-card-title { flex:0 0 auto }` (title doesn't grow); `.blog-cards { gap:1.25rem }` (more breathing room); `.blog-sort { font-family:var(--font-mono); font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--color-muted) }` (mono caps typography matching mockup C).
+- `apps/web/components/blog/article-index.tsx` — 2 class tweaks: removed `text-sm` from `.blog-sort` label and `.blog-sort-select` (was overriding the CSS mono caps 0.7rem rule).
+
+**Stats:** 2 files +18/-4. All 5 gates green. End-to-end probe: `/en/blog` HTTP 200 in 76ms with 196 cards. Served CSS bundle `/_next/static/chunks/3t0ljg_it2esu.css` confirms all 6 rule changes present. PR #126.
+
 ### [2026-08-31] — polish/blog-card-kind-badge — kind badge overlay on `/en/blog` article cards
 
 **Changed**
