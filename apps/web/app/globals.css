@@ -242,18 +242,13 @@ body:has(.av-view) .av-header-tog {
 }
 
 /* Lift direct children of `.film-grain` above the grain overlay.
-   The course hero `<h1>` and `<p>` elements already have
-   `className="relative"` from their own JSX, so applying
-   `z-index: 1` here is enough to stack them above the grain
-   `::after` (which now sits at `z-index: 0`). Children of the
-   hero that are absolutely-positioned blooms (decorative,
-   pointer-events: none) sit at the same layer as the grain and
-   don't need to be lifted — they're already behind the text
-   content in the DOM.
+   Home hero `<h1>` and `<p>` elements have `className="relative"`
+   from their own JSX, so applying `z-index: 1` here is enough to
+   stack them above the grain `::after` (which sits at `z-index: 0`).
 
    `:where()` is used so the selector has specificity 0,0,0 and
    cannot override Tailwind utility classes like `.absolute` on
-   the bloom children (which set `position: absolute`). */
+   bloom children (which set `position: absolute`). */
 .film-grain > :where(*) {
   z-index: 1;
 }
