@@ -82,6 +82,19 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Mobile reflow audit + 4 proposed follow-on PRs — Polish-mobile-reflow-pass**
+  **(2026-09-02, on `polish/mobile-reflow-pass` off develop @ `2a39a66`, PR #136, MERGED):**
+  Concluded the user's "Go yolo on option 1 then 2 then 3 'polish/mobile-reflow-pass' one by one,
+  each option create 1 PR" chain. Option 1 was the PR #134 spot-check + merge (session 137).
+  Option 2 was the docs-only spec extension PR #135 (session 137). Option 3 is the
+  mobile-reflow-pass docs PR #136. Audit method: Chrome headless `--force-device-scale-factor=1`
+  at 375×812 / 768×1024 / 1280×800, 5 surfaces × 3 viewports = 15 PNG captures stored
+  untracked at `/tmp/mobile-audit/`. Disclosed limitations: iOS Safari rendering not
+  captured, react-concepts path 404'd on test slugs (proxy used was `angular/animations`).
+  Spec proposes 4 named follow-on code PRs in §3 (mobile-fix-a/b/c/d) for the next session
+  to land one PR at a time with real iPhone spot-check between merges. 1 file +169/-0. No
+  code (docs-only). PR #136 merged via `--admin --squash --delete-branch`.
+
 - **PR #134 spot-check + merge + option-2 spec extension — Polish-spec-extension-home-section-bloom**
   **(2026-09-02, on `polish/spec-extension-home-section-bloom` off develop @ `32fde46`,
   PR #135, MERGED):** Continued user's "Go yolo on option 1 then 2 then 3" chain.

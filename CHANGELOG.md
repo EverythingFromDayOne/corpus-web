@@ -5,6 +5,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-02] — polish/mobile-reflow-pass — mobile reflow audit + 4 proposed follow-on PRs (docs)
+
+**Added**
+- `prompts/design-spec-2026-08-mobile-reflow.md` — new docs-only spec extension (169 insertions) that closes the session-132 standing rule ("make sure u verify on small device also") by capturing the first formal multi-viewport audit since session 132. Documents 4 critical mobile overflow findings (home hero, /en/blog hero subtitle, /en/courses card content, /en/blog/[corpus]/[slug] article meta strips) and proposes 4 named follow-on code PRs (mobile-fix-a/b/c/d) in §3. No code lands in this docs PR.
+
+**Stats:** 1 file +169/-0. 15 PNG captures (5 surfaces × 3 viewports) at `/tmp/mobile-audit/` (untracked). Audit reproducible per §6 bash snippet using Chrome headless + `--force-device-scale-factor=1`, no new dev dep required. PR #136, merged via `--admin --squash --delete-branch`. Real iPhone spot-check stays gated on the implementation PRs (named but not branched), not this docs PR.
+
 ### [2026-09-02] — polish/spec-extension-home-section-bloom — home section bloom contract (docs)
 
 **Added**

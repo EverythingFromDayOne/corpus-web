@@ -6562,3 +6562,27 @@ The sydexa-video-driven background spec rollout (PRs #131 → #132 → #133 → 
 - New candidate follow-on from this session: `polish/home-section-bloom-alt` (1-char token swap in `.ls-audience::before`, after spec lands + real-phone spot-check approves the proposal in section §3 of the new spec).
 
 ---
+## Session 138 — option 3 mobile-reflow-pass docs PR — 2026-09-02
+
+**Branch:** `polish/mobile-reflow-pass` off `develop @ 2a39a66`
+
+**Files changed:**
+- `prompts/design-spec-2026-08-mobile-reflow.md` (NEW, 169 insertions) — docs-only spec extension. Captures the first formal multi-viewport audit since session 132. 5 surfaces × 3 viewports (375/768/1280) = 15 PNG captures at `/tmp/mobile-audit/` (untracked, per session 132 convention). Documents 4 critical-severity mobile overflow findings and proposes 4 named follow-on implementation PRs (mobile-fix-a/b/c/d).
+
+**Why:** Concluded the user's "Go yolo on option 1 then 2 then 3 'polish/mobile-reflow-pass' one by one, each option create 1 PR" chain. Option 1 was PR #134 merge (session 137), option 2 was PR #135 docs-only spec extension (session 137), option 3 is this PR (#136) — the mobile-reflow-pass chain step 3.
+
+The audit method is documented in §0 (3 viewport sizes, Chrome `--headless=new --force-device-scale-factor=1`) and reproducible per §6 (bash snippet). No new dev dependency was needed (no Puppeteer, no extra npm packages).
+
+The audit found 4 critical mobile overflows: home hero, /en/blog hero subtitle, /en/courses card content, and /en/blog/[corpus]/[slug] article body meta strips. The spec proposes 4 follow-on code PRs in §3 (`polish/mobile-fix-a-overflow-wrap`, `-b-card-meta-flex-wrap`, `-c-grid-collapse`, `-d-hero-balance`) with file-level scope estimates. **None land in this docs PR.**
+
+**Invented decisions:**
+- **Docs-only PR shape rather than code-fix PR shape.** The user named `polish/mobile-reflow-pass` which could read as either (a) a code-PR that fixes mobile, or (b) a docs-PR that audits mobile. I chose (b) because (1) the audit surfaced multiple distinct root causes requiring different fixes, (2) the existing polish-residue pattern from PR #131 (docs) → PRs #132/#133/#134 (code) prefers spec-first, (3) shipping a code patch before the audit was a one-line fix that would have addressed only a subset of the issues.
+- **Audit limited to 5 surfaces, 3 viewports, no interaction testing.** Documented in §5 explicitly. Real iPhone spot-check is the user's responsibility, not this audit's.
+- **Forward audit did include article body** but couldn't reach the `react-concepts` corpus (slug routing 404). Disclosed in §1 row for the article body — proxy used was `angular/animations`.
+
+**Known issues / next steps:**
+- Next 4 polish residue PRs (`polish/mobile-fix-a` through `-d`) are named in §3 but **not branched**. They will be cut one by one as future sessions. Real iPhone spot-check between each merge.
+- Polish residue from session 132 still untouched: D20 Shiki (new dep), D22 OG image (DNS+Vercel), D30 FAQ half (corpus-side), D33 attribution (corpus-side), D24 tier-1, Lenis. All stop-and-ask.
+- Vercel Auth bypass, `develop → main` promotion, D38 verify-links advisoring — your actions.
+
+---
