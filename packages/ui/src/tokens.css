@@ -30,6 +30,22 @@
   --marketing-accent-bloom: var(--color-signal-soft);
   --marketing-accent-deep: var(--color-signal-dim);
 
+  /* Ambient-accent tokens (sydexa-video-driven background spec,
+     PR #131 — `prompts/design-spec-2026-08-background.md` §3).
+     Role-named like the marketing-accent-* family: "ambient depth"
+     rather than "active press/CTA". Same architectural pattern
+     (thin wrapper over an existing colour token) so grep parity
+     works and future PRs cannot accidentally reuse a marketing
+     token for ambient/calm/depth purposes.
+
+     --ambient-cool-glow:  the quiet corner-glow on listing
+       surfaces and the home hero's bloom accent (Rule 2).
+     --ambient-cool-grid:  the faint line-grid texture overlay
+       that replaces film-grain on the home hero and adds
+       blueprint texture to listing surfaces (Rule 3). */
+  --ambient-cool-glow: var(--color-cool-soft);
+  --ambient-cool-grid: var(--color-graphite);
+
   --color-cool: #6aa9d8;        /* concept-tag foreground (DEBT D28) */
   --color-cool-soft: #a4c6e0;
   --color-cool-dim: #2c4659;
@@ -98,6 +114,15 @@
   --marketing-accent-label-text: var(--color-signal);
   --marketing-accent-bloom: var(--color-signal-soft);
   --marketing-accent-deep: var(--color-signal-dim);
+
+  /* Ambient-accent tokens (sydexa-video-driven background spec,
+     PR #131). See the dark-theme block above for the role
+     rationale. In light mode the cool-glow softens to the muted
+     cool (no high-saturation cyan on paper), and the grid stays
+     on the same graphite hairlines — both are already 4.5:1+
+     contrast-safe via the upstream --color-* tokens. */
+  --ambient-cool-glow: var(--color-cool);
+  --ambient-cool-grid: var(--color-graphite);
 
   --color-cool: #2b6f9e;
   --color-cool-soft: #6aa9d8;
