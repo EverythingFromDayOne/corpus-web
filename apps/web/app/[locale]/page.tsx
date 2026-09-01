@@ -68,11 +68,21 @@ export default async function HomePage({ params }: PageProps) {
         }}
       />
       <div className="ls-home">
-        <section className="ls-hero film-grain relative overflow-hidden">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -inset-x-12 -inset-y-8 rounded-full bg-signal-dim opacity-25 blur-3xl"
-          />
+        {/* Home hero. Drop film-grain and the redundant
+           `bg-signal-dim opacity-25 blur-3xl` JSX bloom div per the
+           sydexa-video-driven background spec §2 row for `.ls-hero`
+           (PR #131, `prompts/design-spec-2026-08-background.md`):
+           the spec keeps both `.ls-hero::before` warm upper-right
+           aurora and `.ls-hero::after` cool lower-left aurora — the
+           JSX bloom div is one of three layers fighting for the same
+           warm-anchor point and reads as visual noise. The new
+           `ls-ambient-grid` modifier adds the Rule 3 line-grid at
+           the home-hero's spec'd 8% effective opacity (vs 6% on
+           listing surfaces). `ls-ambient-glow` is deliberately NOT
+           added here — the cool lower-left ::after pseudo IS the
+           Rule 2 off-center accent; adding the modifier would
+           re-introduce the double-bloom problem Rule 2 excludes. */}
+        <section className="ls-hero ls-ambient-grid relative overflow-hidden">
           <div className="ls-wrap relative">
             <p className="meta">{t(messages, 'home.eyebrow')}</p>
             <h1 className="bg-gradient-to-b from-display to-signal bg-clip-text text-transparent">
