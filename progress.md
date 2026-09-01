@@ -82,6 +82,17 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Blog match mockup C — Polish-blog-match-mockup-c**
+  **(2026-08-31, on `polish/blog-match-mockup-c` off develop @
+  `1246ed8`, PR #126):** Ports remaining 3 visual rhythm gaps from
+  mockup C. 2 files +18/-4. `.blog-pane-filters` split with
+  `display:flex; gap:1.5rem; margin-bottom:1.5rem`. `.blog-card`
+  has `min-height:15rem + flex-direction:column`. `.blog-card-desc`
+  has `flex:1 1 auto`. `.blog-cards gap:1.25rem`. `.blog-sort`
+  mono caps 0.7rem. Removed `text-sm` overrides on sort label +
+  select. All 5 gates green; `/en/blog` HTTP 200 in 76ms with 196
+  cards.
+
 - **Blog rhythm upgrade — Polish-blog-rhythm-upgrade**
   **(2026-08-31, on `polish/blog-rhythm-upgrade` off develop @
   `7d6668b`, PR #125):** Ports §17 visual contract (PR #124) +

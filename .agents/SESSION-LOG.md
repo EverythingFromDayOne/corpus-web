@@ -5861,4 +5861,97 @@ Verification:
 
 Files changed:
 - `apps/web/app/globals.css`
+- `apps/web/components/blog/article-index.tsx`feat(blog): match mockup C — split filter row + uniform-height cards
+
+Ports the remaining 3 visual rhythm gaps from mockup C
+(`docs/scratch/blog-mockups/C-sidebar-tree.html`) to live `/en/blog`:
+(1) filter row split into left chips + right sort with `gap:1.5rem`,
+(2) 1.5rem breathing room between filter row and card grid,
+(3) uniform-height cards via `min-height:15rem` + flex column on
+the card + `flex:1 1 auto` on `.blog-card-desc`.
+
+**Why this PR (the user's feedback):**
+
+> "the section section stick right under the filter without any
+> space and the dropdown also stick to the kind badge and also
+> the card with random height look too unacceptable and terrible"
+
+The previous relayouts (PR #123 sidebar tree, PR #125 rhythm upgrade)
+shipped the *structure* but missed three visual rhythm problems:
+
+1. **Filter row chips stuck to sort dropdown.** The chip group
+   ended immediately before the sort label with no gap, so the
+   visual "this row has two halves" was lost. Mockup C shows the
+   chip group on the left, sort on the right, with a clear empty
+   space between them.
+2. **No vertical breathing room between filter row and card grid.**
+   The card grid sat immediately under the filter row with the
+   pane-head border-bottom being the only separator.
+3. **Cards had random heights.** Description lines varied 1-3
+   depending on article length, so cards in the same row had
+   ragged bottom edges (the meta row staggered).
+
+**Changes:**
+
+- `apps/web/app/globals.css`:
+  - `.blog-pane-filters { display:flex; align-items:center;
+    gap:1.5rem; margin-bottom:1.5rem }` — splits into 2 sides
+    and adds breathing room below.
+  - `.blog-card { display:flex; flex-direction:column;
+    min-height:15rem }` — explicit min-height + flex column.
+  - `.blog-card-desc { flex:1 1 auto }` — description fills
+    remaining vertical space, so cards in a row are uniform-height.
+  - `.blog-card-title { flex:0 0 auto }` — title doesn't grow.
+  - `.blog-cards { gap:1.25rem }` — bumped from default `1rem`.
+  - `.blog-sort { font-family:var(--font-mono); font-size:0.7rem;
+    letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--color-muted) }` — mono caps typography on the sort
+    label group to match mockup C.
+- `apps/web/components/blog/article-index.tsx`:
+  - Removed `text-sm` from `.blog-sort` label and
+    `.blog-sort-select` (was overriding the CSS `font-size:0.7rem`).
+  - The `.blog-sort-select` typography rule (mono caps 0.6875rem)
+    was already correct; removing `text-sm` lets it apply.
+
+**Invented decisions:**
+
+- **min-height:15rem** picked empirically to fit the typical
+  card content (kind pill + corpus + minutes row, title at
+  1.05rem with two lines, 3-line description, ~1rem of slack).
+  Could tune later if articles have shorter titles.
+- **flex:1 1 auto on .blog-card-desc** (instead of growing the
+  title or padding) — keeps the title at its natural height
+  (aligned across all cards), and lets the desc fill remaining
+  vertical space. The desc is already line-clamp:3, so there's
+  no risk of it overflowing.
+- **`.blog-cards gap:1.25rem`** bumped from default 1rem to give
+  cards more vertical breathing room (matches mockup C's
+  `gap:1rem` but with the larger `.blog-card` padding, a slightly
+  larger gap reads as more spacious without feeling empty).
+- **Sort dropdown stays mono caps 0.6875rem** (not bumped to
+  0.7rem like the label) — keeps the dropdown visually tighter
+  than the surrounding label, which is the mockup C pattern.
+- **No `text-sm` override on `<select>`** — the CSS `.blog-sort-select`
+  rule provides mono caps 0.6875rem typography. Tailwind's
+  `text-sm` (0.875rem) was overriding it before, which is why
+  the sort dropdown looked out of place.
+- **Sort label kept on the right via `ml-auto`** — combined with
+  the new `gap:1.5rem`, the chip group and sort group have a
+  clear visual split that matches mockup C.
+
+**Verification:**
+
+- All 5 gates green: typecheck PASS, lint PASS, next build PASS,
+  verify:prerender 196/196+18/18, verify:frontmatter 196/196,
+  vitest 38/38.
+- End-to-end probe via `pnpm --filter @corpus/web start`:
+  `/en/blog` → HTTP 200 in 76ms with 196 cards. Class counts:
+  196 `ls-blog-card blog-card`, 1 `blog-sort` (with `ml-auto`),
+  1 `blog-sort-select`, 1 `blog-cards` (the grid).
+- Served CSS bundle `/_next/static/chunks/3t0ljg_it2esu.css`
+  confirms all 6 rule changes are present in the minified
+  stylesheet.
+
+**Files changed:**
+- `apps/web/app/globals.css`
 - `apps/web/components/blog/article-index.tsx`
