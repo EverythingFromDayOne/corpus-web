@@ -131,6 +131,20 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 **Stats:** 2 files +50/-4. All 5 gates green. PR #129.
 
+### [2026-08-31] — polish/header-and-card-hover-cleanup — pill font + theme toggle hover + card-bar hover-only + film-grain z-index fix (PR #130)
+
+**Fixed**
+- `.film-grain::after { z-index: -1 }` was placing the grain pseudo behind the parent's `isolation: isolate` stacking context, making the texture invisible on `.course-hero` and `.ls-hero`. Changed to `z-index: 0` and added `.film-grain > :where(*) { z-index: 1 }` to lift content above the grain.
+
+**Changed**
+- `.topbar-pill-cta` letter-spacing `0.04em` → `0.02em`, colour `var(--color-display)` → `var(--color-body)`. Reads as part of the topbar family instead of outlier.
+- `course-card.tsx` + `article-index.tsx` — `.course-card-bar` and `.blog-card-bar` reverted from `scale-y-100 ... group-hover:scale-y-110` (always visible) back to `scale-y-0 ... group-hover:scale-y-100` (hover-only). The always-visible 4px gradient bar was overlapping with the card's 1px border on the left edge, creating a redundant vertical-line decoration at rest.
+
+**Added**
+- `ThemeToggle` hover + focus-visible states (Tailwind utilities on the JSX className). Hover gets `--color-muted` border lift; keyboard focus gets `--color-signal` border + outline ring.
+
+**Stats:** 4 files +63/-12. All 5 gates green. PR #130.
+
 ### [2026-08-31] — polish/blog-card-kind-badge — kind badge overlay on `/en/blog` article cards
 
 **Changed**

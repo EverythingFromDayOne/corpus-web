@@ -6364,4 +6364,73 @@ Fix: added `@media (max-width: 480px)` rule:
   added `@media (max-width: 480px) { .av-flashcard-hd ... }`
   block (33 lines including comment)
 - `packages/mdx-components/src/quiz.tsx` — changed `catch {}`
-  to `catch (error) { console.error(...) }` (1 line diff)
+  to `catch (error) { console.error(...) }` (1 line diff)feat(header+film-grain): card-bar hover-only + theme toggle hover + film-grain z-index fix
+
+Closes 4 user-reported bugs after PR #129 + 1 new bug:
+
+**Bug #1 — "Skip to content" link behaviour** (question, no code fix needed)
+
+The `<a href="#content">Skip to content</a>` link is `sr-only focus:not-sr-only`. The user asked what it is and noted that it disappears when they tab past it. This is the **correct WCAG behavior** — a skip-link should appear on focus and disappear on blur so it doesn't clutter the visual surface.
+
+**No code change.** The user understands the purpose; behaviour matches WCAG 2.4.1 (Bypass Blocks, Level A).
+
+**Bug #2 — "START THE COURSE" pill font fit**
+
+User reported the pill text font doesn't fit the rest of the topbar. After PR #128 changed the font from mono to display, the pill reads as Archivo semibold caps. Tightened two things:
+
+- `letter-spacing: 0.04em` → `letter-spacing: 0.02em` (less typographic outlier feel)
+- `color: var(--color-display)` → `color: var(--color-body)` (closer to nav-link colour, less attention-grabbing)
+
+Kept the Archivo semibold caps + monospace `text-transform: uppercase` to preserve the "CTA badge" feel, but it now reads as a member of the topbar typography family rather than a separate family.
+
+**Bug #3 — Theme toggle has no hover state**
+
+Added hover + focus-visible states to the ThemeToggle button via Tailwind utilities on the JSX className:
+- `hover:border-[color:var(--color-muted)]` — subtle border lift on hover
+- `focus-visible:border-[color:var(--color-signal)]` + outline — keyboard-focus ring (matches the existing focus pattern from PR #116)
+- `transition-colors duration-200 ease-in-out` — smooth transitions, reduced-motion safe via `motion-reduce:transition-none`
+
+No new CSS file, no new CSS class — the hover state is composed from existing tokens (`--color-muted`, `--color-signal`) that are already part of the design system.
+
+**Bugs #4a/#4b — Card hover creates "weird redundant path" on /courses + /blog**
+
+The `.course-card-bar` and `.blog-card-bar` are 4px wide gradient strips at the left edge of each card. PRs #125/#128 changed them from `scale-y-0 ... group-hover:scale-y-100` (hidden at rest, visible on hover) to `scale-y-100 ... group-hover:scale-y-110` (always visible at rest, scaling up on hover).
+
+The always-visible bar at rest overlapped with the card's 1px border on the left edge — visually two parallel vertical lines that read as redundant decoration. The user annotated the LEFT EDGE of both card types with a red marker.
+
+Fix: reverted both bars to the **original hover-only** behaviour:
+- `course-card.tsx`: `scale-y-100 ... group-hover:scale-y-110` → `scale-y-0 ... group-hover:scale-y-100`
+- `article-index.tsx`: same swap for `.blog-card-bar`
+
+The bloom + lift on hover (`group-hover:-translate-y-1/-2`) is preserved — the bar just appears as part of the hover treatment instead of being a permanent decoration.
+
+**Bug #5 — film-grain texture not rendering on `.course-hero`**
+
+User opened DevTools on `/en/courses/react-foundations` and saw `header.course-hero.film-grain.relative.mt-6.overflow-hidden 1112 x 714.24` but no grain texture — the hero rendered as a flat surface with poor text contrast. DevTools tooltip confirmed the class is applied.
+
+**Root cause:** `.film-grain::after` used `z-index: -1`. Combined with `.film-grain { isolation: isolate }` (which creates a NEW stacking context for the parent), the `z-index: -1` pseudo-element got placed BEHIND the parent's stacking context boundary — i.e., behind the body background, not in front of it. The grain was effectively being rendered under the body's `var(--color-ink)` fill.
+
+Fix:
+1. `.film-grain::after { z-index: -1 }` → `z-index: 0` — pseudo now renders ON TOP of the body background but BELOW any content with positive z-index
+2. Added `.film-grain > :where(*) { z-index: 1 }` — lifts direct children of `.film-grain` above the grain overlay. `:where()` keeps the selector specificity at 0,0,0 so it doesn't override Tailwind utilities like `.absolute` on the decorative bloom divs (which need `position: absolute` to span the hero).
+
+The course hero content `<h1>` and `<p>` already have `className="relative"` from their JSX, so they were already in a positioned state — adding `z-index: 1` via the new selector is enough to stack them above the grain.
+
+**Invented decisions:**
+
+- **Keep `mix-blend-mode: overlay` on the grain** — the blend mode makes the grain texture interact with the underlying colours (warmer in the warm-bloom regions, cooler elsewhere), giving a tactile "film" feel. Switching to `normal` would make the grain a flat overlay that doesn't react to the blooms.
+- **`:where(*)` for the children selector** — chosen over `.film-grain > * { ... }` because the latter would have specificity 0,1,0 and would override `.absolute` (also 0,1,0) on the decorative blooms. `:where()` collapses to specificity 0,0,0, so the Tailwind utility wins by source order.
+- **Color `var(--color-body)` for the pill** — chose the body-text colour (mid-grey in dark mode) over `var(--color-display)` (brightest white) because the pill's role is "label" not "primary call to action". The high-contrast border + bloom background already make it stand out.
+- **Hide the bar at rest (revert PR #125/#128)** — the always-visible bar was a deliberate change to mirror mockup C's "constant strip" treatment, but the user's screenshots make clear that the strip's gradient + the card border together read as visual noise rather than as a refined decoration. Hover-only is the better trade-off.
+
+**Verification:**
+- All 5 gates green.
+- `/en/courses` HTTP 200 with course-card-bar `scale-y-0` (hidden at rest).
+- `/en/blog` HTTP 200 with blog-card-bar `scale-y-0` (hidden at rest).
+- `/en/courses/react-foundations` HTTP 200 with film-grain rules in the served CSS bundle (`z-index: 0` on the pseudo, `z-index: 1` on the children).
+
+**Files changed:**
+- `apps/web/app/globals.css`
+- `apps/web/components/blog/article-index.tsx`
+- `apps/web/components/chrome/theme-toggle.tsx`
+- `apps/web/components/courses/course-card.tsx`
