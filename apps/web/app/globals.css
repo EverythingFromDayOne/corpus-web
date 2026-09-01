@@ -294,7 +294,12 @@ body:has(.av-view) .av-header-tog {
    .blog-corpus-heading below. */
 
 .blog-card {
-  padding: 1.25rem 1.25rem 1.25rem 1.5rem;
+  /* PR #125 polish/blog-rhythm-upgrade: bumped from p-5 pl-6 to
+     give the card more interior breathing room (matches mockup C
+     visual rhythm). The override here wins over Tailwind utility
+     classes because `.blog-card` is declared later in the cascade
+     for cards inside the blog tree pane. */
+  padding: 1.5rem 1.5rem 1.5rem 1.85rem;
 }
 
 .blog-card-bar {
@@ -858,7 +863,10 @@ body:has(.av-view) .av-header-tog {
    background. */
 
 .blog-layout {
-  grid-template-columns: 280px 1fr;
+  /* PR #125 polish/blog-rhythm-upgrade: sidebar widened from 280px
+     to 320px for a more comfortable tree-reading rhythm. The pane
+     side is auto-sized via the 1fr column. */
+  grid-template-columns: 320px 1fr;
   align-items: start;
 }
 
@@ -940,7 +948,10 @@ body:has(.av-view) .av-header-tog {
   font-size: 0.75rem;
   letter-spacing: 0.02em;
   color: var(--color-muted);
-  padding: 0.3rem 0.65rem;
+  /* PR #125 polish/blog-rhythm-upgrade: padding bumped from
+     0.3rem 0.65rem → 0.4rem 0.85rem for taller folder rows
+     that feel more like Sydexa-style "wide row" buttons. */
+  padding: 0.4rem 0.85rem;
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -1001,7 +1012,11 @@ body:has(.av-view) .av-header-tog {
 
 .blog-pane-title {
   margin: 0;
-  font-size: 1.5rem;
+  /* PR #125 polish/blog-rhythm-upgrade: title bumped from 1.5rem
+     → 1.75rem so the pane header has a stronger "active section"
+     visual weight relative to the card titles (which are 1.05rem
+     via .blog-card-title). */
+  font-size: 1.75rem;
   letter-spacing: -0.01em;
   font-weight: 600;
 }

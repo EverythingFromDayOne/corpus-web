@@ -5779,3 +5779,86 @@ warns against:
 
 Files changed:
 - `prompts/design-spec-2026-08-blog.md`
+feat(blog): rhythm upgrade — matches §17 visual contract + mockup C
+
+Ports the rhythm + spacing values from the §17 visual contract
+(PR #124) and the mockup C design (`docs/scratch/blog-mockups/C-sidebar-tree.html`)
+to the live `/en/blog` build.
+
+Changes:
+
+- `apps/web/app/globals.css` — 4 rhythm adjustments:
+  - `.blog-card padding` `1.25rem 1.25rem 1.25rem 1.5rem` →
+    `1.5rem 1.5rem 1.5rem 1.85rem` (more interior breathing room
+    like mockup C; matches the `.ls-blog-card` `p-5 pl-6` Tailwind
+    utility but wins because `.blog-card` is declared later in the
+    cascade for cards inside the tree pane).
+  - `.blog-layout grid-template-columns` `280px 1fr` →
+    `320px 1fr` (sidebar widened for a more comfortable
+    tree-reading rhythm).
+  - `.blog-tree-folder padding` `0.3rem 0.65rem` →
+    `0.4rem 0.85rem` (taller folder rows that feel like
+    Sydexa-style "wide row" buttons).
+  - `.blog-pane-title font-size` `1.5rem` → `1.75rem`
+    (stronger "active section" visual weight relative to card
+    titles at `1.05rem` via `.blog-card-title`).
+- `apps/web/components/blog/article-index.tsx` — 2 card-motion
+  adjustments:
+  - Card root `group-hover:-translate-y-1` → `group-hover:-translate-y-2`
+    (hover lift bumped from 4px → 8px, doubling the visual cue).
+  - Card bar `scale-y-0 ... group-hover:scale-y-100` →
+    `scale-y-100 ... group-hover:scale-y-110` (the left bar is
+    now **constantly visible** at full height, and stretches to
+    110% on hover — matches mockup C which shows a 4px visible
+    bar at rest).
+
+**Invented decisions:**
+
+- **Override via `.blog-card` CSS rule rather than changing the
+  Tailwind utility classes** — keeps the Tailwind classes
+  (`p-5 pl-6`) in the JSX as documentation of intent, while the
+  `.blog-card` override wins in the cascade for the blog tree
+  pane specifically. Other surfaces that use `.blog-card` (e.g.,
+  the search dialog or article post header, if they exist) will
+  also pick up the new padding; if they shouldn't, they should
+  use a different className.
+- **Card-bar constantly visible, hover-stretches to 110%** —
+  matches mockup C's "always-on" 4px bar. The 110% stretch on
+  hover gives a subtle growth cue without re-rendering the bar.
+  Alternative considered: keep the bar invisible at rest, stretch
+  to 100% on hover (current pre-PR #125 behavior). Rejected
+  because the user explicitly compared the live build to mockup C
+  and called out the missing constant bar.
+- **Hover lift doubled from 4px → 8px** — matches the user feedback
+  that "academic" felt under-animated. 8px is still subtle enough
+  not to disturb grid alignment (`-translate-y-2` translates the
+  entire card, not just the title, so the layout shift is
+  consistent across the grid).
+- **`.blog-tree-folder` padding changed but `.blog-tree-corpus`
+  header padding NOT changed** — corpus headers are mono caps
+  with a border-bottom; bumping their padding would create
+  inconsistent visual weight between corpus and folder rows.
+- **`.blog-layout` widened from 280px → 320px** — the 40px increase
+  fits more folder names on a single line (some folder names like
+  `recipes/data-fetching` currently wrap or truncate). Still well
+  within typical desktop viewport widths.
+
+Verification:
+- All 5 gates green: typecheck 5/5, lint 0, next build PASS
+  (Pagefind 222 pages / 28910 words — unchanged, no new content),
+  verify:prerender 196/196+18/18, verify:frontmatter 196/196,
+  vitest 38/38.
+- End-to-end probe via `pnpm --filter @corpus/web start`:
+  `/en/blog` → HTTP 200 in 78ms with 196 cards. Class counts:
+  196 `ls-blog-card blog-card`, 1 `blog-pane-title`, 57
+  `blog-tree-folder`, 196 `blog-card-bar` (now always visible).
+- Inspected served CSS bundle
+  `/_next/static/chunks/1u-ys-9lm3h-w.css`: all 4 CSS rules
+  confirmed with new values
+  (`.blog-card padding:1.5rem 1.5rem 1.5rem 1.85rem`,
+  `.blog-layout grid-template-columns:320px 1fr`,
+  `.blog-pane-title font-size:1.75rem`).
+
+Files changed:
+- `apps/web/app/globals.css`
+- `apps/web/components/blog/article-index.tsx`

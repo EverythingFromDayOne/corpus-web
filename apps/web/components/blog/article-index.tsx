@@ -108,11 +108,11 @@ export function ArticleIndex({
       <li key={article.uid} className="group relative">
         <a
           href={articlePath(locale, article.repo, article.articleId)}
-          className="ls-blog-card blog-card relative block rounded-lg border p-5 pl-6 no-underline transition-[transform,box-shadow,border-color,background] duration-300 group-hover:-translate-y-1"
+          className="ls-blog-card blog-card relative block rounded-lg border p-5 pl-6 no-underline transition-[transform,box-shadow,border-color,background] duration-300 group-hover:-translate-y-2"
         >
           <span
             aria-hidden="true"
-            className="blog-card-bar absolute inset-y-0 left-0 w-1 origin-top scale-y-0 rounded-full transition-transform duration-300 group-hover:scale-y-100"
+            className="blog-card-bar absolute inset-y-0 left-0 w-1 origin-top scale-y-100 rounded-full transition-transform duration-300 group-hover:scale-y-110"
           />
           <div className="blog-card-head flex items-center gap-2">
             <span className={kindClass} aria-label={`${t(messages, 'article.kind')}: ${kindLabel}`}>
