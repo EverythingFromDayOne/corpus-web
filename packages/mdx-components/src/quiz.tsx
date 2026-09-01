@@ -124,8 +124,17 @@ export function Quiz({ schema, articleUid, questions, labels, gradeAction }: Qui
         selectedLabel: selected,
       });
       setResult(graded);
-    } catch {
+    } catch (error) {
+      // PR #129 polish/quiz-error-and-flashcard-mobile: log the
+      // underlying error so dev tools shows whether the failure
+      // is a Vercel Preview auth 401 (the user's known
+      // deployment config blocker) or a genuine code error from
+      // the action body. The user-facing message stays the
+      // generic `quizError` key — distinguishing auth-vs-code
+      // in the UI requires leaking deployment details that don't
+      // belong on a public reading surface.
       setFailed(true);
+      console.error('gradeQuizAnswer failed:', error);
     } finally {
       setPending(false);
     }
