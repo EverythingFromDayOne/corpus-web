@@ -106,6 +106,21 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 **Caveat:** Chrome on macOS retina renders `--window-size=375` as 750px CSS pixels even with `--force-device-scale-factor=1`. Chrome headless screenshots fall into the 900px media query range (2-column cards), not the 480px range (1-column cards) that real phones use. **Real-phone verification needed**: open `https://develop.nxhhuy.tech/en/blog` on a phone with viewport ≤480px to see the 1-column stack. PR #127.
 
+### [2026-08-31] — polish/blog-and-topbar-fixes — 6-issue polish (sticky + mobile menu + title clamp + pill font + course-card bar) (PR #128)
+
+**Fixed**
+- Topbar sticky regression — replaced `html/body { overflow-x: hidden }` (PR #127) with `overflow-x: clip`. `hidden` establishes a scrolling context that breaks `position: sticky` on the topbar.
+- Mobile sidebar ordering — swapped `@media (max-width: 900px)` `order` values: sidebar `order: 1` (top), pane `order: 2` (below). Reverts PR #127 pane-first behavior so menu is accessible without scrolling past all cards.
+- Topbar nav links hide at ≤480px — `.topbar-nav { display: none }`. Duplicated by sidebar tree (now at top of mobile) so no functionality loss. Keeps pill CTA + search + theme toggle visible at all viewports.
+- Topbar nav link gap tightened to `1rem` at ≤640px — gives breathing room at iPhone widths.
+
+**Changed**
+- `.blog-card-title` and `.course-card-title` clamp to 2 lines with `…` (was 3+ line wrap). Long titles no longer stretch card heights.
+- `.topbar-pill-cta` switched from `var(--font-mono)` (IBM Plex Mono caps) to `var(--font-display)` (Archivo) + `font-weight: 600`. Pill now matches topbar's display-typeface family instead of reading as a stylistic outlier.
+- `course-card.tsx` JSX bar class changed from `scale-y-0 ... group-hover:scale-y-100` to `scale-y-100 ... group-hover:scale-y-110` — mirrors PR #125's blog-card always-visible bloom strip.
+
+**Stats:** 2 files +50/-12. All 5 gates green. `/en/blog` HTTP 200 in 22ms with 196 cards. PR #128.
+
 ### [2026-08-31] — polish/blog-card-kind-badge — kind badge overlay on `/en/blog` article cards
 
 **Changed**

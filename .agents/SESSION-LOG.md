@@ -6088,4 +6088,162 @@ after PR #126. Mobile layout previously had:
 
 **Files changed:**
 - `apps/web/app/globals.css`
-- `apps/web/components/blog/article-index.tsx`
+- `apps/web/components/blog/article-index.tsx`feat(blog+topbar): 6-issue polish — sticky regression + mobile sidebar
+ordering + 2-row title clamp + pill font + course-card bar fix
+
+Closes 6 distinct UI bugs reported after PR #127 mobile fix.
+
+**Issue #1 — sticky header regression**
+
+The `html { overflow-x: hidden }` and `body { overflow-x: hidden }`
+added in PR #127 broke `position: sticky` on the topbar. When any
+ancestor element has `overflow: hidden` (or `auto`/`scroll`) on
+either axis, that ancestor becomes the scrolling context instead
+of the viewport, and any sticky descendant becomes "stuck" to it
+(visible symptom: the topbar doesn't stick to the viewport top
+when scrolling).
+
+Fix: replaced `overflow-x: hidden` with `overflow-x: clip` on both
+`html` and `body`. The `clip` value clips overflowing content
+without establishing a scrolling context, so `position: sticky` on
+the topbar still works. (This is the entire reason the `clip`
+value was added to the CSS overflow spec.)
+
+**Issue #2 — card title 2-row clamp**
+
+Card titles were wrapping to 3+ lines for long titles like
+"'use client' crept up the tree and shipped your whole page to
+the browser", breaking the uniform-height grid established in
+PR #126.
+
+Fix: added `-webkit-line-clamp: 2` + `display: -webkit-box` +
+`overflow: hidden` to `.blog-card-title` and `.course-card-title`.
+Titles longer than 2 lines now truncate with `…`. Same clamp on
+both card types so the visual rhythm is consistent.
+
+**Issue #3 — course-card-bar hover inconsistency**
+
+The course card left-edge bar was still using the pre-PR-#125
+animation pattern (`scale-y-0` at rest, `scale-y-100` on hover),
+while the blog card had been updated in PR #125 to be always
+visible (`scale-y-100` at rest, `scale-y-110` on hover). This
+created an inconsistency between the two card types — only the
+blog card had a permanent left bar.
+
+Fix: updated `course-card.tsx` JSX so the bar is
+`scale-y-100 ... group-hover:scale-y-110`, mirroring the blog
+card. Both cards now have a constant-visible bloom strip at
+their left edge, with a tiny scale-up on hover.
+
+**Issue #4 — sidebar tree position on mobile**
+
+PR #127 reordered the mobile layout to put the pane (article
+cards) above the sidebar tree (corpus/folder nav). User reported
+this was "a noise" because they had to scroll past 196 cards
+before being able to refine by corpus/folder.
+
+Fix: swapped the `order` values. The sidebar tree now renders
+above the pane on mobile (`order: 1` on sidebar, `order: 2` on
+pane), so the menu is the first thing the user sees after the
+topbar. The pane's filter/sort row appears immediately below
+the menu (still inside `.blog-pane`), matching the user's
+description of "menu first under filter/sort panel".
+
+**Issue #5 — topbar buttons disappearing on small device**
+
+At 375px viewport, the topbar elements (logo + 3 nav links +
+search trigger + pill CTA + theme toggle) summed to ~440px —
+over the 375px budget once iOS safe areas were factored in.
+The pill CTA was being squeezed to 10px font, the nav links
+were competing with the search trigger, and the layout felt
+cramped.
+
+Fix: 
+- At 480-640px: nav link gap tightens from `1.35rem` to `1rem`
+  to give more breathing room.
+- At ≤480px (iPhone SE / 12 mini widths): nav links are hidden
+  entirely. The in-page sidebar tree at the top of mobile
+  content provides the same Home / Courses / Articles
+  navigation, so hiding the topbar nav doesn't reduce
+  functionality — it just removes the tightest crowding.
+
+The pill CTA, search trigger, and theme toggle remain visible
+at all viewport sizes, matching the user's instruction that
+"button after search ... should be visible on all kind of
+devices".
+
+**Issue #6 — "Start the course" pill font mismatch**
+
+The pill CTA used `font-family: var(--font-mono)` (IBM Plex Mono
+in caps), which read as a stylistic outlier next to the rest of
+the topbar's typography (Public Sans for nav links + Archivo
+for the logo). The mono caps treatment looked like a "code
+badge" rather than a CTA.
+
+Fix: changed the pill CTA font from `var(--font-mono)` to
+`var(--font-display)` (Archivo) and added `font-weight: 600`.
+The pill now reads as semibold Archivo caps, matching the
+topbar's display-typeface family. Letter-spacing and uppercase
+treatment kept for the "CTA badge" feel.
+
+**Files changed:**
+
+- `apps/web/app/globals.css`:
+  - `html { overflow-x: clip }` (was `overflow-x: hidden`)
+  - `body { overflow-x: clip }` (was `overflow-x: hidden`)
+  - `.blog-card-title`: added `-webkit-line-clamp: 2` clamp
+  - `.course-card-title`: added `-webkit-line-clamp: 2` clamp
+  - `.topbar-pill-cta`: changed `font-family` to
+    `var(--font-display)` + added `font-weight: 600`
+  - `@media (max-width: 900px)`: swapped `.blog-pane { order }`
+    and `.blog-sidebar { order }` values
+  - `@media (max-width: 640px)`: added `.topbar-nav { gap: 1rem }`
+  - `@media (max-width: 480px)`: added `.topbar-nav { display:
+    none }`
+- `apps/web/components/courses/course-card.tsx`:
+  - `course-card-bar` class: changed
+    `scale-y-0 ... group-hover:scale-y-100` to
+    `scale-y-100 ... group-hover:scale-y-110`
+
+**Invented decisions:**
+
+- **`overflow-x: clip` instead of `hidden`** — the only correct
+  fix for "horizontal overflow safety net + sticky positioning".
+  `clip` is widely supported (Chrome 90+, Safari 16+, Firefox
+  81+) and exists precisely for this use case.
+- **Mobile sidebar above pane** — re-read the user's complaint
+  carefully: "user need to surf all the contents before can
+  touch the menu that a noise, should keep the menu first under
+  filter/sort panel like the previous version". The "previous
+  version" is the pre-PR #127 single-column where sidebar
+  rendered first by DOM order. Reverted to that ordering.
+- **Hide nav links at ≤480px** — duplicated by sidebar tree on
+  mobile, so removing them from the topbar doesn't reduce
+  functionality. Keeps the topbar at logo + tools only.
+- **Pill font weight `600` (semibold)** — added explicit
+  `font-weight` because Archivo caps at default weight (400) was
+  too thin next to the logo's weight. Semibold makes the CTA
+  feel like an actual button label, not a quiet label.
+- **Title clamp `2` lines (not `1`)** — 1 line would lose too
+  much nuance for articles with multi-word titles. 2 lines
+  preserves the title's meaning while enforcing height. The
+  description's 3-line clamp stays as-is.
+
+**Mobile verification caveat (recurring):**
+
+Chrome on macOS retina renders `--window-size=375` as 750px CSS
+pixels even with `--force-device-scale-factor=1`. I can verify
+the CSS rules are in the served bundle (confirmed below) but
+can't visually verify ≤480px layout on this Mac. Real-phone
+verification still needed.
+
+**Verification:**
+
+- All 5 gates green: typecheck 5/5, lint 0, next build PASS,
+  verify:prerender 196/196+18/18, verify:frontmatter 196/196,
+  vitest 38/38.
+- `/en/blog` HTTP 200 in 22ms with 196 cards.
+
+**Files changed:**
+- `apps/web/app/globals.css`
+- `apps/web/components/courses/course-card.tsx`
