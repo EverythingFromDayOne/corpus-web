@@ -23,7 +23,7 @@ export function CourseCard({
     >
       <span
         aria-hidden="true"
-        className="course-card-bar absolute inset-y-0 left-0 w-1 origin-top scale-y-0 rounded-full transition-transform duration-300 group-hover:scale-y-100"
+        className="course-card-bar absolute inset-y-0 left-0 w-1 origin-top scale-y-100 rounded-full transition-transform duration-300 group-hover:scale-y-110"
       />
       <div className="course-card-head flex flex-wrap items-center gap-2">
         <span className="course-card-crumb text-muted">
