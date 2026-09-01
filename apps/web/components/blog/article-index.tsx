@@ -216,8 +216,14 @@ export function ArticleIndex({
         })}
       </aside>
 
-      {/* Main pane (right) */}
-      <div className="blog-pane">
+      {/* Main pane (right). The `ls-ambient-grid` + `ls-ambient-glow`
+         modifiers apply the sydexa-video-driven background spec
+         (PR #131, `prompts/design-spec-2026-08-background.md` §2): a
+         faint 24×24 line-grid at ~6% opacity (less than the home
+         hero's 8% because the cards are in front) plus a quiet
+         mid-right cool corner glow at ~18%. Both modifiers are
+         no-op when the spec's tokens are missing. */}
+      <div className="blog-pane ls-ambient-grid ls-ambient-glow">
         <div className="blog-pane-head">
           <span className="blog-pane-eyebrow">
             {paneCorpus ? t(messages, `corpora.${paneCorpus}.label`) : t(messages, 'blog.sidebarAll')}

@@ -253,6 +253,80 @@ body:has(.av-view) .av-header-tog {
   z-index: 1;
 }
 
+/* --- Ambient surfaces (sydexa-video-driven background spec, PR #131) ---
+
+   Two CSS-only texture layers applied to listing surfaces, applied
+   via the `ls-ambient-grid` and `ls-ambient-glow` modifiers. Both
+   use the `ambient-cool-*` tokens defined in packages/ui/tokens.css.
+   No animation, no JS, no new dependencies.
+
+   Spec rules being implemented here:
+   - Rule 2 (one quiet accent glow per surface, off-center anchor):
+     `.ls-ambient-glow` adds a single mid-right cool radial bloom
+     at low opacity. Mid-right anchor matches the per-section bloom
+     convention from PR #116 (different per-surface corners so
+     successive glows do not stack on the same axis).
+   - Rule 3 (faint line-grid overlay ≤10% opacity): `.ls-ambient-grid`
+     adds a 24×24 px grid pattern made of two CSS `linear-gradient`
+     layers (one horizontal, one vertical) so the grid colour honours
+     the `--ambient-cool-grid` token in both dark and light modes
+     without needing an SVG data-URI per theme.
+
+   Spec §2 row for `.blog-pane` and `/en/courses` calls for grid at
+   6% opacity (less than the home hero's 8% because cards are in
+   front and would otherwise read as "doubled texture"). Spec §2
+   row for `.ls-hero` calls for 8% — that change lives in a separate
+   follow-on PR; this PR only ships the listing-surface additions.
+*/
+
+.ls-ambient-grid {
+  position: relative;
+  isolation: isolate;
+}
+
+.ls-ambient-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(
+      to right,
+      color-mix(in srgb, var(--ambient-cool-grid) 18%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--ambient-cool-grid) 18%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 24px 24px;
+  background-position: 0 0;
+  pointer-events: none;
+}
+
+.ls-ambient-glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(
+    ellipse 56rem 36rem at 100% 50%,
+    color-mix(in srgb, var(--ambient-cool-glow) 18%, transparent) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+/* Combine: when an element carries BOTH modifiers, the grid paints
+   underneath (z-index: -1 ::before) and the glow paints on top of
+   the grid but still behind the content (z-index: -1 ::after). The
+   `isolation: isolate` on `.ls-ambient-grid` creates the stacking
+   context so the negative-z-index pseudos stay scoped to this
+   wrapper instead of slipping behind the body. Content sits at
+   natural z-index in this isolated context and paints on top of
+   both pseudos. */
+
 /* --- Search trigger button (top-bar) --- */
 
 .srch-trigger {
