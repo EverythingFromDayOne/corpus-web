@@ -80,6 +80,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 **Stats:** 1 file +183/-0. `pnpm typecheck` PASS (cached). `pnpm agents:check` PASS (spec doesn't touch any rule). PR #124 (spec-only, no code changes).
 
+### [2026-08-31] — polish/blog-rhythm-upgrade — blog rhythm adjustments (PR #125)
+
+**Changed**
+- `apps/web/app/globals.css` — 4 rhythm adjustments: `.blog-card padding` `1.25rem 1.25rem 1.25rem 1.5rem` → `1.5rem 1.5rem 1.5rem 1.85rem`; `.blog-layout grid-template-columns` `280px 1fr` → `320px 1fr`; `.blog-tree-folder padding` `0.3rem 0.65rem` → `0.4rem 0.85rem`; `.blog-pane-title font-size` `1.5rem` → `1.75rem`.
+- `apps/web/components/blog/article-index.tsx` — 2 card-motion adjustments: card root `group-hover:-translate-y-1` → `group-hover:-translate-y-2` (4px → 8px hover lift); card bar `scale-y-0 ... group-hover:scale-y-100` → `scale-y-100 ... group-hover:scale-y-110` (constantly visible 4px bar matching mockup C).
+
+**Stats:** 2 files +14/-4. All 5 gates green: typecheck 5/5, lint 0, next build PASS (Pagefind 222 pages / 28910 words — unchanged), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. End-to-end probe: `/en/blog` HTTP 200 in 78ms with 196 cards. Served CSS bundle `/_next/static/chunks/1u-ys-9lm3h-w.css` confirms all 4 rules with new values. PR #125.
+
 ### [2026-08-31] — polish/blog-card-kind-badge — kind badge overlay on `/en/blog` article cards
 
 **Changed**

@@ -82,6 +82,16 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Blog rhythm upgrade — Polish-blog-rhythm-upgrade**
+  **(2026-08-31, on `polish/blog-rhythm-upgrade` off develop @
+  `7d6668b`, PR #125):** Ports §17 visual contract (PR #124) +
+  mockup C design to live `/en/blog`. 2 files +14/-4. `.blog-card`
+  padding 1.25→1.5rem sides, `.blog-layout` sidebar 280→320px,
+  `.blog-tree-folder` padding 0.3→0.4rem tall, `.blog-pane-title`
+  font-size 1.5→1.75rem. Card hover lift 4→8px, card-bar now
+  constantly visible. All 5 gates green; `/en/blog` HTTP 200 in
+  78ms with 196 cards.
+
 - **Blog index visual contract (spec-only) — Docs-blog-index-visual-contract**
   **(2026-08-31, on `docs/blog-index-visual-contract` off develop @
   `430ecfd`, PR #124):** Adds §17 "Corpus-web blog index —
