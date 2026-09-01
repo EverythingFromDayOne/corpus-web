@@ -221,11 +221,41 @@ body:has(.av-view) .av-header-tog {
   content: '';
   position: absolute;
   inset: 0;
-  z-index: -1;
+  /* PR #130 polish/header-and-card-hover-cleanup: changed
+     `z-index: -1` → `z-index: 0` so the grain renders ON TOP of
+     the parent's background fills (the body's `var(--color-ink)`
+     dark navy, in the case of the course hero). The previous
+     `z-index: -1` placed the pseudo behind the parent's
+     stacking context — combined with `.film-grain { isolation:
+     isolate }` which creates an isolated stacking context for
+     the parent, the `::after` got pushed BEHIND the body
+     background, making the grain effectively invisible. With
+     `z-index: 0`, the grain now renders above any underlying
+     surface colour but BELOW any child with `position:
+     relative; z-index: 1` (the children are explicitly lifted
+     by the rule below). */
+  z-index: 0;
   pointer-events: none;
   opacity: 0.075;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* Lift direct children of `.film-grain` above the grain overlay.
+   The course hero `<h1>` and `<p>` elements already have
+   `className="relative"` from their own JSX, so applying
+   `z-index: 1` here is enough to stack them above the grain
+   `::after` (which now sits at `z-index: 0`). Children of the
+   hero that are absolutely-positioned blooms (decorative,
+   pointer-events: none) sit at the same layer as the grain and
+   don't need to be lifted — they're already behind the text
+   content in the DOM.
+
+   `:where()` is used so the selector has specificity 0,0,0 and
+   cannot override Tailwind utility classes like `.absolute` on
+   the bloom children (which set `position: absolute`). */
+.film-grain > :where(*) {
+  z-index: 1;
 }
 
 /* --- Search trigger button (top-bar) --- */
@@ -247,20 +277,21 @@ body:has(.av-view) .av-header-tog {
 .topbar-pill-cta {
   display: inline-flex;
   align-items: center;
-  /* PR #128 polish/blog-and-topbar-fixes: switched from
-     var(--font-mono) (IBM Plex Mono) to var(--font-display)
-     (Archivo, issue #6). The mono caps treatment next to the
-     body-font Public Sans nav links + logo read as visually
-     mismatched. Archivo caps with the same weight as the rest
-     of the topbar (sans-serif, semibold) feels like a coherent
-     member of the topbar typography family instead of a
-     stylistic outlier. */
+  /* PR #130 polish/header-and-card-hover-cleanup: keep Archivo
+     semibold caps (same family as the logo wordmark) but reduce
+     letter-spacing from `0.04em` to `0.02em` and add a darker
+     text colour to feel less like a separate "outlier" treatment
+     compared to the body-font nav links. The earlier `0.04em`
+     letter-spacing made "START THE COURSE" read as a separate
+     design family from the rest of the topbar typography; the
+     tighter `0.02em` keeps the caps feel but matches the
+     weight + width profile of the logo's `text-display` colour. */
   font-family: var(--font-display);
   font-size: var(--text-xs);
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: var(--color-display);
+  color: var(--color-body);
   background: color-mix(in srgb, var(--color-surface) 60%, transparent);
   backdrop-filter: blur(2px);
   border: 1px solid var(--color-graphite);

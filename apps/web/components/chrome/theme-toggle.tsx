@@ -30,7 +30,7 @@ export function ThemeToggle({ label }: { label: string }) {
       aria-checked={isLight}
       aria-label={label}
       onClick={toggle}
-      className="border-graphite bg-surface relative inline-flex h-9 w-[72px] shrink-0 items-center gap-0 rounded-full border p-1"
+      className="border-graphite bg-surface relative inline-flex h-9 w-[72px] shrink-0 items-center gap-0 rounded-full border p-1 transition-colors duration-200 ease-in-out hover:border-[color:var(--color-muted)] focus-visible:border-[color:var(--color-signal)] focus-visible:outline-2 focus-visible:outline-[color:var(--color-signal)] focus-visible:outline-offset-2 motion-reduce:transition-none"
     >
       <span
         aria-hidden="true"

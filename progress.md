@@ -82,6 +82,29 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Header + film-grain fixes — Polish-header-and-card-hover-cleanup**
+  **(2026-08-31, on `polish/header-and-card-hover-cleanup` off
+  develop @ `6dc00e4`, PR #130):** 4 files +63/-12. (a)
+  `.topbar-pill-cta` letter-spacing `0.04em` → `0.02em`,
+  colour `var(--color-display)` → `var(--color-body)` —
+  reads as part of the topbar family. (b) `ThemeToggle` JSX
+  gets `hover:border-[color:var(--color-muted)]` +
+  `focus-visible:border-[color:var(--color-signal)]` + outline
+  ring. (c) `.course-card-bar` + `.blog-card-bar` reverted
+  from `scale-y-100 ... group-hover:scale-y-110` (always
+  visible) back to `scale-y-0 ... group-hover:scale-y-100`
+  (hover-only) — always-visible 4px gradient bar was
+  overlapping with the card's 1px border, creating redundant
+  vertical-line decoration at rest. (d) `.film-grain::after
+  { z-index: -1 }` was placing the grain pseudo behind the
+  parent's `isolation: isolate` stacking context, making the
+  texture invisible on `.course-hero` + `.ls-hero`. Changed
+  to `z-index: 0` + added `.film-grain > :where(*) { z-index:
+  1 }` to lift content above the grain while leaving
+  `.absolute` Tailwind utilities on the decorative bloom divs
+  intact (`:where()` keeps selector specificity at 0,0,0). All
+  5 gates green.
+
 - **Quiz error logging + flashcard mobile header wrap — Polish-quiz-error-and-flashcard-mobile**
   **(2026-08-31, on `polish/quiz-error-and-flashcard-mobile` off develop
   @ `69c4520`, PR #129):** 2 files +50/-4. (a) `quiz.tsx` —
