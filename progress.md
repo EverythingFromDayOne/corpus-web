@@ -82,6 +82,26 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Sydexa background approach — analysis + spec — Docs-sydexa-bg-analysis-spec**
+  **(2026-09-02, on `docs/sydexa-bg-analysis-spec` off develop @ `2f4f6b2`,
+  PR #131):** Docs-only. 1 file +244/-0. New design spec
+  `prompts/design-spec-2026-08-background.md` capturing the background
+  treatment observed on sydexa.com via a 43-second 2880×1800 Retina video
+  walkthrough handed off by the user. 9 sections: goal, three unifying
+  rules, per-surface contract (current → proposed), tokens to add,
+  implementation phasing, explicit out-of-scope, invented decisions, hard
+  constraints, failure-mode pre-mortem. Companion analysis
+  `docs/scratch/sydexa-bg-analysis.md` intentionally NOT committed
+  (visual-reference-translation skill: `docs/scratch/` follows same
+  untracked policy as `docs/scratch/blog-mockups/`). `pnpm agents:check`
+  PASS. PR #131 merged via `--admin` (D38 informational override).
+  Three-PR rollout: (1) `polish/course-hero-grain-removal @ 58ead66`
+  already on disk — autonomous, gates green, push+merge pending; (2) this
+  docs PR (done); (3) `polish/grid-overlay-and-corner-glow` — code port
+  of the spec in a follow-on session. D41 opened:
+  "Film-grain on home hero reads as visual noise (sydexa-video audit,
+  2026-09-02)" — closes when PR 3 lands.
+
 - **Header + film-grain fixes — Polish-header-and-card-hover-cleanup**
   **(2026-08-31, on `polish/header-and-card-hover-cleanup` off
   develop @ `6dc00e4`, PR #130):** 4 files +63/-12. (a)

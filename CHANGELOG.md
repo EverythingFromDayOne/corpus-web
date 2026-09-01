@@ -5,6 +5,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-02] — docs/sydexa-bg-analysis-spec — background approach (sydexa-video-driven)
+
+**Added**
+- `prompts/design-spec-2026-08-background.md` — new design spec capturing the background treatment observed on sydexa.com via a 43-second video walkthrough (2880×1800 Retina, 60fps, 2026-09-02). 9 sections, 244 lines, exhaustive token references + per-surface contract + failure-mode pre-mortem. Three unifying rules (dark navy canvas, one accent glow off-center, line-grid overlay ≤10% opacity) apply to every shipped surface. Phased implementation into three independent PRs: (1) `polish/course-hero-grain-removal` already on disk; (2) this docs PR; (3) `polish/grid-overlay-and-corner-glow` code port in a follow-on session. Spec-first cadence per the visual-reference-translation skill: review pass before any CSS lands.
+
+**Stats:** 1 file +244/-0, no code. `pnpm agents:check` PASS (no rule drift). Manual review-only gate. CI `Content gates / Links` failure on 44 unresolved refs (D38 informational, `--admin` override applied per session-132 handoff precedent). PR #131.
+
 ### [2026-08-31] — polish/per-section-blooms — per-section blooms (design-spec §6)
 
 **Added**

@@ -6433,4 +6433,30 @@ The course hero content `<h1>` and `<p>` already have `className="relative"` fro
 - `apps/web/app/globals.css`
 - `apps/web/components/blog/article-index.tsx`
 - `apps/web/components/chrome/theme-toggle.tsx`
-- `apps/web/components/courses/course-card.tsx`
+- `apps/web/components/courses/course-card.tsx`## Session 133 — sydexa bg analysis + spec — 2026-09-02
+
+**Branch:** `docs/sydexa-bg-analysis-spec` off `develop @ 2f4f6b2`
+
+**Files changed:**
+- `prompts/design-spec-2026-08-background.md` — new design spec for sydexa-driven background refactor (244 lines, 9 sections, exhaustive token references + per-surface contract + failure-mode pre-mortem)
+
+**Why:** User handed off a 43-second sydexa.com video walkthrough (2880×1800 Retina, 60fps) with directive "analyze this video to see the approach using background of sydexa then apply to our website in suitable way. go yolo do it". Did the analysis first, then captured it as the user-facing response in `docs/scratch/sydexa-bg-analysis.md` (untracked, per the visual-reference-translation skill's `docs/scratch/` policy). The shipping artifact is the design spec — same shape as PR #124's docs-only blog index visual contract, which the user has approved in past sessions as the right cadence for structural visual changes.
+
+The video shows sydexa's "background approach" is **not a single CSS technique** but a layered system with consistent rules across surfaces: dark navy base + one quiet accent glow off-center + faint line-grid overlay ≤10% opacity + 3D illustration focal points INSIDE cards (not in the background). Mapping to our tokens is direct (we already have `--color-ink`, `--color-graphite`, `--color-cool`) — no need to introduce a purple palette to match sydexa literally.
+
+Three PRs phased into the spec: (1) `polish/course-hero-grain-removal @ 58ead66` already on disk (still pending rebase + push after develop advanced — note that develop remained at 2f4f6b2 so no rebase was actually needed); (2) this docs PR #131; (3) `polish/grid-overlay-and-corner-glow` — port the spec to code in a follow-on session.
+
+**Invented decisions:**
+- Two new tokens (`--ambient-cool-glow`, `--ambient-cool-grid`) in an `ambient-*` family parallel to the existing `marketing-accent-*` family. Role-named, not colour-named. Grep parity with the existing PR #111+ family convention.
+- Single line-grid SVG (one image, one declaration, ≤2KB inline data-URI), not per-surface gradient + grid combinations. The grid replaces `.film-grain` entirely — coexistence would read as "trying too hard".
+- **No animation** on the new glows. Memory rule (no animation library; `prefers-reduced-motion` is the default). Sydexa probably animates; we don't, and matching sydexa literally is the wrong shape.
+- **Mid-right corner anchor** for the new corner glow (not top-right), to match PR #116's per-section bloom convention. Different per-surface corners so successive glows don't stack on the same axis.
+- Three unifying rules (dark navy canvas / one accent glow off-center / line-grid ≤10%) apply to every shipped surface of the site — documented as a hard constraint, not just the immediate change. Future agents must conform.
+- Companion analysis doc intentionally **NOT** committed — `docs/scratch/sydexa-bg-analysis.md` follows the same untracked policy as the existing `docs/scratch/blog-mockups/` folder (visual-reference-translation skill: user-side scratch for the comparison step, not project artefact).
+
+**Known issues / next steps:**
+- `polish/course-hero-grain-removal @ 58ead66` branch is still local on disk, pending the user's go-ahead to push + open + merge. Spec §4 step 1 names this as PR 1 in the phased rollout — autonomous polish work, gates already green on parent commit.
+- D41 opened in `docs/DEBT.md`: "Film-grain on home hero reads as visual noise (sydexa-video audit, 2026-09-02)". Closed when `polish/grid-overlay-and-corner-glow` (PR 3 in this spec) lands and replaces `.film-grain` on the remaining surface (`.ls-hero`).
+- Course-detail body bloom treatment is OUT of this spec — recorded as §6 follow-on if user flags the body as needing per-section blooms (PR #116 set this precedent on `/en`).
+
+---
