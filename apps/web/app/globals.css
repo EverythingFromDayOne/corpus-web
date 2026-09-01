@@ -847,3 +847,194 @@ body:has(.av-view) .av-header-tog {
     transparent 70%
   );
 }
+
+/* ---------- Blog sidebar tree (PR #123, polish/blog-sidebar-tree) ----------
+   Two-column layout: 280px sticky sidebar tree (left) + main pane
+   (right). Replaces the previous corpus → folder → cards "double
+   group" structure from PR #121 with a single active-hierarchy
+   pattern: the user picks a folder from the sidebar, the main pane
+   shows exactly that folder's articles. The tree uses native
+   <button>s styled as a tree; the active node has a bloom-tinted
+   background. */
+
+.blog-layout {
+  grid-template-columns: 280px 1fr;
+  align-items: start;
+}
+
+.blog-sidebar {
+  position: sticky;
+  top: 1.5rem;
+  border: 1px solid var(--color-graphite);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-raised) 70%, transparent);
+  padding: 0.6rem 0.5rem;
+  max-height: calc(100vh - 3rem);
+  overflow-y: auto;
+}
+
+.blog-tree-section {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.4rem;
+}
+
+.blog-tree-section:last-child {
+  margin-bottom: 0;
+}
+
+.blog-tree-corpus {
+  appearance: none;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-signal);
+  padding: 0.55rem 0.65rem 0.4rem;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-graphite);
+  margin-bottom: 0.35rem;
+}
+
+.blog-tree-corpus:hover {
+  color: var(--color-display);
+}
+
+.blog-tree-corpus--all {
+  color: var(--color-display);
+  font-weight: 600;
+  border-bottom: 1px solid var(--color-graphite);
+}
+
+.blog-tree-corpus--on {
+  color: var(--color-display);
+}
+
+.blog-tree-corpus-count {
+  font-size: 0.65rem;
+  color: var(--color-muted);
+  letter-spacing: 0.06em;
+}
+
+.blog-tree-folders {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.blog-tree-folder {
+  appearance: none;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  color: var(--color-muted);
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.blog-tree-folder:hover {
+  background: color-mix(in srgb, var(--color-raised) 90%, transparent);
+  color: var(--color-display);
+}
+
+.blog-tree-folder--on {
+  background: color-mix(in srgb, var(--marketing-accent-bloom) 22%, transparent);
+  color: var(--color-display);
+  font-weight: 600;
+}
+
+.blog-tree-folder-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.blog-tree-folder-count {
+  font-size: 0.65rem;
+  color: var(--color-muted);
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+.blog-tree-folder--on .blog-tree-folder-count {
+  color: var(--marketing-accent-line);
+}
+
+/* ---------- Main pane ---------- */
+
+.blog-pane {
+  min-width: 0;
+}
+
+.blog-pane-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--color-graphite);
+  margin-bottom: 1.25rem;
+}
+
+.blog-pane-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-signal);
+}
+
+.blog-pane-title {
+  margin: 0;
+  font-size: 1.5rem;
+  letter-spacing: -0.01em;
+  font-weight: 600;
+}
+
+.blog-pane-count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--color-graphite);
+  border-radius: 9999px;
+  color: var(--color-muted);
+}
+
+.blog-pane-filters {
+  margin-top: 0;
+}
+
+.blog-pane-empty {
+  margin-top: 2.5rem;
+}
+
+.blog-cards {
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+}
+
+/* Sidebar appears below pane on small screens */
+@media (max-width: 900px) {
+  .blog-layout {
+    grid-template-columns: 1fr;
+  }
+  .blog-sidebar {
+    position: static;
+    max-height: 20rem;
+  }
+}

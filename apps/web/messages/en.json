@@ -169,6 +169,10 @@
     "sortShortest": "Shortest first",
     "sortLongest": "Longest first",
     "folderLabel": "{folder}",
+    "sidebarLabel": "Article tree",
+    "sidebarAll": "All corpora",
+    "sidebarAllFolders": "All folders",
+    "paneCount": "{count} articles",
     "postMetaLabel": "Article metadata",
     "empty": "No articles match these filters."
   },

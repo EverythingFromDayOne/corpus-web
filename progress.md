@@ -82,6 +82,16 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Blog sidebar tree + main pane — Polish-blog-sidebar-tree**
+  **(2026-08-31, on `polish/blog-sidebar-tree` off develop @ `c59ef6e`,
+  PR #123):** Closes the "double group section" gap on `/en/blog`
+  (selected from 4 mockups in `docs/scratch/blog-mockups/`).
+  Replaces corpus→folder→cards cascade (PR #121) with 280px sticky
+  sidebar tree + main pane (2-column CSS grid). Tree is
+  button-driven (no URL state). 3 files +196/-128. All 5 gates
+  green; `/en/blog` HTTP 200 in 83ms with 196 cards + 57 tree
+  buttons.
+
 - **Course card redesign — Polish-course-card-redesign**
   **(2026-08-31, on `polish/course-card-redesign` off develop @ `d5b0d21`,
   PR #122):** Mirrors the blog card three-tier hierarchy from
