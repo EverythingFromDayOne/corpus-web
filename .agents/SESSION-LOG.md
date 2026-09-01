@@ -5703,4 +5703,79 @@ Verification:
 Files changed:
 - `apps/web/app/globals.css`
 - `apps/web/components/blog/article-index.tsx`
-- `apps/web/messages/en.json`
+- `apps/web/messages/en.json`docs(blog): add §17 visual contract for /en/blog
+
+Adds §17 "Corpus-web blog index — visual contract (current)" to
+`prompts/design-spec-2026-08-blog.md`. Captures the actual shipped
+visual contract of `/en/blog` (PR #123 + PR #121), grounded in real
+CSS classes and i18n keys — not inferred from a reference platform.
+
+**Why this PR ships spec-only (no code):**
+
+The user asked for an upgrade of `/en/blog` to feel "less academic,
+more product-y" (Sydexa-style). After the sidebar-tree relayout
+(PR #123) shipped, the user noted that the live build still feels
+behind the mockup C visual rhythm. The right path is:
+
+1. Spec the new visual contract first (this PR)
+2. Review the contract with the user / CTO
+3. Then port the spec to code (separate PR)
+
+This avoids the "ship speculative visual changes that aren't backed
+by a design contract" failure mode that `.cursor/rules/00-session-protocol.mdc`
+warns against:
+
+> [`docs/design/`](../../docs/design) — Visual contracts. Replaced wholesale when the design moves.
+
+**What §17 captures:**
+
+- **§17.1 Layout — two-column grid** — concrete token values
+  (`grid-template-columns: 280px 1fr`, `max-height: calc(100vh - 3rem)`,
+  `@media (max-width: 900px)` breakpoint).
+- **§17.2 Sidebar tree** — corpus ordering (REPOS array), per-section
+  structure, active-state rule, the tree-state decision
+  (button-driven not URL-driven, with rationale).
+- **§17.3 Main pane** — pane head / filter row / article grid tokens.
+- **§17.4 Article card** — verbatim class hierarchy + hover state,
+  cross-referenced to PR #121 and PR #115.
+- **§17.5 Token reference** — exhaustive list of which tokens the
+  blog-index CSS uses. Future agents **must not** invent new colour
+  values without proposing a new token in
+  `packages/ui/src/tokens.css` first.
+- **§17.6 Inline mockups** — explicit table of the 4 mockups in
+  `docs/scratch/blog-mockups/`, with C picked, and a "when to
+  revisit" condition.
+- **§17.7 Known follow-ons** — URL state (blocked on Cache
+  Components) and pluralisation (blocked on `t()` helper).
+- **§17.8 What is not in this contract** — explicit out-of-scope
+  list (`/courses`, post page, search dialog, hero/home).
+
+**Invented decisions:**
+
+- **§17 ships before code, not with code.** The user's
+  stated preference is "build good stuff not rush building fast but
+  receive very low quality product" — so the spec gets a review
+  pass before any CSS gets touched.
+- **§17 is appended to the existing design-spec file, not a new
+  file.** Per `.cursor/rules/00-session-protocol.mdc`, design
+  contracts live in `prompts/design-spec-YYYY-MM-*.md`. Creating a
+  new file would fragment the source of truth.
+- **§17 is hypothesis-removed, not hypothesis-grade.** The other
+  sections of the spec are inferred from a reference platform
+  (status: "Hypothesis-grade — single platform sampled"). §17 is
+  the inverse: it's grounded in real shipped CSS classes on
+  `develop @ 430ecfd`. The section title includes "(current)" to
+  make that distinction explicit.
+- **§17.6 references `docs/scratch/blog-mockups/`** — those files
+  are currently untracked. Either we commit them (a future PR) or
+  add `docs/scratch/` to `.gitignore`. Either is fine; for now,
+  leaving them untracked keeps the current `git status` clean.
+
+**Verification:**
+- `pnpm typecheck` PASS (cached, no code changes)
+- `pnpm agents:check` PASS (spec doesn't touch any rule)
+- Manual read-through against `apps/web/app/globals.css` line ranges
+  (`.blog-*` rules 296-420 and 860+ for the sidebar tree)
+
+Files changed:
+- `prompts/design-spec-2026-08-blog.md`

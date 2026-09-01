@@ -73,6 +73,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 **Stats:** 3 files +196/-128. All 5 gates green: typecheck 5/5, lint 0, next build PASS (Pagefind 222 pages / 28910 words — unchanged), verify:prerender 196/196+18/18, verify:frontmatter 196/196, vitest 38/38. End-to-end probe: `/en/blog` HTTP 200 in 83ms with 196 cards. Class counts: 1 `blog-layout`, 1 `blog-sidebar`, 9 `blog-tree-corpus` (1 "All corpora" + 4 corpus headers + 4 "All folders"), 57 actual `<button>` tree elements (verified by regex), 1 default-active `blog-tree-folder--on` ("All corpora" by default), 1 `blog-pane-title`, 1 `blog-pane-count`, 1 `blog-cards`, 196 `ls-blog-card blog-card` article cards. Served CSS bundle `/_next/static/chunks/1ctczfks94_gm.css` confirms grid template (`280px 1fr`), bloom active background (`#f2c78238`), pane title typography. PR #123.
 
+### [2026-08-31] — docs/blog-index-visual-contract — add §17 visual contract for /en/blog
+
+**Changed**
+- `prompts/design-spec-2026-08-blog.md` — appended §17 "Corpus-web blog index — visual contract (current)". 1 file +183/-0. Captures the actual shipped visual contract of `/en/blog` (PR #123 + PR #121), grounded in real CSS classes and i18n keys. Covers layout (two-column grid 280px + main pane), sidebar tree (corpus → folder buttons with bloom-tinted active state, button-driven not URL-driven), main pane (pane head / filter row / article grid tokens), article card (verbatim class hierarchy), token reference (exhaustive list of which tokens the blog-index CSS uses — future agents must not invent new colour values without proposing a new token first), inline mockups (decision aid with §17.6 explicitly noting that mockup C was picked), known follow-ons (URL state blocked on Cache Components, pluralisation blocked on `t()` helper), and what is **not** in this contract (out-of-scope: `/courses`, post page, search dialog, hero/home).
+
+**Stats:** 1 file +183/-0. `pnpm typecheck` PASS (cached). `pnpm agents:check` PASS (spec doesn't touch any rule). PR #124 (spec-only, no code changes).
+
 ### [2026-08-31] — polish/blog-card-kind-badge — kind badge overlay on `/en/blog` article cards
 
 **Changed**

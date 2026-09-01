@@ -82,6 +82,20 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Blog index visual contract (spec-only) — Docs-blog-index-visual-contract**
+  **(2026-08-31, on `docs/blog-index-visual-contract` off develop @
+  `430ecfd`, PR #124):** Adds §17 "Corpus-web blog index —
+ visual contract (current)" to `prompts/design-spec-2026-08-blog.md`.
+ 1 file +183/-0. Captures the actual shipped visual contract
+ of `/en/blog` (PR #123 + PR #121), grounded in real CSS classes
+ and i18n keys — not inferred from a reference platform. 8
+ sections covering layout, sidebar tree, main pane, article card,
+ token reference, mockups, known follow-ons, and what is **not**
+ in this contract. **Spec-only PR — no code changes.** Ships
+ before code per the user's preference ("build good stuff not
+ rush building fast"). Next step: review §17 with the user, then
+ port the spec to code in a separate PR.
+
 - **Blog sidebar tree + main pane — Polish-blog-sidebar-tree**
   **(2026-08-31, on `polish/blog-sidebar-tree` off develop @ `c59ef6e`,
   PR #123):** Closes the "double group section" gap on `/en/blog`
