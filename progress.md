@@ -82,6 +82,26 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Quiz error logging + flashcard mobile header wrap — Polish-quiz-error-and-flashcard-mobile**
+  **(2026-08-31, on `polish/quiz-error-and-flashcard-mobile` off develop
+  @ `69c4520`, PR #129):** 2 files +50/-4. (a) `quiz.tsx` —
+  `catch {}` → `catch (error) { console.error(...) }` so dev tools
+  surfaces whether the failure is a Vercel Preview auth 401 (user's
+  deployment config blocker) or a genuine code error. User-facing
+  `quizError` message stays generic. (b) `lesson-tokens.css` —
+  added `@media (max-width: 480px) .av-flashcard-hd` block:
+  `flex-wrap: wrap`, `min-width: 0` + `flex: 1 1 auto` on title
+  span, `flex: 0 0 auto; font-size: 0.68rem` on progress span.
+  Without it the `Review` eyebrow + title + `1 / 3` progress row
+  either clipped the title with `…` or pushed the progress counter
+  off-screen. **Bug #1 (quiz fail) is a Vercel Auth 401 issue,
+  fully fixable only via dashboard path-based bypass** —
+  reproduced on develop.nxhhuy.tech via curl: `POST 
+  /en/blog/react/thinking-in-react → HTTP 401 "Protected 
+  deployment"`. Verified action works locally: `POST
+  localhost:3000 → HTTP 200 { selectedLabel: "A", correctLabel:
+  "B", isCorrect: false, explanation: "..." }`. All 5 gates green.
+
 - **Blog + topbar 6-issue polish — Polish-blog-and-topbar-fixes**
   **(2026-08-31, on `polish/blog-and-topbar-fixes` off develop @
   `f37010e`, PR #128):** Closes 6 distinct UI bugs reported after
