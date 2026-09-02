@@ -62,6 +62,44 @@ are gated by Fix C (`polish/mobile-fix-c-grid-collapse`)
 which addresses the §2a parent-containment / wider-than-
 viewport mechanisms.
 
+### [2026-09-02] — polish/flashcard-and-cb-fix-ios — flashcard faces visibility + cb expand on iOS Safari
+
+**Fixed**
+- Flashcard back-face text leak: the
+  `.av-flashcard-card` button contained two `<span>`
+  children whose visibility was controlled only by React-
+  driven `aria-hidden` (no visual semantics), so both spans
+  rendered inline at all times. On iPhone Safari at 375×812
+  the back text wrapped past the card's rounded border
+  into the inter-card gap. Added two CSS rules:
+  `.av-flashcard-card:not(.is-flipped) .av-flashcard-back
+  { display: none }` and `.av-flashcard-card.is-flipped
+  .av-flashcard-front { display: none }`. CDP-confirmed at
+  forced 375×812: back span height = 0; visual confirmation
+  via Chrome screenshot — each card shows only the FRONT
+  question, no text leak.
+- Code-block expand-button no-op on iOS Safari: the
+  `CodeBlockToolbar` rendered a `⛶` button regardless of
+  platform, but its `requestFullscreen()` handler is a no-op
+  on iOS Safari (Apple has not shipped the W3C API as of iOS
+  17). Added a `supportsFullscreen()` helper + `useEffect`
+  hydration probe that hides the button when the API is
+  absent. Desktop Safari / Chrome / Firefox / Edge keep the
+  button; iOS Safari does not. Hydration-safe default
+  (`useState(true) → useEffect correction`) prevents React
+  hydration mismatch warnings.
+
+**Stats:** 2 files +88/-4 (43 CSS lines, 49 TS lines; ~32
+lines of comment per project convention). All 4 gates PASS
+(typecheck 5/5, lint 0, build 38s with Pagefind 222/29019
+unchanged, verify:prerender 196/196+18/18, verify:frontmatter
+196/196).
+
+**Honest scope:** the iOS-hide-button behaviour is inferred
+from platform docs — real iPhone Safari re-test recommended
+on `develop.nxhhuy.tech` after the next preview deploy. The
+flashcard fix is engine-portable and CDP-verified.
+
 ### [2026-09-02] — polish/topbar-narrow-fixes — theme-toggle right-edge clip + cursor pointer (iPhone-reported)
 
 **Fixed**

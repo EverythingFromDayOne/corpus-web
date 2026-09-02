@@ -82,6 +82,26 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Flashcard + cb-expand-iOS fixes — polish/flashcard-and-cb-fix-ios**
+  **(2026-09-02, on `polish/flashcard-and-cb-fix-ios` off develop @ `43fb285`,
+  PR #141, MERGED at `2c3f823`):** Two real-iPhone Safari screenshots
+  at 375×812 reported two related polish bugs. (a) Flashcard
+  back-face text leak in "REVIEW THE THREE IDEAS BEHIND THE MODEL"
+  strip on `/en/blog/react/thinking-in-react` — both front+back
+  spans rendered inline (visibility controlled only by React-driven
+  `aria-hidden`), back text wrapped past card border at narrow
+  viewports. (b) Code-block `⛶` expand button does nothing on iOS
+  Safari (Apple hasn't shipped `Element.requestFullscreen` as of
+  iOS 17). Fixes: (a) two CSS rules hiding the inactive face based
+  on `is-flipped`; (b) `supportsFullscreen()` helper + `useEffect`
+  hydration probe hiding the button on browsers without the API.
+  CDP-verified at forced 375×812: card heights 160px (no leak);
+  back span height=0; both Download+Expand buttons rendered on
+  Chromium. 2 files +88/-4. All 4 gates PASS. Honest scope: iOS
+  hide-button is inferred from platform docs — real-iPhone
+  re-test recommended on `develop.nxhhuy.tech` after next
+  preview deploy. Flashcard fix is engine-portable and CDP-verified.
+
 - **Topbar narrow fixes — polish/topbar-narrow-fixes**
   **(2026-09-02, on `polish/topbar-narrow-fixes` off develop @ `bbc7841`,
   PR #140, MERGED at `9a77488`):** Real-iPhone Safari screenshots

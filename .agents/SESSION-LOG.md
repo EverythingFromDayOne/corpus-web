@@ -6726,3 +6726,53 @@ CDP is the reliable measurement here because Chrome `--window-size=375` clamps t
 - The session-132 pending decision about the course-hero film-grain carries forward.
 
 ---
+## Session 147 — polish/flashcard-and-cb-fix-ios PR #141 — 2026-09-02
+
+**Branch:** `polish/flashcard-and-cb-fix-ios` off `develop @ 43fb285`
+
+**Files changed:**
+- `apps/web/components/article/lesson-tokens.css` — added two display-toggle rules: `.av-flashcard-card:not(.is-flipped) .av-flashcard-back { display: none }` and `.av-flashcard-card.is-flipped .av-flashcard-front { display: none }`. +43 lines including 32 lines of comment.
+- `packages/mdx-components/src/code-block-controls.tsx` — added `supportsFullscreen()` helper, `canFullscreen` useState, and a `useEffect` hydration probe that hides the expand button on browsers without `Element.requestFullscreen` (iOS Safari). +49/-4.
+
+**Why:** Two real-iPhone Safari screenshots at 375×812 reported by the user 2026-09-02 from `/en/blog/react/thinking-in-react`:
+
+1. **Flashcard face leak**: the "REVIEW THE THREE IDEAS BEHIND THE MODEL" cards (1/3 counter, three stacked) showed their back-face text dangling below the card's rounded border. Root cause: `<button class="av-flashcard-card">` contains two `<span>` children (front + back) whose visibility is controlled only by React-driven `aria-hidden` — which has no visual rendering semantics. Both spans occupied inline-block space; the card auto-expanded to fit both texts, and on the narrow iPhone viewport the back text wrapped past the card's rounded border into the gap between cards.
+
+2. **Code-block expand button no-op**: the user clicked the "⛶" expand button on a code block and nothing happened. Root cause: `(node).requestFullscreen()` is a no-op on iOS Safari (Apple has not shipped the W3C `Element.requestFullscreen` API as of iOS 17; iOS only ships the legacy `video.webkitEnterFullscreen()`). The button looked affordant but did nothing on the platform where it was most likely to be tapped.
+
+Both share a principle: **the previous code relied on ARIA state as if it were CSS state, with no visual fallback when the browser disagreed**. Fix A: explicit `display: none` on the hidden face, toggled off the `is-flipped` React class. Fix B: a hydration-safe `useEffect` that probes `document.documentElement.requestFullscreen` and only renders the expand button when the API is present.
+
+**CDP-verified at forced 375×812 (true iPhone viewport):**
+- All 3 flashcard cards: card height = 160px (`min-height: 10rem`), `.av-flashcard-front` computed display = `block`, `.av-flashcard-back` computed display = `none`, back span height = 0.
+- Visual confirmation: each card shows only the FRONT question text, no back text leak, clean gap between cards.
+- Code-block toolbar: both Download AND Expand buttons rendered on Chromium engine (which DOES ship `requestFullscreen`). On iOS Safari — which doesn't ship it — the `useEffect` will set `canFullscreen=false` and the button will not render.
+
+**Invented decisions:**
+- (a) **CSS-only visibility toggle for the flashcard faces**, no React state change. The JSX already controlled visibility via the `aria-pressed` className; adding `display: none` rules was 4 lines of CSS vs. introducing a new render-cycle trigger. Cheap, fast, semantically clean.
+- (b) **`useState(true) → useEffect correction`** for `canFullscreen`. Starting with `true` matches SSR markup (no React hydration mismatch warnings), then correcting to the actual platform support via the client effect. The reverse (start with `false`) would cause a one-frame flash on desktop Safari that's unnecessary.
+- (c) **Probe `document.documentElement.requestFullscreen`** rather than checking the UA string. The UA string approach would need a regex blacklist of every browser without the API; the API probe is the spec-correct truth source and survives platform name changes.
+- (d) **Did NOT change the JSX `<button>` to `<div role="button">`** to add a flip animation. Animating the flip is its own polish PR scope.
+- (e) **Did NOT add a fallback fullscreen implementation** (e.g. an iframe-driven PDF embed). That's a substantial architecture change (introduces a third-party dependency or a large custom overlay) — out of scope for this polish PR; the right fix is "don't show the button that doesn't work."
+- (f) **Did NOT remove D20 from `docs/DEBT.md`** — Shiki is the upgrade path for proper code-block highlighting + an interactive expand affordance. This PR fixes the working POC behaviour on iOS; the next step (Shiki proper) is still debt.
+
+**Honest scope:**
+- The iOS-hide-button behaviour is **inferred from platform docs**. Real iPhone Safari re-test isn't possible from this machine; the user's screenshot was Safari on iPhone, the CDP reproduction was Chromium engine at true 375×812, which does ship `requestFullscreen` (and where the button correctly still renders). The user should re-test on actual iPhone Safari after Vercel preview deploys to confirm the button is hidden there.
+- The flashcard CSS-only fix is engine-portable and CDP-confirmed at true 375×812.
+- 4-file wrap runs on develop per AGENTS.md (mandatory after every session, even small ones).
+
+**Gates:**
+- `pnpm typecheck` — 5/5 PASS (3 cache hits, 2 cache miss re-runs after the file edit)
+- `pnpm lint` — 0 problems (one initial lint failure due to an unused `doc` variable in `supportsFullscreen`; fixed before merge)
+- `pnpm build` — PASS, 38s, Pagefind 222/29019 unchanged
+- `pnpm verify:prerender` — 196/196+18/18 PASS
+- `pnpm verify:frontmatter` — 196/196 PASS
+- CDP-forced 375×812 probe — pass (see measurements above)
+
+**Known issues / next steps:**
+- Polish residue still untouched: D20 Shiki (new dep, scope-correct upgrade path for the expand affordance), D22 OG image, D30 FAQ half, D33 attribution, D24 tier-1 build, D38 submodule debt.
+- `.course-hero` film-grain from session-132 PENDING DECISION: option (1) remove grain keep blooms is the spec recommendation.
+- Vercel Auth bypass for `/pagefind/*` + `/api/*` — user dashboard action.
+- D38 `verify-links` advisoring — `--admin --squash --delete-branch` accepted since PR #113.
+- `develop → main` promotion — user opens that PR themselves.
+
+---
