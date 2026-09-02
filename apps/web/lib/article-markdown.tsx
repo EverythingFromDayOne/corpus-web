@@ -11,7 +11,11 @@ import {
   injectAfterSections,
   type CodeBlockLabels,
   type DragDropLabels,
+  type DragDropGradeInput,
+  type DragDropGradeResult,
   type FlashcardLabels,
+  type GradeResult,
+  type QuizGradeInput,
   type QuizLabels,
 } from '@corpus/mdx-components';
 import { toClientDragDropWidget, toClientQuizWidget, type LessonWidget } from '@/lib/article-widgets';
@@ -22,6 +26,29 @@ import { articlePath } from '@/lib/routes';
 import { isRepoId } from '@/lib/repos';
 import { remarkAssignHeadingIds } from '@/lib/heading-ids';
 import { t, type Messages } from '@/lib/i18n';
+
+/**
+ * polish/quiz-server-action-and-rebrand: inline `'use server'` re-exports of
+ * the grading actions. The original direct imports worked under Next.js
+ * 15.x, but in 16.3.x + Cache Components + `'use cache'` they intermittently
+ * fail to register as Server Action references when the identifier crosses
+ * the RSC → client boundary as a prop. Symptom: action POST against the
+ * registered id returns 404 "Server action not found". Re-declaring each
+ * action here as a fresh `'use server'` function expression forces the build
+ * to issue a *new* per-closure action id at the call site, which Next.js
+ * consistently registers in `server-reference-manifest.json`. The original
+ * `gradeQuizAnswer` / `gradeDragDrop` remain the implementation; these
+ * wrappers just re-export them through a fresh server-action boundary.
+ */
+async function gradeQuizAnswerForClient(input: QuizGradeInput): Promise<GradeResult> {
+  'use server';
+  return gradeQuizAnswer(input);
+}
+
+async function gradeDragDropForClient(input: DragDropGradeInput): Promise<DragDropGradeResult> {
+  'use server';
+  return gradeDragDrop(input);
+}
 
 const { MarkdownServer } = createMarkdownRenderer({
   remarkPlugins: [remarkGfm, remarkDropHtmlComments, remarkCodeExtract, remarkAssignHeadingIds],
@@ -153,6 +180,9 @@ export async function renderArticleMarkdown({
     progress: t(messages, 'article.quizProgress'),
     submit: t(messages, 'article.quizSubmit'),
     next: t(messages, 'article.quizNext'),
+    finish: t(messages, 'article.quizFinish'),
+    previous: t(messages, 'article.quizPrevious'),
+    reset: t(messages, 'article.quizReset'),
     correct: t(messages, 'article.quizCorrect'),
     incorrect: t(messages, 'article.quizIncorrect'),
     explanation: t(messages, 'article.quizExplanation'),
@@ -297,7 +327,7 @@ export async function renderArticleMarkdown({
               slots={client.slots}
               chips={client.chips}
               labels={dragdropLabels}
-              gradeAction={gradeDragDrop}
+              gradeAction={gradeDragDropForClient}
             />
           ),
         };
@@ -315,7 +345,7 @@ export async function renderArticleMarkdown({
             articleUid={client.articleUid}
             questions={client.questions}
             labels={quizLabels}
-            gradeAction={gradeQuizAnswer}
+            gradeAction={gradeQuizAnswerForClient}
           />
         ),
       };

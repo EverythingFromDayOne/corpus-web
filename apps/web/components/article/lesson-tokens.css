@@ -230,6 +230,81 @@
   color: var(--lesson-text-placeholder);
 }
 
+/* polish/quiz-server-action-and-rebrand: three-zone quiz footer.
+   Reset icon (left), prev/counter/next (centre), submit/finish (right).
+   Pairs with the rewritten <Quiz> component's `av-qz-ft` /
+   `av-qz-pag` / `av-qz-arrow` / `av-qz-reset` class hooks. */
+.lesson-surface .av-qz-ft {
+  margin-top: 0.9rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--lesson-border-primary);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.lesson-surface .av-qz-reset {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  background: var(--lesson-bg-secondary);
+  border: 1px solid var(--lesson-border-primary);
+  color: var(--lesson-text-highlight);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.lesson-surface .av-qz-reset:disabled {
+  background: var(--lesson-bg-disabled);
+  color: var(--lesson-text-placeholder);
+  cursor: not-allowed;
+}
+
+.lesson-surface .av-qz-pag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  justify-self: center;
+}
+
+.lesson-surface .av-qz-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  background: var(--lesson-bg-secondary);
+  border: 1px solid var(--lesson-border-primary);
+  color: var(--lesson-text-highlight);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.lesson-surface .av-qz-arrow:disabled {
+  background: var(--lesson-bg-disabled);
+  color: var(--lesson-text-placeholder);
+  cursor: not-allowed;
+}
+
+.lesson-surface .av-qz-counter {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: var(--lesson-text-secondary);
+  min-width: 3rem;
+  text-align: center;
+}
+
+.lesson-surface .av-qz-go.av-qz-finish {
+  /* Polish: distinguish the finish-state CTA from the standard submit.
+     Same shape, slightly stronger border to read as "wrap-up" rather
+     than "next step". */
+  border-color: var(--lesson-border-secondary);
+}
+
 /* ---- Flashcard strip (no glow) --------------------------------------- */
 
 .av-flashcard {
