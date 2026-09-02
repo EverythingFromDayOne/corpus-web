@@ -2397,3 +2397,12 @@ remains the open question.
 - Submodule pins (`react@v0.6.0`, `angular@v0.3.2`, `nestjs@v0.3.2`) have drifted past the documented state in `progress.md` (which still says `react@v0.5.0` / `angular@v0.3.0`). The adapting count is now 196/196, not 181. Doc state refresh is a follow-up session; not in scope here.
 - Branch cut from `main` (not `develop`) — PR #89's squash already brought the design-spec polish items into release, so this PR is the next logical slice. **PR target: `develop`**, per AGENTS.md session protocol. `develop → main` release PR is a separate decision.
 - `prompts/*` files NOT touched — pure `apps/web/` code changes.
+
+### [2026-09-02] — session 152 wrap — fresh verification evidence on `develop @ 1a9a3dc2`
+
+**Added**
+- **Verification evidence** recorded in SESSION-LOG entry
+  for session 152. `hermes verify --json` on the merged
+  develop HEAD reports `ok: true`, all 9 phase results
+  pass, readiness HTTP 200 on http://127.0.0.1:3000/ in
+  9.434s. This is the post-PR #145 / post-PR #144 state.

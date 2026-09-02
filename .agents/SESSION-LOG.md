@@ -7040,3 +7040,58 @@ The `✦ Tap to flip` caption (sydexa-style hint glyph) is **preserved** — it'
 - **Vercel Auth on Preview** still blocks `/pagefind/*` + `/api/*` + `/` on `develop.nxhhuy.tech` (HTTP 401) — user's dashboard action for path-based bypass.
 
 ---
+## Session 152 — wrap PR #145 — 2026-09-02
+
+**Branch:** none (wrap on develop @ `1a9a3dc2`)
+
+**Files changed:**
+- `.agents/SESSION-LOG.md` — appended this entry
+- `CHANGELOG.md` — new `[Unreleased]` entry confirming PR #145
+  is the canonical fix for the test failure
+
+**Why:**
+
+The new agent-facing snapshot needs to record the
+verification evidence that `develop @ 1a9a3dc2` passes
+`hermes verify` with `ok: true`. The earlier wrap (commit
+`80ea199`) inherited the test failure from PR #144's CSS
+changes (3D-flip machinery removed but the test still
+asserted `backface-visibility: hidden`). PR #145 fixed the
+test assertion; this wrap captures the post-fix verification
+result so the next agent's session-boot doesn't have to
+re-derive it.
+
+**Verification (`hermes verify --json`, post-fix):**
+- `ok: true`
+- bootstrap: ok=true, pnpm install in 1.75s
+- build: ok=true, pnpm build (49.80s) + pnpm typecheck
+  (1.24s)
+- test: ok=true across 6 sub-commands
+  (pnpm test, pnpm lint, pnpm run test, pnpm run lint,
+  pnpm run typecheck, pnpm run build)
+- readiness: ready=true, HTTP 200 on http://127.0.0.1:3000/
+
+**Invented decisions:**
+
+- Verification evidence captured under session 152 even
+  though it's a wrap — separates "the PR that fixed the
+  test" (session 151, PR #145) from "the wrap that
+  captured the verification result" (this session). AGENTS.md
+  says "every session writes to SESSION-LOG", and the
+  verification step is its own work.
+
+**Known issues / next steps:**
+
+- Polish residue still untouched (carry-forward from
+  session 150): D20 Shiki (new dep), D22 OG image
+  (DNS+Vercel), D30 FAQ half (corpus-side schema),
+  D33 attribution (corpus-side schema), D38 submodule debt
+  (verify-links fails on 44 refs), develop → main promotion.
+- Vercel Auth on Preview still blocks `/pagefind/*` +
+  `/api/*` + `/` on `develop.nxhhuy.tech` (HTTP 401) —
+  user's dashboard action.
+- Submodule pins unchanged: `content/nextjs a19616f`,
+  `content/react 323d347`, `content/angular 4c96fa8`,
+  `content/nestjs abae66f`.
+
+---
