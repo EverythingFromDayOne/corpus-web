@@ -4,6 +4,74 @@ All notable changes to this project are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
+### [2026-09-02] — polish/quiz-server-action-and-rebrand — server action + footer + rebrand
+
+**Changed**
+- **`apps/web/messages/en.json`**: `article.quizEyebrow` flipped
+  from `"Recall check"` to `"Quick quiz"`. Added
+  `article.quizFinish` (`"Finish"`), `article.quizPrevious`
+  (`"Previous question"`), `article.quizReset` (`"Reset quiz"`)
+  for the new three-zone quiz footer.
+- **`packages/mdx-components/src/quiz.tsx`**: footer rewritten to
+  three zones — reset icon (left), prev/counter/next chevrons
+  (centre), primary CTA (right). State machine now keeps a
+  per-question `Record<questionId, GradeResult | null>` so the
+  reader can navigate prev/next between answered questions and
+  see their previously-shown verdict again. Reset clears all
+  answers and returns to Q1. Submit becomes "Next question" on
+  answered Q1..N−1 and "Finish" on the last answered question
+  (which clears and returns to Q1).
+- **`apps/web/components/article/lesson-tokens.css`**: added the
+  `.av-qz-ft`, `.av-qz-reset`, `.av-qz-pag`, `.av-qz-arrow`,
+  `.av-qz-counter`, `.av-qz-finish` rules for the three-zone
+  footer.
+- **`apps/web/lib/catalog.ts`**: exported a new
+  `loadCatalogForAction()` helper that calls the underlying
+  `loadCatalogView()` without the `'use cache'` + `cacheLife('max')`
+  scope. The action runtime in Next.js 16.3.x with Cache
+  Components ON runs outside the per-request render scope, and a
+  `'use cache'` call inside an action can return a build-time
+  empty or stale `CatalogView` (`byUid[articleUid]` is
+  `undefined`). `pnpm dev` masked the bug because Turbopack does
+  not apply `'use cache'` in dev. Server actions are not on the
+  hot read path, so the disk read is fine.
+- **`apps/web/lib/quiz-actions.ts`** + **`dragdrop-actions.ts`**:
+  switched from `getCatalogView()` to `loadCatalogForAction()`
+  for the answer-key lookup. The action implementation is
+  unchanged; only the catalog-source function is different.
+
+**Added**
+- **`apps/web/lib/article-markdown.tsx`**: inline `'use server'`
+  re-export wrappers `gradeQuizAnswerForClient` and
+  `gradeDragDropForClient`. These force a fresh per-closure
+  server-action id at the RSC → client boundary (registered as
+  `$$RSC_SERVER_ACTION_0/1` in `server-reference-manifest.json`),
+  which Next.js 16.3.x + Cache Components reliably wires through
+  to the client bundle; the direct import-and-pass pattern
+  occasionally failed under Cache Components in this stack.
+
+**Tests**
+- **`packages/mdx-components/test/quiz.test.ts`**: two new tests
+  pin the affordance wiring at the type level (QuizLabels
+  exhaustively typed) and the CSS level (`.av-qz-ft` /
+  `.av-qz-reset` / `.av-qz-arrow` / `.av-qz-counter` /
+  `.av-qz-finish` present in `lesson-tokens.css`); plus a
+  catalogue pin (`article.quizEyebrow === "Quick quiz"`).
+
+**Verified**
+- Typecheck 5/5, lint clean (mdx-components + apps/web),
+  `pnpm --filter @corpus/mdx-components test` 35/35,
+  `pnpm verify:prerender` 196/196 blog + 18/18 lesson HTML,
+  `pnpm verify:frontmatter` 196/196.
+- `pnpm verify:links` fails on 44 unresolved D13 refs as
+  expected (D38 override path; unchanged from develop).
+- Direct server-action probe against `pnpm start`: `gradeQuizAnswer`
+  for `react/thinking-in-react / tir-three-steps / B` returns
+  `{"selectedLabel":"B","correctLabel":"B","isCorrect":true,"explanation":"..."}`
+  — i.e., the widget now grades correctly in production.
+  Reproducible on every question that exists in
+  `curation/overrides/react-thinking-in-react.yaml`.
+
 ### [2026-09-02] — test/lesson-animations-update-flipped-assertion — refresh stale 3D-flip test assertion
 
 **Changed**
