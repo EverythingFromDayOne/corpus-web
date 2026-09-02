@@ -367,6 +367,45 @@
   .av-flashcard-card {
     flex: none;
     width: 100%;
+    min-height: 0;
+  }
+
+  /* polish/flashcard-grow-and-cb-overlay (PR #142):
+     disable the 3D-flip machinery on mobile. With the track in
+     `flex-direction: column`, cards are stacked, not side-by-side
+     — so each card can simply grow to fit its visible face and
+     `backface-visibility: hidden; transform: rotateY(180deg)` is
+     no longer doing useful work (the inactive face is already
+     hidden by our `display: none` rules above).
+
+     `position: absolute` on `.av-flashcard-back` is the actual
+     culprit for the user-reported "cards still broken" bug — the
+     absolute element overflows its parent's bounding box without
+     making the parent grow, and on real-iPhone Safari at 375×812
+     the long back-text (e.g. Card 3: "Purity is the contract...
+     every one of those guarantees.") leaks past the 1px rounded
+     border into the inter-card gap. `backface-visibility: hidden`
+     is reset to `visible` because with `position: static` the
+     back is in normal flow and there's no 3D rotation to flip
+     out of view, but we still want screen readers and selection
+     to treat the back as part of the document; the `display: none`
+     rules we already added still gate whether it actually
+     renders. `transform: none` removes the rotateY(180deg) so the
+     back face doesn't render text mirrored backwards.
+
+     Verified via CDP-forced 375×812 after flip-all:
+     `cardH` matches `backH` (no absolute-positioned spillover),
+     `backText` reads in normal flow, rounded border encloses
+     the full content. */
+  .lesson-surface .av-flashcard-back {
+    position: static;
+    inset: auto;
+    transform: none;
+  }
+
+  .lesson-surface .av-flashcard-front,
+  .lesson-surface .av-flashcard-back {
+    backface-visibility: visible;
   }
 }
 
