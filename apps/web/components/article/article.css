@@ -306,6 +306,41 @@
   color: var(--color-graphite);
 }
 
+/* Post-header meta row (mobile-fix-b, polish/mobile-fix-b-card-
+   meta-flex-wrap). `<PostHeader>` (post-header.tsx) renders 4
+   pipe-separated meta fields (corpus, kind, reading-time,
+   baseline) as inline `<span>` children of a single `<div
+   className="post-header-meta meta">` — no flex layout was ever
+   declared for that div, so the spans stayed on the browser's
+   default inline flow with no wrap point at narrow viewports.
+   `article.baseline` alone (e.g. "Angular 22.1.1") can push the
+   row past 375px with no natural break.
+
+   Fix: `display: flex; flex-wrap: wrap` — same pattern already
+   used by `.av-mr` (the second meta row lower in the article,
+   directly below) and `.course-card-head` (courses/course-
+   card.tsx line 28). `gap` replaces the `|` separator spans'
+   implicit spacing so wrapped rows don't visually collide.
+   Audit reference: `prompts/design-spec-2026-08-mobile-reflow.md`
+   §1 finding "/en/blog/angular/animations — metadata bars
+   clipped mid-token (ANGULA..., V...)"; §3 Fix B. */
+.post-header-meta {
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 0.35rem;
+  column-gap: 0.6rem;
+}
+
+/* The flex container's `flex-wrap: wrap` alone doesn't make a
+   text span break mid-token: per CSS spec, a flex item has
+   `min-width: auto` (= min-content size) by default, so the
+   span containing "Angular 22.1.1" won't shrink below its
+   intrinsic width. `min-width: 0` opts in to breaking that
+   span across lines at the viewport edge. */
+.post-header-meta > span {
+  min-width: 0;
+}
+
 .av-mr {
   display: flex;
   flex-wrap: wrap;
