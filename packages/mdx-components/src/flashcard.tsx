@@ -78,19 +78,16 @@ export function Flashcard({ id, title, cards, labels }: FlashcardProps) {
     (next: number) => {
       const clamped = Math.max(0, Math.min(total - 1, next));
       setIndex(clamped);
-      // Sync the track transform inline so the CSS
-      // `--flashcard-track-translate` rule (lesson-animations.css)
-      // slides the deck horizontally to the active card. Falls back
-      // to `scrollIntoView` for environments where the swipe
-      // transforms are disabled (e.g. legacy User-Agents without
-      // CSS Custom Properties support, or when the deck overflow-x
-      // scroll-snap is the primary mechanism).
+      /* polish/flashcard-ambient-and-prevnext-fix (PR #144):
+         removed the inline `--flashcard-track-translate` CSS
+         variable write (PR #143). That write fought with
+         `scroll-snap-type: x mandatory` on the track and was the
+         root cause of the empty-card glitch the user reported on
+         iPhone Safari. Now we only rely on scroll-snap +
+         `scrollIntoView` — both aligned. The cursor's
+         `scroll-behavior` is unchanged: respects `prefers-reduced-motion`. */
       const track = trackRef.current;
       if (track) {
-        track.style.setProperty(
-          '--flashcard-track-translate',
-          `${-clamped * 100}%`,
-        );
         const card = track.children[clamped];
         if (card instanceof HTMLElement) {
           card.scrollIntoView({
