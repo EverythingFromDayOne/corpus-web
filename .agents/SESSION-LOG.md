@@ -7197,3 +7197,74 @@ register-and-wire edge case from biting the drag-drop widget.
   follow-up.
 
 ---
+## Session 154 — polish/course-detail-curriculum-bloom — 2026-09-02
+
+**Branch:** `polish/course-detail-curriculum-bloom` off `develop @ a652bde`
+
+**Files changed:**
+- `apps/web/app/[locale]/courses/[course]/page.tsx` — add `course-detail-curriculum` /
+  `course-detail-curriculum-bloom` / `course-detail-curriculum-eyebrow` classes to the
+  curriculum section; insert one bloom `<span>` sibling
+- `apps/web/app/globals.css` — append 3 new CSS rules immediately after
+  `.course-hero-bloom--cool`: section `isolation:isolate`, bloom with `top:-6rem right:-10rem`
+  anchored at 18% colour-mix on `--color-cool`, plus heading + list `position:relative` +
+  `z-index:1` lift
+
+**Why:** user said "go yolo" on items 1 + 2 of the prior turn's worth-doing-next list.
+Item 1 was the deferred spec §2 per-section blooms row on `/en/courses/[course]` body;
+item 2 was a card-side ambient passthrough investigation. Closed item 1 here; item 2 is
+left as a **read-only investigation (see session 154 entry in CHANGELOG)** because the
+fix is not in autonomous scope.
+
+**Why only one bloom, not the two-section alternation the spec implies:**
+
+The spec's row "`/en/courses/[course]` body sections (Promise / Benefits / Curriculum)"
+hints at three sections; the page actually has **one** (the curriculum timeline,
+`<section id="curriculum">`). PR #116's `.ls-sec + .ls-sec` alternation pattern needs
+2+ sibling sections; it doesn't apply here. The honest adaptation is one anchored bloom
+on the curriculum section that doesn't stack with the hero blooms directly above
+(anchored `top:-6rem right:-10rem` vs hero's `bottom:-10rem right:-8rem`). The
+alternating vocabulary this PR introduces slots cleanly into the existing PR #116
+pattern if Promise / Benefits sections are ever added — a future PR would alternate
+`.course-detail-curriculum` + `.course-detail-curriculum + .course-detail-curriculum`
+anchors to mirror the home page's section bloom convention.
+
+**Invented decisions:**
+- **`--color-cool` not `--marketing-accent-bloom`**: warm-bloom token is reserved for
+  "active / focus / press" affordances per the `marketing-accent-*` semantics
+  (PR #111/115); ambient cool reads as depth, not action. Matches the colour used by
+  `ls-ambient-glow` on `/en/blog` and `/en/courses` from PR #133.
+- **18% opacity cap**: the timeline's text contrast against `var(--color-ink)` is
+  unaffected at 18% (no WCAG impact on existing text). Higher would start competing
+  with the headline's gradient fill.
+- **`isolation: isolate` on the section**: needed because `.course-detail-curriculum-bloom`
+  uses `z-index: -1`. Without isolation, the negative-z-index pseudo slips behind the
+  body's `var(--color-ink)` fill (the same trap PR #130 closed for `.film-grain`).
+  Following the lesson from that PR explicitly.
+- **No change to cards or article surface**: item 2's card-side passthrough
+  investigation reads `.ls-blog-card` in `apps/web/app/globals.css:424-449`. The card's
+  background fill is opaque `<radial-gradient(bloom, transparent)>` over
+  `<linear-gradient(--color-surface, --marketing-accent-deep 12%)>`. The first
+  layer uses `--color-surface` as base, so the grid behind cards is invisible behind
+  every card. On hover only the border colour lightens (line 440 `:hover` rule); surface
+  fill unchanged. To let the grid bleed through would mean dropping the opaque
+  `--color-surface` gradient — affects every article card, course card, flashcard,
+  and quiz surface. **Not autonomous scope; surfaced for user pick.**
+
+**Verified:**
+- Typecheck 5/5 (turbo cache hit), lint 5/5, test 38/38
+  (`@corpus/web:test`) + 35/35 (`@corpus/mdx-components:test`).
+- `pnpm --filter @corpus/web build` clean (Pagefind 222/unchanged).
+- `pnpm verify:prerender` 196/196 + 18/18.
+- `pnpm verify:frontmatter` 196/196.
+- HTML probe `/en/courses/react-foundations.html`: 2× `.course-detail-curriculum-bloom` +
+  2× `.course-detail-curriculum-eyebrow` (2 course PR renders have the bloom element).
+
+**Known issues / next steps:**
+- Real-phone spot-check on `/en/courses/react-foundations` — does the bloom read as
+  ambient depth, or does it look like a side-loaded lens flare? Not auto-verifiable.
+- PR #116 alternating-bloom pattern is still the *correct* design for the page if
+  Promise / Benefits sections ship later. This PR doesn't lock in the single-bloom
+  shape; the next PR can introduce `.course-detail-curriculum + ...` alternation.
+
+---

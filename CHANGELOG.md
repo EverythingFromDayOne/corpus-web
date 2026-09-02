@@ -4,6 +4,47 @@ All notable changes to this project are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
+### [2026-09-02] — polish/course-detail-curriculum-bloom — course detail curriculum ambient bloom + card-passthrough read
+
+**Added**
+- **`apps/web/app/[locale]/courses/[course]/page.tsx`** +
+  **`apps/web/app/globals.css`**: single low-opacity cool bloom on the
+  curriculum section (the one body section on `/en/courses/[course]`),
+  deferred from `prompts/design-spec-2026-08-background.md` §2 since
+  PR #132. Anchor `top: -6rem right: -10rem`, `--color-cool`
+  colour-mix at 18% opacity, with `isolation: isolate` on the
+  section and `position: relative + z-index: 1` on the heading +
+  list so the negative-z-index pseudo doesn't slip behind the
+  body's `var(--color-ink)` fill (the PR #130 lesson). The
+  alternating-bloom vocabulary used by PR #116 on `/en` slots in
+  cleanly if Promise / Benefits sections ship later.
+
+**Read-only investigation (not shipped)**
+- **Card-side ambient passthrough on hover** (item 2 of the
+  user-approved worth-doing-next list): `.ls-blog-card`'s
+  `background-image` is opaque
+  `<radial-gradient(bloom, transparent)>` over
+  `<linear-gradient(--color-surface, --marketing-accent-deep 12%)>`.
+  The first layer uses `--color-surface` as base, so
+  the grid behind cards is invisible behind every card. On hover
+  only the border colour lightens; surface fill is unchanged. To
+  let the grid bleed through, the opaque `--color-surface`
+  gradient must drop — affects every article card, course card,
+  flashcard, and quiz surface sitewide. **Not autonomous scope;
+  surfaced for user pick.**
+
+**Verified**
+- Typecheck 5/5 (turbo cache hit), lint 5/5,
+  `@corpus/web:test` 38/38 + `@corpus/mdx-components:test` 35/35.
+- `pnpm --filter @corpus/web build` clean (Pagefind 222/unchanged).
+- `pnpm verify:prerender` 196/196 blog + 18/18 lesson HTML.
+- `pnpm verify:frontmatter` 196/196.
+- HTML probe `/en/courses/react-foundations.html`: 2×
+  `.course-detail-curriculum-bloom` + 2×
+  `.course-detail-curriculum-eyebrow` (cool tone span + warm).
+
+2 files +46/-2.
+
 ### [2026-09-02] — polish/quiz-server-action-and-rebrand — server action + footer + rebrand
 
 **Changed**
