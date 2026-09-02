@@ -148,8 +148,12 @@ export default async function CourseDetailPage({ params }: PageProps) {
           </a>
         </div>
       </header>
-      <section id="curriculum" className="mt-16 scroll-mt-24">
-        <h2 className="text-2xl">{t(messages, 'courses.curriculumHeading')}</h2>
+      <section id="curriculum" className="course-detail-curriculum mt-16 scroll-mt-24 relative">
+        <span
+          aria-hidden="true"
+          className="course-detail-curriculum-bloom pointer-events-none absolute -inset-x-12 -inset-y-8 rounded-full blur-3xl"
+        />
+        <h2 className="course-detail-curriculum-eyebrow relative text-2xl">{t(messages, 'courses.curriculumHeading')}</h2>
         <CurriculumList locale={locale} course={course} messages={messages} />
       </section>
     </PageShell>

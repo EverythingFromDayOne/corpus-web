@@ -1168,6 +1168,46 @@ body:has(.av-view) .av-header-tog {
   );
 }
 
+/* ---------- Course detail curriculum bloom (polish/course-detail-curriculum-bloom) ----------
+   One-section deferral of design-spec background §2 row
+   "`/en/courses/[course]` body sections (Promise / Benefits / Curriculum)"
+   — the page only has a single body section currently (the curriculum
+   timeline), so PR #116's alternating-bloom pattern doesn't apply (it
+   needs 2+ sibling `.ls-sec` blocks). Instead, an anchor that doesn't
+   stack with the hero's bottom-corner blooms directly above: top-mid,
+   mirrored horizontally so two consecutive `.course-detail-curriculum`
+   pages don't visually double up with their sibling `.course-card`
+   blooms on `/en/courses`. Cool palette (--color-cool, not
+   --marketing-accent-bloom) so the section reads as ambient depth,
+   not active-focus.
+
+   WCAG: opacity stays at 18% so the timeline's text contrast against
+   var(--color-ink) is unaffected. */
+.course-detail-curriculum {
+  isolation: isolate;
+}
+.course-detail-curriculum-bloom {
+  z-index: -1;
+  top: -6rem;
+  left: auto;
+  right: -10rem;
+  width: 38rem;
+  height: 22rem;
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--color-cool) 18%, transparent) 0%,
+    transparent 72%
+  );
+}
+/* Lift the heading + list above the negative-z-index bloom. */
+.course-detail-curriculum-eyebrow,
+.course-detail-curriculum ol {
+  position: relative;
+}
+.course-detail-curriculum ol {
+  z-index: 1;
+}
+
 /* ---------- Blog sidebar tree (PR #123, polish/blog-sidebar-tree) ----------
    Two-column layout: 280px sticky sidebar tree (left) + main pane
    (right). Replaces the previous corpus → folder → cards "double
