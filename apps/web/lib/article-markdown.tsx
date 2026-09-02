@@ -165,6 +165,8 @@ export async function renderArticleMarkdown({
     progress: t(messages, 'article.flashcardProgress'),
     front: t(messages, 'article.flashcardFront'),
     back: t(messages, 'article.flashcardBack'),
+    flipHint: t(messages, 'article.flashcardFlipHint'),
+    swipeHint: t(messages, 'article.flashcardSwipeHint'),
   };
   const dragdropLabels: DragDropLabels = {
     eyebrow: t(messages, 'article.dragdropEyebrow'),

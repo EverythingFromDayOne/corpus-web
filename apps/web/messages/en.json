@@ -237,6 +237,8 @@
     "flashcardProgress": "{current} / {total}",
     "flashcardFront": "Show back",
     "flashcardBack": "Show front",
+    "flashcardFlipHint": "Tap to flip",
+    "flashcardSwipeHint": "Swipe left or right to switch cards.",
     "dragdropEyebrow": "Assemble",
     "dragdropSubmit": "Check answer",
     "dragdropReset": "Reset assembly",
