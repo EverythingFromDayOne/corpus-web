@@ -305,6 +305,49 @@
   color: var(--lesson-text-primary);
 }
 
+/* polish/flashcard-and-cb-fix-ios (PR #141): the two faces
+   (`<span class="av-flashcard-face av-flashcard-front">` /
+   `<span class="av-flashcard-face av-flashcard-back">`) are
+   rendered as direct children of `<button class="av-flashcard-card">`
+   with their visibility controlled only by `aria-hidden` —
+   which has no visual semantics. The previous code relied on
+   user intuition to figure out that the back face was actually
+   hidden via reading the `aria-pressed` state, but the browser
+   doesn't honour `aria-hidden=true` for layout — both spans
+   render inline, so the card grows to fit both front and back
+   text simultaneously, and the back text leaks past the card's
+   border at narrow viewports.
+
+   Real-iPhone Safari at 375x812 reported by user
+   2026-09-02 from the "REVIEW THE THREE IDEAS BEHIND THE MODEL"
+   section on `/en/blog/react/thinking-in-react` showed the back
+   text "1) Components are functions...your state holds everything)...
+   3) Data flows one way..." dangling below the rounded border of
+   each card — exactly the symptom of two faces stacking inside
+   one card.
+
+   Fix: explicit display toggle on the face spans keyed off the
+   `aria-pressed` state. Two rules suffice because each card has
+   exactly two faces and flips between them; we hide the face
+   that is currently aria-hidden=true on a `:not(.is-flipped)`
+   selector, mirroring the JSX contract. Using `:not(.is-flipped)`
+   (instead of an attribute selector on aria-hidden) keeps the
+   selector specificity low and side-steps any future CSS parser
+   surprises with bracketed attribute selectors on JSX-emitted
+   HTML.
+
+   The flip animation was never visually implemented in JSX either
+   (the previous affordance was just the implicit button click),
+   so adding this CSS-only visibility toggle has no animation
+   regression — it just stops the back from showing when the
+   button isn't pressed. */
+.av-flashcard-card:not(.is-flipped) .av-flashcard-back {
+  display: none;
+}
+.av-flashcard-card.is-flipped .av-flashcard-front {
+  display: none;
+}
+
 .av-flashcard-card.is-flipped .av-flashcard-back {
   color: var(--lesson-text-highlight);
 }
