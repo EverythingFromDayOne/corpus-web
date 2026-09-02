@@ -4,6 +4,39 @@ All notable changes to this project are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
+### [2026-09-02] — polish/ls-blog-card-alpha-passthrough — card surface 8%/12% transparent
+
+**Changed**
+- **`apps/web/app/globals.css`**: `.ls-blog-card` surface fill is now
+  partial-transparent. Two new CSS local properties
+  (`--card-surface` = 92% `--color-surface` + 8% transparent at rest;
+  `--card-surface-hover` = 88% + 12% transparent on hover) used in the
+  existing `<linear-gradient>` base instead of the fully-opaque
+  `var(--color-surface)`. Closes Item 2 from the prior turn's
+  worth-doing-next list — `ls-ambient-grid` + `ls-ambient-glow` from
+  PR #133 now bleeds through behind every `.ls-blog-card` sitewide
+  at ~1% effective opacity (rest) / ~1.4% (hover). No GPU filter
+  pass (variant 3) and no readability call (variant 4); single CSS
+  delta, reverts with one commit.
+
+**Added (untracked)**
+- **`docs/scratch/card-passthrough-ab.html`** (committable
+  reference): 4-column A/B preview of the candidate card-surface
+  treatments (shipped, alpha-card, backdrop-blur, no-surface). Built
+  during the design session for visual comparison only; not committed
+  per corpus-web-context scratch policy.
+
+**Verified**
+- Typecheck 5/5 (turbo cache hit), lint 5/5, test 38/38 (`@corpus/web:test`)
+  + 35/35 (`@corpus/mdx-components:test`).
+- `pnpm --filter @corpus/web build` clean (Pagefind 222/unchanged).
+- `pnpm verify:prerender` 196/196 blog + 18/18 lesson HTML.
+- `pnpm verify:frontmatter` 196/196.
+- CSS bundle probe confirms `92%, transparent` and `88%, transparent`
+  in `apps/web/.next/static/chunks/29twzeqgdgloi.css`.
+
+1 file +14/-5 (code) + docs wrap.
+
 ### [2026-09-02] — polish/course-detail-curriculum-bloom — course detail curriculum ambient bloom + card-passthrough read
 
 **Added**

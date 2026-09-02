@@ -7268,3 +7268,94 @@ anchors to mirror the home page's section bloom convention.
   shape; the next PR can introduce `.course-detail-curriculum + ...` alternation.
 
 ---
+## Session 155 — polish/ls-blog-card-alpha-passthrough — 2026-09-02
+
+**Branch:** `polish/ls-blog-card-alpha-passthrough` off `develop @ 58e020f`
+
+**Files changed:**
+- `apps/web/app/globals.css` — added `--card-surface` and `--card-surface-hover` local
+  properties to `.ls-blog-card`, swapped the `<linear-gradient>` base from the
+  fully-opaque `var(--color-surface)` to the 8%/12%-transparent alpha-mix. 1 file, +14/-5.
+
+**Why:** user said "go yolo on Item 2 card-side passthrough fraction". The shipped
+`.ls-blog-card` had an opaque `--color-surface` linear-gradient fill, so the
+`ls-ambient-grid` + `ls-ambient-glow` from PR #133 sat behind every card invisible.
+On hover only the border colour lightens; surface fill is unchanged. The original
+ask was "could the grid bleed through .ls-blog-card surfaces usefully?" — answer
+requires making the surface partially transparent.
+
+**Why this PR, not a backdrop-blur or no-surface variant:**
+
+Built the A/B POC at `docs/scratch/card-passthrough-ab.html` (untracked per skill
+policy). Tested four candidates:
+
+- 1 (shipped): 0% pass-through, opaque surface
+- 2 (this PR): 8% transparent surface → ~1% grid bleed
+- 3 (backdrop-blur): GPU filter pass per card; mobile scroll-flicker risk per the
+  corpus-web-context skill's iOS Safari filter-blur gotchas
+- 4 (no-surface): drops `<linear-gradient>` entirely; sitewide card readability call
+
+Variant 2 is the only one that fits CTO-autopilot scope:
+- No new npm dep
+- No GPU filter pass per card (no iOS Safari scroll-flicker risk)
+- No schematic change
+- Bounded: single CSS delta, reverts with one commit
+- Affects every `.ls-blog-card` sitewide (article cards on `/en/blog`, course cards
+  on `/en/courses`, the article-index card composites on `/en/blog`)
+
+Variants 3 and 4 surfaced as follow-on picks if the perceptual read on real phone
+of variant 2 is "too subtle" — but auto-shipping one without user signal is not what
+the skill's "honest re-scoping" rule calls for.
+
+**Why an HTML scratch for the A/B (and not just commit the change):**
+
+User signal "go yolo" reads as autonomous principal-engineer scope per the standing
+Mode A directive, but the perceptual reading ("does this even register?") cannot be
+auto-verified. The HTML scratch lets the user flip the variant that ships before
+real-iPhone verification, which the iOS Safari visual gate requires anyway. Net
+output is reversible: the scratch is `docs/scratch/` untracked; the PR is a single
+CSS commit (`--card-surface` + 2 colour-mix refs).
+
+**Invented decisions:**
+
+- **8% / 12% (not 6% / 10% or 12% / 16%):** reverse-engineered the perceptual floor
+  for PR #133's grid (6% effective) and glow (14% effective). At 8% transparent
+  surface, the grid reads at ~1% effective through the card. At 6% transparent it
+  reads at ~0.7%; too subtle to be visible without zoom. At 12% transparent the
+  surface starts reading as "tinted glass" which feels academic rather than
+  sydexa-flavoured. The 8% / 12% pair was middle-of-the-range; real-phone spot-check
+  may want to nudge the rest down to 6% if it over-registers or up to 12% if it
+  under-registers. Either direction is a one-line tweak.
+- **Hover lifts the alpha drop (12% vs 8%):** the lifted state has both the
+  existing translate-y-1 + bloom-shadow + border-lighter AND a deeper surface
+  alpha drop, so the ambient reads more strongly on hover. Combined with the
+  existing border-from-graphite-to-bloom transition it gives a "surface breathes"
+  feel that pairs with the existing card-bar hover-only scaling (PR #130).
+- **Local properties for `--card-surface` and `--card-surface-hover`:** rather than
+  hard-coding the colour-mix twice in the rest/hover background-image strings.
+  Keeps the hover-flip logic localised; future "card with disabled state" hook
+  becomes `--card-surface: var(--card-surface-disabled)` without retracing the
+  whole `<linear-gradient>` expression.
+
+**Verified:**
+- Typecheck 5/5 (turbo cache hit), lint 5/5, test 38/38 (`@corpus/web:test`) +
+  35/35 (`@corpus/mdx-components:test`).
+- `pnpm --filter @corpus/web build` clean (Pagefind 222/unchanged).
+- `pnpm verify:prerender` 196/196 blog + 18/18 lesson HTML.
+- `pnpm verify:frontmatter` 196/196.
+- CSS bundle probe confirms `92%, transparent` and `88%, transparent` are present
+  in `apps/web/.next/static/chunks/29twzeqgdgloi.css` (the served stylesheet).
+
+**Known issues / next steps:**
+- Real-phone spot-check on `/en/blog` and `/en/courses`: does the bleed read as
+  ambient depth (intended), or as "washed-out cards" (over-tinted)? Not
+  auto-verifiable.
+- If variant 2 under-registers at 8%, the rest can be dropped to 6% transparent
+  (~0.7% grid bleed) — single number edit. If it over-registers at 8%, the rest
+  can climb to 12% transparent (~1.4% grid bleed). One commit either way.
+- Variants 3 (backdrop-blur) and 4 (no-surface) sit as follow-on picks if the
+  perceptual read warrants stronger passthrough. Both cross CTO-autopilot
+  triggers (GPU filter sitewide / card readability call) — kept on the user side
+  per skill's stop-and-ask rule.
+
+---
