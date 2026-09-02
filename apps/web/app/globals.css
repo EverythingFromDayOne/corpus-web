@@ -420,8 +420,21 @@ body:has(.av-view) .av-header-tog {
    Uses the marketing-accent three-tier (line / deep / bloom) for a layered
    "lit from behind" feel without raising the card off-page. The bloom is
    a soft radial behind the card's lower-right corner; the gradient is
-   corner-to-corner from graphite → signal-dim at 12% opacity. */
+   corner-to-corner from graphite → signal-dim at 12% opacity.
+
+   polish/ls-blog-card-alpha-passthrough: surface alpha reduced from
+   100% to 92% (8% transparent) so the `ls-ambient-grid` +
+   `ls-ambient-glow` from PR #133 bleeds through at ~1% effective
+   opacity behind every card sitewide. The hover state deepens the
+   alpha (88% / 12% transparent) so the ambient reads more strongly
+   under the lifted state — a subtle "the surface breathes with the
+   background" feedback. Text contrast unchanged (cards still render
+   on --color-surface's luminance; the 8% alpha is below any
+   legibility threshold). Bounded cost: no GPU filter, no new dep,
+   no schematic change. */
 .ls-blog-card {
+  --card-surface: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  --card-surface-hover: color-mix(in srgb, var(--color-surface) 88%, transparent);
   background-image:
     radial-gradient(
       circle at 85% 100%,
@@ -430,14 +443,15 @@ body:has(.av-view) .av-header-tog {
     ),
     linear-gradient(
       135deg,
-      var(--color-surface) 0%,
-      color-mix(in srgb, var(--marketing-accent-deep) 12%, var(--color-surface)) 100%
+      var(--card-surface) 0%,
+      color-mix(in srgb, var(--marketing-accent-deep) 12%, var(--card-surface)) 100%
     );
   border-color: var(--color-graphite);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--marketing-accent-bloom) 0%, transparent);
 }
 
 .ls-blog-card:hover {
+  --card-surface: var(--card-surface-hover);
   border-color: color-mix(in srgb, var(--marketing-accent-bloom) 60%, var(--color-graphite));
   background-image:
     radial-gradient(
@@ -447,8 +461,8 @@ body:has(.av-view) .av-header-tog {
     ),
     linear-gradient(
       135deg,
-      var(--color-surface) 0%,
-      color-mix(in srgb, var(--marketing-accent-deep) 22%, var(--color-surface)) 100%
+      var(--card-surface) 0%,
+      color-mix(in srgb, var(--marketing-accent-deep) 22%, var(--card-surface)) 100%
     );
   box-shadow: 0 4px 12px color-mix(in srgb, var(--color-ink) 30%, transparent),
     0 0 24px color-mix(in srgb, var(--marketing-accent-bloom) 18%, transparent);
