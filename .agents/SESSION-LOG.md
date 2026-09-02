@@ -6914,6 +6914,79 @@ Asked for: (1) "exact CSS like sydexa but generate new color/shadow suitable of 
 - **Polish residue still untouched** (carry-forward): D20 Shiki (new dep), D22 OG image (DNS+Vercel), D30 FAQ half (corpus-side schema), D33 attribution (corpus-side schema), D38 submodule debt, `develop → main` promotion.
 
 ---
+## Session 151 — test/lesson-animations-update-flipped-assertion — 2026-09-02
+
+**Branch:** `test/lesson-animations-update-flipped-assertion` off
+`develop @ 80ea199`
+
+**Files changed:**
+- `apps/web/test/lesson-animations.test.ts` — 1 assertion
+  swapped (`'backface-visibility: hidden'` →
+  `'backface-visibility: visible'`) with comment block
+  documenting why.
+
+**Why:**
+
+`hermes verify` flagged `@corpus/web#test` failing on
+`lesson-animations.css ships the required keyframes and hooks`
+with `AssertionError [ERR_ASSERTION]: missing
+backface-visibility: hidden`. The test was a smoke check that
+the 3D card-flip machinery was intact. PR #143 + PR #144
+explicitly removed that machinery (perspective,
+transform-style: preserve-3d, transform: rotateY(180deg),
+`backface-visibility: hidden` face toggles) — the
+`display: none` rules in `lesson-tokens.css` now do the
+face-toggle job. The test assertion was stale.
+
+**Fix:**
+
+Swap the stale assertion for one that's still meaningful:
+`'backface-visibility: visible'` — that token IS present
+(lesson-animations.css line ~298, the `prefers-reduced-motion`
+override on `.av-flashcard-front, .av-flashcard-back` keeps
+the faces visible after the user opts out of motion). Comment
+block documents the architectural reason so the next agent
+doesn't "rescue" the deleted 3D machinery back into the CSS
+thinking it was lost.
+
+**Verification (`hermes verify --json`):**
+- bootstrap: ok=true, pnpm install in 2.186s
+- build: ok=true
+- typecheck: ok=true, 5/5 packages
+- test: **ok=true**, 38/38 (apps/web) + 33/33 (mdx-components)
+  + 26/26 (content-schema) = **97/97 tests pass**
+- lint: ok=true, 5/5 packages, 0 errors
+- readiness: ready=true, HTTP 200 on http://127.0.0.1:3000/
+  in 9.434s
+- overall: `"ok": true`
+
+**Invented decisions:**
+
+- Assert `backface-visibility: visible` (the reduced-motion
+  override), not delete the line entirely — keeps the test
+  honest about the visibility contract that still applies
+  on the lesson surface. Deleting the assertion would have
+  silently broadened the smoke check.
+- Did NOT add a new test for the new ambient card surface
+  treatment (PR #144's CSS changes) — out of scope for this
+  follow-up; that's a CSS-string test for a different PR.
+- Did NOT touch CSS to bring back `backface-visibility: hidden`
+  — that would have re-introduced dead code the previous
+  PR explicitly removed.
+
+**Known issues / next steps:**
+
+- The wrap file from session 150 (committed at `80ea199`)
+  needs a "test fix follow-up" mention in this SESSION-LOG
+  entry; do that on this branch.
+- Polish residue still untouched (carry-forward): D20 Shiki
+  (new dep), D22 OG image (DNS+Vercel), D30 FAQ half
+  (corpus-side schema), D33 attribution (corpus-side schema),
+  D38 submodule debt (verify-links fails on 44 refs),
+  develop → main promotion.
+
+---
+
 ## Session 150 — polish/flashcard-ambient-and-prevnext-fix PR #144 — 2026-09-02
 
 **Branch:** `polish/flashcard-ambient-and-prevnext-fix` off `develop @ a058e52`

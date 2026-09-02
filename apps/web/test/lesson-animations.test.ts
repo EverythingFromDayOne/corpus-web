@@ -17,6 +17,21 @@ const TOKENS = join(DIR, '../components/article/lesson-tokens.css');
 
 test('lesson-animations.css ships the required keyframes and hooks', () => {
   const css = readFileSync(ANIMATIONS, 'utf8');
+  /* polish/flashcard-ambient-and-prevnext-fix (PR #144):
+     removed `'backface-visibility: hidden'` from this assertion.
+     The 3D card-flip machinery (perspective, transform-style:
+     preserve-3d, transform: rotateY(180deg), and the
+     `backface-visibility: hidden` face toggles) was intentionally
+     removed in PR #143 and confirmed gone in PR #144. The
+     pre-existing `.av-flashcard-back` rule used the toggle to
+     hide the back face before the .is-flipped rotation; the
+     `display: none` rules in lesson-tokens.css now do that job.
+     The reduced-motion `backface-visibility: visible` override
+     is still meaningful (line ~298) — a token check on that
+     keeps the visibility contract honest. The
+     `@keyframes lesson-flip-to-back` block IS still shipped
+     (line ~33) — kept as dormant forward-compat for any
+     future 3D-card work; the assertion remains. */
   for (const token of [
     '@keyframes lesson-rise-in',
     '@keyframes lesson-rise-in-loud',
@@ -24,7 +39,7 @@ test('lesson-animations.css ships the required keyframes and hooks', () => {
     '@keyframes lesson-toast-pulse',
     "[data-mounted='true']",
     '.av-callout.is-revealed',
-    'backface-visibility: hidden',
+    'backface-visibility: visible', // reduced-motion override, still meaningful
     '.av-dd-slot.is-target',
     '.av-cbcopy.done',
     '@media (prefers-reduced-motion: reduce)',

@@ -4,6 +4,22 @@ All notable changes to this project are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
+### [2026-09-02] — test/lesson-animations-update-flipped-assertion — refresh stale 3D-flip test assertion
+
+**Changed**
+- **`apps/web/test/lesson-animations.test.ts`**: swapped the
+  `'backface-visibility: hidden'` assertion in `lesson-animations.css
+  ships the required keyframes and hooks` for
+  `'backface-visibility: visible'`. The deleted token is a
+  direct consequence of PR #143 + PR #144's removal of the
+  3D card-flip machinery (`perspective`, `transform-style:
+  preserve-3d`, `transform: rotateY(180deg)`, the
+  `backface-visibility: hidden` face toggles). The
+  `display: none` rules in `lesson-tokens.css` now do the
+  face-toggle job. The new token (the reduced-motion
+  visibility override at line ~298 of
+  `lesson-animations.css`) is still meaningful.
+
 ### [2026-09-02] — polish/flashcard-ambient-and-prevnext-fix — ambient flashcard surface + fix prev/next empty-card glitch
 
 **Changed**
