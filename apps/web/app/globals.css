@@ -710,6 +710,21 @@ body:has(.av-view) .av-header-tog {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  /* polish/mobile-fix-c-grid-collapse (Fix C, round 1): the
+     `-webkit-line-clamp` display relies on the box actually
+     constraining to its parent's width, but long unbreakable
+     tokens inside the clamped text (e.g. `react-render-cycle`)
+     force the *intrinsic* width of the box to the longest
+     token's width — wider than a 375px viewport — and the
+     body-level `overflow-x: clip` silently chops the right
+     edge. Adding `max-width: 100%` keeps the box bounded to
+     its parent width; `overflow-wrap: anywhere` lets the
+     browser break inside a long token (only as a last resort,
+     so natural word boundaries still win when they fit).
+     Verification: see `prompts/design-spec-2026-08-mobile-reflow.md`
+     §3 Fix C, audit §2a root cause. */
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .course-card-rationale {
@@ -718,6 +733,13 @@ body:has(.av-view) .av-header-tog {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  /* polish/mobile-fix-c-grid-collapse: same fix as `.course-card-desc`
+     above. Rationale paragraphs quote specific corpus slugs as inline
+     `<code>`-like typography (e.g. `react-concepts/architecture/...`),
+     which would otherwise force the clamped box to be wider than
+     375px. */
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .topbar-pill-cta:hover {
