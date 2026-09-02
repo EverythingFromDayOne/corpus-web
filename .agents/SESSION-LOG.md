@@ -6618,3 +6618,31 @@ The audit found 4 critical mobile overflows: home hero, /en/blog hero subtitle, 
 - Next session options: (a) merge PR #137 after spot-check, (b) cut Fix B, (c) wait. Awaiting your call.
 
 ---
+## Session 141 — polish/mobile-fix-b-card-meta-flex-wrap PR #138 — 2026-09-02
+
+**Branch:** `polish/mobile-fix-b-card-meta-flex-wrap` off `develop @ 35f5ba4`
+
+**Files changed:**
+- `apps/web/components/article/article.css` — added `.post-header-meta { display: flex; flex-wrap: wrap; gap ... }` and `.post-header-meta > span { min-width: 0 }` rules (+35 lines incl. explanatory comment).
+- `apps/web/components/article/blog-content.css` — replaced broad `[data-blog] .post-header-meta > span { white-space: nowrap }` rule (which defeated the container's existing flex-wrap) with a scoped `min-width: 0` rule. The aria-hidden `|`-separator <span> rule retained color + user-select; the broad nowrap removal is the actual fix.
+- `apps/web/components/blog/article-index.tsx` — changed `.blog-card-head` className from `flex items-center gap-2` to `flex flex-wrap items-center gap-x-2 gap-y-0.5`.
+- `apps/web/app/globals.css` — added `min-width: 0` to `.blog-card-corpus` so `.blog-card-head` flex-wrap actually shrinks long corpus names.
+
+**Why:** Continued the user's "Merge 1, then go yolo on 2" choice (option 1 was spot-check + merge PR #137, option 2 was cut + land Fix B). The Fix B PR landed at `2b1bc78` (4 files +69/-2). The fix turned out to be TWO problems stacked on top of each other: (a) the container needed explicit `flex-wrap: wrap` (which existed for some scopes but not others), and (b) the spans had `min-width: auto` (= min-content) by default so they wouldn't shrink below their intrinsic width even with `flex-wrap: wrap`. The 2nd problem (CSS spec quirk: flex items default to `min-width: auto` not `0`) was discovered only after the first attempted fix didn't visually work, and was confirmed via Chrome `Emulation.setDeviceMetricsOverride { width: 375 }` which returned post-fix measurements showing the metadata row height was 52px (two lines) instead of 21px (one line). The audit's previous "doesn't wrap" appearance was actually Chrome rendering at 500px minimum viewport (a headless quirk) — the prior screenshots were misleading.
+
+**Invented decisions:**
+- **Scope: just `.blog-card-head` + `.post-header-meta` + their separator rules, NOT a broader mobile-reflow cleanup.** The user said "go yolo on 2" (Fix B only). Spreading scope into Fix C would have conflated two independent fixes in one PR.
+- **Did not delete the redundant `.post-header-meta` rule that was duplicated across `blog-content.css` (data-blog scope) and `article.css` (non-data-blog scope).** These were duplicated by design — the non-data-blog path was added because certain routes don't have `data-blog` attribute and needed the same layout. Refactoring to a single shared rule would have been out of scope for Fix B.
+- **`min-width: 0` instead of `min-width: min-content`.** Per CSS spec both are valid; `0` is the conventional shorthand and works in every browser today. `min-content` is more semantically correct but not necessary here.
+- **Did not use `gap: 0.35rem 0.6rem` (combined row-gap + column-gap) on the non-data-blog rule** because the project uses simpler shorthand `gap: 0.6rem` elsewhere. Consistency over micro-tuning.
+- **Verification method: CDP-based forced viewport instead of `--window-size` Chrome flag.** The `--window-size=375` flag is unreliable in headless Chrome (it defaults to min 500px CSS viewport regardless). Forced override via `Emulation.setDeviceMetricsOverride` is the only way to get true 375×812 layout. Documented in PR body and commit body.
+- **Did not apply the same `min-width: 0` rule to `.av-mr` (the second metadata row lower on the article chrome).** That row already has its own `[data-blog] .lesson-surface .av-mr` rule (lines 309-323) and works correctly. Touching it would expand scope beyond the audit finding.
+
+**Known issues / next steps:**
+- §1 findings 2-4 from the mobile-reflow audit (course-card description overflow on `/en` and `/en/courses`, listing-card overflow on `/en/courses` and `/en/blog`, course-hero description overflow) are gated by Fix C (`polish/mobile-fix-c-grid-collapse`) — that's a §2a parent-containment / wider-than-viewport fix, NOT a flex-wrap fix.
+- The duplicate `.post-header-meta` rules across `blog-content.css` and `article.css` could be a follow-up cleanup, but is independent of this PR's scope.
+- The fork-port the 9router watchdog auto-restarts Hermes infrastructure processes on this machine, which made port 3000 unusable for verification (server kept getting killed and respawned). Worked around by running my probe server on port 4000 via `npx next start --port 4000` directly (the package.json `start` script hardcodes `--port 3000`). Documented here for future sessions.
+- Polish residue from session 132 still untouched: D20/D22/D30/D33/D24/Lenis. All stop-and-ask.
+- Vercel Auth bypass, develop → main promotion, D38 verify-links advisoring — user's actions.
+
+---

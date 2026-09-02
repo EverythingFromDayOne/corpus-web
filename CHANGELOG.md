@@ -14,6 +14,54 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 **Honest scope:** this PR addresses only the **§2b long-token subset** of the mobile-reflow audit findings (PR #136). The §1 right-edge-clipping findings on `/en`, `/en/blog`, `/en/courses`, and `.course-hero` are caused by parent-containment / wider-than-viewport mechanisms (spec §2a) that this rule does NOT address. Those remain open pending Fix B (`polish/mobile-fix-b-card-meta-flex-wrap`) and Fix C (`polish/mobile-fix-c-grid-collapse`) merges. PR #137, OPEN awaiting real iPhone spot-check before `--admin` merge.
 
+### [2026-09-02] — polish/mobile-fix-b-card-meta-flex-wrap — mobile card meta flex-wrap + min-width:0 (fix B)
+
+**Fixed**
+- Article header metadata row clipping at 375×812 viewport
+  (`/en/blog/angular/animations` & all 196 blog articles):
+  "Angula..." was being cut off mid-item. Two-line fix: (a)
+  removed `[data-blog] .post-header-meta > span { white-space:
+  nowrap }` (it applied to ALL child spans including the 4
+  metadata values, defeating the container's `flex-wrap: wrap`),
+  (b) added `min-width: 0` to the same selector so flex items
+  can shrink below their min-content size and break across lines.
+
+**Added**
+- `apps/web/components/article/article.css`:
+  - `.post-header-meta { display: flex; flex-wrap: wrap; gap ... }`
+    — non-data-blog path was missing the flex wrapper entirely
+    (post-header.tsx rendered plain inline spans with no layout).
+  - `.post-header-meta > span { min-width: 0; }` — required for
+    the flex-wrap to actually take effect (default `min-width:
+    auto` = min-content size blocks shrink).
+- `apps/web/components/article/blog-content.css`:
+  - Replaced broad `[data-blog] .post-header-meta > span {
+    white-space: nowrap }` rule with a scoped `min-width: 0`
+    rule. The aria-hidden separator `<span>` scope retained
+    `color: graphite` + `user-select: none`.
+- `apps/web/app/globals.css`:
+  - `.blog-card-corpus { min-width: 0; }` so `.blog-card-head`
+    `flex-wrap: wrap` actually shrinks long corpus names.
+
+**Changed**
+- `apps/web/components/blog/article-index.tsx` — `.blog-card-head`
+  className: `flex items-center gap-2` → `flex flex-wrap items-center
+  gap-x-2 gap-y-0.5`.
+
+**Stats:** 4 files +69/-2 (10 lines of comment per the
+project convention, ~9 declarations). All 4 gates PASS.
+**Forced-viewport verification @ 375×812** via Chrome
+`--remote-debugging-port` + `Emulation.setDeviceMetricsOverride`:
+`post-header-meta` height = **52px (two rows)**, "Angular
+22.1.1" correctly on line 2 at `x=20` (was clipped pre-fix).
+
+**Honest scope:** this closes §1 finding 1 of the audit
+(article meta clipping). Remaining §1 findings (course-card
+description, listing-card overflow, course-hero description)
+are gated by Fix C (`polish/mobile-fix-c-grid-collapse`)
+which addresses the §2a parent-containment / wider-than-
+viewport mechanisms.
+
 ### [2026-09-02] — polish/mobile-reflow-pass — mobile reflow audit + 4 proposed follow-on PRs (docs)
 
 **Added**

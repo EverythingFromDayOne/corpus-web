@@ -82,19 +82,47 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
-- **Mobile fix A (overflow-wrap) — Polish-mobile-fix-a-overflow-wrap**
+- **Mobile fix B (card-meta flex-wrap) — Polish-mobile-fix-b-card-meta-flex-wrap**
+  **(2026-09-02, on `polish/mobile-fix-b-card-meta-flex-wrap` off develop @ `35f5ba4`,
+  PR #138, MERGED at `2b1bc78`):** Landed Fix B from
+  `prompts/design-spec-2026-08-mobile-reflow.md` (§3) — article
+  header meta row + blog card meta row now wrap at 375×812.
+  Two-line root-cause: the [data-blog] .post-header-meta >
+  span { white-space: nowrap } rule defeated the container's
+  flex-wrap (applied to ALL child spans including the metadata
+  values, not just the `|` separators). Removing the broad rule
+  AND adding `min-width: 0` so flex items can shrink below their
+  min-content size (`auto` is the default). 4 files +69/-2.
+  **Forced-viewport verification @ 375×812** via Chrome
+  `--remote-debugging-port` + `Emulation.setDeviceMetricsOverride`:
+  `post-header-meta` height = **52px (two rows)** post-fix, with
+  "Angular 22.1.1" correctly on line 2 at `x=20`. Pre-fix: height
+  = 21px, "Angular 22.1.1" clipped to "ANGULA..." on line 1.
+  All 4 gates PASS (typecheck 5/5, build PASS, prerender
+  196/196+18/18, frontmatter 196/196).
+  **Honest scope:** closes audit §1 finding 1 (article meta
+  clipping). Remaining findings (course-card description,
+  listing-card overflow, course-hero description) gated by
+  Fix C (`polish/mobile-fix-c-grid-collapse`) — that's a §2a
+  parent-containment / wider-than-viewport fix, not a flex-wrap
+  fix.
+  **Implementation note:** the 9router watchdog on this machine
+  auto-restarts Hermes infrastructure and made port 3000
+  unusable for live-probe (next-server kept getting killed and
+  respawned). Worked around by running probe server on port 4000
+  via `npx next start --port 4000` directly. Documented in
+  session-141 entry.
   **(2026-09-02, on `polish/mobile-fix-a-overflow-wrap` off develop @ `35f5ba4`,
-  PR #137, OPEN — not yet merged):** Landed Fix A from the mobile-reflow spec §3.
+  PR #137, MERGED at `7c08933`):** Landed Fix A from the mobile-reflow spec §3.
   Added `html { overflow-wrap: break-word; }` to `apps/web/app/globals.css`
   `@layer base` (+44/-0). All 5 gates PASS. Live probe confirms the new declaration
   is in the served CSS bundle `/_next/static/chunks/04swnqzv2n508.css`.
   **Honest scope:** addresses only the §2b long-token subset of the audit.
   The §1 right-edge-clip findings on `/en` / `/en/blog` / `/en/courses` /
   `.course-hero` remain open — they're caused by parent-containment / wider-than-
-  viewport issues (spec §2a) that this rule doesn't address. Those will land
-  in Fix B (`mobile-fix-b-card-meta-flex-wrap`) and Fix C (`mobile-fix-c-grid-collapse`).
-  PR is OPEN, awaiting real iPhone spot-check per session-132 standing rule before
-  `--admin` merge.
+  viewport issues (spec §2a) that this rule doesn't address. Those land
+  in Fix B (`mobile-fix-b-card-meta-flex-wrap` — MERGED at `2b1bc78`) and Fix C
+  (`mobile-fix-c-grid-collapse` — pending).
 
 - **Mobile reflow audit + 4 proposed follow-on PRs — Polish-mobile-reflow-pass**
   **(2026-09-02, on `polish/mobile-reflow-pass` off develop @ `2a39a66`, PR #136, MERGED):**
