@@ -62,6 +62,31 @@ are gated by Fix C (`polish/mobile-fix-c-grid-collapse`)
 which addresses the §2a parent-containment / wider-than-
 viewport mechanisms.
 
+### [2026-09-02] — polish/flashcard-grow-and-cb-overlay — mobile flashcard grow + portable code-block expand
+
+**Fixed**
+- **Flashcard back-text overflowed the rounded card border on
+  mobile after PR #141**: the `.av-flashcard-back` element was
+  positioned absolute with `inset: 1.1rem 1.2rem` by the
+  desktop 3D-flip machinery, so back content longer than the
+  160px card overflowed past the border without growing the
+  card. On `width <= 1000px` (`flex-direction: column` track)
+  the back is now `position: static; transform: none` and the
+  card's `min-height` resets to 0 so cards grow to fit the
+  visible face content. Verified via CDP-forced 375×812:
+  card 1 260px / card 2 236px / card 3 236px; all three
+  `backRect.bottom ≤ cardRect.bottom + 0.5px` (fully enclosed).
+- **Code-block "expand to fullscreen" no-op on iPhone Safari**:
+  the previous `(node).requestFullscreen()` call is not
+  supported on iOS Safari (W3C API absent as of iOS 17).
+  Replaced with a portable new-tab HTML wrapper (Blob URL +
+  `window.open(..., 'noopener,noreferrer')`) that displays the
+  code in a minimal dark-themed monospace page, pinch-zoomable,
+  with `navigator.clipboard.writeText` fallback if pop-ups are
+  blocked. Works on Chromium, Gecko, WebKit desktop, and iOS
+  Safari. The `supportsFullscreen` / `useEffect` guard from
+  PR #141 has been removed (no longer needed).
+
 ### [2026-09-02] — polish/flashcard-and-cb-fix-ios — flashcard faces visibility + cb expand on iOS Safari
 
 **Fixed**

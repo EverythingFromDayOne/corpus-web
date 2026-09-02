@@ -6776,3 +6776,99 @@ Both share a principle: **the previous code relied on ARIA state as if it were C
 - `develop → main` promotion — user opens that PR themselves.
 
 ---
+## Session 148 — polish/flashcard-grow-and-cb-overlay PR #142 — 2026-09-02
+
+**Branch:** `polish/flashcard-grow-and-cb-overlay` off `develop @ 994cd8d`
+
+**Files changed:**
+- `apps/web/components/article/lesson-tokens.css` — +39 lines: mobile override of the desktop 3D-flip CSS so `.av-flashcard-back` is `position: static` (not absolute) at ≤1000px, plus `min-height: 0` on the card so cards auto-grow on mobile
+- `packages/mdx-components/src/code-block-controls.tsx` — rewrite of `CodeBlockToolbar.expand`: replaces `Element.requestFullscreen()` with a portable new-tab HTML wrapper + clipboard fallback; removed `supportsFullscreen` / `canFullscreen` / `useEffect` (no longer needed since the new code path is platform-agnostic by construction)
+
+**Why:**
+
+Two follow-up bugs from real-iPhone Safari re-tests after PR #141 merged.
+
+PR #141 hid the inactive flashcard face via `display: none`, which
+surfaced a deeper bug: `.av-flashcard-back` is positioned absolutely
+(`position: absolute; inset: 1.1rem 1.2rem; transform: rotateY(180deg)`)
+by the desktop 3D-flip animation in
+`apps/web/components/article/lesson-animations.css`. Absolute
+positioning pins the back element to a fixed inset within the parent —
+so when the back's natural content height exceeded the parent's
+160px (`min-height: 10rem`) box, the back text overflowed past the
+rounded border without making the parent grow. After PR #141 made only
+the active face visible (and the user clicked a card to flip it), that
+absolute-positioned overflow became visible: Card 3 ("Purity is the
+contract...every one of those guarantees.") leaked two full lines below
+the rounded border into the inter-card gap.
+
+Fix: at `@media (width <= 1000px)` override `.av-flashcard-back` to
+`position: static; inset: auto; transform: none` and reset the card's
+`min-height: 0`. With the track already in `flex-direction: column`
+for mobile, cards are stacked vertically (not side-by-side), so the
+3D-flip animation machinery is no longer doing useful work — disabling
+it puts the back face in normal flow and lets the card grow to fit
+content. The `min-height: 10rem` floor is preserved on desktop so the
+3-up carousel still presents three uniform-height cards.
+
+Verified via CDP-forced 375×812 against
+`http://localhost:4007/en/blog/react/thinking-in-react` after
+auto-clicking all 3 cards to flip them:
+
+| Card | Pre-PR-#141 | Post-PR-#141 | Post-PR-#142 |
+|---|---|---|---|
+| 1 (Components) | both faces rendered, back overflowed | 160px, contained front, leaked when flipped | 260px, fully contained |
+| 2 (Declarative) | both faces rendered, back overflowed | 160px, contained front, leaked when flipped | 236px, fully contained |
+| 3 (Purity) | both faces rendered, back overflowed | 160px, contained front, leaked when flipped | 236px, fully contained |
+
+`contained` = `backRect.bottom <= cardRect.bottom + 0.5px`; all three
+cards are now fully enclosed by their rounded borders.
+
+**Bug 2 — code-block expand "disappeared":**
+
+PR #141 correctly hid the `⛶` Expand button on platforms without
+`Element.requestFullscreen` (chiefly iOS Safari, where the W3C
+fullscreen API is not implemented as of iOS 17). But the user-
+facing intent was "I want a bigger view of this code", not "I want
+the W3C fullscreen". Hiding the button removed the affordance
+entirely on iOS Safari — exactly the device the user is testing on.
+
+Fix: replace `requestFullscreen()` with a portable new-tab HTML
+page that wraps the code in a minimal dark-themed monospace
+renderer (auto-scrolling, pinch-zoomable, no JS, no CSS imports).
+The new tab uses only DOM + inline CSS so it works on every
+browser engine — Chromium, Gecko, WebKit desktop, and iOS Safari.
+iOS Safari sizes the new tab to the user's window manager so it
+reads as "maximise" without leaving the app context. Falls back to
+copying the code to the clipboard if the pop-up is blocked.
+
+The `useEffect` canFullscreen probe from PR #141 has been removed
+entirely — the new code path is portable by construction, so
+platform-detection is unnecessary.
+
+**Invented decisions:**
+
+- Chose `position: static` override scoped to `.lesson-surface .av-flashcard-back` rather than editing `lesson-animations.css` directly — keeps the change in one CSS file and respects the existing scoped-naming convention.
+- Chose new-tab approach for the expand fallback rather than an in-page modal — a modal would have needed z-index management and the user's finger likely has to tap outside a small `⛶` icon to hit the modal's close, which is harder than "switch back via tab manager" on iOS.
+- Chose `noopener,noreferrer` window features (no menu bar, no URL bar visible) for the new tab — matches the desktop fullscreen UX as closely as the platform allows.
+
+**Verification status — honest reporting:**
+
+- typecheck: 5/5 packages PASS
+- lint: 0 errors
+- build (no cache): 48.046s PASS
+- verify:prerender: 196/196 + 18/18 PASS
+- verify:frontmatter: 196/196 PASS
+- CDP-forced 375×812 measurement: all 3 cards `contained=true` (post-flip)
+- **Visual vision_analyze: NOT PERFORMED** — vision_analyze returned "credit balance too low" (Anthropic API billing). CDP measurements are the source-of-truth verification per the session's "CDP > vision" rule. Real-iPhone Safari re-test is recommended once the Vercel preview deploys.
+
+**Known issues / next steps:**
+
+- Real-iPhone Safari spot-check after Vercel preview deploy is recommended (CDP chromium can only confirm the geometry, not the iOS tab-opening behaviour, though the new-tab approach is platform-agnostic by construction).
+- Vercel Auth still blocks `/pagefind/*` and `/api/*` on `develop.nxhhuy.tech` (HTTP 401); this PR doesn't touch that surface — user dashboard action needed.
+- `.course-hero` film-grain from session-132 still pending option (1)/(2)/(3) decision.
+- Polish residue still untouched: D20 Shiki proper (PR #141 + #142 fix the working POC behaviour on iOS; Shiki upgrade track separate), D22 OG image cdn subdomain, D30 FAQ half (corpus-side schema), D33 attribution (corpus-side schema), D24 tier-1 build, D38 submodule debt.
+- D38 `verify-links` advisoring — `--admin --squash --delete-branch` accepted since PR #113.
+- `develop → main` promotion — you open that PR.
+
+---

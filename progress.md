@@ -82,6 +82,25 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Flashcard grow + cb-overlay fixes — polish/flashcard-grow-and-cb-overlay**
+  **(2026-09-02, on `polish/flashcard-grow-and-cb-overlay` off develop @ `994cd8d`,
+  PR #142, MERGED at `f13cf44`):** Two follow-up bugs from real-iPhone Safari
+  re-tests after PR #141. **(a) Flashcard back-text still leaked past the rounded
+  border**: the `.av-flashcard-back` was `position: absolute; inset: 1.1rem 1.2rem`
+  (desktop 3D-flip machinery). At ≤1000px (`flex-direction: column` track),
+  override the back to `position: static; transform: none` and reset
+  `min-height: 0` on the card. Verified via CDP-forced 375×812: card 1 260px /
+  card 2 236px / card 3 236px; all `backRect.bottom ≤ cardRect.bottom + 0.5px`
+  (fully enclosed). **(b) Code-block "expand" no-op on iOS Safari**: replaced
+  `requestFullscreen()` (not shipped on iOS Safari as of iOS 17) with a portable
+  new-tab HTML wrapper (Blob URL + `window.open('noopener,noreferrer')`) +
+  `navigator.clipboard.writeText` fallback. Removed `supportsFullscreen` /
+  `useEffect` from PR #141 (no longer needed). 2 files +114/-48.
+  **Honest reporting**: vision_analyze returned "credit balance too low" for
+  Anthropic API — CDP measurements are source-of-truth verification per
+  session's "CDP > vision" rule; real-iPhone Safari re-test recommended
+  after Vercel preview deploys.
+
 - **Flashcard + cb-expand-iOS fixes — polish/flashcard-and-cb-fix-ios**
   **(2026-09-02, on `polish/flashcard-and-cb-fix-ios` off develop @ `43fb285`,
   PR #141, MERGED at `2c3f823`):** Two real-iPhone Safari screenshots
