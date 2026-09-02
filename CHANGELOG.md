@@ -4,6 +4,56 @@ All notable changes to this project are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
+### [2026-09-02] — polish/react-jsx-key-hygiene — React lint + missing-key + conditional hooks
+
+**Fixed**
+- **`apps/web/components/blog/article-index.tsx`**:
+  Filter-chip `<button>` elements inside `kindFilters.map(...)` and the
+  sort-options `.map(...)` lacked a `key` prop. Replaced the shared
+  `renderChip` helper (whose JSX had no `key`) with inlined JSX that
+  carries `key={item.id}`. Closes the runtime warning at
+  `localhost:3000/en/blog`.
+- **`packages/mdx-components/src/flashcard.tsx`**:
+  `useCallback(goTo, ...)` was called AFTER `if (total === 0) return null`
+  — a conditional hook that desyncs hook order across renders if a
+  flashcard goes `total > 0` → `total === 0`. Relocated above the guard;
+  `total` is now computed inside the unconditional prelude.
+- **`packages/mdx-components/src/quiz.tsx`**:
+  `useEffect` + `useMemo` were called AFTER the
+  `if (schema !== 1 || question === undefined) return null` guard. Same
+  conditional-hook class. Relocated above the guard; effect body still
+  reads `isValidSchema` to short-circuit the setState when no question
+  is at `index`. Added explanatory comment + a local `current =
+  currentQuestion` re-bind so TypeScript's narrowing tracks the
+  non-undefined type.
+
+**Added**
+- **`tooling/eslint/frontend.mjs`**: shared React ESLint preset
+  extending `tooling/eslint/base.mjs` with `eslint-plugin-react`
+  (`recommended` + `jsx-runtime`) and `eslint-plugin-react-hooks`
+  (`rules-of-hooks`), all at `error` severity. Enforces
+  `react/jsx-key`, `react-hooks/rules-of-hooks`,
+  `react-hooks/exhaustive-deps` going forward.
+- **`apps/web/test/react-jsx-key-hygiene.test.ts`**: structural
+  file-shape scan over every `.tsx` under `apps/web/`. Asserts any
+  `array.map(() => <element>)` JSX return has a `key=` prop within 12
+  lines. Confirmed by reintroducing the original bug and observing the
+  test fail. Allowlisted `apps/web/lib/article-markdown.tsx`
+  (consumer is `injectAfterSections`, not direct render).
+- **`tooling/eslint/package.json`**: devDeps
+  `eslint-plugin-react@^7.37.5` and `eslint-plugin-react-hooks@^7.1.1`.
+
+**Changed**
+- **`apps/web/eslint.config.mjs`** + **`packages/ui/eslint.config.mjs`**
+  + **`packages/mdx-components/eslint.config.mjs`**: now extend the new
+  frontend preset. Backend packages (`apps/api`, `packages/content-schema`)
+  keep the base preset unchanged.
+- **`.cursor/rules/20-never-violate.mdc`**: added a "Frontend invariants
+  (React)" section. Three new project-wide never-violate rules: every
+  JSX inside `array.map(...)` has a `key`; no hooks after early-return
+  guards; no per-app ESLint overrides that bypass the shared config.
+  `pnpm agents:build` regenerated AGENTS.md.
+
 ### [2026-09-02] — polish/ls-blog-card-alpha-passthrough — card surface 8%/12% transparent
 
 **Changed**

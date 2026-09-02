@@ -146,12 +146,21 @@ export function Quiz({ schema, articleUid, questions, labels, gradeAction }: Qui
   );
 
   const total = questions.length;
-  const question = questions[index];
-  if (schema !== 1 || question === undefined) return null;
-  const current = question;
-  const result = results[current.id] ?? null;
+  const currentQuestion = questions[index];
+  const isValidSchema = schema === 1 && currentQuestion !== undefined;
+  const result = isValidSchema && currentQuestion ? (results[currentQuestion.id] ?? null) : null;
   const submitted = result !== null;
 
+  /* polish/react-jsx-key-hygiene: hooks must run unconditionally.
+     React's `rules-of-hooks` lint rule flags hooks called after an
+     early-return guard because hook order can desync across renders
+     (sometimes the guard fires, sometimes it doesn't). The two
+     conditional hooks below (`useEffect` + `useMemo`) are relocated
+     ABOVE the `if (!isValidSchema) return null;` guard so the hook
+     call order is stable across renders. The early-return still
+     happens after the hooks run; the effect body itself reads
+     `isValidSchema` to behave correctly when no question is at
+     `index` (no setState in that case = nothing fires). */
   useEffect(() => {
     if (submitted || failed) {
       setPaintReady(true);
@@ -160,16 +169,22 @@ export function Quiz({ schema, articleUid, questions, labels, gradeAction }: Qui
     setPaintReady(false);
   }, [submitted, failed]);
 
+  const visitedCount = useMemo(
+    () => Object.values(results).filter((value) => value !== null).length,
+    [results],
+  );
+
+  if (!isValidSchema || !currentQuestion) return null;
+  // currentQuestion is now narrowed to Question (non-undefined) for the rest
+  // of the render. The earlier `current = currentQuestion` was a no-op alias
+  // that TypeScript's narrowing doesn't track — re-bind current here so the
+  // rest of the function reads from the narrowed type.
+  const current = currentQuestion;
   const hasNext = index < total - 1;
   const hasPrev = index > 0;
   const name = `${uid}-${current.id}`;
   const statusId = `${name}-status`;
   const explanationId = `${name}-explanation`;
-
-  const visitedCount = useMemo(
-    () => Object.values(results).filter((value) => value !== null).length,
-    [results],
-  );
 
   function gotoQuestion(nextIndex: number) {
     setIndex(nextIndex);

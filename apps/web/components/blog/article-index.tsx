@@ -72,27 +72,6 @@ export function ArticleIndex({
   const paneFolder = activeFolder;
   const paneCount = paneArticles.length;
 
-  function renderChip({
-    selected,
-    label,
-    onClick,
-  }: {
-    selected: boolean;
-    label: string;
-    onClick: () => void;
-  }) {
-    return (
-      <button
-        type="button"
-        aria-pressed={selected}
-        onClick={onClick}
-        className={`blog-filter-chip ${selected ? 'blog-filter-chip--on' : 'blog-filter-chip--off'}`}
-      >
-        {label}
-      </button>
-    );
-  }
-
   function renderCard(article: ArticleListItem) {
     const kindLabel =
       article.kind === 'concept'
@@ -239,13 +218,17 @@ export function ArticleIndex({
         <div className="blog-filter-bar blog-pane-filters">
           <span className="blog-filter-label">{t(messages, 'blog.filterKindLabel')}</span>
           <div className="flex flex-wrap gap-2" role="group" aria-label={t(messages, 'blog.filterKindLabel')}>
-            {kindFilters.map((item) =>
-              renderChip({
-                selected: kind === item.id,
-                label: item.label,
-                onClick: () => setKind(item.id),
-              }),
-            )}
+            {kindFilters.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={kind === item.id}
+                onClick={() => setKind(item.id)}
+                className={`blog-filter-chip ${kind === item.id ? 'blog-filter-chip--on' : 'blog-filter-chip--off'}`}
+              >
+                {item.label}
+              </button>
+            ))}
           </div>
           <label className="blog-sort ml-auto flex items-center gap-2">
             <span className="text-muted">{t(messages, 'blog.sortLabel')}</span>

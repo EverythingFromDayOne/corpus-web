@@ -43,6 +43,26 @@ alwaysApply: true
 - **NEVER hardcode a user-visible string.** All routes live under `/[locale]/`; strings go
   through the message catalogue even while `en` is the only shipped locale.
 
+## Frontend invariants (React)
+
+- **NEVER render JSX inside `array.map(...)` without a `key` prop on every child.**
+  This is the canonical React invariant. It is enforced as `error` severity by
+  `react/jsx-key` in `tooling/eslint/frontend.mjs` (which is wired into
+  `apps/web`, `packages/ui`, and `packages/mdx-components`) and also by
+  `apps/web/test/react-jsx-key-hygiene.test.ts` as a structural belt-and-braces.
+  Going forward, every missing-key site in any `.tsx` file fails `pnpm lint`.
+  If `pnpm lint` fails on a key violation, fix it — never disable the rule.
+- **NEVER call a React hook after an early-return guard.**
+  `react-hooks/rules-of-hooks` is also `error` severity in
+  `tooling/eslint/frontend.mjs`. Conditional hook calls desync the hook call
+  order across renders and cause state leaks. The pattern is: ALL hooks run
+  before any `if (...) return null;` guard. Same goes for `for`, `while`,
+  `try/catch`, and any other branching that could short-circuit.
+- **NEVER bypass `tooling/eslint/frontend.mjs` with hand-rolled eslint configs.**
+  All three React packages import from this single source. Per-app overrides
+  belong in the per-app package's `eslint.config.mjs`, NEVER a parallel
+  plugin config.
+
 ## API
 
 - **NEVER set `synchronize: true` on TypeORM.** Migrations only.

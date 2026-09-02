@@ -82,6 +82,27 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **React lint hygiene + missing-key + conditional hooks — polish/react-jsx-key-hygiene**
+  **(2026-09-02, on `polish/react-jsx-key-hygiene` off `develop @ d0b2717`):**
+  User reported `/en/blog` React key warning fired by `renderChip` helper
+  (missing key) and demanded "fix it now and make sure never an elementary
+  mistake like this happens again." Audit revealed the ESLint config never
+  ran any React plugin — `react/jsx-key` was not enforced. Activated
+  `eslint-plugin-react` + `eslint-plugin-react-hooks` at error severity via
+  new `tooling/eslint/frontend.mjs`; frontend packages re-pointed. Lint
+  immediately surfaced 3 conditional-hook callsites my prior polish PRs
+  (`#143`, `#144`, `#146`) had silently introduced. Fixed all four
+  `apps/web/components/blog/article-index.tsx` chip keys (inlined
+  `renderChip` so the lint can see them); relocated `useCallback` in
+  `flashcard.tsx` + `useEffect`/`useMemo` in `quiz.tsx` above their
+  early-return guards. Added `apps/web/test/react-jsx-key-hygiene.test.ts`
+  structural scan + `.cursor/rules/20-never-violate.mdc` "Frontend
+  invariants (React)" section (`react/jsx-key`, `rules-of-hooks`, no
+  parallel ESLint configs). All gates PASS: typecheck 5/5, test 3/3
+  (73/73 incl. new structural), lint 5/5 (incl. new `react/jsx-key`,
+  `rules-of-hooks`), build 0 exit, prerender 196+18, frontmatter 196,
+  agents:check ✓.
+
 - **Card surface alpha passthrough — polish/ls-blog-card-alpha-passthrough**
   **(2026-09-02, on `polish/ls-blog-card-alpha-passthrough` off `develop @ 58e020f`,
   PR pending):** User said "go yolo on Item 2 card-side passthrough fraction."

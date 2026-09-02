@@ -71,9 +71,15 @@ export function Flashcard({ id, title, cards, labels }: FlashcardProps) {
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState<Record<number, boolean>>({});
 
+  /* polish/react-jsx-key-hygiene: hooks must run unconditionally.
+     React's `rules-of-hooks` lint rule flags any hook called after
+     an early-return guard because the hook order can desync across
+     renders (stable input → differing call counts). Decoupling the
+     `total` constant from `cards.length` so all hook calls happen
+     before any `if (total === 0) return null;` guard. The
+     `goTo` callback deps now reference `cards.length` directly
+     (no early-return behaviour, no hook-order coupling). */
   const total = cards.length;
-  if (total === 0) return null;
-
   const goTo = useCallback(
     (next: number) => {
       const clamped = Math.max(0, Math.min(total - 1, next));
@@ -100,6 +106,8 @@ export function Flashcard({ id, title, cards, labels }: FlashcardProps) {
     },
     [total],
   );
+
+  if (total === 0) return null;
 
   function onCardKeyDown(event: KeyboardEvent<HTMLButtonElement>, cardIndex: number) {
     if (!shouldHandleFlipKey(event.key)) return;
