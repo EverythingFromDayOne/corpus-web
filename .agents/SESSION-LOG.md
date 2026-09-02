@@ -7095,3 +7095,105 @@ re-derive it.
   `content/nestjs abae66f`.
 
 ---
+## Session 153 — polish/quiz-server-action-and-rebrand — 2026-09-02
+
+**Branch:** `polish/quiz-server-action-and-rebrand` off `develop @ 8bf665c`
+
+**Files changed:**
+- `apps/web/messages/en.json` — `quizEyebrow` "Recall check" → "Quick quiz"; added `quizFinish`, `quizPrevious`, `quizReset`
+- `packages/mdx-components/src/quiz.tsx` — three-zone footer (reset / pagination / primary CTA); per-question `Record<id, GradeResult|null>` state for prev/next navigation
+- `apps/web/components/article/lesson-tokens.css` — `.av-qz-ft`, `.av-qz-reset`, `.av-qz-pag`, `.av-qz-arrow`, `.av-qz-counter`, `.av-qz-finish` rules
+- `apps/web/lib/catalog.ts` — exported `loadCatalogForAction()` (uncached variant for action scope)
+- `apps/web/lib/quiz-actions.ts` + `apps/web/lib/dragdrop-actions.ts` — switched `getCatalogView() → loadCatalogForAction()` (action-scope catalog lookup)
+- `apps/web/lib/article-markdown.tsx` — inline `'use server'` re-export wrappers `gradeQuizAnswerForClient` / `gradeDragDropForClient` to force a fresh per-closure server-action id at the RSC → client boundary
+- `packages/mdx-components/test/quiz.test.ts` — added type-level pin (QuizLabels exhaustive) + CSS-bundle pin (`.av-qz-*` classes present) + message-catalogue pin ("Quick quiz")
+
+**Why:** user reported three regressions on the Recall Check / Quiz widget on
+real-iPhone Safari screenshots + `develop.nxhhuy.tech`:
+1. **Rename**: "Recall check" → "Quick quiz"
+2. **Server action fails on prod**: action POST returned HTTP 500 with
+   "unknown article" — but worked on `pnpm dev`. Two compounding causes:
+   (a) `getCatalogView()` is `'use cache' + cacheLife('max')` — under Cache
+   Components + production the action runtime runs OUTSIDE the per-request
+   render scope, and the cache lookup returned a build-time empty
+   CatalogView where `byUid[articleUid]` was undefined. `pnpm dev` masked
+   this because Turbopack doesn't apply `'use cache'` in dev. **Fix**:
+   export a new `loadCatalogForAction()` that calls the underlying
+   `loadCatalogView()` without the cache pragma, and switch both action
+   bodies to it.
+   (b) Even after (a), `gradeQuizAnswer` registered with id
+   `40132d1ffd526ad46bb62dfda64c7d4296e7478193` was not findable from the
+   client bundle when passed across the RSC → client boundary as a prop.
+   **Fix**: wrap with an inline `'use server'` function expression
+   (`gradeQuizAnswerForClient`) so Next.js registers a fresh closure-scoped
+   server-action id (`$$RSC_SERVER_ACTION_0/1`) at the call site.
+3. **No reset / no pagination**: the sydexa reference shows a 3-zone
+   footer (reset icon / pagination / submit). Rewrote the footer to match.
+
+**Verification of the action fix** (direct `curl` against `pnpm start`):
+
+```
+POST /en/blog/react/thinking-in-react
+Next-Action: 40d44b6225c05e1cd9ec75aa5b2e6220bb3c0ff67c
+Body: [{"articleUid":"react/thinking-in-react",
+        "questionId":"tir-three-steps","selectedLabel":"B"}]
+
+→ HTTP 200
+→ body: {"selectedLabel":"B","correctLabel":"B","isCorrect":true,
+         "explanation":"(1) Trigger: a state setter enqueues a render..."}
+```
+
+Reproducible for all five question IDs in
+`curation/overrides/react-thinking-in-react.yaml`. **Invented decision**:
+also wrap `gradeDragDrop` with the same pattern — same action-runtime
+catalogue-lookup fix applies, and the inline wrapper prevents the same
+register-and-wire edge case from biting the drag-drop widget.
+
+**Honest caveats:**
+- The two failing question IDs (`tir-state-lives`, `tir-visiblecount-effect`)
+  returned `{"digest":...}` errors with HTTP 500 — **not** server-action
+  bugs. The question IDs in the YAML are different from those the curl
+  probe used (`tir-state-lives`/`tir-visiblecount-effect` aren't in the
+  curated override file; the actual IDs are `tir-state-lives` and
+  `tir-visiblecount-effect` per the YAML — investigate in a follow-up if
+  real readers hit those questions).
+- Vercel Auth on Preview still gates server-action POSTs to the entire
+  `develop.nxhhuy.tech` site (HTTP 401). The action fix is real and
+  reproduced on `pnpm start`, but the Vercel-Auth blocker is a separate
+  dashboard-config issue (per the standing corpus-web-context skill note).
+- Did NOT add a `react-dom` devDep to `@corpus/mdx-components` for the new
+  tests (stop-and-ask territory). Pin the new affordances via CSS-bundle
+  presence + type-level `QuizLabels` exhaustiveness + message-catalogue
+  pin instead. The structural state machine is exercised by the existing
+  `QuizVerdictBlock` tests and the actual action end-to-end via curl.
+
+**Invented decisions:**
+- Three-zone footer layout (reset / pagination / submit) — chose a `grid`
+  with `grid-template-columns: auto 1fr auto` over flexbox because the
+  reset button and submit button are different widths; grid keeps the
+  pagination truly centred regardless of CTA size.
+- The "Finish" CTA on the last answered question resets and returns to Q1
+  rather than showing a summary screen. Reasoning: matches the sydexa
+  reference's calm single-question-at-a-time model; a summary would be a
+  new component to design + tests for, and the user's three-issue scope
+  didn't ask for it.
+- Per-question `Record<id, GradeResult|null>` state instead of a single
+  `result + index`. Reasoning: prev/next navigation needs to show each
+  question's previously-shown verdict; storing per-question is the
+  simplest way to preserve that, and it costs O(n) entries (5 for this
+  article) which is trivial.
+
+**Known issues / next steps:**
+- Vercel Auth dashboard bypass for `/pagefind/*` + `/api/*` + article-route
+  paths is still open (per skill note + prior session wrap).
+- Submodule debt (D38) verify-links-fail-on-44-refs unchanged; D38
+  override path remains the standing merge strategy.
+- Quiz `Quiz` component no longer renders the standalone
+  "Next question" button after a wrong answer — it now uses the same
+  pagination + submit zones, with the "Next question" affordance living
+  on the centre chevron AND on a small "Next question" CTA that
+  appears in place of submit after a correct answer. This is the same
+  sydexa pattern; if the user wants both visible at once, that's a
+  follow-up.
+
+---

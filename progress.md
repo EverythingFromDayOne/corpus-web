@@ -82,6 +82,43 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Quick quiz rebrand + server-action fix + 3-zone footer — polish/quiz-server-action-and-rebrand**
+  **(2026-09-02, on `polish/quiz-server-action-and-rebrand` off develop @ `8bf665c`,
+  PR pending — rebrand, footer rewrite, server-action registration, action-scope catalog
+  load):** Three regressions reported from real-iPhone Safari + develop.nxhhuy.tech:
+  (1) Eyebrow read "Recall check" — flip to "Quick quiz". (2) Server action
+  POST returned HTTP 500 with "unknown article" on `pnpm start` (production)
+  but worked on `pnpm dev`. Two compounding causes: (a) `getCatalogView()`
+  is `'use cache' + cacheLife('max')` — under Cache Components + production
+  the action runtime runs OUTSIDE the per-request render scope, and the
+  cache lookup returned a build-time empty CatalogView where
+  `byUid[articleUid]` was undefined. Turbopack in dev doesn't apply the
+  `'use cache'` pragma, so dev masked the bug. Fix: exported a new
+  `loadCatalogForAction()` helper that calls `loadCatalogView()` without
+  the cache scope, and switched both `gradeQuizAnswer` and `gradeDragDrop`
+  to it. (b) Even after (a), the `gradeQuizAnswer` server-action id wasn't
+  reliably wired to the client bundle when passed as a prop across the
+  RSC → client boundary under Cache Components. Fix: added inline
+  `'use server'` function-expression wrappers `gradeQuizAnswerForClient` /
+  `gradeDragDropForClient` at the call site in `article-markdown.tsx`,
+  which forces Next.js to register fresh per-closure action ids
+  (`$$RSC_SERVER_ACTION_0/1` in `server-reference-manifest.json`).
+  (3) No reset / no prev / no counter — the sydexa reference shows a
+  3-zone footer (reset icon / pagination / submit). Rewrote the footer
+  with state machine upgrade: per-question `Record<id, GradeResult|null>`
+  so prev/next navigation preserves each question's previously-shown
+  verdict. Reset clears all answers + returns to Q1. Submit becomes
+  "Next question" on answered Q1..N-1 and "Finish" on the last answered
+  question (which clears and returns to Q1). New CSS classes
+  (`.av-qz-ft`, `.av-qz-reset`, `.av-qz-pag`, `.av-qz-arrow`,
+  `.av-qz-counter`, `.av-qz-finish`) defined in `lesson-tokens.css`.
+  All gates green: typecheck 5/5, mdx-components tests 35/35, lint
+  clean, `pnpm verify:prerender` 196/196 + 18/18, `pnpm verify:frontmatter`
+  196/196. `pnpm verify:links` fails on 44 D13 unresolved refs (D38
+  override path; unchanged). Direct server-action probe against
+  `pnpm start` returns real grading JSON for every question in
+  `curation/overrides/react-thinking-in-react.yaml`. 8 files +373/-42.
+
 - **Flashcard ambient color + prev/next empty-card fix — polish/flashcard-ambient-and-prevnext-fix**
   **(2026-09-02, on `polish/flashcard-ambient-and-prevnext-fix` off develop @ `a058e52`,
   PR #144, MERGED at `26b21a9`):** User reported two regressions from PR #143:

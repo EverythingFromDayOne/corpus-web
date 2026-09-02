@@ -12,7 +12,7 @@
  */
 import type { DragDropGradeInput, DragDropGradeResult } from '@corpus/mdx-components';
 import { gradeSubmission } from '@corpus/mdx-components';
-import { getCatalogView } from './catalog';
+import { loadCatalogForAction } from './catalog';
 import { loadArticleDragDropWidgets } from './article-widgets';
 
 export async function gradeDragDrop({
@@ -20,7 +20,7 @@ export async function gradeDragDrop({
   sidecarId,
   articleUid,
 }: DragDropGradeInput): Promise<DragDropGradeResult> {
-  const view = await getCatalogView();
+  const view = await loadCatalogForAction();
   const article = view.byUid[articleUid];
   if (!article) {
     throw new Error(`gradeDragDrop: unknown article "${articleUid}"`);

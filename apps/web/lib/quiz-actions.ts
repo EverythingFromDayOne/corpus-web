@@ -17,7 +17,7 @@
  * rendered UI.
  */
 import type { QuizGradeInput, GradeResult } from '@corpus/mdx-components';
-import { getCatalogView } from './catalog';
+import { loadCatalogForAction } from './catalog';
 import { loadArticleQuizWidgets } from './article-widgets';
 
 export async function gradeQuizAnswer({
@@ -25,7 +25,7 @@ export async function gradeQuizAnswer({
   questionId,
   selectedLabel,
 }: QuizGradeInput): Promise<GradeResult> {
-  const view = await getCatalogView();
+  const view = await loadCatalogForAction();
   const article = view.byUid[articleUid];
   if (!article) {
     throw new Error(`gradeQuizAnswer: unknown article "${articleUid}"`);
