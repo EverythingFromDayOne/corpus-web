@@ -162,8 +162,30 @@
   color: var(--color-muted);
 }
 
+/* Mobile-fix-b (polish/mobile-fix-b-card-meta-flex-wrap): the
+   original rule set `white-space: nowrap` on EVERY child span
+   of `.post-header-meta` (line above-left of this comment). That
+   blocked the container's `flex-wrap: wrap` from wrapping the
+   metadata text spans on narrow viewports — at ≤375px the row
+   rendered as one line and the rightmost "ANGULAR V22" was
+   clipped at the viewport edge. The aria-hidden separator
+   spans (the `|` chars) only need `color: graphite` and
+   `user-select: none` (set by the existing scoped rule below);
+   they don't need nowrap because a single `|` character has
+   no internal break point anyway.
+
+   But removing the broader rule alone wasn't enough: a flex
+   item's intrinsic minimum size equals its content (CSS spec,
+   "min-width: auto" for flex items = min-content size), so a
+   span containing "Angular 22.1.1" won't shrink below its
+   intrinsic width even with `flex-wrap: wrap` on the parent.
+   To get actual wrap, every non-aria-hidden span needs
+   `min-width: 0` so the content can break across lines. The
+   aria-hidden rule below continues to apply color + user-select
+   to separator spans; they ALSO get min-width: 0 but it has no
+   visible effect on a single-char span. */
 [data-blog] .lesson-surface .post-header-meta > span {
-  white-space: nowrap;
+  min-width: 0;
 }
 
 [data-blog] .lesson-surface .post-header-meta > span[aria-hidden='true'] {

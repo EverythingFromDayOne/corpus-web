@@ -519,6 +519,16 @@ body:has(.av-view) .av-header-tog {
   font-size: 0.6875rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  /* PR #138 polish/mobile-fix-b-card-meta-flex-wrap: the longer
+     corpus names (Next.js, NestJS) plus reading-time and the kind
+     pill were overflowing the card on mobile because flex items
+     have `min-width: auto` (= min-content size) by default. The
+     container had `flex-wrap: wrap` from PR #138's className
+     change, but individual spans wouldn't shrink below their
+     intrinsic content width. `min-width: 0` opts in to actual
+     wrap. Same root-cause fix documented at `.post-header-meta >
+     span` in `apps/web/components/article/article.css`. */
+  min-width: 0;
 }
 
 .blog-card-title {
