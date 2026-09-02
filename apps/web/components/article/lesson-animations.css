@@ -117,34 +117,43 @@
       transform var(--duration-slow) var(--ease-out);
   }
 
-  /* ---- Flashcard 3D flip (replaces display:none/block) ---- */
+  /* ---- Flashcard surface (no 3D flip) ---- */
 
+  /* polish/sydexa-card-deck (PR #143): removed `perspective`,
+     `transform-style: preserve-3d`, the `transform:
+     rotateY(180deg)` rotation, the `backface-visibility` toggles,
+     the `position: absolute` on `.av-flashcard-back`, and the
+     `.is-flipped` rotation. Reason: every card now has the
+     sydexa-style deck-stack pseudos (`::before` warm stripe +
+     `::after` cool stripe) drawn INSIDE `overflow: hidden`. A
+     rotateY(180deg) on the card body would invert the gradient
+     direction AND rotate the depth-edge pseudos to the
+     upper-LEFT / lower-LEFT — instantly breaking the sydexa
+     look. Tapping the card to flip the question/answer still
+     works because the JSX toggles `.is-flipped`, and the
+     PR #141 `display: none` rules on the inactive face span
+     handle visibility. The card stays flat; only the
+     `.is-flipped` border colour changes (see lesson-tokens.css).
+     The swipe-track transform is what gives the deck its
+     motion, not card rotation. */
   .lesson-surface .av-flashcard-card {
-    perspective: 1000px;
-    transform-style: preserve-3d;
-    position: relative;
-    transition: transform var(--duration-slow) cubic-bezier(0.4, 0, 0.2, 1);
+    transition:
+      transform var(--duration-base) var(--ease-out),
+      box-shadow var(--duration-base) var(--ease-out),
+      border-color var(--duration-base) var(--ease-out);
   }
 
-  .lesson-surface .av-flashcard-front,
-  .lesson-surface .av-flashcard-back {
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    display: block;
-  }
-
-  .lesson-surface .av-flashcard-back {
-    position: absolute;
-    inset: 1.1rem 1.2rem;
-    transform: rotateY(180deg);
-  }
-
-  .lesson-surface .av-flashcard-card.is-flipped {
-    transform: rotateY(180deg);
-  }
-
+  /* Swipe-track animation: when JSX sets `--flashcard-track-translate`
+     inline on `.av-flashcard-track`, the deck slides horizontally
+     to the active card. Spring-style ease comes from
+     `var(--ease-out) = cubic-bezier(.22, 1, .36, 1)` per tokens.css,
+     so the motion settles without overshoot. `--duration-base`
+     is 0.2 s, intentionally snappy to read as a swipe gesture
+     rather than a scroll. */
   .lesson-surface .av-flashcard-track {
-    scroll-behavior: smooth;
+    --flashcard-track-translate: 0px;
+    transition: transform var(--duration-base) var(--ease-out);
+    transform: translateX(var(--flashcard-track-translate));
   }
 
   /* ---- Drag-drop hover, focus, and submit transitions ---- */

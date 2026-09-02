@@ -27,6 +27,25 @@
   --lesson-border-secondary: color-mix(in srgb, var(--color-graphite) 70%, var(--color-muted));
   --lesson-purple-border: color-mix(in srgb, var(--color-display) 28%, var(--color-graphite));
   --lesson-purple-accent: var(--color-display);
+  /* polish/sydexa-card-deck (PR #143): flashcard surface gradient stack.
+     `.av-flashcard-card` (and the depth-edge pseudos) draw their
+     background from these tokens instead of the flat `--lesson-bg-primary`
+     so the sydexa-style deck-stack reads as a violet card on top of a
+     dark-violet underneath, rather than as a generic monochrome card.
+     Warm gradient stop = `--marketing-accent-bloom` (signal-soft,
+     already used for `.ls-hero::before` aurora in PR #120, so the
+     card surface ties into the home hero color family instead of
+     introducing a third purple). Cool undertone = `--color-cool`
+     paired with `--color-cool-dim` (already in tokens.css, used for
+     `.course-hero-bloom--cool` in PR #117). The depth-edge pseudos
+     reference `--lesson-purple-edge-color` so they read as stack
+     layers behind the active card rather than competing with it. */
+  --lesson-purple-card-from: color-mix(in srgb, var(--color-cool) 48%, var(--color-raised));
+  --lesson-purple-card-to: color-mix(in srgb, var(--marketing-accent-bloom) 16%, var(--color-ink));
+  --lesson-purple-edge-color: color-mix(in srgb, var(--color-cool) 60%, var(--color-ink));
+  --lesson-purple-edge-warm: color-mix(in srgb, var(--marketing-accent-bloom) 50%, var(--color-ink));
+  --lesson-purple-glow: color-mix(in srgb, var(--marketing-accent-bloom) 26%, transparent);
+  --lesson-purple-glow-cool: color-mix(in srgb, var(--color-cool) 18%, transparent);
   --lesson-callout-info-border: color-mix(in srgb, var(--color-body) 45%, var(--color-graphite));
   --lesson-callout-ok-border: var(--color-verified);
   --lesson-callout-warn-border: color-mix(in srgb, var(--color-stale) 55%, var(--color-muted));
@@ -50,6 +69,12 @@
   --lesson-border-secondary: color-mix(in srgb, var(--color-graphite) 75%, var(--color-muted));
   --lesson-purple-border: color-mix(in srgb, var(--color-display) 18%, var(--color-graphite));
   --lesson-purple-accent: var(--color-display);
+  --lesson-purple-card-from: color-mix(in srgb, var(--color-cool) 18%, var(--color-raised));
+  --lesson-purple-card-to: color-mix(in srgb, var(--marketing-accent-bloom) 10%, #ffffff);
+  --lesson-purple-edge-color: color-mix(in srgb, var(--color-cool) 24%, #ffffff);
+  --lesson-purple-edge-warm: color-mix(in srgb, var(--marketing-accent-bloom) 18%, #ffffff);
+  --lesson-purple-glow: color-mix(in srgb, var(--marketing-accent-bloom) 16%, transparent);
+  --lesson-purple-glow-cool: color-mix(in srgb, var(--color-cool) 12%, transparent);
   --lesson-callout-info-border: color-mix(in srgb, var(--color-body) 35%, var(--color-graphite));
   --lesson-callout-ok-border: var(--color-verified);
   --lesson-callout-warn-border: color-mix(in srgb, var(--color-stale) 50%, var(--color-muted));
@@ -242,6 +267,49 @@
   margin-bottom: 0.75rem;
 }
 
+/* polish/sydexa-card-deck (PR #143): sydexa-style "tap to flip"
+   caption. Renders inside each card's front face, anchored bottom-left,
+   semi-transparent so it reads as ambient affordance rather than as
+   primary content. Mirrors the position of the sydexa video frame
+   caption. Mono caps, 0.7rem — same eyebrow typography already used
+   for `.av-flashcard-hd`. The `position: static` keeps the span in
+   the flow because the card is `display: block` (default button
+   styling overridden by `lesson-animations.css`); vertical spacing
+   is supplied by `margin-top` and the card's own `padding` (1.1rem
+   1.2rem). */
+.av-flashcard-flip-hint {
+  display: block;
+  margin-top: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: color-mix(in srgb, var(--color-display) 65%, transparent);
+}
+
+/* polish/sydexa-card-deck (PR #143): mobile swipe-hint block. Lives
+   OUTSIDE the deck track (after it in DOM order) so it can read as a
+   separate, optional caption without disturbing the card grid. Shown
+   only when the `swipeHint` label is provided; hides on desktop via
+   `min-width: 901px` override so the desktop affordance (prev/next
+   arrows already in `.av-flashcard-nav`) carries the swipe UX
+   intent instead. */
+.av-flashcard-swipe-hint {
+  margin: 0.55rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--lesson-text-secondary);
+  text-align: center;
+}
+
+@media (min-width: 901px) {
+  .av-flashcard-swipe-hint {
+    display: none;
+  }
+}
+
 .av-flashcard-nav {
   display: flex;
   justify-content: flex-end;
@@ -285,24 +353,126 @@
   min-height: 10rem;
   text-align: left;
   padding: 1.1rem 1.2rem;
-  background: var(--lesson-bg-primary);
-  border: 1px solid var(--lesson-border-primary);
+  /* polish/sydexa-card-deck (PR #143): violet gradient surface
+     drawn from `--lesson-purple-card-from` (warm-tilted stop) to
+     `--lesson-purple-card-to` (cool undertone). Mimics the
+     sydexa.com video frame `5/7` card body but tints come from
+     existing tokens (`--marketing-accent-bloom` + `--color-cool`)
+     so the card ties into the home-hero aurora family instead of
+     introducing a new purple. The deck-stack pseudos (`.av-flashcard-card::before`
+     warm stripe at upper-right and `::after` cool stripe at lower-right)
+     sit on top of the card's own gradient and produce the
+     "edge-of-cards-behind-me" depth illusion from the sydexa UX. */
+  background:
+    radial-gradient(
+      140% 90% at 0% 0%,
+      color-mix(in srgb, var(--color-cool) 22%, transparent) 0%,
+      transparent 60%
+    ),
+    linear-gradient(
+      155deg,
+      var(--lesson-purple-card-from) 0%,
+      var(--lesson-purple-card-to) 100%
+    );
+  border: 1px solid var(--lesson-purple-border);
   border-radius: var(--radius-md);
-  color: var(--lesson-text-primary);
+  color: var(--lesson-text-highlight);
   cursor: pointer;
   font-family: var(--font-body);
   font-size: 1rem;
   line-height: 1.55;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px var(--lesson-purple-border) inset,
+    0 12px 32px -10px var(--lesson-purple-glow),
+    0 4px 14px -4px var(--lesson-purple-glow-cool);
+  /* `translateZ(0)` establishes a compositing layer so the deck-stack
+     pseudos blit cleanly without subpixel jitter when the user
+     taps to flip — same idea as PR #109's `transform: translateZ(0)`
+     on `.ls-blog-card`. No 3D effect on the card itself: that
+     was removed from `lesson-animations.css` in this PR because the
+     sydexa treatment prefers a flat, color-richer card over the
+     `transform: rotateY(180deg)` 3D flip. */
+  transform: translateZ(0);
+  transition:
+    transform var(--duration-base) var(--ease-out),
+    box-shadow var(--duration-base) var(--ease-out),
+    border-color var(--duration-base) var(--ease-out);
+}
+
+/* Deck-stack depth edges (sydexa UX signature).
+   ::before peeks from the upper-right corner, ::after peeks from
+   the lower-right. They sit INSIDE the card's `overflow: hidden`
+   so the offset translates appear as thin stripes clipped to the
+   card's rounded border-radius. Each stripe uses a different
+   token-stop warmth so the stack reads as multiple layers, not
+   one duplicate. */
+.av-flashcard-card::before,
+.av-flashcard-card::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.av-flashcard-card::before {
+  inset: 0.35rem 0.35rem auto auto;
+  width: 82%;
+  height: 30%;
+  border-top-right-radius: var(--radius-md);
+  background: linear-gradient(
+    135deg,
+    var(--lesson-purple-edge-warm) 0%,
+    transparent 78%
+  );
+  transform: translate(0.55rem, -0.55rem);
+  opacity: 0.95;
+}
+
+.av-flashcard-card::after {
+  inset: auto 0.4rem 0.4rem auto;
+  width: 76%;
+  height: 34%;
+  border-bottom-right-radius: var(--radius-md);
+  background: linear-gradient(
+    135deg,
+    var(--lesson-purple-edge-color) 0%,
+    transparent 76%
+  );
+  transform: translate(0.7rem, 0.7rem);
+  opacity: 0.92;
+}
+
+/* Lift on hover: deepen the violet glow shadow and add a third
+   tint from `--lesson-purple-glow` so the deck feels "raised" out
+   of the page surface. Same hover discipline as `.ls-blog-card`
+   (PR #115): no scale, no translate, just shadow. No transform on
+   the card itself because the `transform: translateZ(0)`
+   baseline above is needed for the compositing layer. */
+@media (hover: hover) {
+  .av-flashcard-card:hover {
+    box-shadow:
+      0 0 0 1px var(--lesson-purple-border) inset,
+      0 18px 42px -8px var(--lesson-purple-glow),
+      0 6px 18px -4px var(--lesson-purple-glow-cool);
+  }
 }
 
 .av-flashcard-card.is-flipped {
-  border-color: var(--lesson-border-secondary);
-  background: var(--lesson-bg-secondary);
+  border-color: var(--lesson-purple-accent);
 }
 
 .av-flashcard-front,
 .av-flashcard-back {
-  color: var(--lesson-text-primary);
+  /* polish/sydexa-card-deck (PR #143): the card surface is now a
+     violet gradient rather than the previous flat `var(--lesson-bg-primary)`,
+     so the face text contrast target is `--color-display` (white in dark
+     mode) rather than `--lesson-text-primary`. Keeps the question/
+     answer read like the sydexa video frame text rather than blending
+     into the gradient. */
+  color: var(--color-display);
 }
 
 /* polish/flashcard-and-cb-fix-ios (PR #141): the two faces
@@ -348,8 +518,12 @@
   display: none;
 }
 
+/* polish/sydexa-card-deck (PR #143): back face keeps the same
+   `--color-display` text — only the card border + edge pseudos
+   change on flip to indicate state (border goes from
+   `--lesson-purple-border` to `--lesson-purple-accent`). */
 .av-flashcard-card.is-flipped .av-flashcard-back {
-  color: var(--lesson-text-highlight);
+  color: var(--color-display);
 }
 
 @media (width <= 1000px) {
