@@ -143,18 +143,20 @@
       border-color var(--duration-base) var(--ease-out);
   }
 
-  /* Swipe-track animation: when JSX sets `--flashcard-track-translate`
-     inline on `.av-flashcard-track`, the deck slides horizontally
-     to the active card. Spring-style ease comes from
-     `var(--ease-out) = cubic-bezier(.22, 1, .36, 1)` per tokens.css,
-     so the motion settles without overshoot. `--duration-base`
-     is 0.2 s, intentionally snappy to read as a swipe gesture
-     rather than a scroll. */
-  .lesson-surface .av-flashcard-track {
-    --flashcard-track-translate: 0px;
-    transition: transform var(--duration-base) var(--ease-out);
-    transform: translateX(var(--flashcard-track-translate));
-  }
+  /* polish/flashcard-ambient-and-prevnext-fix (PR #144):
+     removed the `--flashcard-track-translate` swipe-track
+     mechanism from PR #143. That mechanism caused the empty-card
+     glitch: when `setIndex` updated state AND the inline CSS
+     variable was set AND `scrollIntoView({ inline: 'center' })`
+     fired, the track's `transform: translateX(...)` overrode the
+     scroll-snap alignment and left the active card visually
+     scrolled past the visible viewport while the counter showed
+     the new index — exactly the "counter goes 1/3 → 2/3 → 3/3 then
+     empty body" bug the user reported on iPhone Safari. Trust
+     `scroll-snap-type: x mandatory` on `.av-flashcard-track`
+     (lesson-tokens.css) + `scrollIntoView({ inline: 'center' })`
+     from JSX — they handle position correctly without a CSS
+     transform competitor. */
 
   /* ---- Drag-drop hover, focus, and submit transitions ---- */
 
