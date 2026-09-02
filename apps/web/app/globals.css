@@ -58,6 +58,50 @@
     text-decoration-thickness: 1px;
     text-underline-offset: 0.2em;
   }
+
+  /* PR #137 polish/mobile-fix-a-overflow-wrap: defensive mobile
+     long-word break at the document root.
+
+     At ≤375px viewports, prose containing long unbreakable tokens
+     (course slugs like 'react-render-cycle', URLs, version
+     numbers, package names like '@next/cache') overflowed the
+     body content box because `overflow-wrap: normal` (the CSS
+     spec default for all block elements) refuses to break
+     inside a word. Setting `overflow-wrap: break-word` on the
+     `<html>` root means any descendant prose WILL break a long
+     word at the viewport edge rather than overflow.
+
+     `break-word` is the user-facing alias for the newer
+     `overflow-wrap: anywhere` keyword. `anywhere` is the more
+     correct value per current spec (CSS Text 3 / CSS Overflow 3
+     drafts as of 2026), but Safari did not support `anywhere`
+     until 16.4 (March 2023). `break-word` works in every
+     shipping browser today and behaves equivalently for this
+     defensive-overflow use case.
+
+     Applied at the document root rather than per-element so the
+     fix defends against future components that produce
+     unbreakable tokens (slogans, hashes, eyebrow labels with
+     underscores, etc.). A normal English word like 'verified'
+     will only break at the viewport edge if there's no other
+     word that can fit in the line — which is exactly the case
+     where the bug surfaces, so the rule is neutral on readable
+     English prose.
+
+     Audit reference: `prompts/design-spec-2026-08-mobile-reflow.md`
+     §2b ("Long-word break policies") and §3 ("Fix A").
+     Findings: 4 critical-severity mobile overflows across
+     `/en`, `/en/blog`, `/en/courses`, `/en/courses/[course]`,
+     and `/en/blog/[corpus]/[slug]`. Sample capture:
+     `react-render-cycle` (course slug, 18 chars, no natural
+     break point) wrapping at the viewport edge.
+
+     Real iPhone spot-check required before declaring closed;
+     chrome headless on macOS does not exercise the iOS Safari
+     rendering engine. */
+  html {
+    overflow-wrap: break-word;
+  }
 }
 
 /* Listing POC top bar: height is --tb, one row, no wrap. */
