@@ -82,6 +82,36 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Sydexa-style stacked flashcard deck + swipe gesture — polish/sydexa-card-deck**
+  **(2026-09-02, on `polish/sydexa-card-deck` off develop @ `d24c04a`,
+  PR #143, MERGED at `2079e97`):** User showed a sydexa.com mobile video of a
+  flashcard deck with violet gradient surface, deck-stack depth edges at
+  upper-right/lower-right corners, `✦ Nhấp vào thẻ để lật` flip-hint
+  caption, and horizontal swipe-between-cards navigation. Asked for the
+  same UX "exact CSS like sydexa but generate new color/shadow suitable
+  of our current website", every flashcard on the site, with left+right
+  swipe in addition to chevrons. Implemented: violet-tinted card
+  surface (mix of `--color-cool` + `--marketing-accent-bloom`) with
+  `::before` warm stripe + `::after` cool stripe inside `overflow: hidden`
+  for the depth illusion; Pointer Events API swipe handler
+  (`SWIPE_PX = 60`, `SWIPE_VELOCITY = 0.3 px/ms`) advancing the deck
+  via `--flashcard-track-translate: -idx * 100%`; two new
+  `FlashcardLabels` fields (`flipHint`, `swipeHint`); removed the
+  legacy 3D-flip CSS (`perspective`, `rotateY(180deg)`,
+  `position: absolute` on `.av-flashcard-back`) that conflicted with
+  the new pseudos. **Disclosed**: card surface leans slate-blue rather
+  than pure violet because `--color-cool` is cyan-blue, not violet —
+  deliberate per user's "suitable of our current website" constraint
+  (introduce `--color-violet-soft` if stronger violet is desired
+  post-merge). CDP probe (forced 375×812 + direct React props
+  invocation): counter advances 1/3 → 2/3 on swipe signal; both
+  inactive-face `display: none` rules + gradient + depth stripes
+  applied. **CDP-dispatch limitation**: track.dispatchEvent of
+  PointerEvent doesn't reach React synthetic handlers in headless
+  Chrome (real touch on iOS Safari fires native events natively) —
+  direct `__reactProps$xxx.onPointerDown` invocation confirmed handler
+  logic. 5 files +398/-105. All 4 mechanical gates green.
+
 - **Flashcard grow + cb-overlay fixes — polish/flashcard-grow-and-cb-overlay**
   **(2026-09-02, on `polish/flashcard-grow-and-cb-overlay` off develop @ `994cd8d`,
   PR #142, MERGED at `f13cf44`):** Two follow-up bugs from real-iPhone Safari

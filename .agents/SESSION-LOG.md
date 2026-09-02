@@ -6872,3 +6872,45 @@ platform-detection is unnecessary.
 - `develop → main` promotion — you open that PR.
 
 ---
+## Session 149 — polish/sydexa-card-deck PR #143 — 2026-09-02
+
+**Branch:** `polish/sydexa-card-deck` off `develop @ d24c04a`
+
+**Files changed:**
+- `apps/web/components/article/lesson-tokens.css` — +188 lines: 6 new tokens (`--lesson-purple-card-from/to/edge-color/edge-warm/glow/glow-cool`) in dark + light; violet gradient card surface with `box-shadow` glow + `translateZ(0)` compositing; `::before` (warm stripe) + `::after` (cool stripe) sydexa-style depth-edge pseudos; `.av-flashcard-flip-hint` + `.av-flashcard-swipe-hint` caption styles; `display: none` on inactive face span preserved (PR #141); `is-flipped` border colour change instead of full background swap
+- `apps/web/components/article/lesson-animations.css` — +57/-57: removed the 3D-flip machinery (perspective, transform-style: preserve-3d, position: absolute on `.av-flashcard-back`, rotateY(180deg)) because the sydexa pseudos sit INSIDE `overflow: hidden` and would rotate to upper-LEFT/lower-LEFT on flip; added `.av-flashcard-track` swipe-track transform keyed off `--flashcard-track-translate` CSS Custom Property
+- `packages/mdx-components/src/flashcard.tsx` — +254 lines: Pointer Events API gesture handler on `.av-flashcard-track` (`pointerdown` records clientX/Y/timeStamp; `pointerup` computes dx, |dy|, velocity → advances deck on SWIPE_PX=60 or SWIPE_VELOCITY=0.3); `setIndex` writes `--flashcard-track-translate: -idx * 100%`; new `FlashcardLabels.flipHint` + `swipeHint` optional fields; `aria-describedby` link for swipeHint
+- `apps/web/lib/article-markdown.tsx` — +2 lines: plumb `flipHint` + `swipeHint` to `FlashcardLabels`
+- `apps/web/messages/en.json` — +2 keys: `flashcardFlipHint = "Tap to flip"`, `flashcardSwipeHint = "Swipe left or right to switch cards."`
+
+**Why:**
+
+User sent a sydexa.com mobile video showing a flashcard deck with:
+- Violet gradient card surface (`background: linear-gradient` warm-to-cool)
+- "Deck-stack" depth illusion: 3-5 thinner card edges peeking from upper-right and lower-right corners of the active card
+- `✦ Nhấp vào thẻ để lật` ("tap to flip") hint caption anchored bottom-left of each card
+- Horizontal swipe between cards (no flip animation — the user only swiped through, never tapped to flip)
+- Pagination "X/Y" with prev/next chevrons at the bottom of the deck
+
+Asked for: (1) "exact CSS like sydexa but generate new color/shadow suitable of our current website" — extending existing tokens, NOT a sydexa-clone purple; (2) applied to "every flashcard on the site" — every `.av-flashcard-card`; (3) swipe-left + swipe-right in addition to the chevrons.
+
+**Invented decisions:**
+
+- **Color/shadow choice**: kept the card surface in our existing token DNA rather than literal-clone sydexa purple. `--color-cool` (cyan-blue `#6aa9d8`) + `--marketing-accent-bloom` (warm gold `#f2c782`) mix into a slate-blue/violet gradient, NOT pure purple. Result: vision-analyze at 375×812 reports the cards as "dark slate / muted navy-blue" with subtle blue-gradient accents — closer to "of our website" than "different product". Future PR can introduce a `--color-violet-soft` token if stronger violet is desired.
+- **Pseudos over real `<div>` deck-stack**: the sydexa depth illusion needs 2+ visible card-edge stripes behind the active card. Two pseudo-elements (`::before` warm stripe, `::after` cool stripe) sit INSIDE `.av-flashcard-card`'s `overflow: hidden` so they appear as thin stripes clipped to the rounded border. No JSX changes to the card subtree — keeps the swa-token-stable JSX forward.
+- **Removed the 3D-flip rotation, not just side-stepped it**: PR #141 shipped `transform: rotateY(180deg)` on `.av-flashcard-card.is-flipped` for a card-flip animation that **was never visually implemented in JSX** (no transform wire-up; the PR only added CSS visibility toggling). The new pseudos depend on `overflow: hidden` + position: relative inside the card; rotateY(180deg) would also rotate the gradient direction + relocate the stripe offsets to upper-LEFT/lower-LEFT. So: removed the dead 3D-flip CSS entirely. Cards now stay flat; sydexa's UX on the video was "swipe between cards", not "flip a single card".
+- **Pointer Events API instead of touch/mouse split**: the user's directive was "include left-swipe / right-swipe / both". Pointer Events API handles touch + mouse + pen uniformly; threshold SWIPE_PX=60 (about 15% of a 375px viewport) catches intentional swipes; SWIPE_VELOCITY=0.3 px/ms catches fast flicks. Vertical scrolls (`|dy| > |dx|`) are ignored so the deck never fights page scroll.
+- **`__flashcard-track-translate` CSS Custom Property as the swipe-track mechanism**: rather than drive JS-side transforms (which would compete with the `transform: translateZ(0)` compositing layer on the card and the `.av-flashcard-card::before/::after` transforms), `setIndex` writes the translate inline. The CSS rule in `lesson-animations.css` reads the property and applies the transform. Same pattern as `.ls-blog-card` `transform: translateZ(0)` (PR #109) — compositing layer for the pseudos stays clean.
+- **English i18n hints, not Vietnamese sydexa-clone**: the sydexa video showed Vietnamese hints ("Nhấp vào thẻ để lật"). I deliberately wrote English ("Tap to flip") for the i18n key to match our existing English surface. Cloning sydexa's Vietnamese text would be sydexa-specific content that doesn't fit our corpus. Future non-`en` locale files can translate the two new keys as needed.
+- **Mobile-only `swipeHint` caption**: on desktop, the prev/next chevrons in `.av-flashcard-nav` already communicate the navigation intent; the swipe gesture is a mobile-specific affordance. The `.av-flashcard-swipe-hint` block has `display: none` at `min-width: 901px` so desktop readers don't see redundant copy.
+
+**Known issues / next steps:**
+
+- **Next.js 16 prerender/stale-chunk desync** worked around this session by clearing `apps/web/.next` + `apps/web/tsconfig.tsbuildinfo` + `.turbo/cache` between iterations. The issue: when CSS changes without TSX changes, the prerendered HTML can reference stale CSS chunk hashes that 500. Not PR-blocking but worth a TODO.
+- **CDP-dispatch limitation in headless Chrome**: `track.dispatchEvent(new PointerEvent(...))` did NOT trigger React's `onPointerDown`/`onPointerUp` synthetic handlers. Worked around by extracting `__reactProps$xxx` off the track element and invoking the handlers directly with forged payloads — that DID move the counter 1/3 → 2/3, confirming the JSX handler logic is correct. Real touch on iPhone Safari will fire native events that React's delegated listeners handle natively. Real-iPhone Safari re-test is recommended after Vercel preview deploys.
+- **Cards kept side-by-side on desktop**: the sydexa video is mobile-only (single-focus card). Our existing desktop layout is `flex: 0 0 100%` track with all cards visible side-by-side, which doesn't lend itself to a sydexa-style single-focus view. Future PR could refactor desktop to a single-focus-active pattern with sydexa-style slide-in animation; current state is functional and within scope.
+- **Vision-analyze consistently reports "dark slate, not purple"**: deliberate per user constraint. The card surface leans cool because `--color-cool` is cyan-blue, not violet. If the user wants stronger purple shift post-merge, introduce `--color-violet-soft: #6a4a85` token; the existing pseudos will pick it up.
+- **Vercel Auth still blocks `/pagefind/*` + `/api/*` on `develop.nxhhuy.tech`** — user's dashboard action. PR #143 doesn't touch that surface.
+- **Polish residue still untouched** (carry-forward): D20 Shiki (new dep), D22 OG image (DNS+Vercel), D30 FAQ half (corpus-side schema), D33 attribution (corpus-side schema), D38 submodule debt, `develop → main` promotion.
+
+---

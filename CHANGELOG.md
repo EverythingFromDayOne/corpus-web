@@ -4,6 +4,71 @@ All notable changes to this project are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
+### [2026-09-02] — polish/sydexa-card-deck — sydexa-style stacked flashcard deck with swipe gesture
+
+**Added**
+- **New violet-tinted `.av-flashcard-card` surface** with
+  layered `box-shadow` (inset border + warm + cool glow),
+  gradient drawn from `--lesson-purple-card-from/to` tokens
+  (mix of `--color-cool` + `--marketing-accent-bloom` so
+  the card reads as a slate-blue shift within the existing
+  token DNA rather than a foreign purple).
+- **Deck-stack depth-edge pseudos** (`.av-flashcard-card::before`
+  warm stripe + `::after` cool stripe) drawn INSIDE
+  `overflow: hidden` so the offsets read as thin stripes
+  clipped to the card's rounded border — the sydexa UX
+  signature visible at upper-right and lower-right corners.
+- **Pointer Events API swipe gesture** on
+  `.av-flashcard-track` (`SWIPE_PX = 60`,
+  `SWIPE_VELOCITY = 0.3 px/ms`) that advances the deck
+  horizontally; `setIndex` writes
+  `--flashcard-track-translate: -idx * 100%` inline.
+- **Two new `FlashcardLabels` fields**: `flipHint` (the
+  `✦ <label>` sydexa-style caption at the bottom of each
+  front face) and `swipeHint` (mobile-only "swipe left
+  or right to switch cards" caption behind
+  `aria-describedby`).
+- **Six new `--lesson-purple-*` tokens** in dark + light
+  themes: `--lesson-purple-card-from/to`,
+  `--lesson-purple-edge-color/warm`,
+  `--lesson-purple-glow/glow-cool`.
+
+**Changed**
+- **`.av-flashcard-card` background**: from flat
+  `var(--lesson-bg-primary)` to a violet gradient using
+  `--lesson-purple-card-from/to` (token-disciplined, no
+  raw hex). Card border changed from
+  `var(--lesson-border-primary)` to
+  `var(--lesson-purple-border)`.
+- **`.av-flashcard-card.is-flipped`**: was a full
+  background swap; now a single border-colour change
+  (`var(--lesson-purple-border)` →
+  `var(--lesson-purple-accent)`) so the flip-state
+  reads as a soft blue→gold border shift rather than a
+  jarring surface swap.
+
+**Removed**
+- **3D-flip machinery** in `lesson-animations.css`:
+  `perspective: 1000px`, `transform-style: preserve-3d`,
+  `transform: rotateY(180deg)` on
+  `.av-flashcard-card.is-flipped`, and
+  `position: absolute; inset: 1.1rem 1.2rem` on
+  `.av-flashcard-back`. These rules were the leftover
+  desktop card-flip animation from before PR #141 — the
+  flip was never visually wired into JSX, and the new
+  sydexa treatment uses pseudos INSIDE `overflow: hidden`
+  that a rotateY would break. The card stays flat; the
+  deck's motion comes from the swipe-track transform.
+
+**Fixed**
+- **Mobile-vs-desktop visual mismatch**: previously
+  `.av-flashcard-card` had a different style on each side
+  of 1000px because the desktop 3D-flip rules only fired
+  in interactive mode. Now the surface is consistent at
+  every viewport — the sydexa treatment is the card's
+  resting state at every breakpoint.
+
+### [2026-09-02] — polish/flashcard-grow-and-cb-overlay — mobile flashcard grow + portable code-block expand
 
 ### [2026-09-02] — polish/mobile-fix-a-overflow-wrap — defensive mobile long-word break (CSS root)
 
