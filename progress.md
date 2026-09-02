@@ -82,6 +82,31 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Topbar narrow fixes — polish/topbar-narrow-fixes**
+  **(2026-09-02, on `polish/topbar-narrow-fixes` off develop @ `bbc7841`,
+  PR #140, MERGED at `9a77488`):** Real-iPhone Safari screenshots
+  from `develop.nxhhuy.tech` (at 375×812) showed theme toggle
+  clipped on right edge of topbar on both `/en/courses/[course]`
+  and `/en/blog/[article]`. Two changes: (a) hide the
+  START THE COURSE pill at ≤480px (continuing the PR #128/130
+  pattern — nav links hide at ≤480px, search trigger collapses
+  at ≤640px); (b) add `cursor-pointer` Tailwind utility to the
+  theme toggle's `<button>`. CDP-confirmed at true 375×812:
+  pre-fix `themeToggle.right=434, vw=375` (59px overflow);
+  post-fix `right=355 ≤ vw=375` (20px clearance, fully visible).
+  Round 1 of this PR tried `font-size:9px; padding:0.2rem
+  0.45rem` on the pill and CDP-confirmed it remained 112px wide
+  (because `white-space: nowrap` + longest-word "START THE
+  COURSE" + padding sets a floor); replaced with `display: none`
+  which works. All 4 gates PASS (typecheck 5/5, lint 0, next
+  build with Pagefind 222/29019 unchanged, verify:prerender
+  196/196+18/18, verify-frontmatter 196/196). 2 files +39/-1.
+  Vision-model inspection of the cropped PNG falsely reported
+  "right cap clipped" twice (the model is misinterpreting the
+  orange sliding knob as the pill's right cap) — documented
+  for future-session wrap-up PRs to skip the false-positive
+  re-debug cycle.
+
 - **Mobile fix C (defensive clamped prose) — Polish-mobile-fix-c-grid-collapse**
   **(2026-09-02, on `polish/mobile-fix-c-grid-collapse` off develop @ `d984eb8`,
   PR #139, MERGED at `f6da7fc`):** Landed Fix C round 1 from

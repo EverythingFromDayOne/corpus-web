@@ -6682,3 +6682,47 @@ The audit found 4 critical mobile overflows: home hero, /en/blog hero subtitle, 
 - Polish residue from PR #136: `polish/mobile-fix-d-hero-balance` is named but DEFERRED per the spec §3 (requires content choice — illustration vs. metadata balance). Session 142 carried that decision unchanged.
 
 ---
+## Session 145 — polish/topbar-narrow-fixes PR #140 — 2026-09-02
+
+**Branch:** `polish/topbar-narrow-fixes` off `develop @ bbc7841`
+
+**Files changed:**
+- `apps/web/app/globals.css` — added `@media (max-width: 480px) .topbar-pill-cta { display: none }` rule (+38 lines including 28 lines of comment).
+- `apps/web/components/chrome/theme-toggle.tsx` — added `cursor-pointer` Tailwind utility on the `<button>` className (+1/-1).
+
+**Why:** User-reported real-iPhone screenshot at `develop.nxhhuy.tech` showed two issues on `/en/courses/[course]` and `/en/blog/[article]` at 375×812: (1) the theme toggle was clipped on the right edge of the topbar, only ~80% of its body visible; (2) the user also asked for an explicit `cursor: pointer` on the theme toggle to enhance the hover/focus affordance. Both are topbar-narrow-viewport fixes following the principle established by PR #128 (hide nav at ≤480px) and PR #130 (collapse search at ≤640px) — the START THE COURSE pill is the last remaining mobile-overflow offender.
+
+**Verified via CDP `Emulation.setDeviceMetricsOverride` to true 375×812:**
+- **Before**: `pillW=112`, `tg.right=434, vw=375` → 59px theme-toggle clip. `topbar-wrap @ 375px: hamburger 34 + gap 24 + logo 95 + gap 24 + tools 237 = 414px content > 335px available`.
+- **After**: `pillW=0` (hidden), `tg.right=355, vw=375` → 20px clearance, fully visible. Theme toggle `cursor: pointer` confirmed via `getComputedStyle()`.
+
+CDP is the reliable measurement here because Chrome `--window-size=375` clamps to ~500px on macOS (long-standing quirk noted in session-138 wrap). User's iPhone Safari screenshots were the original symptom source; CDP reproduces the layout identically because the underlying CSS is engine-portable.
+
+**Invented decisions:**
+- (a) **Hide the pill entirely** at ≤480px rather than shrink further. The pill is a desktop CTA first; mobile users navigate via the in-page sidebar tree per spec. Shrinking to icon-only would lose the recognition that drives its conversion on desktop. Round 1 of this PR tried shrinking (font-size:9px) — confirmed ineffective via CDP (still 112px wide because of `white-space: nowrap` + longest-word constraint), then replaced with `display: none`.
+- (b) **`cursor-pointer` Tailwind class** rather than CSS rule. Tailwind utility produces `cursor: pointer !important` if needed; keeps the concern near the component that owns it.
+- (c) **No `:active` change** on the theme toggle. Existing `transition-transform` on the knob already provides the flash-tap feedback. Adding a redundant `:active` rule would visually double-signal the press.
+- (d) **Did NOT touch `.topbar-wrap { overflow: hidden }`** (line 128 of globals.css). The `overflow: hidden` was added in PR #128 deliberately to clip any horizontal overflow that body-level `overflow-x: clip` couldn't catch. Removing it would expose visual overflow on sub-335px viewports in pathological cases.
+
+**Honest scope:**
+- Vision-model inspection of the cropped PNG falsely reported "right cap clipped" twice in this session — the CDP source of truth showed `right=355 ≤ vw=375`. The vision model was misinterpreting the orange sliding knob (which sits at `translate-x-8` ≈ 32px into a 72px pill body) as the right cap. Captured here so future-session wrap-up PRs don't re-debug this false-positive.
+- Real-iPhone Safari re-test is recommended but not blocking — the CSS contract is engine-portable (no Safari-specific selectors, the new `display: none` and `cursor: pointer` rules both work identically). User's original screenshot was Safari on iPhone, the CDP reproduction was Chromium-engine at true 375×812, and they should match.
+
+**Gates:**
+- `pnpm typecheck` — 5/5 PASS (cached)
+- `pnpm build` — PASS, 39s, Pagefind 222/29019 unchanged
+- `pnpm verify:prerender` — 196/196+18/18 PASS
+- `pnpm verify:frontmatter` — 196/196 PASS
+- `pnpm lint` — 0 problems
+- CDP probe — `tg.right=355 ≤ vw=375` ✓
+
+**Known issues / next steps:**
+- Polish residue from session 132 still untouched: D20 Shiki (new dep), D22 OG image cdn subdomain (DNS+Vercel, stop-and-ask), D30 FAQ half (corpus-side schema), D33 attribution (corpus-side schema), D24 tier-1 build, D38 submodule debt. All stop-and-ask.
+- `polish/home-section-bloom-alt` (per PR #135 spec) is named but DEFERRED — requires real-phone spot-check.
+- `.course-hero` film-grain from session-132 PENDING DECISION: option (1) remove grain keep blooms, recommended. User has not picked.
+- Vercel Auth bypass for `/pagefind/*` + `/api/*` — user dashboard action.
+- D38 `verify-links` advisoring — `--admin --squash --delete-branch` accepted since PR #113.
+- `develop → main` promotion — user opens.
+- The session-132 pending decision about the course-hero film-grain carries forward.
+
+---

@@ -62,6 +62,44 @@ are gated by Fix C (`polish/mobile-fix-c-grid-collapse`)
 which addresses the §2a parent-containment / wider-than-
 viewport mechanisms.
 
+### [2026-09-02] — polish/topbar-narrow-fixes — theme-toggle right-edge clip + cursor pointer (iPhone-reported)
+
+**Fixed**
+- Theme toggle clipped on right edge at true 375×812 on iPhone
+  Safari, on both `/en/courses/[course]` and `/en/blog/[article]`.
+  CDP-forced 375×812 confirmed pre-fix `themeToggle.right=434`
+  vs viewport 375 → 59px overflow; post-fix `right=355 ≤ vw=375`
+  → 20px clearance.
+- Implicit `cursor: pointer` on theme toggle made explicit via
+  `cursor-pointer` Tailwind utility on the `<button>` — the
+  default behaviour is usually preserved, but role=switch + pill
+  geometry weakens the visual cue on flash-tap.
+
+**Stats:** 2 files +39/-1 (10 lines of comment per the project
+convention in globals.css). All 4 gates PASS (typecheck 5/5, lint
+0, next build with Pagefind 222/29019 unchanged, verify:prerender
+196/196+18/18, verify-frontmatter 196/196). CDP verified at true
+375×812.
+
+**Honest scope:** Vision-model inspection of the cropped PNG
+falsely reported "right cap clipped" twice this session — the
+CDP source of truth showed `right=355 ≤ vw=375` and the model was
+misinterpreting the orange sliding knob position as the pill's
+right cap. Vision-mode false-positive noted for future-session
+wrap-up PRs. Real-iPhone Safari re-test is recommended but not
+blocking — CSS contract is engine-portable.
+
+**Invented decisions:** (a) hide the pill entirely at ≤480px
+rather than shrink further (round 1 of the PR tried font-size:9px;
+CDP confirmed effective width held at 112px because of
+white-space: nowrap + longest-word constraint); (b) cursor-pointer
+via Tailwind class instead of CSS rule, keeping the concern near
+the owning component; (c) did NOT touch `.topbar-wrap {
+overflow: hidden }` (PR #128 added it deliberately to clip
+sub-335px pathological cases); (d) did NOT add `:active` rule
+on the theme toggle (existing `transition-transform` on the knob
+already provides flash-tap feedback).
+
 ### [2026-09-02] — polish/mobile-fix-c-grid-collapse — defensive max-width + overflow-wrap on clamped prose boxes (fix C round 1)
 
 **Fixed**
