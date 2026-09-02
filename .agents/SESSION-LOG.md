@@ -6914,3 +6914,56 @@ Asked for: (1) "exact CSS like sydexa but generate new color/shadow suitable of 
 - **Polish residue still untouched** (carry-forward): D20 Shiki (new dep), D22 OG image (DNS+Vercel), D30 FAQ half (corpus-side schema), D33 attribution (corpus-side schema), D38 submodule debt, `develop → main` promotion.
 
 ---
+## Session 150 — polish/flashcard-ambient-and-prevnext-fix PR #144 — 2026-09-02
+
+**Branch:** `polish/flashcard-ambient-and-prevnext-fix` off `develop @ a058e52`
+
+**Files changed:**
+- `apps/web/components/article/lesson-tokens.css` — -169 lines: reverted `.av-flashcard-card` to flat ambient surface (was the sydexa violet gradient + radial overlay); removed `.av-flashcard-card::before` + `::after` deck-stack depth pseudos; removed orphaned `--lesson-purple-card-from/to`, `--lesson-purple-edge-color/warm`, `--lesson-purple-glow`, `--lesson-purple-glow-cool` tokens (kept `--lesson-purple-border` + `--lesson-purple-accent` because `--lesson-purple-accent` is still used by `.av-dd-chip` borders and the new focus-visible outline on the card); `.av-flashcard-card.is-flipped` adds a 6% tint of `--lesson-purple-accent` rather than a hard background swap; hover deepens the border color toward `--lesson-purple-accent`; focus-visible gets an outline + matching border-color
+- `apps/web/components/article/lesson-animations.css` — -12 lines: removed the `.lesson-surface .av-flashcard-track { --flashcard-track-translate: 0px; transition: transform var(--duration-base) var(--ease-out); transform: translateX(var(--flashcard-track-translate)); }` rule (with a documenting comment block)
+- `packages/mdx-components/src/flashcard.tsx` — -19 lines: `goTo` callback no longer writes `track.style.setProperty('--flashcard-track-translate', ...)` inline; relies solely on the existing `scroll-snap-type: x mandatory` + `card.scrollIntoView({ inline: 'center' })`
+
+**Why:**
+
+User reported two regressions from PR #143 (sydexa-style flashcard deck + swipe gesture):
+
+1. **Color too saturated.** The sydexa-style violet gradient (linear-gradient 155deg from `--lesson-purple-card-from` (slate-violet) to `--lesson-purple-card-to` (warm-tilted), with a top-left radial-gradient of `--color-cool` 22% overlay) read as "a foreign purple island inside the article" — visually disconnected from the surrounding recall-check / article cards, both of which use flat near-black surfaces with a 1px border. User asked: "we can use ambient color like recall check background".
+2. **Bug when prev/next pressed.** User-shared video (28MB, 20.6s, 1235 frames @ 60fps) showed the counter advancing 1/3 → 2/3 → 3/3 but the active card body going empty on iPhone Safari. Vision-analyzer on the final frame confirmed: "framework knows it's card 2/3, but no associated flashcard data is being displayed".
+
+**Root cause of the prev/next bug:**
+
+PR #143's `--flashcard-track-translate` mechanism — the inline CSS variable written by `goTo`, applied as `transform: translateX(var(--flashcard-track-translate))` on `.av-flashcard-track` — **fought with the track's pre-existing `scroll-snap-type: x mandatory` + `scroll-snap-align: center` + the `card.scrollIntoView({ inline: 'center' })` call.** Three positioning systems competing:
+
+1. `scrollIntoView({ inline: 'center' })` scrolls the flex track to put card N at horizontal center.
+2. Inline `--flashcard-track-translate: -N * 100%` THEN translates the whole track N×100% left.
+3. `scroll-snap-type: x mandatory` then re-snaps the track to the card closest to the snap edge.
+
+After all three fire, the active card has been scrolled to center AND translated left by N×100% AND snapped — leaving the body visually scrolled past the visible viewport while the counter shows the new index. Exactly the symptom the user reported.
+
+**Fix:**
+
+Dropped the `--flashcard-track-translate` mechanism entirely from BOTH `lesson-animations.css` (the rule) and `flashcard.tsx` (the inline write). Now `goTo` only calls `scrollIntoView` — the pre-existing scroll-snap + scrollIntoView alignment naturally positions the active card at horizontal center without a CSS transform competitor. CDP-forced 1280×800 (desktop) probe confirmed: counter advances correctly (1/3 → 2/3 → 3/3), `trackScrollLeft` advances in 737-step increments (= card width), card N is centered in viewport at each step.
+
+For the color fix, reverted `.av-flashcard-card` to flat ambient: `background-color: var(--lesson-bg-primary)` (= `var(--color-ink)` = `#0e1320` deep navy), `border: 1px solid var(--lesson-border-secondary)`, `color: var(--lesson-text-primary)`. Removed the gradient stack, the layer compositing (`position: relative; isolation: isolate; transform: translateZ(0)`), the `box-shadow` glow stack, and both depth pseudos. CDP-forced 375×812 vision-analyzer on `/tmp/s144-deck-ambient.png` confirmed: card surface now reads as "very dark, slightly cool near-black", "essentially flat ambient near-black", "harmonizes well with surrounding prose and other lesson cards".
+
+The `✦ Tap to flip` caption (sydexa-style hint glyph) is **preserved** — it's a typography/affordance choice independent of the sydexa color treatment. The `display: none` rules on `.av-flashcard-front` / `.av-flashcard-back` (PR #141) continue to work; CDP confirmed `backDisplay: "none"` for all 3 cards when not flipped.
+
+**Invented decisions:**
+
+- **Removed `--flashcard-track-translate` mechanism entirely**, not just simplified it. A half-measure (e.g. wrapping the transform in `@media (pointer: coarse)` to disable on iPhone) would have added CSS-complicating theming for a one-engine problem. The scroll-snap + scrollIntoView combo was always the right primitive for the existing flex-track side-by-side layout; the transform was a sydexa-style assumption that shouldn't have been layered on.
+- **Removed the sydexa deck-stack pseudos entirely**, not just toned them down. Toned-down pseudos would still need the radial-gradient layer underneath to read coherently, and the user said the *color* is the problem (not just the depth edges). Removing both at once returns the card to a primitive that the surrounding article prose already speaks fluently.
+- **Removed the orphaned `--lesson-purple-card-from/to` + `--lesson-purple-edge-color/warm` + `--lesson-purple-glow` tokens** rather than leaving them for a future PR. They had no remaining consumer; leaving them would force a "this token isn't actually used anywhere" comment for every reader who grep'd the file.
+- **Kept `--lesson-purple-border` + `--lesson-purple-accent` tokens** because they're still used by `.av-dd-chip` (drag-drop widget) borders AND by the new `.av-flashcard-card:focus-visible` outline. They are the project's ambient purple selection color (matches the recall-check selection state), not a sydexa-specific token.
+- **Hover deepens the border-color toward `--lesson-purple-accent` (mix at 60%), focus-visible adds an outline + full accent border** — instead of the PR #143 hover-shadow-deepening which added a third glow tint that read as "sydexa card hover". The new pattern matches the article's ambient hover discipline (no shadow lift, just border-color shift).
+- **`.is-flipped` adds a 6% tint of `--lesson-purple-accent`** to the background instead of a hard `--lesson-bg-secondary` swap (PR #143 was a full color swap). The 6% tint reads as "you've engaged with this card" without changing the surrounding card chrome.
+- **Mobile column-stacked layout unchanged.** ≤1000px the `.av-flashcard-track` switches to `flex-direction: column` and all 3 cards are visible at once, just stacked vertically. Counter advancement does not change which card is visible (mobile user has to scroll to see the next card even with counter showing 2/3 or 3/3). Per the user's bug report ("Bug issue when prev, next flash card"), this is now consistent — the empty-card glitch is gone, but if the user wants a sydexa-style single-focus layout on mobile, that's an out-of-scope design-spec PR.
+
+**Known issues / next steps:**
+
+- **Did not actually reproduce the empty-card glitch on iPhone Safari.** Headless-Chrome CDP dispatch of PointerEvent/click events does not always reach React's synthetic event handlers — same limitation as PR #143. The diagnosis was derived from (a) the user-shared video frames vision-analyzed for visual progression, and (b) the structural analysis of the three competing positioning systems. Confidence in the fix is high because CDP geometry on the new code now matches the intended scroll-snap behaviour precisely (trackScrollLeft steps in 737-pixel increments matching card width, active card positioned at horizontal center after each click), but a real-iPhone Safari re-test remains the recommended final verification once Vercel preview deploys.
+- **Mobile column-stacked flashcard deck** — see "Invented decisions" above. If the user reports this as a separate concern, that becomes its own PR (out of scope for this fix).
+- **Polish residue still untouched** (carry-forward from previous sessions): D20 Shiki (new dep), D22 OG image (DNS+Vercel), D30 FAQ half (corpus-side schema), D33 attribution (corpus-side schema), D38 submodule debt (verify-links fails on 44 refs, --admin override accepted since PR #113).
+- **`develop → main` promotion** — awaiting user's "ship to main" go.
+- **Vercel Auth on Preview** still blocks `/pagefind/*` + `/api/*` + `/` on `develop.nxhhuy.tech` (HTTP 401) — user's dashboard action for path-based bypass.
+
+---

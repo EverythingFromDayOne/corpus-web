@@ -4,6 +4,83 @@ All notable changes to this project are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
+### [2026-09-02] — polish/flashcard-ambient-and-prevnext-fix — ambient flashcard surface + fix prev/next empty-card glitch
+
+**Changed**
+- **`.av-flashcard-card` background**: from the sydexa violet
+  gradient stack (radial+linear with `--color-cool` 22% overlay)
+  back to **flat ambient** `var(--lesson-bg-primary)`. User
+  feedback: PR #143's violet cards "read as a foreign purple
+  island inside the article" — doesn't harmonize with the
+  surrounding recall-check / article cards which are flat
+  near-black surfaces with 1px borders.
+- **`.av-flashcard-card` border-color**: from
+  `var(--lesson-purple-border)` to
+  `var(--lesson-border-secondary)` (the standard ambient
+  border token used elsewhere on the lesson surface).
+- **`.av-flashcard-card` text color**: back from
+  `--lesson-text-highlight` (the gradient-era contrast) to
+  `var(--lesson-text-primary)` (the ambient body color).
+- **`.av-flashcard-card` hover**: from a glow-shadow-deepening
+  (third violet tint) to a **border-color shift** toward
+  `var(--lesson-purple-accent)` (mix 60%) — matches the
+  article's ambient hover discipline with no shadow lift.
+- **`.av-flashcard-card` focus-visible**: now gets
+  `outline: 2px solid var(--lesson-purple-accent)` +
+  matching border-color. Replaces the old `:focus-visible`
+  treatment that was overridden by the sydexa gradient.
+- **`.av-flashcard-card.is-flipped`**: adds a 6% tint of
+  `--lesson-purple-accent` to the surface instead of a hard
+  background swap. Reads as "you've engaged with this card"
+  rather than a state change.
+
+**Removed**
+- **`.av-flashcard-card::before` warm stripe + `.av-flashcard-card::after`
+  cool stripe**: the sydexa-style deck-stack depth-edge
+  pseudos. They only made sense as a layer over the violet
+  gradient; on a flat ambient card they would have been
+  residual background-color changers that the user identified
+  as "violet island".
+- **`.av-flashcard-card` compositing layer**: removed
+  `position: relative; isolation: isolate; overflow: hidden;
+  transform: translateZ(0)` (none of those were doing useful
+  work without the depth pseudos or the shadow stack).
+- **`.av-flashcard-card` glow shadow stack**: removed
+  `box-shadow: 0 0 0 1px var(--lesson-purple-border) inset,
+  0 12px 32px -10px var(--lesson-purple-glow), 0 4px 14px -4px
+  var(--lesson-purple-glow-cool)`. Replaced by the
+  focus-visible outline (above).
+- **`--flashcard-track-translate` mechanism** from
+  `lesson-animations.css` and `flashcard.tsx` goTo: the
+  inline CSS variable + `transform: translateX()` was
+  fighting `scroll-snap-type: x mandatory` +
+  `card.scrollIntoView({ inline: 'center' })`, leaving the
+  active card visually scrolled past the visible viewport
+  while the counter showed the new index — the **empty-card
+  on prev/next** bug the user reported in the video (counter
+  1/3 → 2/3 → 3/3 then empty body). Trust scroll-snap +
+  scrollIntoView alone.
+- **Six orphaned tokens** in both dark + light themes:
+  `--lesson-purple-card-from`, `--lesson-purple-card-to`,
+  `--lesson-purple-edge-color`, `--lesson-purple-edge-warm`,
+  `--lesson-purple-glow`, `--lesson-purple-glow-cool`. They
+  had no consumer after the gradient + pseudos removal.
+- **`isolation`, `overflow: hidden`, `transform: translateZ(0)`,
+  `min-height`, `min-width` declarations** on
+  `.av-flashcard-card` that were tied to the gradient/pseudo
+  compositing layer.
+
+**Fixed**
+- **Empty-card glitch on prev/next**: root-cause identified as
+  three competing positioning systems
+  (`--flashcard-track-translate` transform + `scrollIntoView` +
+  `scroll-snap-align`). All three now reduced to just
+  scroll-snap + scrollIntoView. CDP-forced 1280×800 probe
+  confirms counter advances 1/3 → 2/3 → 3/3 correctly with
+  `trackScrollLeft` incrementing in 737-pixel (= card width)
+  steps and the active card snapping to horizontal center at
+  each step.
+
 ### [2026-09-02] — polish/sydexa-card-deck — sydexa-style stacked flashcard deck with swipe gesture
 
 **Added**

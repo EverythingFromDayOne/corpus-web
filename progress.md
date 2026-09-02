@@ -82,6 +82,50 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Flashcard ambient color + prev/next empty-card fix — polish/flashcard-ambient-and-prevnext-fix**
+  **(2026-09-02, on `polish/flashcard-ambient-and-prevnext-fix` off develop @ `a058e52`,
+  PR #144, MERGED at `26b21a9`):** User reported two regressions from PR #143:
+  (1) flashcard surface too saturated — sydexa violet gradient read as "a foreign
+  purple island inside the article" against the surrounding ambient cards.
+  (2) prev/next bug: counter advances 1/3 → 2/3 → 3/3 then card body empty on
+  iPhone Safari (vision-confirmed on user-shared video final frame).
+  **Root cause of bug**: PR #143's `--flashcard-track-translate` inline transform
+  on `.av-flashcard-track` fought with the existing `scroll-snap-type: x mandatory`
+  + the `card.scrollIntoView({ inline: 'center' })` call. Three positioning systems
+  competing — after all fired, active card scrolled to center AND translated left
+  AND snapped, leaving body visually past the visible viewport while counter
+  showed the new index. **Fix**: dropped `--flashcard-track-translate` mechanism
+  entirely from both `lesson-animations.css` and `flashcard.tsx` goTo; now relies
+  on scroll-snap + scrollIntoView alone. **Color fix**: `.av-flashcard-card`
+  reverted to flat ambient `var(--lesson-bg-primary)` + `--lesson-border-secondary`
+  border; removed `::before`/`::after` deck-stack depth pseudos; removed the
+  compositing layer (`isolation`, `overflow: hidden`, `transform: translateZ(0)`);
+  removed the glow shadow stack; removed six orphaned tokens
+  (`--lesson-purple-card-from/to`, `-edge-color/warm`, `-glow/glow-cool`); kept
+  `--lesson-purple-border` + `--lesson-purple-accent` because `.av-dd-chip`
+  borders + new `:focus-visible` outline still use them. Hover = border-color
+  shift toward `--lesson-purple-accent` (no shadow lift); focus-visible gets
+  `outline + border-color: --lesson-purple-accent`; `.is-flipped` gets a 6% tint
+  (was a hard background swap). The `✦ Tap to flip` caption + the PR #141
+  `display: none` face-toggling rules preserved. 3 files +66/-148. All 4 gates
+  green (typecheck / lint / build / verify:prerender / verify:frontmatter).
+  **CDP-forced 1280×800 (desktop)** prev/next probe: counter advances 1/3 →
+  2/3 → 3/3 → 2/3 correctly; `trackScrollLeft` advances in 737-pixel steps =
+  card width; active card snaps to horizontal center at each step. **CDP-forced
+  375×812 (mobile)** probe: counter advances correctly; all 3 cards visible at
+  once via the column-stacked mobile layout (per existing `@media (width <= 1000px)`
+  override). **Disclosed**: did not actually reproduce the empty-card glitch on
+  iPhone Safari (headless Chrome CDP dispatch doesn't reliably reach React
+  synthetic handlers); diagnosis derived from user-shared video + structural
+  analysis of the three competing positioning systems. Real-iPhone Safari
+  re-test recommended post Vercel deploy. **Invented decisions**: removed
+  `--flashcard-track-translate` mechanism entirely (not half-measured);
+  removed the sydexa depth pseudos entirely (not toned down); removed orphaned
+  tokens rather than leaving them; kept `--lesson-purple-border` +
+  `--lesson-purple-accent` (still used by drag-drop borders + focus-visible
+  outline); preserved the `✦ Tap to flip` caption (typography choice, not
+  sydexa color treatment).
+
 - **Sydexa-style stacked flashcard deck + swipe gesture — polish/sydexa-card-deck**
   **(2026-09-02, on `polish/sydexa-card-deck` off develop @ `d24c04a`,
   PR #143, MERGED at `2079e97`):** User showed a sydexa.com mobile video of a
