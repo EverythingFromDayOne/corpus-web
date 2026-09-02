@@ -82,6 +82,31 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Card surface alpha passthrough — polish/ls-blog-card-alpha-passthrough**
+  **(2026-09-02, on `polish/ls-blog-card-alpha-passthrough` off `develop @ 58e020f`,
+  PR pending):** User said "go yolo on Item 2 card-side passthrough fraction."
+  Built the A/B POC at `docs/scratch/card-passthrough-ab.html`
+  (untracked) to compare four candidate card-surface treatments
+  (shipped, alpha-card, backdrop-blur, no-surface). Variant 2
+  (8% transparent surface at rest, 12% on hover) was the only
+  autonomous-per-CTO-autopilot choice: no GPU filter pass (variant 3
+  iOS Safari scroll-flicker risk), no schematic change, no sitewide
+  readability call (variant 4), no new npm dep. Single CSS delta:
+  two new local properties `--card-surface` (8% transparent) +
+  `--card-surface-hover` (12% transparent) on `.ls-blog-card`, used
+  in the existing `<linear-gradient>` base. `ls-ambient-grid` +
+  `ls-ambient-glow` (PR #133) now bleeds through behind every
+  `.ls-blog-card` sitewide at ~1% effective opacity (~1.4% on hover).
+  Auto-verified: typecheck 5/5 (turbo cache hit), lint 5/5, test 38/38
+  + 35/35, `pnpm verify:prerender` 196/196 + 18/18, `pnpm verify:frontmatter`
+  196/196. CSS bundle probe confirms `92%, transparent` and
+  `88%, transparent` in `apps/web/.next/static/chunks/29twzeqgdgloi.css`.
+  Real-phone spot-check on `/en/blog` + `/en/courses` is the canonical
+  gate — does the bleed read as ambient depth (intended) or as
+  washed-out cards (over-tinted)? Variants 3 and 4 sit as follow-on
+  picks if the perceptual read warrants stronger passthrough. 1 file,
+  +14/-5.
+
 - **Course detail curriculum bloom + card-ambient passthrough investigation —
   polish/course-detail-curriculum-bloom**
   **(2026-09-02, on `polish/course-detail-curriculum-bloom` off `develop @ a652bde`,
