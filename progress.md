@@ -82,6 +82,37 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Course detail curriculum bloom + card-ambient passthrough investigation —
+  polish/course-detail-curriculum-bloom**
+  **(2026-09-02, on `polish/course-detail-curriculum-bloom` off `develop @ a652bde`,
+  PR pending):** User said "go yolo" on items 1+2 of the prior turn's
+  worth-doing-next list. Closed item 1 here — design-spec background §2
+  row "`/en/courses/[course]` body sections" was deferred in PR #132-era
+  commentary. The page has only one body section (the curriculum timeline),
+  so PR #116's alternating-bloom pattern doesn't apply; instead, a single
+  low-opacity cool bloom anchored `top:-6rem right:-10rem` on the curriculum
+  section — deliberately NOT mirrored onto the hero's bottom-corner anchors
+  directly above it. Color: `--color-cool` (not `--marketing-accent-bloom`)
+  because the warm-bloom token is reserved for "active / focus / press"
+  affordances per the `marketing-accent-*` semantics from PR #111/115.
+  Opacity capped at 18% so the timeline's text contrast against
+  `var(--color-ink)` is unaffected (no WCAG impact on existing text).
+  Required `isolation: isolate` on the section + `position: relative` +
+  `z-index: 1` on the heading + list (the same negative-z-index stack
+  lesson from PR #130). Item 2 (card-side ambient passthrough on hover)
+  investigated read-only — `.ls-blog-card` background fill is opaque
+  `radial-gradient(bloom, transparent)` over
+  `linear-gradient(var(--color-surface), var(--marketing-accent-deep) 12%)`;
+  the first layer uses `--color-surface` as base so the grid behind cards
+  is invisible behind every card. Changing the card fill would mean
+  dropping the opaque surface gradient — affects every article card,
+  course card, flashcard, and quiz surface. **Not autonomous scope;
+  surfaced for user pick.** 2 files changed, +46/-2. All gates green:
+  typecheck 5/5 (turbo cache hit), lint 5/5, test 38/38 +
+  35/35, `pnpm verify:prerender` 196/196 + 18/18, `pnpm verify:frontmatter`
+  196/196. HTML probe `/en/courses/react-foundations.html`: 2×
+  `.course-detail-curriculum-bloom` + 2× `.course-detail-curriculum-eyebrow`.
+
 - **Quick quiz rebrand + server-action fix + 3-zone footer — polish/quiz-server-action-and-rebrand**
   **(2026-09-02, on `polish/quiz-server-action-and-rebrand` off develop @ `8bf665c`,
   PR pending — rebrand, footer rewrite, server-action registration, action-scope catalog
