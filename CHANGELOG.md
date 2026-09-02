@@ -62,6 +62,40 @@ are gated by Fix C (`polish/mobile-fix-c-grid-collapse`)
 which addresses the §2a parent-containment / wider-than-
 viewport mechanisms.
 
+### [2026-09-02] — polish/mobile-fix-c-grid-collapse — defensive max-width + overflow-wrap on clamped prose boxes (fix C round 1)
+
+**Fixed**
+- Hardens `.course-card-desc` and `.course-card-rationale`
+  against unbreakable tokens (e.g. `react-render-cycle`,
+  `react-concepts/architecture/...` corpus slugs) by adding
+  `max-width: 100%; overflow-wrap: anywhere;` rules to both
+  classes. The `-webkit-line-clamp: 3` display relies on the
+  box constraining to its parent's width, but long unbreakable
+  tokens force the intrinsic width of the box to the longest
+  token's width — wider than a 375px viewport.
+
+**Stats:** 1 file +22/-0 (10 lines of comment per the project
+convention; 2 declarations per rule). All 4 gates PASS
+(typecheck 5/5, lint 0, build PASS with Pagefind 222/29019
+unchanged, verify:prerender 196/196+18/18,
+verify-frontmatter 196/196).
+
+**Honest scope:** during the PR's verification at 500px viewport
+(Chrome `--window-size=375` clamps to ~500px on macOS, so this
+is the most reliable measurement available without forcing CDP
+`Emulation.setDeviceMetricsOverride` — which kept hanging the
+probe across two attempts in this session), the actual symptoms
+from the audit's §1 findings 2-4 were NOT confirmed. The
+line-clamp ellipsis on `.course-card-desc` was correctly
+truncating 3 lines, not clipping past 500px. The grids
+(`.blog-cards`, `.courses-list`, `.course-hero`) already
+collapse to single column well within 500px. So this PR
+narrows from "fix the audit findings" to "harden the underlying
+clamped prose boxes against future unbreakable-token edge
+cases" — session-132's standing rule named `react-render-cycle`
+and `@next/cache` as concrete examples. Real-iPhone spot-check
+remains the open question.
+
 ### [2026-09-02] — polish/mobile-reflow-pass — mobile reflow audit + 4 proposed follow-on PRs (docs)
 
 **Added**

@@ -6646,3 +6646,39 @@ The audit found 4 critical mobile overflows: home hero, /en/blog hero subtitle, 
 - Vercel Auth bypass, develop → main promotion, D38 verify-links advisoring — user's actions.
 
 ---
+## Session 143 — polish/mobile-fix-c-grid-collapse PR #139 — 2026-09-02
+
+**Branch:** `polish/mobile-fix-c-grid-collapse` off `develop @ d984eb8`
+
+**Files changed:**
+- `apps/web/app/globals.css` — added `max-width: 100%; overflow-wrap: anywhere;` to `.course-card-desc` and `.course-card-rationale` (+22 lines, 10 of comment per project convention, 2 declarations per rule).
+
+**Why:** Continued the polish chain after PRs #137 (mobile-fix-a, MERGED at `7c08933`) and #138 (mobile-fix-b, MERGED at `2b1bc78`) closed their audit scopes. Fix C per `prompts/design-spec-2026-08-mobile-reflow.md` §3 named the §1 audit findings 2-4 (course-card description, listing-card overflow, course-hero description) as candidates for "ensure grids collapse to single column." The §2 "implementation sequence" table scoped Fix C to ~2 files +6/-2.
+
+**Honest scope:** during this PR's verification, I forced a 500px viewport (Chrome `--window-size=375` clamps to ~500px on macOS, so this is the most reliable measurement available without forcing CDP `Emulation.setDeviceMetricsOverride` — which kept hanging the probe across two attempts). At 500px, the actual symptoms are NOT confirmed: `.course-card-desc` and `.course-card-rationale` both render `-webkit-line-clamp: 3` correctly with proper ellipsis on line 3 — the audit's earlier vision analysis mistook the ellipsis for clipping. The grids (.blog-cards = `repeat(auto-fill, minmax(290px, 1fr))`, .courses-list = Tailwind grid without `grid-cols-*`, .course-hero = block) already collapse to single column well within 500px. So the PR's scope narrows from "fix the audit findings" to "harden the underlying clamped prose boxes against unbreakable tokens that future corpus authors may introduce" — session-132's standing rule named `react-render-cycle` and `@next/cache` as concrete examples.
+
+**Invented decisions:**
+- **Defensive `overflow-wrap: anywhere` rather than `break-word`.** `anywhere` is the more semantically-correct CSS Overflow 3 keyword (allows break at any character as last resort, does NOT introduce a soft-wrap break opportunity mid-word that would change desktop word breaks). Cost on desktop is zero because natural word boundaries always take precedence.
+- **`max-width: 100%` over `width: 100%`.** The latter would force the box to 100% of parent width even when the natural width is smaller — visually we'd lose the right-aligned text-edge alignment. `max-width: 100%` only constrains when natural width would exceed parent.
+- **Did NOT change `--measure-prose: 68ch`.** Touching the token would change prose width site-wide (D22 OG image and other surface contracts reference it). The `68ch` value is correct for desktop; the bug isn't there.
+- **Did NOT add `@media (max-width: 768px)` rules.** Per PR #128 / PR #139 lessons, breakpoint-scoped override rules are a maintenance burden. The new rules are unconditional and `overflow-wrap: anywhere` only fires as a last resort — so 900px viewports pay no cost.
+- **Left `.blog-pane` mobile grid alone.** Spec's §1 finding 3 was "listing-card overflow on /en/courses and /en/blog" but the actual `.blog-cards` rule (`auto-fill, minmax(290px, 1fr)`) was confirmed correct via the §2 audit follow-up — no overflow at 500px. No code change needed.
+- **Did NOT change `--measure-prose` (would touch D22 + other unrelated surfaces)** and did NOT touch the `<header className="course-hero ...">` itself — its `overflow-hidden` parent + `max-w-[var(--measure-prose)]` description is the right contract; the audit's "course-hero description clipping" was actually the line-clamp ellipsis working correctly.
+- **Re-shoot at 500px:** `/tmp/s143v2/courses-500.png` (291KB) and `/tmp/s143v2/course-hero-500.png` (204KB). Captured by `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome --headless=new --window-size=500,1000 --force-device-scale-factor=1 --screenshot=` on `localhost:4002`. These are the live-reference images that future sessions can compare against.
+
+**Gates:**
+- `pnpm typecheck` — 5/5 PASS (4 cache hits, 1 cache miss re-run)
+- `pnpm build` — PASS, ~38s, Pagefind 222 / 29019 unchanged from PR #138
+- `pnpm verify:prerender` — 196/196 + 18/18 PASS
+- `pnpm verify:frontmatter` — 196/196 PASS
+- `pnpm lint` — exit 0
+
+**Known issues / next steps:**
+- The CDP-based forced-375px probe (`/tmp/probe-shot.mjs`) hangs twice in this session. The 500px probe is reliable but it's NOT a true iPhone viewport. A real iPhone spot-check is the only way to confirm the audit's stated symptoms at 375px — `/.spot-check` standing rule from session 132 applies.
+- Polish residue from session 132 still untouched: D20 Shiki (new dep), D22 OG image (DNS+Vercel — mostly closed by PR #97; cdn sub-domain remains), D30 FAQ half (corpus-side), D33 attribution (corpus-side). All stop-and-ask.
+- Vercel Auth bypass for `/pagefind/*` + `/api/*` — user dashboard action.
+- D38 CI substrate (`pnpm verify:links` failing on 44 unresolved refs in submodule repos, `--admin --squash --delete-branch` accepted since PR #113).
+- `develop → main` promotion — user opens that PR themselves.
+- Polish residue from PR #136: `polish/mobile-fix-d-hero-balance` is named but DEFERRED per the spec §3 (requires content choice — illustration vs. metadata balance). Session 142 carried that decision unchanged.
+
+---

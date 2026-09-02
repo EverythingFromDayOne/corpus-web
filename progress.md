@@ -82,6 +82,27 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Mobile fix C (defensive clamped prose) — Polish-mobile-fix-c-grid-collapse**
+  **(2026-09-02, on `polish/mobile-fix-c-grid-collapse` off develop @ `d984eb8`,
+  PR #139, MERGED at `f6da7fc`):** Landed Fix C round 1 from
+  `prompts/design-spec-2026-08-mobile-reflow.md` (§3). 1 file +22/-0:
+  added `max-width: 100%; overflow-wrap: anywhere;` to
+  `.course-card-desc` and `.course-card-rationale` in
+  `apps/web/app/globals.css`. **Honest scope:** at 500px forced viewport,
+  the spec's stated symptoms (§1 findings 2-4: course-card
+  description clipping, listing-card overflow, course-hero
+  description clipping) were NOT confirmed — the audit's earlier
+  vision analysis mistook the `-webkit-line-clamp` ellipsis for
+  clipping. The grids (`.blog-cards` auto-fill/minmax-290,
+  `.courses-list` Tailwind without `grid-cols-*`, `.course-hero`
+  block) already collapse to single column. So this PR is defensive
+  hardening against unbreakable corpus slugs (session-132 standing
+  rule: `react-render-cycle`, `@next/cache`), not a §1 findings
+  fix. All 4 gates PASS. Real-iPhone spot-check remains the open
+  question (Chrome `--window-size=375` clamps to ~500px on macOS;
+  CDP `Emulation.setDeviceMetricsOverride` hung twice in this
+  session — note left for future-session probe).
+
 - **Mobile fix B (card-meta flex-wrap) — Polish-mobile-fix-b-card-meta-flex-wrap**
   **(2026-09-02, on `polish/mobile-fix-b-card-meta-flex-wrap` off develop @ `35f5ba4`,
   PR #138, MERGED at `2b1bc78`):** Landed Fix B from
