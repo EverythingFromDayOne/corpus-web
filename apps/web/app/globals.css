@@ -788,6 +788,44 @@ body:has(.av-view) .av-header-tog {
   }
 }
 
+/* polish/topbar-narrow-fixes (PR #140): on very narrow viewports
+   (e.g. iPhone 13 mini at 375px CSS), the topbar-tools row
+   (SearchTrigger collapsed icon + START THE COURSE pill +
+   ThemeToggle pill at w-[72px]) does not fit alongside the
+   `corpus.web` logo. Earlier we hid nav links at ≤480px and
+   collapsed the search trigger at ≤640px, but the pill was kept
+   visible — leaving the ThemeToggle clipped on the right edge
+   inside the still-pill CTA boundary (visible on /en/courses/
+   [course] and on /en/blog/[article] at 375px).
+
+   Diagnosis via CDP `Emulation.setDeviceMetricsOverride` to true
+   375×812 (Chrome --window-size=375 clamps to ~500px on macOS):
+   - topbar-wrap @ 375px: hamburger 34 + gap 24 + logo 95 + gap
+     24 + tools 237 = 414px content > 335px available
+   - ThemeToggle right=434, viewport=375 → 59px clipped.
+
+   Solution: hide the pill at ≤480px and add `cursor: pointer`
+   on the theme toggle. (a) Hiding the pill matches the
+   principle used two PRs ago for `.topbar-nav` (the in-page
+   sidebar tree at the top of mobile content provides the same
+   Home / Courses / Articles navigation — the pill is the
+   equivalent desktop affordance). The pill also reduces to
+   `font-size: 9px; padding: 0.2rem 0.45rem` here as a
+   defense-in-depth, but at this width it is correctly hidden
+   entirely. (b) Browsers' default `cursor: pointer` on
+   `<button>` is usually preserved, but the toggle's
+   `role="switch"` + pill geometry weakens the visual cue on a
+   flash-tap (the `:active` state only registers on actual
+   press); an explicit declaration makes the affordance
+   contractually clear for screen-reader users and also for
+   sighted users on devices that may strip the default cursor
+   (e.g. some Linux + GTK combinations). */
+@media (max-width: 480px) {
+  .topbar-pill-cta {
+    display: none;
+  }
+}
+
 /* On mobile widths the topbar overflows: logo + 3 nav links + a
    16rem search input + theme toggle is ~640px of content competing
    for a 390px viewport. Hide the input's text + ⌘K chip on
