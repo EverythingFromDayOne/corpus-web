@@ -6586,3 +6586,35 @@ The audit found 4 critical mobile overflows: home hero, /en/blog hero subtitle, 
 - Vercel Auth bypass, `develop → main` promotion, D38 verify-links advisoring — your actions.
 
 ---
+## Session 139 — polish/mobile-fix-a-overflow-wrap PR #137 — 2026-09-02
+
+**Branch:** `polish/mobile-fix-a-overflow-wrap` off `develop @ 35f5ba4`
+
+**Files changed:**
+- `apps/web/app/globals.css` — added `html { overflow-wrap: break-word; }` inside `@layer base` (+43 lines of explanatory comment per project convention). 1 file +44/-0.
+
+**Why:** Continued the user's "Go with option 1" choice from the prior turn — landed Fix A (the first of four named follow-on fixes) from `prompts/design-spec-2026-08-mobile-reflow.md` §3 (PR #136, MERGED). One-rule CSS-only change that defensively addresses the §2b "long-token overflow" subset of the audit findings.
+
+**Honest scope:** this PR does NOT address the §1 right-edge-clipping findings on `/en`, `/en/blog`, `/en/courses`, and `.course-hero` (those symptoms are caused by parent-containment / wider-than-viewport mechanisms per the spec §2a). Those remain open pending Fix B (`polish/mobile-fix-b-card-meta-flex-wrap`) and Fix C (`polish/mobile-fix-c-grid-collapse`).
+
+**Invented decisions:**
+- **Did the fix A only, not A+B+C bundled.** Spec §4 sequencing called for one PR per fix with real-device spot-check between merges. Bundling A+B+C would have made the PR review surface too large and obscured whether the long-token fix and the meta-wrap fix are independent.
+- **Document-root `html` rule rather than per-element overrides.** Spec §3 explicitly recommended "applied at the document root so the fix is defensive against future components". This means the rule protects against future unbreakable-token sources (slogans, hashes, future slugs) without needing per-element maintenance.
+- **`break-word` rather than `anywhere`.** Per CSS spec, `anywhere` is the more semantically correct value (CSS Overflow 3 as of 2026), but Safari added support only in 16.4 (March 2023) and the `break-word` alias works in every shipping browser today. Trade-off: same effective behavior for this defensive-overflow use case, broader compatibility, slightly less aggressive algorithm on edge cases.
+- **Comment block kept verbose (43 lines for 1 rule).** Project convention per `.cursor/rules/00-session-protocol.mdc` ("Comment blocks cite source CSS rules and tokens by name; invented decisions explicit"). The comment is the spec-anchored rationalisation that proves the change is grounded and reversible; future agents / your team should be able to read 30 seconds of prose to understand why this 1-line rule exists.
+
+**Gates:**
+- `pnpm typecheck` — 5/5 PASS (4 cache hits, 1 cache-miss executed for `apps/web`)
+- `pnpm build` — PASS, 39.7s, Pagefind 222 / 29019 unchanged
+- `pnpm verify:prerender` — 196/196 + 18/18 PASS
+- `pnpm verify:frontmatter` — 196/196 PASS
+- `pnpm lint` — exit 0 (no problems reported)
+- Live probe: served CSS bundle `/_next/static/chunks/04swnqzv2n508.css` contains `overflow-wrap: break-word` declaration; rendered HTML at `/en` shows `<section class="ls-hero ls-ambient-grid relative overflow-hidden">` unchanged
+
+**Known issues / next steps:**
+- PR #137 OPEN, awaiting real iPhone spot-check per the standing rule from session 132. Comment check on `react-render-cycle` and `@next/cache` wrapping at 375×812 viewport.
+- Polish residue from this audit remains: Fix B and Fix C (mobile-fix-b-card-meta-flex-wrap + mobile-fix-c-grid-collapse). Fix D (mobile-fix-d-hero-balance) deferred per the spec.
+- D38 CI override applied via `--admin --squash --delete-branch` (standard pattern since PR #113).
+- Next session options: (a) merge PR #137 after spot-check, (b) cut Fix B, (c) wait. Awaiting your call.
+
+---

@@ -82,6 +82,20 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Mobile fix A (overflow-wrap) — Polish-mobile-fix-a-overflow-wrap**
+  **(2026-09-02, on `polish/mobile-fix-a-overflow-wrap` off develop @ `35f5ba4`,
+  PR #137, OPEN — not yet merged):** Landed Fix A from the mobile-reflow spec §3.
+  Added `html { overflow-wrap: break-word; }` to `apps/web/app/globals.css`
+  `@layer base` (+44/-0). All 5 gates PASS. Live probe confirms the new declaration
+  is in the served CSS bundle `/_next/static/chunks/04swnqzv2n508.css`.
+  **Honest scope:** addresses only the §2b long-token subset of the audit.
+  The §1 right-edge-clip findings on `/en` / `/en/blog` / `/en/courses` /
+  `.course-hero` remain open — they're caused by parent-containment / wider-than-
+  viewport issues (spec §2a) that this rule doesn't address. Those will land
+  in Fix B (`mobile-fix-b-card-meta-flex-wrap`) and Fix C (`mobile-fix-c-grid-collapse`).
+  PR is OPEN, awaiting real iPhone spot-check per session-132 standing rule before
+  `--admin` merge.
+
 - **Mobile reflow audit + 4 proposed follow-on PRs — Polish-mobile-reflow-pass**
   **(2026-09-02, on `polish/mobile-reflow-pass` off develop @ `2a39a66`, PR #136, MERGED):**
   Concluded the user's "Go yolo on option 1 then 2 then 3 'polish/mobile-reflow-pass' one by one,

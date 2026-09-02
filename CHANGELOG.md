@@ -5,6 +5,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-02] — polish/mobile-fix-a-overflow-wrap — defensive mobile long-word break (CSS root)
+
+**Added**
+- `apps/web/app/globals.css` — added `html { overflow-wrap: break-word; }` inside `@layer base` (+43 lines of explanatory comment). Defends against unbreakable long tokens (course slugs, package names, version numbers, URLs) overflowing narrow viewports at the document root.
+
+**Stats:** 1 file +44/-0 (43 lines of comment per project convention, 1 selector + 1 declaration). All 5 gates PASS. Live probe confirmed the served CSS bundle `/_next/static/chunks/04swnqzv2n508.css` contains the new `overflow-wrap: break-word` declaration; rendered HTML at `/en` JSX is unchanged.
+
+**Honest scope:** this PR addresses only the **§2b long-token subset** of the mobile-reflow audit findings (PR #136). The §1 right-edge-clipping findings on `/en`, `/en/blog`, `/en/courses`, and `.course-hero` are caused by parent-containment / wider-than-viewport mechanisms (spec §2a) that this rule does NOT address. Those remain open pending Fix B (`polish/mobile-fix-b-card-meta-flex-wrap`) and Fix C (`polish/mobile-fix-c-grid-collapse`) merges. PR #137, OPEN awaiting real iPhone spot-check before `--admin` merge.
+
 ### [2026-09-02] — polish/mobile-reflow-pass — mobile reflow audit + 4 proposed follow-on PRs (docs)
 
 **Added**
