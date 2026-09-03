@@ -4,6 +4,48 @@ All notable changes to this project are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
+### [2026-09-03] — session 159 wrap — D42 polish/d42-bloom-base merge disposition + D42-2 no-change
+
+**Note**
+- The `polish/d42-bloom-base` code (`.bloom` shared selector list +
+  per-surface variants + light-mode carve, migration of every
+  ambient bloom consumer, conversion of `.course-detail-curriculum-
+  bloom` JSX span to a pseudo-element, addition of `overflow: hidden`
+  to the curriculum section, removal of `-inset-x-12 -inset-y-8
+  rounded-full blur-3xl` from courses page JSX) **was NOT shipped
+  to `develop` this session**. A local merge onto develop was
+  performed on a detached HEAD and the resulting commit (`01e4aa4`)
+  was orphaned by a subsequent `git checkout develop`. The commit
+  was recovered to local branch `recovered-d42-merge` for future
+  re-application but is not on `develop @ cd740d4`.
+- PR #151 on GitHub is in **Closed** state (not Merged) because
+  the local merge never reached the develop branch.
+
+**D42-2 disposition**
+- `.ls-card` and `.ls-blog-card` warm radials **stay as-is** (no
+  change). The wash geometry is correct on these surfaces — the
+  gradient fades to zero before the rounded card boundary. The
+  defect that drove the D42 work (sized-rectangle overlap with
+  parent clip on `.course-hero-bloom`) does not apply to cards,
+  where the gradient is the element's own `background-image`.
+
+**Added**
+- `.agents/HANDOFF-session-159.md` (next-session hand-off, written
+  this wrap).
+- Local branch `recovered-d42-merge` pointing at the lost merge
+  commit `01e4aa4`.
+
+**Removed**
+- Nothing.
+
+**Changed**
+- Nothing on `develop` from this session (only docs in this
+  unwrap commit, on top of the existing develop HEAD `cd740d4`).
+
+**Fixed**
+- Nothing new on `develop`. The 6 ambient bloom defects remain
+  open in D42 row 1 of `docs/DEBT.md`.
+
 ### [2026-09-03] — polish/course-hero-bloom-mask — Four-edge mask + light-mode drop
 
 **Fixed**

@@ -82,6 +82,8 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **D42 bloom-base consolidation + D42-2 disposition — polish/d42-bloom-base + session-159 wrap (2026-09-03, on `develop`):** Session 159 attempt to ship PR #151 (`polish/d42-bloom-base`) to `develop` ran into a detached-HEAD merge mistake — the merge commit `01e4aa4` was created on local develop but orphaned when subsequent `git checkout develop` reset HEAD to `cd740d4` (PR #150 only). The merge commit was recovered to local branch `recovered-d42-merge` for future re-application. **PR #151 code is NOT on develop as of this wrap.** PR #151 GitHub state is "Closed" (not Merged) — user decision to leave closed, badge cannot be retroactively restored. D42-2 (`.ls-card`, `.ls-blog-card` warm radials) closed as "no change, geometry correct" — wash fades before the rounded card boundary, vision-verified on close crops in both themes. All gates green against `cd740d4` (PR #150 base): typecheck 5/5, lint 5/5, test 3/3, verify:prerender 196/196 + 18/18, verify:frontmatter 196/196, agents:check ✓, hermes verify --json ok=true 9/9 phases PASS readiness HTTP 200 in 0.02s (cached build). Polish residue after D42: D20 Shiki (decision pending — add dep vs leave plain), D21 Pagefind (blocked on Vercel Auth dashboard bypass for `/pagefind/*` + `/api/*`), D22 SEO / OG image (decision pending — dynamic vs static). See `.agents/HANDOFF-session-159.md` for next-session hand-off.
+
 - **Four-edge bloom mask + light-mode drop — polish/course-hero-bloom-mask**
   **(2026-09-03, on `polish/course-hero-bloom-mask` off `develop @ 816d2e6`,
   PR pending):** User-reported bloom defect on `/en/courses/[slug]`: visible

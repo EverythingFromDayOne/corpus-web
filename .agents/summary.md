@@ -375,13 +375,39 @@ no personal content, narrowed to permit a contact email in the footer and on
    `catalog.unresolvedTargets`. All corpus-side; itemised per ref in
    `docs/audit/unresolved-refs-2026-08-16.md`. Debt D12 is closed (`nestjs@v0.3.1`).
    Debt D6 is closed (`nestjs@v0.3.2`).
-   The cheapest remaining Group 1 fix is publishing the two staged `nextjs` articles
-   (`cache-lifetimes`, `use-cache-directive`), which closes 4 of the 44.
+
+## Polish residue (Session 159 wrap, 2026-09-03)
+
+**Critical note for next session.** PR #151 (`polish/d42-bloom-base`) code
+**is not on `develop @ cd740d4`**. The local merge that produced commit
+`01e4aa4` ran on a detached HEAD and was orphaned by a subsequent
+`git checkout develop`. The commit was recovered to local branch
+`recovered-d42-merge` (HEAD `01e4aa4`). PR #151 on GitHub is in
+**Closed** state (not Merged). To re-apply: `git checkout develop &&
+git merge --no-ff recovered-d42-merge` then push. Likely conflict-free
+since develop only has PR #150 content, which PR #151 supersedes.
+
+**D42 status (`docs/DEBT.md` row 1):**
+- Items 1-4 (sized-rectangle ambient blooms): addressed in code, NOT shipped.
+- Items 5-6 (`.ls-card`, `.ls-blog-card`): **closed as no-change**, geometry correct.
+
+**Open polish residue after D42:**
+- **D20 Shiki** — decision pending (add dep vs leave plain). Stop-and-ask if "add."
+- **D21 Pagefind** — blocked on Vercel Auth bypass for `/pagefind/*` and `/api/*` (dashboard action, not code).
+- **D22 SEO / OG image** — decision pending (dynamic per-article vs static shared).
+
+**Pre-existing carry-overs:**
+- Vercel Auth bypass for `/pagefind/*` + `/api/*` (unblocks D21).
+- D38 informational `verify-links` failure (44 unresolved `related` refs).
+- develop → main promotion PR (90+ commits apart).
+
+---
+
 3. Article and lesson routes now read `catalog.json` (`/en/blog/[corpus]/[slug]`,
-  `/en/courses/[course]/lessons/[slug]`). Remaining Phase 1: Shiki (D20),
-  Pagefind (D21), `/en/license` (D25), SEO residue (D22), a11y CI (D19).
-  D18 (POC a11y on article chrome) is closed. Render-mode gate (D23) is
-  `pnpm verify:prerender`. Do not revive `/en/concepts/…`.
+   `/en/courses/[course]/lessons/[slug]`). Remaining Phase 1: Shiki (D20),
+   Pagefind (D21), `/en/license` (D25), SEO residue (D22), a11y CI (D19).
+   D18 (POC a11y on article chrome) is closed. Render-mode gate (D23) is
+   `pnpm verify:prerender`. Do not revive `/en/concepts/…`.
 4. Quiz, flashcard, callout, and drag-drop primitives exist (D24 slice)
   with Phase 1 + Phase 2 motion polish. Sample usage (2 quizzes, 1
   flashcard, 2 callouts, 1 drag-drop) is
