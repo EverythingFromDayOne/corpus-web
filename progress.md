@@ -82,6 +82,41 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **D42 bloom-base consolidation — polish/d42-bloom-base**
+  **(2026-09-03, on `polish/d42-bloom-base` off `develop @ 816d2e6`,
+  PR pending):** Per user's direction "D42 as one consolidation task,
+  not a per-surface chain". Single shared `.bloom` base rule in
+  `apps/web/app/globals.css` (selector list of 7 selectors covering
+  `.ls-hero::before/::after`, `.ls-sec::before`,
+  `.ls-sec + .ls-sec::before`, `.ls-audience::before`,
+  `.course-detail-curriculum::before`, plus `.course-hero-bloom`).
+  Carries `position: absolute; inset: 0; overflow: hidden; pointer-
+  events: none;` and the four-edge `mask-image` (4 stacked linear-
+  gradients + `mask-composite: intersect`). Per-surface variants set
+  only gradient colour + anchor (no sized rectangle, no positioning,
+  no z-index). Items 1-6 from the D42 inventory all migrated:
+  course-hero (carry-over from PR #150), course-detail-curriculum
+  (JSX span deleted, replaced by `.course-detail-curriculum::before`
+  pseudo-element), home hero + per-section blooms (5 home.css rules
+  stripped of `width:Nrem; height:Nrem; top:-Nrem; right:-Nrem;`).
+  Light-mode carve split between globals.css (course surfaces) and
+  home.css (home surfaces). `.course-detail-curriculum` gains
+  `overflow: hidden` so the new pseudo-element is clipped to the
+  section's interior (timeline dots + focus rings verified clear
+  by vision). Items 7-8 (`.ls-card`, `.ls-blog-card`) explicitly
+  deferred — different defect shape (gradient as element-background-
+  image, not child element). All gates PASS: typecheck 5/5, lint
+  5/5 (incl. `react/jsx-key` from PR #149), test 3/3 (incl.
+  `react-jsx-key-hygiene.test.ts`), build 0 exit, prerender 196+18,
+  frontmatter 196, agents:check ✓, `hermes verify --json` ok=true,
+  9/9 phases PASS, readiness HTTP 200 in **6.31 s**. Vision-verified
+  on `/en` (full page, dark + light): every ambient bloom (hero,
+  corpora, audience, entry-points) reads as clean atmospheric depth
+  in dark, uniform off-white in light. Curriculum section
+  (`/en/courses/react-foundations`, dark + light) timeline dots
+  confirmed intact at ~x=90 from document left edge, not clipped
+  by the new `overflow: hidden`.
+
 - **Four-edge bloom mask + light-mode drop — polish/course-hero-bloom-mask**
   **(2026-09-03, on `polish/course-hero-bloom-mask` off `develop @ 816d2e6`,
   PR pending):** User-reported bloom defect on `/en/courses/[slug]`: visible

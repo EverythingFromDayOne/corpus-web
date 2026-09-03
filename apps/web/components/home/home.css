@@ -116,37 +116,28 @@
    lower-left, opposite corner, for the aurora offset. Opacity
    intentionally lower than the course-hero aurora (PR #117)
    because the home hero is the page entry — softer than the
-   per-section blooms on the sectioned body below. */
+   per-section blooms on the sectioned body below.
+
+   Positioning, clipping, pointer events, and the four-edge mask
+   are inherited from the shared .bloom selector list (defined
+   in globals.css). These rules contribute only the gradient
+   colour + anchor. */
 .ls-hero::before {
   content: "";
-  z-index: -1;
   background: radial-gradient(
-    ellipse at center,
+    ellipse 60rem 40rem at 100% 0%,
     color-mix(in srgb, var(--marketing-accent-bloom) 24%, transparent) 0%,
     transparent 65%
   );
-  pointer-events: none;
-  position: absolute;
-  top: -4rem;
-  right: -6rem;
-  width: 40rem;
-  height: 26rem;
 }
 
 .ls-hero::after {
   content: "";
-  z-index: -1;
   background: radial-gradient(
-    ellipse at center,
+    ellipse 60rem 40rem at 0% 100%,
     color-mix(in srgb, var(--color-cool) 20%, transparent) 0%,
     transparent 65%
   );
-  pointer-events: none;
-  position: absolute;
-  left: -6rem;
-  bottom: -8rem;
-  width: 34rem;
-  height: 22rem;
 }
 
 .ls-hero .ls-wrap {
@@ -230,33 +221,40 @@
    Soft radial anchored to a corner of each section so successive
    blooms don't stack on the same axis. First .ls-sec (corpora) blooms
    from the right; .ls-sec + .ls-sec (entry points) blooms from the
-   left. Layered behind the section content via z-index:-1 on the
-   pseudo + isolation:isolate on the parent. Opacity intentionally
-   low (22% bloom, 18% deep) so the bloom reads as ambient depth. */
+   left. Opacity intentionally low (22% bloom, 18% deep) so the bloom
+   reads as ambient depth.
+
+   Positioning, clipping, pointer events, and the four-edge mask are
+   inherited from the shared .bloom selector list (defined in
+   globals.css). These rules contribute only the gradient colour +
+   anchor. */
 .ls-sec:not(.ls-audience)::before {
   content: "";
-  position: absolute;
-  z-index: -1;
-  top: -2rem;
-  right: -3rem;
-  width: 32rem;
-  height: 18rem;
   background: radial-gradient(
-    ellipse at center,
+    ellipse 60rem 40rem at 100% 0%,
     color-mix(in srgb, var(--marketing-accent-bloom) 22%, transparent) 0%,
     transparent 70%
   );
-  pointer-events: none;
 }
 
 .ls-sec + .ls-sec:not(.ls-audience)::before {
-  left: -3rem;
-  right: auto;
   background: radial-gradient(
-    ellipse at center,
+    ellipse 60rem 40rem at 0% 0%,
     color-mix(in srgb, var(--marketing-accent-deep) 18%, transparent) 0%,
     transparent 70%
   );
+}
+
+/* Light-mode carve (home.css-local — see globals.css note for why
+   the carve is split across two files). At 22%/18% on parchment
+   the wash reads as bounded paper tone rather than ambient depth;
+   drop both variants to zero in light mode. */
+[data-theme='light'] .ls-hero::before,
+[data-theme='light'] .ls-hero::after,
+[data-theme='light'] .ls-sec::before,
+[data-theme='light'] .ls-sec + .ls-sec::before,
+[data-theme='light'] .ls-audience::before {
+  background: none;
 }
 
 .ls-sechd {
@@ -291,21 +289,19 @@
 }
 
 /* Audience-section bloom — design-spec home §6. Distinct corner
-   (bottom-right) so the three per-section blooms don't overlap. */
+   (bottom-right) so the three per-section blooms don't overlap.
+
+   Positioning, clipping, pointer events, and the four-edge mask are
+   inherited from the shared .bloom selector list (defined in
+   globals.css). This rule contributes only the gradient colour +
+   anchor. */
 .ls-audience::before {
   content: "";
-  position: absolute;
-  z-index: -1;
-  bottom: -3rem;
-  right: -4rem;
-  width: 36rem;
-  height: 22rem;
   background: radial-gradient(
-    ellipse at center,
+    ellipse 60rem 40rem at 100% 100%,
     color-mix(in srgb, var(--marketing-accent-bloom) 16%, transparent) 0%,
     transparent 65%
   );
-  pointer-events: none;
 }
 
 .ls-aud-eyebrow {

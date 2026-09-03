@@ -7556,3 +7556,126 @@ rest of the corpus treats light mode as flat editorial paper.
 
 ---
 
+## Session 158 — polish/d42-bloom-base — 2026-09-03
+
+**Branch:** `polish/d42-bloom-base` off `develop @ 816d2e6` (PR pending)
+
+**Files changed:**
+- `apps/web/app/globals.css` — added the shared `.bloom` selector list
+  + per-surface gradient variants + light-mode carve; deleted
+  redundant `.course-hero-bloom` four-edge properties + the
+  PR-#150 light-mode carve on its own variants; deleted the
+  `.course-detail-curriculum-bloom` rule (JSX span gone); added
+  `position: relative; overflow: hidden;` to
+  `.course-detail-curriculum` so the new pseudo-element is clipped
+  to the section's interior.
+- `apps/web/components/home/home.css` — stripped the
+  `position:absolute; z-index:-1; top:-Nrem; right:-Nrem;
+  left:-Nrem; bottom:-Nrem; width:Nrem; height:Nrem;
+  pointer-events:none;` from `.ls-hero::before/::after`,
+  `.ls-sec:not(.ls-audience)::before`,
+  `.ls-sec + .ls-sec:not(.ls-audience)::before`,
+  `.ls-audience::before`. Each rule now contributes only the
+  gradient colour + anchor. Added a home.css-local light-mode
+  carve for the home surfaces (`.ls-*`).
+- `apps/web/app/[locale]/courses/[course]/page.tsx` — deleted the
+  `<span class="course-detail-curriculum-bloom
+  pointer-events-none absolute -inset-x-12 -inset-y-8
+  rounded-full blur-3xl">` JSX div; dropped `pointer-events-none
+  absolute` from both `.course-hero-bloom` JSX divs.
+
+**Why:** D42 closes the systematic sized-rectangle bloom defect
+that PR #150 first surfaced on the course hero. Six surfaces shared
+the same architectural mistake: a sized absolute rectangle anchored
+to a corner via negative top/right/left/bottom, layered behind the
+parent content. The gradient's brightest 0% source landed on the
+parent's clipped edge, producing a visible rectangular boundary
+wherever the gradient's outer ellipse arc met the parent's
+overflow clip. The fix is two-fold: (1) `inset: 0` so the painted
+layer fills the parent (no sized rectangle), (2) four-edge
+`mask-image` (4 stacked linear-gradients + `mask-composite:
+intersect`) so any pixel near a clipped edge is taken to zero
+opacity regardless of the gradient geometry. Mask 6rem on every
+edge, uniform across consumers. Each consumer's anchor is preserved
+(warm tones at top-right, cool tones at bottom-left, deep tone at
+top-left, etc.) so the directional bias survives.
+
+**Invented decisions:**
+- **Class name `.bloom`** — chosen over `ambient-base`, `ls-bloom`,
+  or `.depth-*`. `.bloom` is short, reads as the design intent
+  (atmospheric glow), and the `--warm`/`--cool` variants follow
+  the existing `.course-hero-bloom--warm/--cool` pattern. Not
+  explicitly directed; picked for naming continuity.
+- **Four-edge mask** — per user's "Use all four" correction in the
+  prior turn. Each variant anchors its gradient at a parent corner
+  (100% 0%, 0% 100%, 0% 0%, or 100% 100%). A two-edge or three-edge
+  mask would leave the brightest source on an unmasked edge,
+  reproducing the same defect. The four gradients intersect, taking
+  a 6rem strip at every edge to zero opacity. Directional anchor
+  survives — verified visually on the home full-page captures.
+- **Selector list over `@apply`** — Tailwind 4's `@apply` cannot
+  pull classes from another CSS file (custom classes defined in
+  globals.css are not in Tailwind's utility map), and pseudo-elements
+  can't carry classes anyway. A selector list of seven selectors
+  sharing the same property block is the DRY equivalent. The
+  trade-off is one rule with seven selectors vs. seven duplicated
+  property blocks; chose the selector list.
+- **No `-webkit-` prefix on `mask-image` or `mask-composite`** —
+  Safari 15.4+ supports the unprefixed properties natively, which
+  is the project's browser floor (Next 16.3.1 + Tailwind 4 default
+  to modern evergreens). `-webkit-mask-composite` does not have a
+  4-way `intersect` equivalent; including a prefixed fallback that
+  behaves differently would be worse than omitting it.
+- **Light-mode carve split across two files** — globals.css owns
+  `[data-theme='light'] .course-hero-bloom--warm/--cool,
+  .course-detail-curriculum::before`; home.css owns the home-css
+  selectors. The cascade resolves identically because the carve
+  applies the same `background: none; mask-image: none;` either
+  way. Splitting it matches each file's selector ownership. A future
+  consolidation PR could move it into a single block.
+- **Item 5 anchor re-derived as `at 0% 0%`** (top-left) — the
+  original `.ls-sec + .ls-sec::before` rule only set `left:-3rem;
+  right:auto;`, inheriting `top:-2rem` from item 4. Geometry
+  recheck: top:-2rem left:-3rem places the box's top-left at
+  the section's top-left corner. `at 0% 0%` matches.
+- **`.ls-card` and `.ls-blog-card` (D42 items 7-8) explicitly out
+  of scope** — per user's "Leave 7-8 alone for now — different
+  defect shape, separate decision" in the prior turn. Items 7-8
+  paint the radial as the element's own background-image, not as
+  a child element / pseudo-element. Different fix shape; deferred
+  to a follow-on D42-2 PR.
+- **`.course-detail-curriculum` gets `overflow: hidden`** — without
+  it the new pseudo-element bleeds past the section's edges into
+  the gap between hero and curriculum (the `mt-16` spacing).
+  Curriculum overhang risk: timeline dots at `-left-[5px]` from
+  the `<li>` sit at x ≈ 90px from document left edge (verified by
+  vision), well inside the section's content area. Focus rings on
+  `<a>` elements render inside the link's box, also inside. No
+  clipping observed.
+
+**Known issues / next steps:**
+- D42-2 (out of scope for this PR) covers items 7-8 (`.ls-card`,
+  `.ls-blog-card`). Both paint the warm radial as the card's own
+  background-image — different defect shape, needs a different
+  shared class (likely `.bloom-card` with `inset: 0` + the four-edge
+  mask + light-mode carve, replacing the card's `background-image`
+  radial + linear-gradient). Open follow-on when ready.
+- D38 (`verify-links` informational failure on `auth` slug) still
+  stands. This PR does not introduce new links.
+- `--color-cool` light-mode token inverts in dark mode (#2b6f9e
+  light vs #6aa9d8 dark). The light-mode carve kills the cool
+  variant on light surfaces regardless of token value, so the
+  inversion doesn't surface as a defect — but it's why
+  `.ls-hero::after` and `.course-hero-bloom--cool` carry the same
+  geometry on both themes.
+- A small `mask-composite` per-paint cost was introduced (4
+  gradients + intersect). GPU-cheap with `position: absolute;
+  inset: 0; overflow: hidden` but non-zero. Not measured.
+- Pre-PR #150 dark capture (`bloom-stop-dark-react-foundations-mask4drop.png`)
+  is byte-identical to `bloom-stop-dark-mask4.png` from session
+  157 (same MD5 hash). The four-edge mask on the course hero is
+  bit-stable. The new D42 dark capture differs from the prior by
+  ~0.4% (chrome session variance, not a CSS change). Same bytes
+  confirm the migration didn't alter the course hero render.
+
+---
