@@ -7,7 +7,7 @@ import { getCatalogView, getCourse } from '@/lib/catalog';
 import { getMessages, t } from '@/lib/i18n';
 import { isLocale } from '@/lib/locales';
 import { coursePath, coursesPath, homePath, lessonPath } from '@/lib/routes';
-import { absoluteUrl, SITE_ORIGIN } from '@/lib/site';
+import { absoluteUrl, ogImageUrl, OG_IMAGE_ALT, OG_IMAGE_WIDTH, OG_IMAGE_HEIGHT, SITE_ORIGIN } from '@/lib/site';
 
 type PageProps = {
   params: Promise<{ locale: string; course: string }>;
@@ -36,6 +36,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: course.title,
       description: course.description,
       locale,
+      images: [
+        {
+          url: ogImageUrl(),
+          width: OG_IMAGE_WIDTH,
+          height: OG_IMAGE_HEIGHT,
+          alt: OG_IMAGE_ALT,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: course.title,
+      description: course.description,
+      images: [ogImageUrl()],
     },
   };
 }
