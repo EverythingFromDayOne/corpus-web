@@ -7746,3 +7746,38 @@ The card mirrors the home-hero palette discipline (`--color-ink` ground + warm `
 - **D20 (Shiki build-time)** is the next in-scope item from the session 161 user decision. Same `polish/*` branch pattern; next branch name will be `polish/d20-shiki-buildtime` off this `develop @ 9bbd2f1` head.
 
 ---
+
+## Session 162 — polish/d20-shiki-buildtime + D20 close — 2026-09-03
+
+**Branch:** `polish/d20-shiki-buildtime` (off `develop @ be9d25e`) → merged as PR #153 → `develop @ 46b77e6` (squash).
+
+**Files changed:**
+- `apps/web/package.json` — added `shiki@^4.4.3` + `rehype-pretty-code@^0.14.5` to devDependencies (build-time only; zero client bundle impact).
+- `pnpm-lock.yaml` — corresponding lockfile update for the two new devDeps.
+- `apps/web/lib/shiki-theme-dark.json` — new, 2.6KB. Custom Shiki dark theme, every token scope hand-mapped to the corpus-web palette.
+- `apps/web/lib/shiki-theme-light.json` — new, 2.6KB. Custom Shiki light theme, same scope mappings darkened for 4.5:1 contrast against the parchment background.
+- `apps/web/lib/article-markdown.tsx` — wired `rehype-pretty-code` into `createMarkdownRenderer` rehypePlugins with both themes + `onVisitLine` callback that adds `'line'` className to every Shiki line span (gives the existing `.av-cb` line-number gutter CSS something to count against via CSS `counter-reset`).
+- `packages/mdx-components/src/code-block.tsx` — added `isShikiTree` detection: when children carry Shiki token spans (an array of React elements rather than a plain text string), render them verbatim inside `<pre>`. The earlier behaviour re-split on `\n` and discarded Shiki's nested `<span style="--shiki:...">` markup. Plain text blocks (no language tag) fall through to the old `av-ln` line splitting for backwards compat.
+- `apps/web/components/article/article.css` — added dual-theme CSS: `.av-cb pre code > span` gets `counter-reset`/`counter-increment` for line numbers, `color` reads from `var(--shiki-dark)` by default with `[data-theme='light']` override to `var(--shiki-light)`. Cleared Shiki's default `<pre>` background so the existing `.av-cb` surface (`--color-surface`) shows through.
+
+**Why:** D20 (Shiki / syntax highlighting) was the second polish item from the session 161 user decision. User picked option A (build-time variant) over the JS runtime variant because: "On a reference corpus, code blocks aren't illustrative, they're the payload. Take the static path, not the JS variant. Shiki highlights at build time and ships HTML with inline styles — no runtime bundle cost at all." Plus a second directive: "Shiki needs a theme, and you have two. Ask for a dual-theme setup keyed to your existing tokens rather than a stock theme, or you'll get GitHub Dark sitting inside your palette."
+
+The custom themes hand-map every token scope (comment, string, keyword, function name, class name, variable, punctuation, etc.) to the existing `@theme` tokens in `packages/ui/src/tokens.css` so the code block and the rest of the site read as the same surface family, not a foreign palette sitting inside the article. Dark mode uses `--color-signal-soft` (#F2C782) for strings / class names (warm amber), `--color-cool` (#6AA9D8) for keywords (cyan-blue), `--color-display` (#E7EDF4) for function names. Light mode darkens the same hues for 4.5:1 contrast against the parchment background (#FFFFFF).
+
+**Invented decisions:**
+- **Custom Shiki themes over stock GitHub Dark/Light**: user directive. The themes hand-map every token scope to existing tokens in `packages/ui/src/tokens.css` so the code block and the rest of the site read as the same surface family, not a foreign palette sitting inside the article.
+- **CSS counter-based line numbers via `onVisitLine` callback**: v0.14.5 of rehype-pretty-code doesn't accept a `lineNumbers: true` option. The `onVisitLine` callback is the supported hook — it adds `'line'` className to every `<span>` Shiki emits per logical line. CSS `counter-reset` on `.av-cb pre code` + `counter-increment` on `.av-cb pre code > span::before` produces the line-number gutter with zero JS / zero text content (the numbers track edits automatically).
+- **Build-time highlighter via the unified pipeline** rather than runtime: reuses the existing `renderArticleMarkdown` cache wrap (`'use cache'` + `cacheLife('max')`) so the first request of an article pre-highlights everything; subsequent requests serve cached HTML. For a 196-article corpus, that's 196 highlight runs total, then nothing. Per-article cost is O(article length) on first access only.
+- **Dual-theme via Shiki's `--shiki-dark` / `--shiki-light` CSS custom properties** rather than runtime theme detection: Shiki emits both colours inline on each token span, the browser picks which to use via a CSS rule under `[data-theme='light']`. Zero JS for theme switching — the existing cookie + data-theme attribute pipeline does all the work.
+- **Verbatim children render when Shiki tokenized the code** (the `isShikiTree` branch): keeps Shiki's per-token spans intact instead of throwing them away by re-splitting on `\n`. Plain text blocks fall through to the old `av-ln` path — no behaviour change for blocks without a language tag.
+- **Rehype plugins tuple shape `[[rehypePrettyCode, prettyCodeOptions]]`** rather than `[rehypePrettyCode, prettyCodeOptions]`: unified's `Pluggable` shape expects the second slot to be a single options object OR a tuple `[Plugin, Options]`; the bare `[Plugin, Options]` form gets misinterpreted as an "empty preset" and throws at module load. Verified by running through `hermes verify --json` after each candidate shape.
+- **No `-w` / `--watch` mode for Shiki**: dev server uses the same pipeline as production. Build-time highlight happens once per build (or once per first-access cache hit in `pnpm dev`); subsequent requests serve cached HTML.
+
+**Known issues / next steps:**
+- **Pagefind index word count dropped from 28,822 to 26,944** (−1,878 words, ~6.5%). The cause is rehype-pretty-code wrapping each token in its own `<span>`, which fragments the text into smaller chunks for Pagefind's indexer. Search still works (verified by Pagefind finishing in 2.2s with 222 pages, same as before); some search-result excerpts may be slightly shorter. No user-visible regression expected.
+- **Plain text code blocks (no language tag)** still fall through to the old `av-ln` line splitting — visually a single line of monospace text with the line-number gutter, no syntax highlighting. Correct: there is no language to highlight, and a plain text block should look like plain text. Out of scope to add a heuristic "guess the language" pass.
+- **D21 Pagefind on Vercel Preview** is the next polish residue item: blocked on Vercel Auth dashboard bypass for `/pagefind/*` + `/opengraph-image` + article route URLs (user-action, no code).
+- **D42 destructive merge** still pending user authorization.
+- **D38 informational `verify-links` fail** (44 unresolved related refs) is pre-existing and unchanged.
+
+---

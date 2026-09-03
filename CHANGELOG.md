@@ -4,7 +4,87 @@ All notable changes to this project are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
-### [2026-09-03] — polish/d22-static-og — Static OG image + Twitter card (D22 close)
+### [2026-09-03] — polish/d20-shiki-buildtime — Dual-theme syntax highlighting via rehype-pretty-code (D20 close)
+
+**Added**
+- **`shiki@^4.4.3` + `rehype-pretty-code@^0.14.5`** added to
+  `apps/web/devDependencies`. Build-time only; zero client bundle
+  impact.
+- **`apps/web/lib/shiki-theme-dark.json`** — 2.6KB custom Shiki
+  dark theme. Every token scope (comment / string / keyword /
+  function name / class name / variable / etc.) hand-mapped to
+  existing tokens in `packages/ui/src/tokens.css`.
+- **`apps/web/lib/shiki-theme-light.json`** — 2.6KB custom Shiki
+  light theme. Same scope mappings darkened for 4.5:1 contrast
+  against the parchment background.
+
+**Changed**
+- **`apps/web/lib/article-markdown.tsx`** — wired `rehype-pretty-code`
+  into `createMarkdownRenderer` rehypePlugins with both themes +
+  `onVisitLine` callback that adds `'line'` className to every
+  Shiki line span (gives the existing `.av-cb` line-number gutter
+  CSS something to count against via CSS `counter-reset`).
+- **`packages/mdx-components/src/code-block.tsx`** — added
+  `isShikiTree` detection: when children carry Shiki token spans
+  (an array of React elements rather than a plain text string),
+  render them verbatim inside `<pre>`. The earlier behaviour
+  re-split on `\n` and discarded Shiki's nested
+  `<span style="--shiki:...">` markup. Plain text blocks (no
+  language tag) fall through to the old `av-ln` line splitting.
+- **`apps/web/components/article/article.css`** — added dual-theme
+  CSS: `.av-cb pre code > span` gets `counter-reset`/`counter-increment`
+  for line numbers, `color` reads from `var(--shiki-dark)` by
+  default with `[data-theme='light']` override to `var(--shiki-light)`.
+  Cleared Shiki's default `<pre>` background so the existing
+  `.av-cb` surface (`--color-surface`) shows through.
+
+**Removed**
+- Nothing.
+
+**Fixed**
+- Nothing.
+
+**Architecture decisions**
+- Build-time variant per user decision in session 161: devDependency
+  only, dual-theme keyed to existing tokens (NOT stock GitHub
+  Dark / Light). Rationale: "On a reference corpus, code blocks
+  aren't illustrative, they're the payload." Build-time highlights
+  + inline styles = no runtime work, and the custom themes
+  hand-map every token scope to existing tokens in
+  `packages/ui/src/tokens.css` so the code block and the rest of
+  the site read as the same surface family.
+- Build-time highlighter via the unified pipeline rather than
+  runtime: reuses the existing `renderArticleMarkdown` cache wrap
+  (`'use cache'` + `cacheLife('max')`) so the first request of an
+  article pre-highlights everything; subsequent requests serve
+  cached HTML. For a 196-article corpus, that's 196 highlight runs
+  total, then nothing.
+- Dual-theme via Shiki's `--shiki-dark` / `--shiki-light` CSS
+  custom properties rather than runtime theme detection: Shiki
+  emits both colours inline on each token span, the browser
+  picks which to use via a CSS rule under `[data-theme='light']`.
+  Zero JS for theme switching — the existing cookie + data-theme
+  attribute pipeline does all the work.
+- CSS counter-based line numbers via `onVisitLine` callback:
+  v0.14.5 of rehype-pretty-code doesn't accept a `lineNumbers:
+  true` option. The `onVisitLine` callback is the supported hook
+  — it adds `'line'` className to every `<span>` Shiki emits per
+  logical line. CSS `counter-reset` on `.av-cb pre code` +
+  `counter-increment` on `.av-cb pre code > span::before` produces
+  the line-number gutter with zero JS / zero text content.
+- All gates green: typecheck 5/5, lint 5/5, test 39/39, build
+  clean, `pnpm verify:prerender` 196/196 + 18/18, `pnpm
+  verify:frontmatter` 196/196, `pnpm agents:check` ✓, `hermes
+  verify --json` ok=true 9/9 phases PASS readiness HTTP 200 in
+  1.565s. Live probe `/en/blog/nextjs/cache-components-model`
+  returns 25 Shiki figures with 2702 `--shiki-dark` CSS variable
+  tokens + 368 `class="line"` markers. Sample token spans
+  verified: cyan keywords `#6AA9D8`, warm amber strings
+  `#E4A548`, signal-soft class names `#F2C782`, body-color
+  variables `#B9C5D2`. Light-mode counterparts match exactly.
+- D20 row in `docs/DEBT.md` closes with this PR.
+
+### [2026-09-03] — polish/d22-static-og — Static OG image + Twitter card (D22 close) — Static OG image + Twitter card (D22 close)
 
 **Added**
 - **`apps/web/app/opengraph-image.tsx`** — Next.js file convention
