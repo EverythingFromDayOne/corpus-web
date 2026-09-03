@@ -1649,6 +1649,7 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
   `t(messages, 'article.share.label')`) was caught by the build
   prerender — `Missing message: share.label` — not by reading the
   i18n file ahead of the keys. Amend-in-place before pushing.
+
 - **Review-first refinement of blog spec (2026-08-30, PR #88):**
   sub-agent session `20260830_220501_e1e12b` (9m 47s, 113 tool calls,
   Hermes-Coding profile) delivered a 1296-line first draft at

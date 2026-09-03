@@ -7937,3 +7937,4 @@ top-left, etc.) so the directional bias survives.
 - **D38 informational `verify-links` fail** — 44 unresolved `related` refs in `nextjs` + `nestjs` submodules, pre-existing content debt, unchanged.
 
 ---
+- 1 open PR: #88 (this session's commit, awaiting review/merge)
