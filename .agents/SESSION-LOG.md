@@ -7902,3 +7902,38 @@ top-left, etc.) so the directional bias survives.
   confirm the migration didn't alter the course hero render.
 
 ---
+
+## Session 163 — polish/d42-bloom-recovery + D42 destructive merge — 2026-09-03
+
+**Branch:** `polish/d42-bloom-recovery` destructive merge onto `develop @ 37c123c` → merge commit `829a688` on develop → PR #154 opened against main (develop→main promotion).
+
+**Destructive op:** `git merge --no-ff recovered-d42-merge -m "Merge branch 'recovered-d42-merge' into develop (D42 destructive merge)"`. Explicitly authorized by user in this session ("Go option 1"). Confirmed HEAD on develop (not detached) before running, per the corpus-web-context skill rule "Confirm `git rev-parse --abbrev-ref HEAD` is the expected branch BEFORE `git merge` — detached HEAD merges silently orphan the commit."
+
+**Files changed (auto-merged):**
+- `apps/web/app/globals.css` — shared `.bloom` base rule + four-edge `mask-image` (4 stacked linear-gradients + `mask-composite: intersect`); per-surface variants carry only gradient colour + anchor; light-mode carve suppresses all course surfaces
+- `apps/web/components/home/home.css` — 5 `.ls-*::before`/`:after` rules stripped of `width:Nrem; height:Nrem; top:-Nrem; right:-Nrem;` and rewritten with parent-relative anchors (`at 100% 0%` etc.); light-mode carve splits to home.css for the home selectors
+- `apps/web/app/[locale]/courses/[course]/page.tsx` — `<span class="course-detail-curriculum-bloom">` JSX div deleted; replaced by `.course-detail-curriculum::before` pseudo-element; `pointer-events-none absolute` dropped from `.course-hero-bloom` divs (properties live in `.bloom` base now)
+- `apps/web/app/[locale]/courses/[course]/page.tsx` — `.course-detail-curriculum` gains `position: relative; overflow: hidden;` so the new pseudo-element clips to the section's interior (timeline dots + focus rings verified clear)
+- `.agents/SESSION-LOG.md` — auto-merged via `.gitattributes` `merge=union`
+- `CHANGELOG.md` — auto-merged via `.gitattributes` `merge=union`
+
+**Files changed (manual conflict resolution):**
+- `docs/DEBT.md` — D42 row rewritten to reflect the post-merge truth: items 1-6 closed by THIS merge, items 7-8 still deferred. Single `re.compile(...).sub(repl, src)` pass per the corpus-web-context skill rule "progress.md rebase may show MULTIPLE conflict markers simultaneously — fix via `re.compile(...).sub(repl, src)` in one pass."
+- `progress.md` — both sides of the conflict preserved as real session-log history: HEAD session 161/162 entries first (chronologically later), then recovered session 158/159 entries. `progress.md` is NOT in `.gitattributes` `merge=union`; in-place conflict resolution preserves the append-only intent.
+
+**Why:** D42 (items 1-6) was the original `polish/d42-bloom-base` work from session 158. The session 159 attempt to ship it via `git merge --no-ff` ran on a detached HEAD and was orphaned when subsequent `git checkout develop` reset HEAD to `cd740d4`. The merge commit `01e4aa4` was recovered to local branch `recovered-d42-merge`. PR #151 was Closed on GitHub (badge permanently Closed — can't be retroactively restored). The session 162 user direction was "Go option 1" = D42 destructive merge onto develop. This session executes that.
+
+**Invented decisions:**
+- **Fresh PR (PR #154) instead of reopening PR #151**: PR #151 was Closed, not Merged, on GitHub. Per corpus-web-context skill: "Closing a merged PR strips the 'Merged' badge, unrecoverable." PR #151's badge is already permanently "Closed" — reopening wouldn't give a "Merged" badge. The only way to ship a fresh "Merged" badge is a fresh PR.
+- **`git merge --no-ff` on a branch checkout, not on detached HEAD**: per the session 159 lesson "detached HEAD merges silently orphan the commit." Confirmed `git rev-parse --abbrev-ref HEAD` returned `develop` (not detached) before running the merge.
+- **Single-pass regex conflict resolution on `docs/DEBT.md`**: per corpus-web-context skill, multiple conflict markers can show in the same file. Verified only one conflict marker triple per file via `grep -nE '<<<<<<<|=======|>>>>>>>'` before resolving.
+- **`progress.md` in-place conflict resolution preserves both sides verbatim**: HEAD had session 161/162 entries (real history from this chain), recovered had session 158/159 entries (real history from the D42 branch). Both are correct, chronological order = HEAD first. `progress.md` is not in `.gitattributes` `merge=union`, so in-place resolution is the canonical fix; preserves the append-only intent.
+- **D42 items 7-8 explicit deferral in the merged D42 row**: per session 158 user direction "Leave 7-8 alone for now — different defect shape, separate decision." Items 7-8 (`.ls-card`, `.ls-blog-card` warm radials as element `background-image`) are different defect shape from items 1-6 (rectangular pseudo-element); the merged D42 row preserves both the closure of items 1-6 and the open status of items 7-8.
+
+**Known issues / next steps:**
+- **PR #154 is open against `main`** with the entire polish chain (D22 OG, D20 Shiki, D42 destructive merge = 91+ commits since `origin/main @ 8378947`). User must admin-squash-merge per the corpus-web-context skill ("NEVER touch `main`; user promotes.").
+- **D21 Pagefind on Vercel Preview** — Vercel Auth dashboard bypass for `/pagefind/*` + `/opengraph-image` + article route URLs (user-action, no code).
+- **D42 items 7-8 (`.ls-card`, `.ls-blog-card` warm radials)** — different defect shape, deferred per session 158 user direction.
+- **D38 informational `verify-links` fail** — 44 unresolved `related` refs in `nextjs` + `nestjs` submodules, pre-existing content debt, unchanged.
+
+---

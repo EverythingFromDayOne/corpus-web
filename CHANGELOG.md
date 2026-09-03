@@ -4,7 +4,93 @@ All notable changes to this project are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
-### [2026-09-03] — polish/d20-shiki-buildtime — Dual-theme syntax highlighting via rehype-pretty-code (D20 close)
+### [2026-09-03] — Merge recovered-d42-merge — D42 destructive merge (items 1-6 close)
+
+**Added**
+- Shared `.bloom` base rule in `apps/web/app/globals.css` covering
+  the 6 sized-rectangle bloom consumers (`.ls-hero::before`,
+  `.ls-hero::after`, `.ls-sec::before`,
+  `.ls-sec + .ls-sec::before`, `.ls-audience::before`,
+  `.course-detail-curriculum::before`) plus `.course-hero-bloom`.
+  Carries `position: absolute; inset: 0; overflow: hidden; pointer-
+  events: none;` + four-edge `mask-image` (4 stacked linear-
+  gradients + `mask-composite: intersect`).
+- Per-surface gradient variants: each variant sets only gradient
+  colour + anchor (no sized rectangle, no positioning, no z-index).
+- Light-mode carve in both `apps/web/app/globals.css` (course
+  surfaces) and `apps/web/components/home/home.css` (home
+  surfaces): `[data-theme='light']` selector list suppresses
+  bloom via `background: none; mask-image: none; -webkit-mask-
+  image: none;`.
+
+**Changed**
+- `apps/web/app/[locale]/courses/[course]/page.tsx` —
+  `.course-detail-curriculum` gains `position: relative; overflow:
+  hidden;` so the new pseudo-element clips to the section's
+  interior. Timeline dots + focus rings verified clear.
+- 5 home.css rules (`.ls-hero::before`, `.ls-hero::after`,
+  `.ls-sec::before`, `.ls-sec + .ls-sec::before`,
+  `.ls-audience::before`) stripped of `width:Nrem; height:Nrem;
+  top:-Nrem; right:-Nrem;` sized-rectangle properties. Replaced
+  by parent-relative anchors (`at 100% 0%` / `at 0% 0%` /
+  `at 100% 100%` / `at 0% 100%`).
+- All bloom anchors moved from corner-offset geometry to parent-
+  relative coordinates. The mask kills the boundary band at every
+  edge regardless of anchor.
+
+**Removed**
+- `<span class="course-detail-curriculum-bloom pointer-events-none
+  absolute -inset-x-12 -inset-y-8 rounded-full blur-3xl">` JSX
+  div from `apps/web/app/[locale]/courses/[course]/page.tsx`.
+  Replaced by the new `.course-detail-curriculum::before` pseudo-
+  element. Eliminates the JSX-vs-CSS specificity fight over the
+  `-inset-*` Tailwind utilities.
+- `pointer-events-none absolute` Tailwind classes from
+  `.course-hero-bloom` JSX divs in the same file. Properties live
+  in the `.bloom` base now.
+- Previous `.course-hero-bloom` base rule in globals.css
+  (four-edge mask body moved to the shared `.bloom` base).
+- `.course-detail-curriculum-bloom` CSS class (the JSX `<span>` is
+  gone — pseudo-element replaces it).
+
+**Fixed**
+- D42 items 1-6 sized-rectangle bloom boundary band: home hero,
+  per-section blooms, audience bloom, course-hero bloom, course-
+  detail-curriculum bloom all now read as clean atmospheric depth
+  in dark, uniform off-white in light. The four-edge mask-image
+  fades every edge to zero opacity, killing the rectangular
+  boundary artifact that motivated D42.
+
+**Architecture decisions**
+- Destructive merge (`git merge --no-ff recovered-d42-merge`)
+  authorised by user in this session. Confirmed HEAD on develop
+  (not detached) before running. Merge commit: `829a688`. PR #154
+  opened against main (develop→main promotion — user must admin-
+  squash per corpus-web-context skill "NEVER touch `main`; user
+  promotes").
+- Auto-merge resolved clean on `apps/web/app/[locale]/courses/
+  [course]/page.tsx`, `.agents/SESSION-LOG.md`, `CHANGELOG.md`
+  (via `.gitattributes` `merge=union`).
+- Manual conflict resolution on `docs/DEBT.md` (D42 row rewritten
+  to reflect post-merge truth — items 1-6 closed, items 7-8
+  deferred) and `progress.md` (both sides of conflict preserved
+  as real session-log history — HEAD session 161/162 entries
+  first, then recovered session 158/159 entries).
+- D42 items 7-8 (`.ls-card`, `.ls-blog-card` warm radials as
+  element `background-image`) remain open per session 158 user
+  direction "Leave 7-8 alone for now — different defect shape,
+  separate decision".
+- All 9 gates green against merge commit: typecheck 5/5, lint 5/5,
+  test 39/39, `pnpm --filter @corpus/web build` clean, `pnpm
+  verify:prerender` 196/196 + 18/18, `pnpm verify:frontmatter`
+  196/196, `pnpm agents:check` ✓, `hermes verify --json` ok=true
+  9/9 phases PASS readiness HTTP 200 in 0.647s.
+- PR #151 was Closed (not Merged) on GitHub; this PR is fresh.
+  Badges are immutable — the "Closed" badge stays as historical
+  record, this new PR gets a fresh "Merged" badge when you
+  admin-squash-merge.
+
+### [2026-09-03] — polish/d20-shiki-buildtime — Dual-theme syntax highlighting via rehype-pretty-code (D20 close) — Dual-theme syntax highlighting via rehype-pretty-code (D20 close)
 
 **Added**
 - **`shiki@^4.4.3` + `rehype-pretty-code@^0.14.5`** added to
