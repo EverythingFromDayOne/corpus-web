@@ -82,6 +82,37 @@ Debt register moved to [`docs/DEBT.md`](./docs/DEBT.md).
 
 ## Session log
 
+- **Four-edge bloom mask + light-mode drop — polish/course-hero-bloom-mask**
+  **(2026-09-03, on `polish/course-hero-bloom-mask` off `develop @ 816d2e6`,
+  PR pending):** User-reported bloom defect on `/en/courses/[slug]`: visible
+  hard horizontal band at the hero's bottom edge (CTA row) plus a soft warm
+  rectangle in mid-right (worst in light mode). Root cause: `.course-hero-
+  bloom` was a sized standalone `<div>` with `width / height / right /
+  bottom` + Tailwind `-inset-x-12 -inset-y-8 rounded-full blur-3xl`, painted
+  a radial gradient whose brightest 0% source sat at the parent's
+  `overflow: hidden` clipped corner. Three-step fix in one PR: (1) JSX cleanup
+  — remove the Tailwind utilities so the CSS rule wins clean (per user
+  direction); (2) gradient+mask restructure — base `.course-hero-bloom`
+  rule with `inset: 0; overflow: hidden;` + a four-edge `mask-image` (two
+  intersecting `linear-gradient`s fading bottom 6rem and right 6rem to
+  zero alpha with `mask-composite: intersect`, both unprefixed + `-webkit-`
+  prefixed); (3) light-mode carve — `[data-theme='light']` rule that sets
+  `--warm` / `--cool` to `background: none` + `mask-image: none`. Verified
+  on `/en/courses/react-foundations` AND `/en/courses/react-render-cycle`
+  in BOTH themes: dark mode MD5-identical to prior capture (same warm bloom
+  mid-right, no rectangle, no boundary); light mode uniform off-white
+  (`rgb(244, 246, 249)`) across the hero, no bloom, no boundary, no
+  decorative overlay. All gates PASS: typecheck 5/5, test 3/3, lint 5/5,
+  build 0 exit, prerender 196+18, frontmatter 196, agents:check ✓,
+  `hermes verify --json` ok=true, 9/9 phases PASS, readiness HTTP 200 in
+  9.53 s. **D42 opened** — sized-rectangle bloom pattern is still present
+  on `.ls-hero::before` / `::after`, `.course-detail-curriculum-bloom`,
+  and `.ls-blog-card` warm overlay; visible artifacts captured at
+  `docs/scratch/bloom-stop-{dark,light}-en-bloom-audit.png` and
+  `...-en-blog-bloom-audit.png`. Out of scope for this PR per user's
+  explicit deferral. Captures & comparison viewer at
+  `docs/scratch/bloom-stop-comparison.html` (reconciled, no contradictions).
+
 - **React lint hygiene + missing-key + conditional hooks — polish/react-jsx-key-hygiene**
   **(2026-09-02, on `polish/react-jsx-key-hygiene` off `develop @ d0b2717`):**
   User reported `/en/blog` React key warning fired by `renderChip` helper

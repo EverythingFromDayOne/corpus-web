@@ -114,11 +114,11 @@ export default async function CourseDetailPage({ params }: PageProps) {
       <header className="course-hero relative mt-6 overflow-hidden">
         <div
           aria-hidden="true"
-          className="course-hero-bloom course-hero-bloom--warm pointer-events-none absolute -inset-x-12 -inset-y-8 rounded-full blur-3xl"
+          className="course-hero-bloom course-hero-bloom--warm pointer-events-none absolute"
         />
         <div
           aria-hidden="true"
-          className="course-hero-bloom course-hero-bloom--cool pointer-events-none absolute -inset-x-12 -inset-y-8 rounded-full blur-3xl"
+          className="course-hero-bloom course-hero-bloom--cool pointer-events-none absolute"
         />
         <h1 className="relative text-4xl bg-gradient-to-b from-display to-signal bg-clip-text text-transparent">
           {course.title}
