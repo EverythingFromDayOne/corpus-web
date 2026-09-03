@@ -1155,31 +1155,69 @@ body:has(.av-view) .av-header-tog {
    beneath the title text's WCAG contrast threshold. Lives in
    globals.css (not home.css) because the course overview page
    doesn't import home.css. */
+.course-hero-bloom {
+  /* Lives inside `.course-hero`'s `overflow: hidden` clip. The two
+     --warm / --cool variants below paint a radial gradient anchored
+     to the parent corners (100% 100% / 0% 100%) — the brightest
+     gradient source sits exactly on the parent's clipped edges
+     (bottom-right corner for warm, bottom-left for cool). Without
+     a fade at each clipped edge, `overflow: hidden` chops the
+     gradient at its brightest point and the user sees a hard
+     visible boundary at the bottom, right, and left edges of the
+     hero.
+
+     Two intersecting linear-gradient masks take the bottom 6rem
+     and the right 6rem to zero alpha so the parent's clipping
+     operates on fully transparent pixels, not the gradient core.
+     `mask-composite: intersect` keeps only the intersection of
+     both masks, which is the full interior of the box minus the
+     bottom strip and the right strip. Same goal on both edges —
+     no chrome clips through, no chrome leaks past. GPU-composited;
+     no layout change, no JSX change, no new tokens.
+
+     Prefixes: -webkit-mask-* mirrors mask-* for Safari iOS
+     pre-15.4 / Safari macOS 14, both of which ignore the
+     unprefixed mask properties. */
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to top, transparent 0, black 6rem),
+                     linear-gradient(to left, transparent 0, black 6rem);
+          mask-image: linear-gradient(to top, transparent 0, black 6rem),
+                     linear-gradient(to left, transparent 0, black 6rem);
+  -webkit-mask-composite: source-in;
+          mask-composite: intersect;
+}
+
 .course-hero-bloom--warm {
-  top: auto;
-  left: auto;
-  right: -8rem;
-  bottom: -10rem;
-  width: 36rem;
-  height: 24rem;
   background: radial-gradient(
-    ellipse at center,
+    ellipse 60rem 40rem at 100% 100%,
     color-mix(in srgb, var(--marketing-accent-bloom) 30%, transparent) 0%,
     transparent 70%
   );
 }
 
 .course-hero-bloom--cool {
-  top: auto;
-  left: -8rem;
-  bottom: -8rem;
-  width: 32rem;
-  height: 22rem;
   background: radial-gradient(
-    ellipse at center,
+    ellipse 60rem 40rem at 0% 100%,
     color-mix(in srgb, var(--color-cool) 26%, transparent) 0%,
     transparent 70%
   );
+}
+
+/* Light-mode carve: against a near-white surface, the 30%/26% wash reads
+   as a soft-edged warm rectangle rather than ambient depth (verified
+   visually: the four-edge mask fix was applied first, defect remained
+   visible as a bounded shape in mid-right because the warm tint over
+   a parchment canvas has too little chromatic contrast to "disappear").
+   The whole hero is intended for dark-mode atmospheric depth; in light
+   mode it should be a flat editorial surface. We kill the painted layer
+   entirely and clear the mask props so the elements cost zero. */
+[data-theme='light'] .course-hero-bloom--warm,
+[data-theme='light'] .course-hero-bloom--cool {
+  background: none;
+  -webkit-mask-image: none;
+          mask-image: none;
 }
 
 /* ---------- Course detail curriculum bloom (polish/course-detail-curriculum-bloom) ----------
