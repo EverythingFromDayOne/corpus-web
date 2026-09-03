@@ -7,7 +7,7 @@ import { getCatalogView, getCourse } from '@/lib/catalog';
 import { getMessages, t } from '@/lib/i18n';
 import { isLocale } from '@/lib/locales';
 import { coursePath, coursesPath, homePath, lessonPath } from '@/lib/routes';
-import { absoluteUrl, SITE_ORIGIN } from '@/lib/site';
+import { absoluteUrl, ogImageUrl, OG_IMAGE_ALT, OG_IMAGE_WIDTH, OG_IMAGE_HEIGHT, SITE_ORIGIN } from '@/lib/site';
 
 type PageProps = {
   params: Promise<{ locale: string; course: string }>;
@@ -36,6 +36,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: course.title,
       description: course.description,
       locale,
+      images: [
+        {
+          url: ogImageUrl(),
+          width: OG_IMAGE_WIDTH,
+          height: OG_IMAGE_HEIGHT,
+          alt: OG_IMAGE_ALT,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: course.title,
+      description: course.description,
+      images: [ogImageUrl()],
     },
   };
 }
@@ -111,10 +125,14 @@ export default async function CourseDetailPage({ params }: PageProps) {
           <li>{course.title}</li>
         </ol>
       </nav>
-      <header className="relative mt-6 overflow-hidden">
+      <header className="course-hero relative mt-6 overflow-hidden">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -inset-x-12 -inset-y-8 rounded-full bg-signal-dim opacity-25 blur-3xl"
+          className="course-hero-bloom course-hero-bloom--warm"
+        />
+        <div
+          aria-hidden="true"
+          className="course-hero-bloom course-hero-bloom--cool"
         />
         <h1 className="relative text-4xl bg-gradient-to-b from-display to-signal bg-clip-text text-transparent">
           {course.title}
@@ -144,8 +162,8 @@ export default async function CourseDetailPage({ params }: PageProps) {
           </a>
         </div>
       </header>
-      <section id="curriculum" className="mt-16 scroll-mt-24">
-        <h2 className="text-2xl">{t(messages, 'courses.curriculumHeading')}</h2>
+      <section id="curriculum" className="course-detail-curriculum mt-16 scroll-mt-24">
+        <h2 className="course-detail-curriculum-eyebrow relative text-2xl">{t(messages, 'courses.curriculumHeading')}</h2>
         <CurriculumList locale={locale} course={course} messages={messages} />
       </section>
     </PageShell>

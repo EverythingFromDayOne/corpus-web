@@ -326,6 +326,26 @@ export async function getCatalogView(): Promise<CatalogView> {
   return loadCatalogView();
 }
 
+/**
+ * polish/quiz-server-action-and-rebrand: unscoped, non-cached catalog loader
+ * for use from `'use server'` action bodies. Server actions in Next.js 16.3.x
+ * with Cache Components ON run OUTSIDE the per-request render scope, and a
+ * `'use cache'` call inside an action can return a build-time empty or stale
+ * CatalogView (the `byUid` lookup returns `undefined` and the action throws
+ * "unknown article"). 'pnpm dev' worked because Turbopack does not apply the
+ * `'use cache'` pragma in dev — only `pnpm start` (production) exhibits the
+ * stale-catalog symptom, which is why the user reports "works on localhost,
+ * fails on the server."
+ *
+ * `loadCatalogView()` reads `catalog.json` from disk every call, which is
+ * cheap (it's a single JSON file) and always returns the current build-time
+ * catalog. Server actions are not on the hot read path, so the cost is
+ * negligible.
+ */
+export async function loadCatalogForAction(): Promise<CatalogView> {
+  return loadCatalogView();
+}
+
 export function getCourse(view: CatalogView, slug: string): CourseView | undefined {
   return view.courses.find((course) => course.slug === slug);
 }

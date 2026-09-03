@@ -6,11 +6,7 @@
 > This file is edited **in place**. It is deliberately absent from `.gitattributes`, so it
 > is never union-merged — see `.cursor/rules/00-session-protocol.mdc`.
 >
-| **Last updated: 2026-08-30 (PR #88 opened: review-first refinement of blog spec — 6 surgical edits to the sub-agent's 1296-line first draft. Net –9 lines (1287). `prompts/design-spec-2026-08-blog.md` now covers 1 blog index + 5 post pages; the `.blog-content` typography CSS block (17px / 1.8 line-height / 768px reading column) is the highest-value artifact, copy-pasteable into the design system in ~1h. Sub-agent session `20260830_220501_e1e12b` (9m 47s, 113 tool calls). PR #88 is open against `develop`; the develop→main release PR will follow when the user decides to promote. **New pattern promoted:** review-first is the right default for any sub-agent-delivered artifact — the draft was technically good (vendor-neutral, self-flagged gaps) but not PR-ready without review. Workflow rule re-asserted: `prompts/*` files go feature → develop → main, never direct to main.)**
-
----
-
-## What this repo is
+| **Last updated: 2026-09-03 (Polish-d42-bloom-recovery — D42 destructive merge onto `develop`, merge commit `829a688`. **D42 items 1-6 close**. 7 files +412/-131. Shared `.bloom` base rule + four-edge `mask-image` in `apps/web/app/globals.css`; per-surface variants carry only gradient colour + anchor. 5 home.css rules stripped of `width:Nrem; height:Nrem; top:-Nrem; right:-Nrem;` sized-rectangle properties, rewritten with parent-relative anchors. `<span class="course-detail-curriculum-bloom">` JSX div deleted, replaced by `.course-detail-curriculum::before` pseudo-element. Auto-merge resolved clean on `apps/web/app/[locale]/courses/[course]/page.tsx`, `.agents/SESSION-LOG.md` + `CHANGELOG.md` (via `.gitattributes` `merge=union`). Manual conflict resolution on `docs/DEBT.md` (single-pass `re.compile(...).sub(repl, src)` per corpus-web-context skill rule) and `progress.md` (both sides preserved as real session-log history). Pre-merge confirmed HEAD on develop (not detached, per session 159 lesson). **PR #154 opened against main** (develop→main promotion carrying the full polish chain: D22 OG + D20 Shiki + D42 destructive merge = 91+ commits since `origin/main @ 8378947`). User must admin-squash-merge per corpus-web-context skill "NEVER touch `main`; user promotes". **PR #151 was Closed (not Merged)** on GitHub — this PR is fresh; badges are immutable. All 9 gates green against merge commit: typecheck 5/5, lint 5/5, test 39/39, build clean, prerender 196/196+18/18, frontmatter 196/196, agents:check ✓, `hermes verify --json` ok=true 9/9 phases PASS readiness HTTP 200 in 0.647s. **Polish residue remaining**: D21 Pagefind on Vercel Preview (Vercel Auth dashboard bypass for `/pagefind/*` + `/opengraph-image` + article route URLs, user-action no code); D42 items 7-8 (`.ls-card`, `.ls-blog-card` warm radials, different defect shape, deferred per session 158); D38 informational `verify-links` fail (44 unresolved `related` refs in nextjs + nestjs submodules, pre-existing content debt).
 
 The delivery surface for the `EverythingFromDayOne` concepts suite. It renders **181 of
 197 selected articles** (nextjs 10/10, react 58/73, angular 93/94, nestjs 20/20) from
@@ -379,13 +375,34 @@ no personal content, narrowed to permit a contact email in the footer and on
    `catalog.unresolvedTargets`. All corpus-side; itemised per ref in
    `docs/audit/unresolved-refs-2026-08-16.md`. Debt D12 is closed (`nestjs@v0.3.1`).
    Debt D6 is closed (`nestjs@v0.3.2`).
-   The cheapest remaining Group 1 fix is publishing the two staged `nextjs` articles
-   (`cache-lifetimes`, `use-cache-directive`), which closes 4 of the 44.
+
+## Polish residue (Session 163, 2026-09-03)
+
+**Session 161 D22 close + session 162 D20 close + session 163 D42 destructive merge.** All three polish items from the session 161 user chain are now shipped or in the merge commit. Per user direction "Go option 1" in session 163, executed `git merge --no-ff recovered-d42-merge` onto develop. Pre-merge confirmed `git rev-parse --abbrev-ref HEAD` returned `develop` (not detached, per session 159 lesson "detached HEAD merges silently orphan the commit"). Auto-merge resolved clean; manual conflict resolution on `docs/DEBT.md` (D42 row) and `progress.md` (both sides preserved as real session-log history) per corpus-web-context skill rule "progress.md rebase may show MULTIPLE conflict markers simultaneously — fix via `re.compile(...).sub(repl, src)` in one pass."
+
+**Session 161:** `polish/d22-static-og` off `develop @ 2e52548`, PR #152 squash `9bbd2f1` — `/opengraph-image` route + `og:image`/`twitter:card` metadata on all 5 surfaces.
+
+**Session 162:** `polish/d20-shiki-buildtime` off `develop @ be9d25e`, PR #153 squash `46b77e6` — build-time Shiki syntax highlighting via `rehype-pretty-code@^0.14.5` + `shiki@^4.4.3`. Two custom themes hand-map every token scope to existing `@theme` tokens.
+
+**Session 163:** destructive merge of `recovered-d42-merge` onto develop, merge commit `829a688`. Shared `.bloom` base rule + four-edge `mask-image` kills the sized-rectangle boundary defect on 6 ambient surfaces (`.ls-hero::before/::after`, `.ls-sec::before`, `.ls-sec + .ls-sec::before`, `.ls-audience::before`, `.course-detail-curriculum::before`, `.course-hero-bloom`). PR #154 opened against main as the develop→main promotion — user must admin-squash-merge per corpus-web-context skill "NEVER touch `main`; user promotes". PR #151 stays "Closed" on GitHub (badge is immutable); PR #154 gets a fresh "Merged" badge when promoted.
+
+**Remaining polish residue:**
+- **D21 Pagefind on Vercel Preview** — blocked on Vercel Auth dashboard bypass for `/pagefind/*` + `/opengraph-image` + article route URLs. Code shipped (PR #107); search works on localhost + Production.
+- **D42 items 7-8** (`.ls-card`, `.ls-blog-card` warm radials as element `background-image`) — different defect shape from items 1-6, deferred per session 158 user direction "Leave 7-8 alone for now — different defect shape, separate decision". Each paints the radial as the element's own `background-image`, not as a child/pseudo.
+- **D38 informational `verify-links` fail** (44 unresolved `related` refs in nextjs + nestjs submodules) — pre-existing, unchanged.
+
+**Pre-existing carry-overs:**
+- Vercel Auth bypass for `/pagefind/*` + `/api/*` (unblocks D21).
+- D38 informational `verify-links` failure (44 unresolved `related` refs).
+- develop → main promotion PR (90+ commits apart).
+
+---
+
 3. Article and lesson routes now read `catalog.json` (`/en/blog/[corpus]/[slug]`,
-  `/en/courses/[course]/lessons/[slug]`). Remaining Phase 1: Shiki (D20),
-  Pagefind (D21), `/en/license` (D25), SEO residue (D22), a11y CI (D19).
-  D18 (POC a11y on article chrome) is closed. Render-mode gate (D23) is
-  `pnpm verify:prerender`. Do not revive `/en/concepts/…`.
+   `/en/courses/[course]/lessons/[slug]`). Remaining Phase 1: Shiki (D20),
+   Pagefind (D21), `/en/license` (D25), SEO residue (D22), a11y CI (D19).
+   D18 (POC a11y on article chrome) is closed. Render-mode gate (D23) is
+   `pnpm verify:prerender`. Do not revive `/en/concepts/…`.
 4. Quiz, flashcard, callout, and drag-drop primitives exist (D24 slice)
   with Phase 1 + Phase 2 motion polish. Sample usage (2 quizzes, 1
   flashcard, 2 callouts, 1 drag-drop) is

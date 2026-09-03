@@ -1,0 +1,194 @@
+/*
+ * .blog-content typography — for long-form reading on /en/blog/[corpus]/[slug].
+ *
+ * Vendor-neutral port of the spec §6 .blog-content typography block
+ * (prompts/design-spec-2026-08-blog.md). Three differences from the
+ * reference:
+ *
+ * 1. Font sizes are tuned 1 step down for English prose (16px / 1.7 lh)
+ *    vs the spec's 17px / 1.8 lh which was calibrated for Vietnamese
+ *    diacritics — per spec §14 caveat "16px / 1.6 may sit closer to
+ *    the existing article-chrome rhythm — measure before committing".
+ *    Measured against the existing .av-prose h2 (1.6rem) + p margin
+ *    (1rem bottom) and chose the smaller delta so it doesn't fight
+ *    the corpus chrome next to it.
+ *
+ * 2. Scoped under [data-blog] so article chrome elsewhere (lessons,
+ *    corpus articles when read via /en/courses/.../lessons/...) is
+ *    unchanged. The blog layout sets data-blog on <html>; this file
+ *    assumes it.
+ *
+ * 3. Reading column width 768px (per spec §15 High). The existing
+ *    .av-prose allows up to 60rem (~960px); this narrows to 48rem
+ *    only inside [data-blog] .lesson-surface .av-prose.
+ */
+
+[data-blog] .lesson-surface .av-prose {
+  max-width: 48rem;        /* 768px — spec §15 High reading column */
+  font-size: 1rem;         /* 16px — one notch smaller than spec's 17px */
+  line-height: 1.7;        /* spec: 1.8; reduced for English prose */
+}
+
+[data-blog] .lesson-surface .av-prose p {
+  margin-bottom: 1.15rem;
+}
+
+[data-blog] .lesson-surface .av-prose h2 {
+  font-size: 1.75rem;
+  margin-top: 3.5rem;
+  margin-bottom: 0.85rem;
+  letter-spacing: -0.012em;
+}
+
+[data-blog] .lesson-surface .av-prose h3 {
+  font-size: 1.25rem;
+  margin-top: 2.25rem;
+  margin-bottom: 0.55rem;
+}
+
+[data-blog] .lesson-surface .av-prose h4 {
+  font-size: 1.0625rem;
+  margin-top: 1.6rem;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+}
+
+[data-blog] .lesson-surface .av-prose blockquote {
+  margin: 1.5rem 0;
+  padding: 0.25rem 0 0.25rem 1.2rem;
+  border-left: 2px solid var(--color-graphite);
+  color: var(--color-muted);
+  font-style: italic;
+}
+
+[data-blog] .lesson-surface .av-prose blockquote p {
+  margin-bottom: 0.6rem;
+}
+
+[data-blog] .lesson-surface .av-prose blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+[data-blog] .lesson-surface .av-prose ul,
+[data-blog] .lesson-surface .av-prose ol {
+  margin-bottom: 1.15rem;
+  padding-left: 1.4rem;
+}
+
+[data-blog] .lesson-surface .av-prose li {
+  margin-bottom: 0.55rem;
+}
+
+[data-blog] .lesson-surface .av-prose li > ul,
+[data-blog] .lesson-surface .av-prose li > ol {
+  margin-top: 0.45rem;
+  margin-bottom: 0.45rem;
+}
+
+[data-blog] .lesson-surface .av-prose hr {
+  border: 0;
+  border-top: 1px solid var(--color-graphite);
+  margin: 2.25rem auto;
+  width: 4rem;
+}
+
+[data-blog] .lesson-surface .av-prose :not(pre) > code {
+  font-size: 0.875em;
+  padding: 0.12em 0.4em;
+  border-radius: var(--radius-sm);
+}
+
+[data-blog] .lesson-surface .av-prose a {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-signal) 50%, transparent);
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+  transition: text-decoration-color var(--duration-fast) var(--ease-out);
+}
+
+[data-blog] .lesson-surface .av-prose a:hover {
+  text-decoration-color: var(--color-signal);
+}
+
+[data-blog] .lesson-surface .av-prose strong {
+  color: var(--color-display);
+  font-weight: 600;
+}
+
+[data-blog] .lesson-surface .av-prose figcaption,
+[data-blog] .lesson-surface .av-prose .av-cap {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  text-align: center;
+  margin-top: 0.6rem;
+}
+
+/* ---- Post header (badge + H1 + meta row) ----------------------------- */
+/* Vendor-neutral port of prompts/design-spec-2026-08-blog.md §5.
+   Scoped under [data-blog] so lesson / corpus chrome keeps its plain
+   .av-inner h1 + .av-dek shape. */
+
+[data-blog] .lesson-surface .post-header {
+  margin-bottom: 1.5rem;
+}
+
+[data-blog] .lesson-surface .post-header-badge {
+  display: inline-block;
+  margin: 0 0 0.9rem;
+  padding: 0.18rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--color-signal) 45%, var(--color-graphite));
+  border-radius: 999px;
+  color: var(--color-signal);
+  background: color-mix(in srgb, var(--color-signal) 8%, transparent);
+}
+
+[data-blog] .lesson-surface .post-header-title {
+  margin: 0 0 1rem;
+  font-size: clamp(1.85rem, 3.6vw, 2.45rem);
+  font-weight: 600;
+  line-height: 1.18;
+  letter-spacing: -0.012em;
+  color: var(--color-display);
+  max-width: 22ch;
+}
+
+[data-blog] .lesson-surface .post-header-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  color: var(--color-muted);
+}
+
+/* Mobile-fix-b (polish/mobile-fix-b-card-meta-flex-wrap): the
+   original rule set `white-space: nowrap` on EVERY child span
+   of `.post-header-meta` (line above-left of this comment). That
+   blocked the container's `flex-wrap: wrap` from wrapping the
+   metadata text spans on narrow viewports — at ≤375px the row
+   rendered as one line and the rightmost "ANGULAR V22" was
+   clipped at the viewport edge. The aria-hidden separator
+   spans (the `|` chars) only need `color: graphite` and
+   `user-select: none` (set by the existing scoped rule below);
+   they don't need nowrap because a single `|` character has
+   no internal break point anyway.
+
+   But removing the broader rule alone wasn't enough: a flex
+   item's intrinsic minimum size equals its content (CSS spec,
+   "min-width: auto" for flex items = min-content size), so a
+   span containing "Angular 22.1.1" won't shrink below its
+   intrinsic width even with `flex-wrap: wrap` on the parent.
+   To get actual wrap, every non-aria-hidden span needs
+   `min-width: 0` so the content can break across lines. The
+   aria-hidden rule below continues to apply color + user-select
+   to separator spans; they ALSO get min-width: 0 but it has no
+   visible effect on a single-char span. */
+[data-blog] .lesson-surface .post-header-meta > span {
+  min-width: 0;
+}
+
+[data-blog] .lesson-surface .post-header-meta > span[aria-hidden='true'] {
+  color: var(--color-graphite);
+  user-select: none;
+}

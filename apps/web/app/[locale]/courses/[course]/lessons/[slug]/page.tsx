@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { ArticleView, courseBreadcrumb } from '@/components/article/article-view';
 import { JsonLd } from '@/components/json-ld';
+import { LessonSkeleton } from '@/components/lesson-skeleton';
 import {
   courseNeighbors,
   getArticle,
@@ -12,7 +14,7 @@ import { readArticleMarkdown } from '@/lib/article-source';
 import { getMessages, t } from '@/lib/i18n';
 import { isLocale, LOCALES } from '@/lib/locales';
 import { articlePath, coursePath, coursesPath, homePath, lessonPath } from '@/lib/routes';
-import { absoluteUrl, SITE_ORIGIN } from '@/lib/site';
+import { absoluteUrl, ogImageUrl, OG_IMAGE_ALT, OG_IMAGE_WIDTH, OG_IMAGE_HEIGHT, SITE_ORIGIN } from '@/lib/site';
 
 type PageProps = {
   params: Promise<{ locale: string; course: string; slug: string }>;
@@ -55,6 +57,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: article.title,
       description: article.description,
       locale,
+      images: [
+        {
+          url: ogImageUrl(),
+          width: OG_IMAGE_WIDTH,
+          height: OG_IMAGE_HEIGHT,
+          alt: OG_IMAGE_ALT,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: article.title,
+      description: article.description,
+      images: [ogImageUrl()],
     },
   };
 }
@@ -122,27 +138,29 @@ export default async function LessonPage({ params }: PageProps) {
           ],
         }}
       />
-      <ArticleView
-        locale={locale}
-        messages={messages}
-        view={view}
-        article={article}
-        markdown={markdown}
-        chrome={{ variant: 'course', course }}
-        breadcrumb={crumbs}
-        prev={prev}
-        next={next}
-        prevHref={prev ? lessonPath(locale, course.slug, prev.articleId) : null}
-        nextHref={next ? lessonPath(locale, course.slug, next.articleId) : null}
-        prevLabel={t(messages, 'article.previousLesson')}
-        nextLabel={t(messages, 'article.nextLesson')}
-        lead={
-          <div className="av-ph">
-            <p className="av-lab">{t(messages, 'placeholders.comingSoon')}</p>
-            <p className="mt-2">{t(messages, 'article.quizHint')}</p>
-          </div>
-        }
-      />
+      <Suspense fallback={<LessonSkeleton />}>
+        <ArticleView
+          locale={locale}
+          messages={messages}
+          view={view}
+          article={article}
+          markdown={markdown}
+          chrome={{ variant: 'course', course }}
+          breadcrumb={crumbs}
+          prev={prev}
+          next={next}
+          prevHref={prev ? lessonPath(locale, course.slug, prev.articleId) : null}
+          nextHref={next ? lessonPath(locale, course.slug, next.articleId) : null}
+          prevLabel={t(messages, 'article.previousLesson')}
+          nextLabel={t(messages, 'article.nextLesson')}
+          lead={
+            <div className="av-ph">
+              <p className="av-lab">{t(messages, 'placeholders.comingSoon')}</p>
+              <p className="mt-2">{t(messages, 'article.quizHint')}</p>
+            </div>
+          }
+        />
+      </Suspense>
     </>
   );
 }

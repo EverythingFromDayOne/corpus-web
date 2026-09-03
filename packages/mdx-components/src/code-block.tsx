@@ -53,8 +53,21 @@ export function CodeBlock({
   const extractRaw = extract ?? props?.['data-extract'] ?? fromRest;
   const code = textOf(props?.children ?? children);
   const provenance = parseExtract(extractRaw);
-  const lines = code.replace(/\n$/, '').split('\n');
   const filename = provenance?.path.split('/').at(-1) ?? (lang ? `snippet.${lang}` : 'snippet.txt');
+
+  // D20 polish: when children carry Shiki/rehype-pretty-code token spans
+  // (an array of React elements rather than a plain text string), render
+  // them verbatim inside the `<pre>` instead of re-splitting on `\n`.
+  // The earlier behaviour discarded Shiki's nested `<span style="--shiki:…">`
+  // markup by mapping each `\n`-separated line to a single `<span class="av-ln">`,
+  // leaving the code block visually un-highlighted. With this branch, Shiki's
+  // per-token spans + the `class="line"` markers (added by onVisitLine in
+  // apps/web/lib/article-markdown.tsx) flow straight through to the DOM,
+  // and the existing `.av-cb` CSS handles line-number gutters + token colours.
+  const isShikiTree =
+    Array.isArray(props?.children) &&
+    typeof props?.children !== 'string' &&
+    typeof props?.children?.[0] === 'object';
 
   return (
     <div className="av-cb">
@@ -77,11 +90,16 @@ export function CodeBlock({
       </div>
       <pre className={className}>
         <code>
-          {lines.map((line, index) => (
-            <span key={index} className="av-ln" data-n={index + 1}>
-              {line.length === 0 ? '\n' : line}
-            </span>
-          ))}
+          {isShikiTree
+            ? props?.children
+            : code
+                .replace(/\n$/, '')
+                .split('\n')
+                .map((line, index) => (
+                  <span key={index} className="av-ln" data-n={index + 1}>
+                    {line.length === 0 ? '\n' : line}
+                  </span>
+                ))}
         </code>
       </pre>
       <div className="av-cbft">

@@ -1285,3 +1285,187 @@ for cssf in sorted(os.listdir('/tmp/blog-spec-assets/css')):
 - **Validated against `nxhhuy.tech`:** No (comparisons are inferential;
   no actual code inspection of `apps/web/components/article/`)
 - **Vendor-neutrality verified:** Yes (0 hits for any reference site names)
+
+---
+
+## 17. Corpus-web blog index — visual contract (current)
+
+This section captures the **current shipped visual contract** for the
+`nxhhuy.tech` blog index (`/en/blog`), grounded in real CSS classes
+and i18n keys — not inferred from a reference platform. It is the
+spec that future agents must read before modifying the blog index
+layout, and the authoritative reference for any "should `/blog` look
+like X?" question.
+
+**Authoritative source:** PR #123 (`polish/blog-sidebar-tree`,
+`develop @ 430ecfd`) shipped this layout. PR #121
+(`polish/blog-card-redesign`) shipped the card design that lives
+inside the main pane.
+
+### 17.1 Layout — two-column grid
+
+The blog index is a CSS Grid with two columns:
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ Page header: meta · "Articles" H1 · lede                      │
+├──────────────┬───────────────────────────────────────────────┤
+│              │ Pane head: corpus eyebrow · folder · count   │
+│  Sidebar     ├───────────────────────────────────────────────┤
+│  tree        │ Filter row: kind chips · sort <select>       │
+│  (280px,     ├───────────────────────────────────────────────┤
+│  sticky)     │                                               │
+│              │ Article card grid (3 col, auto-fill)         │
+│              │                                               │
+└──────────────┴───────────────────────────────────────────────┘
+```
+
+**Token reference (verbatim from `apps/web/app/globals.css`):**
+
+| Element | Token / Value |
+|---|---|
+| `.blog-layout` | `display: grid; grid-template-columns: 280px 1fr; align-items: start;` |
+| `.blog-sidebar` | `position: sticky; top: 1.5rem; max-height: calc(100vh - 3rem); overflow-y: auto; padding: 0.6rem 0.5rem;` |
+| Mobile breakpoint | `@media (max-width: 900px)` stacks sidebar below pane, caps sidebar at `max-height: 20rem` |
+| `.blog-pane` | `min-width: 0;` (prevents grid blowout) |
+
+### 17.2 Sidebar tree
+
+**Order:** `< ` on corpus — first the "All corpora" button (showing
+the total article count), then one `.blog-tree-section` per repo
+in `REPOS` array order (react, nextjs, angular, nestjs).
+
+**Per-section structure:**
+
+```
+.blog-tree-corpus           ← corpus header (signal-coloured)
+  .blog-tree-corpus-count   ← total article count for corpus
+.blog-tree-folders          ← flex column
+  .blog-tree-folder--all    ← "All folders" button (corpus-wide)
+  .blog-tree-folder         ← one per folder, alphabetised
+    .blog-tree-folder-name  ← folder name
+    .blog-tree-folder-count ← folder article count
+```
+
+**Active state:** `.blog-tree-folder--on` applies a bloom-tinted
+background via `color-mix(in srgb, var(--marketing-accent-bloom)
+22%, transparent)` — not a left bar (would be visually confusable
+with the card hover bars in the main pane).
+
+**Tree state:** button-driven, **not URL-driven**. Switching
+folders is a single client-side click without a network
+round-trip. URL state is an open follow-on (not yet implemented).
+Deep-linking to a folder requires manually navigating then sharing.
+
+### 17.3 Main pane
+
+**Pane head (`.blog-pane-head`):**
+- `.blog-pane-eyebrow` — `font-mono; text-transform: uppercase;
+  color: var(--color-signal);` (corpus name when active, "All
+  corpora" when no corpus selected)
+- `.blog-pane-title` — `font-size: 1.5rem; font-weight: 600;
+  letter-spacing: -0.01em;` (folder name when active, "All
+  folders" or "All corpora" otherwise)
+- `.blog-pane-count` — right-aligned count chip using
+  `var(--marketing-accent-line)` border in active state
+
+**Filter row (`.blog-filter-bar.blog-pane-filters`):**
+- `.blog-filter-label` — mono caps text "Kind"
+- `.blog-filter-chip--off` / `--on` — pill chips, `--on` state
+  uses `--marketing-accent-bloom` solid fill (same pattern as
+  topbar pill CTA from PR #114)
+- `.blog-sort-select` — uppercase mono `<select>`, pushed right
+  via `ml-auto`
+
+**Article grid (`.blog-cards`):**
+- `grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));`
+- `gap: 1rem;` (16px)
+
+### 17.4 Article card (current shipped design)
+
+**Authoritative source:** PR #121 (`polish/blog-card-redesign`).
+Captured verbatim from `apps/web/app/globals.css`:
+
+```
+.ls-blog-card             ← bloom + gradient base (PR #115)
+.blog-card                 ← padding override (1.25rem 1.25rem 1.25rem 1.6rem)
+  .blog-card-bar          ← gradient accent (line→bloom), width: 1 (4px on hover scale-y-100)
+  .blog-card-meta         ← mono caps eyebrow row
+    .blog-card-kind       ← kind pill (cool cyan / signal amber)
+      --concept           ← color: var(--color-cool)
+      --recipe            ← color: var(--color-signal)
+    .blog-card-corpus     ← corpus label + reading time
+  .blog-card-title        ← text-xl font-semibold letter-spacing -0.01em
+  .blog-card-desc         ← -webkit-line-clamp: 3, text-sm
+```
+
+**Hover state:** `translate-y-1` (4px lift) + bloom + gradient
+deepening + bloom-halo `box-shadow: 0 0 24px bloom 18%`.
+
+**Eyebrow row contents (in order):** kind pill, corpus label,
+"·" separator, reading time.
+
+### 17.5 Token reference (all sourced from existing tokens)
+
+| Used by | Token |
+|---|---|
+| Bloom tint (active tree, hover card) | `--marketing-accent-bloom` |
+| Accent border | `--marketing-accent-line` |
+| Card gradient layer | `--marketing-accent-deep` |
+| Concept pill text | `--color-cool` |
+| Recipe pill text | `--color-signal` |
+| Surface / raised | `--color-surface`, `--color-raised` |
+| Display / muted text | `--color-display`, `--color-muted` |
+| Border | `--color-graphite` |
+| Mono font | `--font-mono` (IBM Plex Mono via `next/font/google`) |
+| Display font | Archivo via `next/font/google` |
+
+**Rule for future agents:** new blog-index CSS must use these
+tokens. New colour values are **not** invented; if a new visual
+need arises, propose a new token in `packages/ui/src/tokens.css`
+first (governed by `.cursor/rules/50-design-tokens.mdc`).
+
+### 17.6 Inline mockups (decision aid)
+
+The 4 mockups in `docs/scratch/blog-mockups/` were the decision
+space for PR #123:
+
+| Mockup | Picked? | Reason |
+|---|---|---|
+| A — folder is the primary heading | No | Doesn't scale to 53 folders |
+| B — corpus tabs at top | No | Two-click drill-in, app-like |
+| **C — sidebar tree + main pane** | **Yes (shipped as PR #123)** | Developer-reference feel; scannable; one active hierarchy |
+| D — corpus accordion | No | Adds interaction-state complexity |
+
+**When to revisit this choice:** if the catalog grows past ~400
+articles or if user analytics show readers don't use the sidebar,
+consider switching to B (tabs + drill-in) for a more app-like
+navigation.
+
+### 17.7 Known follow-ons (not yet shipped)
+
+- **URL state for active tree node.** Current implementation is
+  button-driven only. Adding `?corpus=react&folder=foundations`
+  URL state would let readers share deep links. Blocked on Cache
+  Components compat (server-side re-render path or
+  `useSearchParams` hook interaction). Tracked as open follow-on
+  in PR #123's SESSION-LOG entry.
+- **Pluralisation.** Pane count reads "{count} articles" always
+  (no ICU plurals). Existing `t()` helper in `apps/web/lib/i18n.ts`
+  uses `\{(\w+)\}` regex, doesn't support `{count, plural, ...}`
+  syntax. Adding ICU plurals would touch the helper, all
+  consumers, and the test suite.
+
+### 17.8 What is **not** in this contract
+
+These are explicitly **out of scope** for the blog index and
+should not be conflated with it:
+
+- `/courses` listing (separate component `CourseCard` from PR #122)
+- Article post page (`/blog/[corpus]/[slug]`)
+- Search dialog (separate component, currently broken on Vercel
+  preview due to Deployment Protection — see D38)
+- Hero / home page patterns (covered in design-spec-2026-08-home)
+
+If a change to `/en/blog` needs to touch any of those, that's a
+separate PR with a separate spec section.

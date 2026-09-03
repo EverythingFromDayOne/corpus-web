@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { ArticleView, corpusBreadcrumb } from '@/components/article/article-view';
+import '@/components/article/blog-content.css';
 import { JsonLd } from '@/components/json-ld';
+import { LessonSkeleton } from '@/components/lesson-skeleton';
 import {
   conceptNeighbors,
   getArticle,
@@ -12,7 +15,7 @@ import { getMessages, t } from '@/lib/i18n';
 import { isLocale, LOCALES } from '@/lib/locales';
 import { isRepoId } from '@/lib/repos';
 import { articlePath, blogPath } from '@/lib/routes';
-import { absoluteUrl, SITE_ORIGIN } from '@/lib/site';
+import { absoluteUrl, ogImageUrl, OG_IMAGE_ALT, OG_IMAGE_WIDTH, OG_IMAGE_HEIGHT, SITE_ORIGIN } from '@/lib/site';
 
 type PageProps = {
   params: Promise<{ locale: string; corpus: string; slug: string }>;
@@ -50,6 +53,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: article.title,
       description: article.description,
       locale,
+      images: [
+        {
+          url: ogImageUrl(),
+          width: OG_IMAGE_WIDTH,
+          height: OG_IMAGE_HEIGHT,
+          alt: OG_IMAGE_ALT,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: article.title,
+      description: article.description,
+      images: [ogImageUrl()],
     },
   };
 }
@@ -108,21 +125,25 @@ export default async function ArticlePage({ params }: PageProps) {
           ],
         }}
       />
-      <ArticleView
-        locale={locale}
-        messages={messages}
-        view={view}
-        article={article}
-        markdown={markdown}
-        chrome={{ variant: 'corpus' }}
-        breadcrumb={crumbs}
-        prev={prev}
-        next={next}
-        prevHref={prev ? articlePath(locale, prev.repo, prev.articleId) : null}
-        nextHref={next ? articlePath(locale, next.repo, next.articleId) : null}
-        prevLabel={t(messages, 'article.previous')}
-        nextLabel={t(messages, 'article.next')}
-      />
+      <Suspense fallback={<LessonSkeleton />}>
+        <ArticleView
+          locale={locale}
+          messages={messages}
+          view={view}
+          article={article}
+          markdown={markdown}
+          chrome={{ variant: 'corpus' }}
+          breadcrumb={crumbs}
+          prev={prev}
+          next={next}
+          prevHref={prev ? articlePath(locale, prev.repo, prev.articleId) : null}
+          nextHref={next ? articlePath(locale, next.repo, next.articleId) : null}
+          prevLabel={t(messages, 'article.previous')}
+          nextLabel={t(messages, 'article.next')}
+          shareUrl={absoluteUrl(canonical)}
+          postHeader
+        />
+      </Suspense>
     </>
   );
 }

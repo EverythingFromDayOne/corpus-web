@@ -8,6 +8,10 @@
     "orgUrl": "https://github.com/EverythingFromDayOne",
     "orgLink": "GitHub organization"
   },
+  "topbar": {
+    "pillCta": "Start the course",
+    "pillCtaAriaLabel": "Start the {title} course"
+  },
   "nav": {
     "home": "Home",
     "courses": "Courses",
@@ -16,17 +20,48 @@
     "themeToggle": "Toggle colour theme",
     "primary": "Primary",
     "search": "Search",
-    "searchKbd": "⌘K"
+    "searchKbd": "⌘K",
+    "license": "License"
   },
   "placeholders": {
     "comingSoon": "Coming soon",
-    "search": "Search coming soon",
-    "searchHint": "Full-text search is not available yet.",
+    "search": "Search 196 articles…",
+    "searchInput": "Search 196 articles…",
+    "searchDialogLabel": "Search articles",
+    "searchTriggerLabel": "Open search (⌘K)",
+    "searchLoading": "Searching…",
+    "searchLoadingIndex": "Loading search index…",
+    "searchEmpty": "No matches.",
+    "searchError": "Search failed. Try again.",
+    "searchClearLabel": "Clear search",
+    "searchDone": "Done",
+    "searchDoneLabel": "Close search",
+    "searchHintIdle": "Type to search across every adapting article.",
+    "searchHint": "Full-text across every adapting article. ↑↓ to move, ↵ to open, Esc to close.",
     "demoTitle": "Interactive demos",
     "demoHint": "Stepped simulators for the render cycle, the event loop, and the Next.js cache. This panel is a placeholder and does nothing yet.",
     "graphFullView": "Full graph coming soon",
     "demoLabsTitle": "Demo labs",
     "demoLabsHint": "Runnable applications, not articles. Coming soon."
+  },
+  "license": {
+    "title": "License",
+    "heading": "Licence and attribution",
+    "shortHeading": "Unless otherwise noted, every article, lesson, and piece of code in this corpus is published under the Creative Commons Attribution 4.0 International (CC BY 4.0) licence.",
+    "youMay": "You may share — copy and redistribute the material in any medium or format — and adapt — remix, transform, and build upon the material — for any purpose, including commercially, provided that you:",
+    "share1": "<strong>Attribute</strong> the work to <em>corpus-web</em> with a link to the licence and indicate if any changes were made.",
+    "share2": "<strong>Do not apply legal terms or technological measures</strong> that legally restrict others from doing anything the licence permits.",
+    "codeSamplesHeading": "Code samples",
+    "codeSamplesBody": "Inline code samples short enough to count as fair use under the Berne Convention are released under the same CC BY 4.0 terms as the surrounding text. Larger self-contained components live under the same licence and carry an SPDX-License-Identifier comment at the top of the file when it ships via any package whose source-of-truth is this corpus.",
+    "adaptedHeading": "Adapted content",
+    "adaptedBody": "Articles adapted from third-party sources are marked at the top of the article body with a provenance block. The licence above covers the adaptation only — the upstream licence (when present) is the licence that governs the original wording. Where the upstream licence is more permissive than CC BY 4.0, the upstream licence governs.",
+    "moreHeading": "Where to read the full licence",
+    "moreBody": "The full legal text of CC BY 4.0 lives at the official Creative Commons site. It is the authoritative reference for the licence above; the summary on this page is informational only and is not a substitute for the licence text.",
+    "ccLink": "Read CC BY 4.0 on creativecommons.org",
+    "contactHeading": "Contact",
+    "contactBody": "Licence questions, attribution corrections, and re-use requests go to:",
+    "footerContact": "Licence questions: {email}",
+    "footerLicenseLink": "Read the licence"
   },
   "home": {
     "title": "A verified reference corpus",
@@ -43,6 +78,9 @@
     "corpusHeading": "The corpora",
     "allArticles": "All articles →",
     "graphHeading": "Concept graph",
+    "dividerCorpora": "The corpora",
+    "dividerAudience": "Who this is for",
+    "dividerEntry": "Three ways in",
     "graphEyebrow": "Four corpora",
     "graphCaption": "Cross-links among the four corpora, cropped to the corpus level.",
     "entriesHeading": "Three ways in",
@@ -57,6 +95,21 @@
     "entryGraphEyebrow": "Follow the graph",
     "entryGraphTitle": "Concept map",
     "entryGraphBody": "{count} cross-links across four corpora, drawn as one graph.",
+    "audience": {
+      "heading": "Who reads this corpus",
+      "card1": {
+        "title": "Engineers learning a new framework",
+        "body": "197 concept articles across Next.js, React, Angular, and NestJS. Pick the framework; read a curated path or grab one article and go."
+      },
+      "card2": {
+        "title": "Readers who want sources, not assertions",
+        "body": "Every claim cites a verified demo or extraction; every article links to its neighbors. If you can't follow a thread, the site has failed, not the reader."
+      },
+      "card3": {
+        "title": "People who like their reference site ad-free",
+        "body": "No tracking pixels, no popovers, no email capture. The text, the demo, and a link back to the source. That is the whole product."
+      }
+    },
     "readingHeading": "How to read this corpus",
     "readingConceptLabel": "Concept",
     "readingConcept": "Explains a mechanism. Read when you want to know how something works before it breaks.",
@@ -98,6 +151,7 @@
     "startFirst": "Start the first lesson",
     "viewCurriculum": "View curriculum",
     "curriculumHeading": "Curriculum",
+    "curriculumTimelineLabel": "Learning-path timeline",
     "position": "{n}.",
     "level": "Level {level}",
     "drawnFrom": "Drawn from {corpora}"
@@ -106,10 +160,21 @@
     "title": "Articles",
     "description": "Every adapting article, grouped by corpus and folder.",
     "filterAll": "All",
-    "filterLabel": "Filter by corpus",
+    "filterCorpusLabel": "Filter by corpus",
+    "filterKindLabel": "Filter by kind",
     "readingTime": "{minutes} min read",
+    "sortLabel": "Sort",
+    "sortAz": "A → Z",
+    "sortZa": "Z → A",
+    "sortShortest": "Shortest first",
+    "sortLongest": "Longest first",
     "folderLabel": "{folder}",
-    "empty": "No articles in this corpus."
+    "sidebarLabel": "Article tree",
+    "sidebarAll": "All corpora",
+    "sidebarAllFolders": "All folders",
+    "paneCount": "{count} articles",
+    "postMetaLabel": "Article metadata",
+    "empty": "No articles match these filters."
   },
   "breadcrumb": {
     "label": "Breadcrumb",
@@ -144,6 +209,8 @@
     "blocksVerified": "{count} blocks verified",
     "viewSource": "View source",
     "related": "Related",
+    "relatedUnresolvedTitle": "related, not yet available",
+    "relatedUnresolvedBody": "This article is referenced by the corpus but has not shipped yet. The link will go live when its content is published.",
     "pageNav": "Page",
     "previous": "Previous",
     "next": "Next",
@@ -156,10 +223,13 @@
     "extracted": "extracted",
     "lead": "Lead",
     "quizHint": "Warm-up quiz ships later. This panel is a placeholder.",
-    "quizEyebrow": "Recall check",
+    "quizEyebrow": "Quick quiz",
     "quizProgress": "{current} / {total}",
     "quizSubmit": "Check answer",
     "quizNext": "Next question",
+    "quizFinish": "Finish",
+    "quizPrevious": "Previous question",
+    "quizReset": "Reset quiz",
     "quizCorrect": "Correct",
     "quizIncorrect": "Not quite",
     "quizExplanation": "Explanation",
@@ -170,6 +240,8 @@
     "flashcardProgress": "{current} / {total}",
     "flashcardFront": "Show back",
     "flashcardBack": "Show front",
+    "flashcardFlipHint": "Tap to flip",
+    "flashcardSwipeHint": "Swipe left or right to switch cards.",
     "dragdropEyebrow": "Assemble",
     "dragdropSubmit": "Check answer",
     "dragdropReset": "Reset assembly",
@@ -180,6 +252,11 @@
     "dragdropPool": "Chip pool",
     "dragdropSlotEmpty": "Empty slot",
     "dragdropSlotFilled": "Filled with",
-    "sectionDividerLabel": "Continue reading"
+    "sectionDividerLabel": "Continue reading",
+    "share": {
+      "label": "Share this article",
+      "facebook": "Share on Facebook",
+      "twitter": "Share on X"
+    }
   }
 }

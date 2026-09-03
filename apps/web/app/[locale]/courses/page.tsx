@@ -51,18 +51,30 @@ export default async function CoursesPage({ params }: PageProps) {
           isPartOf: { '@id': `${SITE_ORIGIN}/#site` },
         }}
       />
-      <header>
-        <p className="meta">{t(messages, 'breadcrumb.courses')}</p>
-        <h1 className="mt-3 text-4xl">{t(messages, 'courses.indexTitle')}</h1>
-        <p className="mt-4 max-w-[var(--measure-prose)]">{t(messages, 'courses.indexDescription')}</p>
-      </header>
-      <ul className="mt-10 grid gap-4">
-        {view.courses.map((course) => (
-          <li key={course.slug}>
-            <CourseCard locale={locale} course={course} messages={messages} />
-          </li>
-        ))}
-      </ul>
+      {/* Ambient wrap (sydexa-video spec, PR #131 §2): applies the
+         faint line-grid + cool corner glow to the courses listing.
+         Mirrors the same modifier pair used on `.blog-pane`. The
+         grid + glow sit behind the heading and the card grid via
+         the `isolation: isolate` stacking context; cards absorb
+         the glow naturally (no card-level background change). */}
+      <section className="ls-ambient-grid ls-ambient-glow mt-2">
+        <header>
+          <p className="meta">{t(messages, 'breadcrumb.courses')}</p>
+          <h1 className="mt-3 text-4xl">{t(messages, 'courses.indexTitle')}</h1>
+          <p className="mt-4 max-w-[var(--measure-prose)]">{t(messages, 'courses.indexDescription')}</p>
+        </header>
+        <ul className="mt-10 grid gap-4">
+          {view.courses.map((course) => (
+            <li key={course.slug} className="group relative">
+              <span
+                aria-hidden="true"
+                className="absolute inset-y-0 left-0 w-0.5 origin-top scale-y-0 rounded-full bg-signal transition-transform duration-300 group-hover:scale-y-100"
+              />
+              <CourseCard locale={locale} course={course} messages={messages} />
+            </li>
+          ))}
+        </ul>
+      </section>
     </PageShell>
   );
 }

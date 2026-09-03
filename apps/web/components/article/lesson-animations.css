@@ -13,6 +13,16 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes lesson-view-transition-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes lesson-view-transition-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-6px); }
+}
+
 @keyframes lesson-rise-in-loud {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -64,6 +74,14 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  /* ---- View Transitions API on the lesson main (Chrome 111+, Edge 111+, Safari TP) ---- */
+  ::view-transition-old(lesson-content) {
+    animation: lesson-view-transition-out 220ms var(--ease-in-out) both;
+  }
+  ::view-transition-new(lesson-content) {
+    animation: lesson-view-transition-in 280ms var(--ease-in-out) both;
+  }
+
   /* ---- Quiz option color transitions (existing classes) ---- */
 
   .lesson-surface .av-qz-opt {
@@ -99,35 +117,46 @@
       transform var(--duration-slow) var(--ease-out);
   }
 
-  /* ---- Flashcard 3D flip (replaces display:none/block) ---- */
+  /* ---- Flashcard surface (no 3D flip) ---- */
 
+  /* polish/sydexa-card-deck (PR #143): removed `perspective`,
+     `transform-style: preserve-3d`, the `transform:
+     rotateY(180deg)` rotation, the `backface-visibility` toggles,
+     the `position: absolute` on `.av-flashcard-back`, and the
+     `.is-flipped` rotation. Reason: every card now has the
+     sydexa-style deck-stack pseudos (`::before` warm stripe +
+     `::after` cool stripe) drawn INSIDE `overflow: hidden`. A
+     rotateY(180deg) on the card body would invert the gradient
+     direction AND rotate the depth-edge pseudos to the
+     upper-LEFT / lower-LEFT — instantly breaking the sydexa
+     look. Tapping the card to flip the question/answer still
+     works because the JSX toggles `.is-flipped`, and the
+     PR #141 `display: none` rules on the inactive face span
+     handle visibility. The card stays flat; only the
+     `.is-flipped` border colour changes (see lesson-tokens.css).
+     The swipe-track transform is what gives the deck its
+     motion, not card rotation. */
   .lesson-surface .av-flashcard-card {
-    perspective: 1000px;
-    transform-style: preserve-3d;
-    position: relative;
-    transition: transform var(--duration-slow) cubic-bezier(0.4, 0, 0.2, 1);
+    transition:
+      transform var(--duration-base) var(--ease-out),
+      box-shadow var(--duration-base) var(--ease-out),
+      border-color var(--duration-base) var(--ease-out);
   }
 
-  .lesson-surface .av-flashcard-front,
-  .lesson-surface .av-flashcard-back {
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    display: block;
-  }
-
-  .lesson-surface .av-flashcard-back {
-    position: absolute;
-    inset: 1.1rem 1.2rem;
-    transform: rotateY(180deg);
-  }
-
-  .lesson-surface .av-flashcard-card.is-flipped {
-    transform: rotateY(180deg);
-  }
-
-  .lesson-surface .av-flashcard-track {
-    scroll-behavior: smooth;
-  }
+  /* polish/flashcard-ambient-and-prevnext-fix (PR #144):
+     removed the `--flashcard-track-translate` swipe-track
+     mechanism from PR #143. That mechanism caused the empty-card
+     glitch: when `setIndex` updated state AND the inline CSS
+     variable was set AND `scrollIntoView({ inline: 'center' })`
+     fired, the track's `transform: translateX(...)` overrode the
+     scroll-snap alignment and left the active card visually
+     scrolled past the visible viewport while the counter showed
+     the new index — exactly the "counter goes 1/3 → 2/3 → 3/3 then
+     empty body" bug the user reported on iPhone Safari. Trust
+     `scroll-snap-type: x mandatory` on `.av-flashcard-track`
+     (lesson-tokens.css) + `scrollIntoView({ inline: 'center' })`
+     from JSX — they handle position correctly without a CSS
+     transform competitor. */
 
   /* ---- Drag-drop hover, focus, and submit transitions ---- */
 
@@ -241,6 +270,12 @@
 /* ---- Reduced-motion overrides ---- */
 
 @media (prefers-reduced-motion: reduce) {
+  /* ---- View Transitions: respect reduced motion preference (instant swap) ---- */
+  ::view-transition-old(lesson-content),
+  ::view-transition-new(lesson-content) {
+    animation-duration: 0.001ms !important;
+    transform: none !important;
+  }
   .lesson-surface .av-callout,
   .lesson-surface .av-callout.is-revealed {
     opacity: 1;

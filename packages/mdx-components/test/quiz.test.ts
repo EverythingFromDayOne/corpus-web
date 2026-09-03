@@ -266,3 +266,79 @@ test('verdict SSR / first paint keeps data-mounted="false"', () => {
   assert.match(html, /data-mounted="false"/);
   assert.equal(html.includes('data-mounted="true"'), false);
 });
+
+/**
+ * polish/quiz-server-action-and-rebrand: <Quiz> now renders a three-zone
+ * footer (reset · counter+chevrons · primary CTA). React's `useId()` inside
+ * the Quiz function component throws outside a real render context, and
+ * `react-dom/server` is intentionally not a dependency of `@corpus/mdx-components`
+ * (only `react` is a peer). We verify the affordance wiring at two layers
+ * instead:
+ *
+ * 1. **Type-level**: the new `QuizLabels` keys are present at compile time
+ *    (TypeScript will fail typecheck if a caller forgets one).
+ * 2. **Bundle-level**: the new CSS classes (`av-qz-ft`, `av-qz-reset`,
+ *    `av-qz-arrow`, `av-qz-counter`) appear in the compiled CSS bundle that
+ *    ships with `apps/web`.
+ *
+ * The structural test pattern above (`markup()` walking a manually-constructed
+ * JSX tree) still works for `QuizVerdictBlock` because that sub-component
+ * does not call `useId`.
+ */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import type { QuizLabels } from '../src/quiz';
+
+// Type-level pin: if a caller drops any of these keys, the assignment
+// `labels = { ... }` at any call site fails typecheck. The minimal object
+// below must satisfy QuizLabels for the test to even typecheck.
+const MINIMAL: QuizLabels = {
+  eyebrow: '',
+  progress: '',
+  submit: '',
+  next: '',
+  finish: '',
+  previous: '',
+  reset: '',
+  correct: '',
+  incorrect: '',
+  explanation: '',
+  error: '',
+};
+assert.equal(typeof MINIMAL.eyebrow, 'string');
+
+test('Quiz surface CSS bundles expose the three-zone footer affordances', () => {
+  // Resolve the apps/web CSS bundle via the package's compiled output.
+  // `lesson-tokens.css` is imported by `lesson-surface` and is the home of
+  // the new `.av-qz-ft` rules.
+  const cssPath = join(
+    process.cwd(),
+    '..',
+    '..',
+    'apps',
+    'web',
+    'components',
+    'article',
+    'lesson-tokens.css',
+  );
+  const css = readFileSync(cssPath, 'utf8');
+  assert.match(css, /\.av-qz-ft/);
+  assert.match(css, /\.av-qz-reset/);
+  assert.match(css, /\.av-qz-arrow/);
+  assert.match(css, /\.av-qz-counter/);
+  assert.match(css, /\.av-qz-finish/);
+});
+
+test('Quiz eyebrow default in the message catalogue reads "Quick quiz"', () => {
+  // The English message catalogue is the authoritative source for the
+  // visible eyebrow label; reading it here pins the rename without spinning
+  // up the i18n runtime.
+  const path = join(process.cwd(), '..', '..', 'apps', 'web', 'messages', 'en.json');
+  const json = JSON.parse(readFileSync(path, 'utf8')) as {
+    article: { quizEyebrow: string; quizFinish: string; quizPrevious: string; quizReset: string };
+  };
+  assert.equal(json.article.quizEyebrow, 'Quick quiz');
+  assert.equal(json.article.quizFinish, 'Finish');
+  assert.equal(json.article.quizPrevious, 'Previous question');
+  assert.equal(json.article.quizReset, 'Reset quiz');
+});

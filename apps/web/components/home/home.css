@@ -3,15 +3,16 @@
    cannot collide with Tailwind utilities (notably .grid). */
 
 .ls-home {
-  /* Listing POC --page / --measure. The shared top bar still uses 72rem. */
+  /* Listing POC --page / --measure. The shared top bar still uses 72rem.
+     --ls-cool was promoted to @theme's --color-cool* family on 2026-08-31
+     (DEBT D28 closure), so no local color override is needed here. */
   --ls-page: 76rem;
   --ls-measure: 60rem;
-  /* Listing POC --cool. DESIGN.md does not define it; local to this page. */
-  --ls-cool: #6aa9d8;
 }
 
 :root[data-theme='light'] .ls-home {
-  --ls-cool: #2b6f9e;
+  /* Same as .ls-home above — light-variant color overrides live in
+     packages/ui/src/tokens.css. */
 }
 
 .ls-wrap {
@@ -65,20 +66,78 @@
   margin: 0.3rem 0 0;
 }
 
-/* ---------- Hero ---------- */
+/* ---------- Hero ----------
+   Rule 3 (sydexa-video spec, PR #131): the line-grid is the ONE
+   grid on this surface. The pre-PR-#133 `repeating-linear-gradient`
+   rail-grid CSS stack was scrubbed here — it conflicted with the
+   spec's "one grid, one declaration" rule and fought the
+   `bg-gradient-to-b from-display to-signal` H1. The
+   `ls-ambient-grid` modifier defined in `apps/web/app/globals.css`
+   (PR #133) provides the spec'd 24×24 px line-grid via the
+   `::before` pseudo; the override below bumps the colour-mix
+   percentage from 18% (the listing-surface default, ≈6% effective)
+   to 28% (≈8% effective per spec §2 for `.ls-hero`).
+
+   The vertical surface-tint `linear-gradient(180deg, ...)` is kept
+   — it's a canvas gradient, not a grid. Per spec §1 Rule 1 ("dark
+   navy canvas, already shipped, re-asserted"), the canvas treatment
+   stays the same; only the texture layer changed. */
 .ls-hero {
   border-bottom: 1px solid var(--color-graphite);
-  background:
-    linear-gradient(
+  background: linear-gradient(
       180deg,
       color-mix(in srgb, var(--color-surface) 55%, transparent),
       transparent 70%
-    ),
-    repeating-linear-gradient(
-      90deg,
-      transparent 0 79px,
-      color-mix(in srgb, var(--color-graphite) 45%, transparent) 79px 80px
     );
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.ls-hero.ls-ambient-grid::before {
+  background-image:
+    linear-gradient(
+      to right,
+      color-mix(in srgb, var(--ambient-cool-grid) 28%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--ambient-cool-grid) 28%, transparent) 1px,
+      transparent 1px
+    );
+}
+
+/* Aurora on the home hero (design-spec home §6 sub-gap).
+   Two radial blooms composited behind the rail-grid texture to
+   read as a multi-colour aurora. Warm bloom from upper-right
+   (matches the per-section bloom for corpora on the next section
+   down, so the warm glow flows top-to-bottom). Cool bloom from
+   lower-left, opposite corner, for the aurora offset. Opacity
+   intentionally lower than the course-hero aurora (PR #117)
+   because the home hero is the page entry — softer than the
+   per-section blooms on the sectioned body below.
+
+   Positioning, clipping, pointer events, and the four-edge mask
+   are inherited from the shared .bloom selector list (defined
+   in globals.css). These rules contribute only the gradient
+   colour + anchor. */
+.ls-hero::before {
+  content: "";
+  background: radial-gradient(
+    ellipse 60rem 40rem at 100% 0%,
+    color-mix(in srgb, var(--marketing-accent-bloom) 24%, transparent) 0%,
+    transparent 65%
+  );
+}
+
+.ls-hero::after {
+  content: "";
+  background: radial-gradient(
+    ellipse 60rem 40rem at 0% 100%,
+    color-mix(in srgb, var(--color-cool) 20%, transparent) 0%,
+    transparent 65%
+  );
 }
 
 .ls-hero .ls-wrap {
@@ -150,10 +209,52 @@
 /* ---------- Sections ---------- */
 .ls-sec {
   padding-block: 3.5rem;
+  position: relative;
+  isolation: isolate;
 }
 
 .ls-sec + .ls-sec {
   border-top: 1px solid var(--color-graphite);
+}
+
+/* Per-section bloom (design-spec home §6 "Gap: no per-section blooms").
+   Soft radial anchored to a corner of each section so successive
+   blooms don't stack on the same axis. First .ls-sec (corpora) blooms
+   from the right; .ls-sec + .ls-sec (entry points) blooms from the
+   left. Opacity intentionally low (22% bloom, 18% deep) so the bloom
+   reads as ambient depth.
+
+   Positioning, clipping, pointer events, and the four-edge mask are
+   inherited from the shared .bloom selector list (defined in
+   globals.css). These rules contribute only the gradient colour +
+   anchor. */
+.ls-sec:not(.ls-audience)::before {
+  content: "";
+  background: radial-gradient(
+    ellipse 60rem 40rem at 100% 0%,
+    color-mix(in srgb, var(--marketing-accent-bloom) 22%, transparent) 0%,
+    transparent 70%
+  );
+}
+
+.ls-sec + .ls-sec:not(.ls-audience)::before {
+  background: radial-gradient(
+    ellipse 60rem 40rem at 0% 0%,
+    color-mix(in srgb, var(--marketing-accent-deep) 18%, transparent) 0%,
+    transparent 70%
+  );
+}
+
+/* Light-mode carve (home.css-local — see globals.css note for why
+   the carve is split across two files). At 22%/18% on parchment
+   the wash reads as bounded paper tone rather than ambient depth;
+   drop both variants to zero in light mode. */
+[data-theme='light'] .ls-hero::before,
+[data-theme='light'] .ls-hero::after,
+[data-theme='light'] .ls-sec::before,
+[data-theme='light'] .ls-sec + .ls-sec::before,
+[data-theme='light'] .ls-audience::before {
+  background: none;
 }
 
 .ls-sechd {
@@ -180,6 +281,108 @@
   color: var(--color-display);
 }
 
+/* ---------- Audience-fit 3-column cards ---------- */
+.ls-audience {
+  margin: 4rem 0 5rem;
+  position: relative;
+  isolation: isolate;
+}
+
+/* Audience-section bloom — design-spec home §6. Distinct corner
+   (bottom-right) so the three per-section blooms don't overlap.
+
+   Positioning, clipping, pointer events, and the four-edge mask are
+   inherited from the shared .bloom selector list (defined in
+   globals.css). This rule contributes only the gradient colour +
+   anchor. */
+.ls-audience::before {
+  content: "";
+  background: radial-gradient(
+    ellipse 60rem 40rem at 100% 100%,
+    color-mix(in srgb, var(--marketing-accent-bloom) 16%, transparent) 0%,
+    transparent 65%
+  );
+}
+
+.ls-aud-eyebrow {
+  display: block;
+  margin-bottom: 1.5rem;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.ls-aud-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (width >= 768px) {
+  .ls-aud-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2.25rem;
+  }
+}
+
+.ls-aud-card {
+  position: relative;
+  padding: 1.5rem 1rem;
+}
+
+.ls-aud-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-graphite);
+  background: color-mix(in srgb, var(--color-signal-dim) 35%, transparent);
+  color: var(--color-display);
+}
+
+.ls-aud-card h3 {
+  margin: 1rem 0 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-display);
+}
+
+.ls-aud-card p {
+  margin: 0.5rem 0 0;
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--color-muted);
+}
+
+/* Vertical gradient divider between cards on desktop (cards 2 and 3) */
+@media (width >= 768px) {
+  .ls-aud-card + .ls-aud-card::before {
+    content: '';
+    position: absolute;
+    left: calc(-1.125rem - 1px);
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      color-mix(in srgb, var(--color-ink) 18%, transparent),
+      transparent
+    );
+  }
+}
+
+/* Horizontal divider on mobile (cards 2 and 3) */
+@media (width < 768px) {
+  .ls-aud-card + .ls-aud-card {
+    border-top: 1px solid color-mix(in srgb, var(--color-ink) 14%, transparent);
+    padding-top: 1.5rem;
+  }
+}
+
 /* ---------- Cards ---------- */
 .ls-grid {
   display: grid;
@@ -197,7 +400,18 @@
 .ls-card {
   display: block;
   border: 1px solid var(--color-graphite);
-  background: var(--color-surface);
+  background-color: var(--color-surface);
+  background-image:
+    radial-gradient(
+      circle at 85% 100%,
+      color-mix(in srgb, var(--marketing-accent-bloom) 18%, transparent) 0%,
+      transparent 60%
+    ),
+    linear-gradient(
+      135deg,
+      var(--color-surface) 0%,
+      color-mix(in srgb, var(--marketing-accent-deep) 8%, var(--color-surface)) 100%
+    );
   border-radius: var(--radius-md);
   padding: 1.25rem 1.3rem;
   transition: var(--duration-fast);
@@ -205,8 +419,23 @@
 }
 
 a.ls-card:hover {
-  border-color: var(--color-muted);
-  background: var(--color-raised);
+  border-color: color-mix(in srgb, var(--marketing-accent-bloom) 50%, var(--color-graphite));
+  background-image:
+    radial-gradient(
+      circle at 85% 100%,
+      color-mix(in srgb, var(--marketing-accent-bloom) 32%, transparent) 0%,
+      transparent 60%
+    ),
+    linear-gradient(
+      135deg,
+      var(--color-surface) 0%,
+      color-mix(in srgb, var(--marketing-accent-deep) 16%, var(--color-surface)) 100%
+    );
+}
+
+a.ls-card:focus-visible {
+  outline: none;
+  border-color: var(--marketing-accent-bloom);
 }
 
 .ls-card h3 {
@@ -270,8 +499,8 @@ a.ls-card:hover {
 }
 
 .ls-tag-concept {
-  color: var(--ls-cool);
-  border-color: color-mix(in srgb, var(--ls-cool) 45%, var(--color-graphite));
+  color: var(--color-cool);
+  border-color: color-mix(in srgb, var(--color-cool) 45%, var(--color-graphite));
 }
 
 .ls-tag-recipe {

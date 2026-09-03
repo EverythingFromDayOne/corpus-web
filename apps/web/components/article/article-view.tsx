@@ -13,6 +13,8 @@ import { railParts } from '@/lib/rail-parts';
 import { ArticleProgressBar, ArticleScrim } from './article-shell';
 import { CorpusSidebar, CurriculumSidebar } from './sidebars';
 import { TocRail } from './toc-rail';
+import { PostHeader } from './post-header';
+import { ShareButtons } from '@/components/share-buttons';
 import './article.css';
 
 export type BreadcrumbCrumb = {
@@ -39,6 +41,10 @@ export type ArticleViewProps = {
   prevLabel: string;
   nextLabel: string;
   lead?: ReactNode;
+  shareUrl?: string;
+  /** Render the long-form post header (badge + meta row) instead of the
+   *  default corpus/article lead. Used by /en/blog/[corpus]/[slug]. */
+  postHeader?: boolean;
 };
 
 function relatedItemHref(view: CatalogView, locale: Locale, uid: string): string | null {
@@ -67,6 +73,8 @@ export async function ArticleView({
   prevLabel,
   nextLabel,
   lead,
+  shareUrl,
+  postHeader,
 }: ArticleViewProps) {
   const widgets = loadArticleLessonWidgets(article);
   const body = await renderArticleMarkdown({
@@ -115,7 +123,7 @@ export async function ArticleView({
       <ArticleProgressBar />
       <div className="av-view">
         {sidebar}
-        <main id="content" className="av-main">
+        <main id="content" className="av-main" style={{ viewTransitionName: 'lesson-content' }}>
           <div className="av-inner">
             <nav aria-label={t(messages, 'breadcrumb.label')}>
               <ol className="av-crumb meta">
@@ -132,8 +140,17 @@ export async function ArticleView({
               </ol>
             </nav>
             <div className="lesson-surface">
-              <h1>{article.title}</h1>
-              <p className="av-dek">{article.description}</p>
+              {postHeader ? (
+                <PostHeader article={article} messages={messages} />
+              ) : (
+                <>
+                  <h1>{article.title}</h1>
+                  <p className="av-dek">{article.description}</p>
+                </>
+              )}
+              {shareUrl ? (
+                <ShareButtons url={shareUrl} title={article.title} messages={messages} />
+              ) : null}
             </div>
             <div className="av-mr meta">
               <div>
@@ -228,6 +245,8 @@ function RelatedList({
   article: ArticleListItem;
 }) {
   if (article.related.length === 0) return null;
+  const unresolvedTitle = t(messages, 'article.relatedUnresolvedTitle');
+  const unresolvedBody = t(messages, 'article.relatedUnresolvedBody');
   return (
     <section className="av-related" aria-labelledby="av-related-heading">
       <h2 id="av-related-heading">{t(messages, 'article.related')}</h2>
@@ -235,9 +254,28 @@ function RelatedList({
         {article.related.map((ref) => {
           const href = relatedItemHref(view, locale, ref.uid);
           const title = view.byUid[ref.uid]?.title ?? ref.raw;
+          if (!href) {
+            return (
+              <li key={`${ref.uid}:${ref.raw}`} className="av-related-unresolved">
+                <span
+                  className="av-related-unresolved-mark"
+                  aria-hidden="true"
+                  title={unresolvedBody}
+                >
+                  ◌
+                </span>
+                <span
+                  className="av-related-unresolved-link text-muted italic"
+                  aria-label={`${title} — ${unresolvedTitle}`}
+                >
+                  {title}
+                </span>
+              </li>
+            );
+          }
           return (
             <li key={`${ref.uid}:${ref.raw}`}>
-              {href ? <a href={href}>{title}</a> : <span>{title}</span>}
+              <a href={href}>{title}</a>
             </li>
           );
         })}

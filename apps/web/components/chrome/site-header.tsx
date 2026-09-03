@@ -2,14 +2,27 @@ import type { ReactNode } from 'react';
 import { ArticleHeaderToggle } from '@/components/article/article-shell';
 import { t, type Messages } from '@/lib/i18n';
 import { ThemeToggle } from './theme-toggle';
-import { SearchPlaceholder } from './search-placeholder';
+import { SearchTrigger } from './search-trigger';
 import { NavLinks } from './nav-links';
-import { homePath } from '@/lib/routes';
+import { NavProgressBar } from './nav-progress-bar';
+import { homePath, coursePath } from '@/lib/routes';
 import type { Locale } from '@/lib/locales';
 
-export function SiteHeader({ locale, messages }: { locale: Locale; messages: Messages }) {
+export function SiteHeader({
+  locale,
+  messages,
+  featured,
+}: {
+  locale: Locale;
+  messages: Messages;
+  /** First course from `view.courses`; when set, the topbar renders a
+   *  pill-shaped CTA "Start the course" linking to it. When unset,
+   *  the pill is hidden (e.g., on routes without a featured course). */
+  featured?: { slug: string; title: string };
+}) {
   return (
     <header className="topbar">
+      <NavProgressBar />
       <a
         href="#content"
         className="bg-signal text-ink sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-3 focus:py-1"
@@ -24,7 +37,16 @@ export function SiteHeader({ locale, messages }: { locale: Locale; messages: Mes
         </a>
         <NavLinks locale={locale} messages={messages} />
         <div className="topbar-tools">
-          <SearchPlaceholder messages={messages} />
+          <SearchTrigger messages={messages} />
+          {featured ? (
+            <a
+              href={coursePath(locale, featured.slug)}
+              className="topbar-pill-cta"
+              aria-label={t(messages, 'topbar.pillCtaAriaLabel', { title: featured.title })}
+            >
+              {t(messages, 'topbar.pillCta')}
+            </a>
+          ) : null}
           <ThemeToggle label={t(messages, 'nav.themeToggle')} />
         </div>
       </div>
