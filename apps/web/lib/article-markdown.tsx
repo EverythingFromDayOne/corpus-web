@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { cacheLife } from 'next/cache';
 import { createMarkdownRenderer } from 'fumadocs-core/content/md';
 import { remarkGfm } from 'fumadocs-core/mdx-plugins';
+import rehypePrettyCode from 'rehype-pretty-code';
 import {
   Callout,
   CodeBlock,
@@ -26,6 +27,8 @@ import { articlePath } from '@/lib/routes';
 import { isRepoId } from '@/lib/repos';
 import { remarkAssignHeadingIds } from '@/lib/heading-ids';
 import { t, type Messages } from '@/lib/i18n';
+import corpusDarkTheme from '@/lib/shiki-theme-dark.json';
+import corpusLightTheme from '@/lib/shiki-theme-light.json';
 
 /**
  * polish/quiz-server-action-and-rebrand: inline `'use server'` re-exports of
@@ -50,8 +53,47 @@ async function gradeDragDropForClient(input: DragDropGradeInput): Promise<DragDr
   return gradeDragDrop(input);
 }
 
+// rehype-pretty-code (Shiki under the hood) applied at MDX compile time.
+// Build-time variant: zero runtime bundle cost (rehype-pretty-code is a
+// devDependency). The highlighter initialises once at module load and
+// produces HTML with inline `style="color:…"` on each token span plus
+// `--shiki-dark` / `--shiki-light` CSS custom properties for the dual-
+// theme switch. The active theme is then picked per-render by a tiny
+// CSS rule under `[data-theme='light']` (see apps/web/components/article/
+// article.css `.av-cb pre` block + the light-mode override).
+//
+// Themes are custom JSON files mirroring the corpus-web design tokens
+// in packages/ui/src/tokens.css — NOT stock GitHub Dark / Light, per
+// the user's directive in session 161. Every token scope (comment,
+// string, keyword, function name, class name, variable, etc.) is mapped
+// to the existing palette: dark mode uses `--color-signal-soft` for
+// strings / class names (warm amber), `--color-cool` for keywords
+// (cyan-blue), `--color-display` for function names; light mode darkens
+// the same hues for 4.5:1 contrast against the parchment background.
+//
+// `onVisitLine` adds `className: ['line']` to every `<span class="line">`
+// element Shiki emits, which gives the existing `.av-cb` line-number
+// gutter CSS something to count against via `counter-reset`. The number
+// itself comes from a CSS `counter-increment` on `.line::before`, not
+// from text content — so the line numbers track edits automatically.
+const prettyCodeOptions = {
+  theme: {
+    dark: corpusDarkTheme as never,
+    light: corpusLightTheme as never,
+  },
+  keepBackground: false,
+  defaultLang: 'plaintext',
+  onVisitLine(element: { properties: { className?: string[] } }) {
+    element.properties.className = [...(element.properties.className ?? []), 'line'];
+  },
+  onVisitHighlightedLine(element: { properties: { className?: string[] } }) {
+    element.properties.className = [...(element.properties.className ?? []), 'line', 'highlighted'];
+  },
+};
+
 const { MarkdownServer } = createMarkdownRenderer({
   remarkPlugins: [remarkGfm, remarkDropHtmlComments, remarkCodeExtract, remarkAssignHeadingIds],
+  rehypePlugins: [[rehypePrettyCode, prettyCodeOptions]],
 });
 
 type MdNode = {

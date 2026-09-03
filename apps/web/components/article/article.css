@@ -623,6 +623,63 @@
   line-height: 1.7;
 }
 
+/* D20 Shiki integration — dual-theme via `--shiki-dark` / `--shiki-light`
+   CSS custom properties that rehype-pretty-code emits inline on every
+   token span. The active theme is picked per-render by the parent
+   `[data-theme]` attribute on `<html>`. Dark mode (default) reads the
+   `--shiki-dark` token; light mode reads `--shiki-light`. Shiki's
+   default behaviour of writing `--shiki-dark` only on the inline
+   `<pre>` style is overridden here so the dark/light variables on the
+   *token* spans become the source of colour, not the `style` on `<pre>`. */
+.av-cb pre code {
+  counter-reset: shiki-line;
+  display: block;
+  white-space: pre;
+}
+
+.av-cb pre code > span {
+  display: block;
+  padding-left: 2.85rem;
+  position: relative;
+  white-space: pre;
+  min-height: 1em;
+}
+
+.av-cb pre code > span::before {
+  counter-increment: shiki-line;
+  content: counter(shiki-line);
+  position: absolute;
+  left: 0;
+  width: 2.1rem;
+  text-align: right;
+  color: var(--color-graphite);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+/* Token colour resolution — Shiki emits `style="--shiki-dark:#xxx;--shiki-light:#yyy"`
+   on each token span. Default (dark) uses --shiki-dark; under
+   [data-theme='light'] we read --shiki-light. `color: var(--shiki-dark)` is
+   what makes the dark theme work, and the override at the bottom swaps
+   it. `background: none` clears Shiki's default `<pre>` background so the
+   existing `.av-cb` surface (--color-surface) shows through. */
+.av-cb pre code > span span {
+  color: var(--shiki-dark);
+}
+
+.av-cb pre {
+  background-color: transparent;
+  color: var(--color-body);
+}
+
+[data-theme='light'] .av-cb pre code > span span {
+  color: var(--shiki-light);
+}
+
+[data-theme='light'] .av-cb pre code > span::before {
+  color: var(--color-muted);
+}
+
 .av-ln {
   display: block;
   padding-left: 2.5rem;
