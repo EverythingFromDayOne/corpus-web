@@ -4,7 +4,60 @@ All notable changes to this project are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
-### [2026-09-03] — session 159 wrap — D42 polish/d42-bloom-base merge disposition + D42-2 no-change
+### [2026-09-03] — polish/d22-static-og — Static OG image + Twitter card (D22 close)
+
+**Added**
+- **`apps/web/app/opengraph-image.tsx`** — Next.js file convention
+  emitting `/opengraph-image` as a 1200×630 PNG via `next/og`'s
+  `ImageResponse` (Satori under the hood). Mirrors the home-hero
+  palette discipline (`--color-ink` ground + warm
+  `--marketing-accent-bloom` upper-right + cool `--color-cool`
+  glow lower-left). Static single design — no per-article variation.
+- **`apps/web/public/og-fonts/Archivo-Bold.ttf`** (111KB) +
+  **`IBMPlexMono-Regular.ttf`** (133KB) — local font bundle for
+  the OG card. Satori requires real `.ttf` bytes (not `.woff2`),
+  and Google Fonts gstatic URLs are build-hashed so they 404
+  across `next/font` rebuilds. Local bundle is deterministic.
+- **`OG_IMAGE_PATH`, `OG_IMAGE_WIDTH`, `OG_IMAGE_HEIGHT`,
+  `OG_IMAGE_ALT`, `ogImageUrl()`** in `apps/web/lib/site.ts`.
+
+**Changed**
+- **`og:image` + Twitter card metadata** wired into all 5 surface
+  metadata functions: home, blog index, blog article
+  (`type=article`), course detail, lesson (`type=article`). Every
+  adapting page now emits
+  `<meta property="og:image" content="https://nxhhuy.tech/opengraph-image">`
+  with `width=1200 height=630 alt="..."` plus the matching
+  `<meta name="twitter:card" content="summary_large_image">` block.
+
+**Removed**
+- Nothing.
+
+**Fixed**
+- Nothing.
+
+**Architecture decisions**
+- One PR, one surface (D22 close). Static shared fallback chosen
+  over dynamic per-article generation per user decision in session
+  161 — the site has no per-article art and social sharing volume
+  is near zero, so 196 generated images would be wasted build time
+  + runtime cost. Revisit when real social traffic exists.
+- `next/og` is bundled with Next 16.3.1 — zero new npm dep. The
+  only files added are the route handler, the two `.ttf` font
+  binaries, and metadata wiring.
+- No `export const dynamic` on the route — Cache Components
+  (`nextConfig.cacheComponents = true`) forbids route segment
+  config `dynamic`. The file convention is implicitly static.
+- All gates green: typecheck 5/5, lint 5/5, test 39/39,
+  `pnpm --filter @corpus/web build` clean, `pnpm verify:prerender`
+  196/196 + 18/18, `pnpm verify:frontmatter` 196/196,
+  `pnpm agents:check` ✓, `hermes verify --json` ok=true 9/9
+  phases PASS readiness HTTP 200 in 0.104s. Live probe
+  `http://localhost:3000/opengraph-image` returns HTTP 200,
+  `image/png`, 1200×630, 85.9KB.
+- D22 row in `docs/DEBT.md` closes with this PR.
+
+### [2026-09-03] — session 159 wrap — D42 polish/d42-bloom-base merge disposition + D42-2 no-change — D42 polish/d42-bloom-base merge disposition + D42-2 no-change
 
 **Note**
 - The `polish/d42-bloom-base` code (`.bloom` shared selector list +

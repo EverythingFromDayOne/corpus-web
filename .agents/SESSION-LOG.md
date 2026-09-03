@@ -7713,3 +7713,36 @@ directly with vision on the re-rendered captures.
 
 ---
 
+
+## Session 161 — polish/d22-static-og + D22 close (D20 in progress) — 2026-09-03
+
+**Branch:** `polish/d22-static-og` (off `develop @ 2e52548`) → merged as PR #152 → `develop @ 9bbd2f1` (squash).
+
+**Files changed:**
+- `apps/web/app/opengraph-image.tsx` — new file-route emitting `/opengraph-image` as a 1200×630 PNG via `next/og`'s `ImageResponse` (Satori under the hood). No new npm dep (`next/og` bundled with Next 16.3.1).
+- `apps/web/public/og-fonts/Archivo-Bold.ttf` — new, 111KB.
+- `apps/web/public/og-fonts/IBMPlexMono-Regular.ttf` — new, 133KB.
+- `apps/web/lib/site.ts` — added `OG_IMAGE_PATH`, `OG_IMAGE_WIDTH`, `OG_IMAGE_HEIGHT`, `OG_IMAGE_ALT`, `ogImageUrl()` helper.
+- `apps/web/app/[locale]/page.tsx` — added `images[]` + `twitter{}` to home `generateMetadata`.
+- `apps/web/app/[locale]/blog/page.tsx` — same for blog index.
+- `apps/web/app/[locale]/blog/[corpus]/[slug]/page.tsx` — same for article pages (`type=article`).
+- `apps/web/app/[locale]/courses/[course]/page.tsx` — same for course detail.
+- `apps/web/app/[locale]/courses/[course]/lessons/[slug]/page.tsx` — same for lesson pages (`type=article`).
+
+**Why:** D22 (SEO residue / OG image) was the smallest polish item from the session 160 wrap; user picked option B (static shared fallback) in session 161 over dynamic per-article. Rationale from the user: site has no per-article art, social sharing volume is near zero, 196 generated images would be wasted build + runtime cost, and "one well-made static card with the wordmark and 'A verified reference corpus' does the job, adds no runtime dependency, and doesn't trigger stop-and-ask."
+
+The card mirrors the home-hero palette discipline (`--color-ink` ground + warm `--marketing-accent-bloom` upper-right + cool `--color-cool` glow lower-left) so a shared preview card reads as the same surface family as the live site, not a parallel palette.
+
+**Invented decisions:**
+- **File-route convention over runtime `/og` route handler**: Next.js's `opengraph-image.tsx` file convention auto-generates the metadata hookup. Matches framework conventions; no manual `<head>` wiring.
+- **Local font bundle over Google Fonts CDN fetch**: Satori requires real `.ttf` bytes (not `.woff2`). Google Fonts gstatic URLs are build-hashed per `next/font/google` rebuild — pinning a static URL 404s across versions. The ~245KB binary footprint in `apps/web/public/og-fonts/` is the deterministic tradeoff.
+- **No `export const dynamic` on the route**: Cache Components (`nextConfig.cacheComponents = true`) forbids route segment config `dynamic`. The `opengraph-image.tsx` file convention is implicitly static by default — Next.js generates the PNG once at build time and serves cached bytes.
+- **Pinned counts on the OG card (196 / 4 / 18 / 2)** rather than reading `getCatalogView()` at request time: matches the static-design decision and avoids per-request catalog reads for a route that's supposed to be cache-friendly. Refresh at the next build cycle if the live counts drift.
+- **`OG_IMAGE_*` constants in `lib/site.ts`** rather than inline in each metadata function: one source of truth for the URL/width/height/alt; future surface additions wire the same `images[]` block by importing the four named exports.
+
+**Known issues / next steps:**
+- **D21 (Vercel Auth Preview bypass)** — until `/opengraph-image` (and `/pagefind/*`) is added to the path-based bypass in the Vercel dashboard, social-share fetches from `develop.nxhhuy.tech` Preview may 302 to `vercel.com/sso-api`. Production at `nxhhuy.tech` is unaffected — no Vercel Auth on Production.
+- **OG card stays on `nxhhuy.tech/opengraph-image`**, not the originally-considered `cdn.nxhhuy.tech` — that's a DNS + Vercel project routing decision for later, deferred per the user.
+- **D20 (Shiki build-time)** is the next in-scope item from the session 161 user decision. Same `polish/*` branch pattern; next branch name will be `polish/d20-shiki-buildtime` off this `develop @ 9bbd2f1` head.
+
+---
