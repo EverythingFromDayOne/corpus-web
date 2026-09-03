@@ -1145,50 +1145,66 @@ body:has(.av-view) .av-header-tog {
   }
 }
 
-/* --- Course hero aurora/glow (design-spec lessons §7) ---
-   Two radial blooms composited on the course-overview hero to create
-   a "lit from multiple angles" aurora effect. The original single
-   bloom (bg-signal-dim opacity-25) was a one-color wash; this
-   upgrade layers a warm bloom (lower-right) and a cool bloom
-   (lower-left) to read as a multi-colour aurora rather than a flat
-   glow. Reduced per-bloom opacity (30% / 26%) keeps the composite
-   beneath the title text's WCAG contrast threshold. Lives in
-   globals.css (not home.css) because the course overview page
-   doesn't import home.css. */
+/* ---------- .bloom shared ambient layer (PR D42, polish/d42-bloom-base) ----------
+   Single base class consolidating what used to be the per-surface
+   `inset:0; overflow:hidden; pointer-events:none; mask-image:…;
+   mask-composite:intersect` block, plus a four-edge mask that
+   kills the visible-boundary defect on every consumer below.
+   Every variant (--warm / --cool) sets only the gradient colour
+   + anchor; positioning, clipping, pointer events, and the mask
+   come from this base.
+
+   Why a four-edge mask: each variant anchors its gradient at a
+   parent corner (100% 0%, 0% 100%, 0% 0%, or 100% 100%). A
+   two-edge mask would leave the brightest source on an unmasked
+   edge, producing the same defect the mask was meant to fix.
+   The four gradients intersect, taking a 6rem strip at every
+   edge to zero opacity so the parent's clipping (overflow:hidden
+   or isolation:isolate) operates on fully transparent pixels,
+   not the gradient core. The directional anchor survives — the
+   gradient is still brightest in its anchor quadrant; the mask
+   only kills the boundary band.
+
+   Why one selector list instead of @apply: Tailwind 4's @apply
+   cannot see classes defined in another CSS file, and pseudo-
+   elements can't carry classes anyway. Six pseudo-elements + one
+   real DOM class (.course-hero-bloom) share this base via the
+   selector list. Per-surface variants then add only their
+   gradient.
+
+   Browser target: modern evergreens (Safari 15.4+, Chrome 89+,
+   Firefox 53+). No -webkit- prefix needed — unprefixed
+   `mask-image` + `mask-composite: intersect` are widely supported
+   and `-webkit-mask-composite: source-in` does NOT have a 4-way
+   intersect equivalent (it only takes one operation per
+   declaration). The unprefixed rule alone is sufficient. */
+.ls-hero::before,
+.ls-hero::after,
+.ls-sec::before,
+.ls-sec + .ls-sec::before,
+.ls-audience::before,
+.course-detail-curriculum::before,
 .course-hero-bloom {
-  /* Lives inside `.course-hero`'s `overflow: hidden` clip. The two
-     --warm / --cool variants below paint a radial gradient anchored
-     to the parent corners (100% 100% / 0% 100%) — the brightest
-     gradient source sits exactly on the parent's clipped edges
-     (bottom-right corner for warm, bottom-left for cool). Without
-     a fade at each clipped edge, `overflow: hidden` chops the
-     gradient at its brightest point and the user sees a hard
-     visible boundary at the bottom, right, and left edges of the
-     hero.
-
-     Two intersecting linear-gradient masks take the bottom 6rem
-     and the right 6rem to zero alpha so the parent's clipping
-     operates on fully transparent pixels, not the gradient core.
-     `mask-composite: intersect` keeps only the intersection of
-     both masks, which is the full interior of the box minus the
-     bottom strip and the right strip. Same goal on both edges —
-     no chrome clips through, no chrome leaks past. GPU-composited;
-     no layout change, no JSX change, no new tokens.
-
-     Prefixes: -webkit-mask-* mirrors mask-* for Safari iOS
-     pre-15.4 / Safari macOS 14, both of which ignore the
-     unprefixed mask properties. */
+  position: absolute;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  -webkit-mask-image: linear-gradient(to top, transparent 0, black 6rem),
-                     linear-gradient(to left, transparent 0, black 6rem);
-          mask-image: linear-gradient(to top, transparent 0, black 6rem),
-                     linear-gradient(to left, transparent 0, black 6rem);
-  -webkit-mask-composite: source-in;
-          mask-composite: intersect;
+  mask-image:
+    linear-gradient(to top, transparent 0, black 6rem),
+    linear-gradient(to bottom, transparent 0, black 6rem),
+    linear-gradient(to left, transparent 0, black 6rem),
+    linear-gradient(to right, transparent 0, black 6rem);
+  mask-composite: intersect;
 }
 
+/* ---------- Per-surface variants ----------
+   Each variant sets only the gradient colour + anchor. The base
+   above carries the mask, the position, the clipping, and the
+   pointer-events suppression. */
+
+/* Course hero: warm bottom-right + cool bottom-left (PR #150
+   anchors, kept identical so the existing dark capture is
+   byte-stable). */
 .course-hero-bloom--warm {
   background: radial-gradient(
     ellipse 60rem 40rem at 100% 100%,
@@ -1196,7 +1212,6 @@ body:has(.av-view) .av-header-tog {
     transparent 70%
   );
 }
-
 .course-hero-bloom--cool {
   background: radial-gradient(
     ellipse 60rem 40rem at 0% 100%,
@@ -1205,51 +1220,63 @@ body:has(.av-view) .av-header-tog {
   );
 }
 
-/* Light-mode carve: against a near-white surface, the 30%/26% wash reads
-   as a soft-edged warm rectangle rather than ambient depth (verified
-   visually: the four-edge mask fix was applied first, defect remained
-   visible as a bounded shape in mid-right because the warm tint over
-   a parchment canvas has too little chromatic contrast to "disappear").
-   The whole hero is intended for dark-mode atmospheric depth; in light
-   mode it should be a flat editorial surface. We kill the painted layer
-   entirely and clear the mask props so the elements cost zero. */
-[data-theme='light'] .course-hero-bloom--warm,
-[data-theme='light'] .course-hero-bloom--cool {
-  background: none;
-  -webkit-mask-image: none;
-          mask-image: none;
-}
-
-/* ---------- Course detail curriculum bloom (polish/course-detail-curriculum-bloom) ----------
-   One-section deferral of design-spec background §2 row
-   "`/en/courses/[course]` body sections (Promise / Benefits / Curriculum)"
-   — the page only has a single body section currently (the curriculum
-   timeline), so PR #116's alternating-bloom pattern doesn't apply (it
-   needs 2+ sibling `.ls-sec` blocks). Instead, an anchor that doesn't
-   stack with the hero's bottom-corner blooms directly above: top-mid,
-   mirrored horizontally so two consecutive `.course-detail-curriculum`
-   pages don't visually double up with their sibling `.course-card`
-   blooms on `/en/courses`. Cool palette (--color-cool, not
-   --marketing-accent-bloom) so the section reads as ambient depth,
-   not active-focus.
-
-   WCAG: opacity stays at 18% so the timeline's text contrast against
-   var(--color-ink) is unaffected. */
-.course-detail-curriculum {
-  isolation: isolate;
-}
-.course-detail-curriculum-bloom {
-  z-index: -1;
-  top: -6rem;
-  left: auto;
-  right: -10rem;
-  width: 38rem;
-  height: 22rem;
+/* Course detail curriculum: cool upper-right. Mirrors the
+   pre-D42 JSX div's `top:-6rem right:-10rem` (top-right corner)
+   so the layout footprint doesn't change when the JSX span
+   converts to a pseudo-element. */
+.course-detail-curriculum::before {
   background: radial-gradient(
-    ellipse at center,
+    ellipse 60rem 40rem at 100% 0%,
     color-mix(in srgb, var(--color-cool) 18%, transparent) 0%,
     transparent 72%
   );
+}
+
+/* ---------- Light-mode carve ----------
+   Replaces the per-surface [data-theme='light'] rules that
+   previously existed on `.course-hero-bloom--warm/--cool` (PR
+   #150) and `.ls-card` / `.ls-blog-card` (out of D42 scope). At
+   30%/26% on a parchment canvas the wash reads as bounded
+   paper tone rather than ambient depth — visually confirmed in
+   the bloom-audit captures. The dark variant alone is the
+   design intent; in light mode the surface is editorial paper.
+   Killing `background` AND `mask-image` zeros the element cost. */
+[data-theme='light'] .course-hero-bloom--warm,
+[data-theme='light'] .course-hero-bloom--cool,
+[data-theme='light'] .course-detail-curriculum::before {
+  background: none;
+  mask-image: none;
+  mask-composite: normal;
+}
+/* Note: home.css's .ls-hero::before / .ls-hero::after /
+   .ls-sec::before / .ls-sec + .ls-sec::before /
+   .ls-audience::before light-mode carve lives in home.css
+   directly because home.css owns those selectors and the cascade
+   resolves identically. Splitting the carve across two files
+   is a one-time cost; future migrations collapse it. */
+
+/* ---------- Course detail curriculum ambient layer ----------
+   Carries a single cool bloom on `.course-detail-curriculum::before`
+   (defined in the .bloom shared base block above). The pseudo-element
+   replaces the JSX `<span class="course-detail-curriculum-bloom …">`
+   div that lived in page.tsx — eliminating the JSX/CSS specificity
+   fight over `-inset-x-12 -inset-y-8 rounded-full blur-3xl` Tailwind
+   utilities.
+
+   Adds `overflow: hidden` so the bloom's mask pixels operate on the
+   section's interior, not on the gap between hero and curriculum.
+   Verified visually: the timeline dots (-left-[5px] from the <li>)
+   sit at ~7px from the section's left edge, well within the clipped
+   box, so the dots are not clipped. Focus rings on <a> elements use
+   the default browser ring at the <li> edge, also inside the clip.
+
+   WCAG: opacity stays at 18% (defined on the variant rule above)
+   so the timeline's text contrast against var(--color-ink) is
+   unaffected. */
+.course-detail-curriculum {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
 }
 /* Lift the heading + list above the negative-z-index bloom. */
 .course-detail-curriculum-eyebrow,
