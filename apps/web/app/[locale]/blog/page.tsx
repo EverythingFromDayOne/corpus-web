@@ -8,7 +8,7 @@ import { getCatalogView } from '@/lib/catalog';
 import { getMessages, t } from '@/lib/i18n';
 import { isLocale } from '@/lib/locales';
 import { blogPath } from '@/lib/routes';
-import { absoluteUrl, SITE_ORIGIN } from '@/lib/site';
+import { absoluteUrl, ogImageUrl, OG_IMAGE_ALT, OG_IMAGE_WIDTH, OG_IMAGE_HEIGHT, SITE_ORIGIN } from '@/lib/site';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -30,6 +30,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: t(messages, 'blog.title'),
       description: t(messages, 'blog.description'),
       locale,
+      images: [
+        {
+          url: ogImageUrl(),
+          width: OG_IMAGE_WIDTH,
+          height: OG_IMAGE_HEIGHT,
+          alt: OG_IMAGE_ALT,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: t(messages, 'blog.title'),
+      description: t(messages, 'blog.description'),
+      images: [ogImageUrl()],
     },
   };
 }

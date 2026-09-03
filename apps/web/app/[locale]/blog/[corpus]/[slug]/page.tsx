@@ -15,7 +15,7 @@ import { getMessages, t } from '@/lib/i18n';
 import { isLocale, LOCALES } from '@/lib/locales';
 import { isRepoId } from '@/lib/repos';
 import { articlePath, blogPath } from '@/lib/routes';
-import { absoluteUrl, SITE_ORIGIN } from '@/lib/site';
+import { absoluteUrl, ogImageUrl, OG_IMAGE_ALT, OG_IMAGE_WIDTH, OG_IMAGE_HEIGHT, SITE_ORIGIN } from '@/lib/site';
 
 type PageProps = {
   params: Promise<{ locale: string; corpus: string; slug: string }>;
@@ -53,6 +53,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: article.title,
       description: article.description,
       locale,
+      images: [
+        {
+          url: ogImageUrl(),
+          width: OG_IMAGE_WIDTH,
+          height: OG_IMAGE_HEIGHT,
+          alt: OG_IMAGE_ALT,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: article.title,
+      description: article.description,
+      images: [ogImageUrl()],
     },
   };
 }
