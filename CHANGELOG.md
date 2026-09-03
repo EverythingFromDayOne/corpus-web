@@ -190,6 +190,93 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   The parent's `overflow: hidden` now clips fully transparent pixels,
   not the gradient core, so the visible hard band at the hero's
   bottom edge is closed.
+### [2026-09-03] — polish/d42-bloom-base — D42 bloom base: shared four-edge mask + light-mode suppression
+
+**Added**
+- New `.bloom` shared base rule in `apps/web/app/globals.css`. Selector
+  list covers the six ambient bloom surfaces (`.ls-hero::before`,
+  `.ls-hero::after`, `.ls-sec::before`, `.ls-sec + .ls-sec::before`,
+  `.ls-audience::before`, `.course-detail-curriculum::before`) plus
+  `.course-hero-bloom` (the existing course-hero DOM class). Carries
+  `position: absolute; inset: 0; overflow: hidden; pointer-events:
+  none;` and the four-edge `mask-image` (4 stacked linear-gradients
+  at 6rem each + `mask-composite: intersect`).
+- Per-surface gradient variants in globals.css: `.course-hero-bloom--warm`
+  + `--cool` (kept from PR #150), plus new
+  `.course-detail-curriculum::before` (cool upper-right, 18% intensity).
+- Light-mode carve in globals.css:
+  `[data-theme='light'] .course-hero-bloom--warm,
+  .course-hero-bloom--cool, .course-detail-curriculum::before { background:
+  none; mask-image: none; mask-composite: normal; }`.
+- Light-mode carve in `apps/web/components/home/home.css` for the home
+  surfaces (`.ls-hero::before/::after`, `.ls-sec::before`,
+  `.ls-sec + .ls-sec::before`, `.ls-audience::before`).
+
+**Changed**
+- `.course-hero-bloom` (globals.css) — stripped the
+  `inset:0; overflow:hidden; pointer-events:none;` and the
+  four-edge mask properties from the rule body. Those properties
+  live in the new shared `.bloom` selector list. The rule now
+  contributes only `pointer-events: none` (inherited from the
+  shared base via the selector list) and the variant gradient
+  colour + anchor (kept identical to PR #150).
+- `.course-detail-curriculum` (globals.css) — added
+  `position: relative; overflow: hidden;` so the new pseudo-element
+  is clipped to the section's interior (timeline dots + focus
+  rings verified clear of the clip by vision analysis).
+- `.ls-hero::before`, `.ls-hero::after`,
+  `.ls-sec:not(.ls-audience)::before`,
+  `.ls-sec + .ls-sec:not(.ls-audience)::before`,
+  `.ls-audience::before` (home.css) — stripped the
+  `position:absolute; z-index:-1; top:-Nrem; right:-Nrem;
+  left:-Nrem; bottom:-Nrem; width:Nrem; height:Nrem;
+  pointer-events:none;` from each rule body. Each now contributes
+  only the gradient colour + anchor (`at 100% 0%`, `at 0% 100%`,
+  `at 0% 0%`, `at 100% 100%` respectively).
+- `.course-hero-bloom` JSX divs in
+  `apps/web/app/[locale]/courses/[course]/page.tsx` — dropped
+  `pointer-events-none absolute` Tailwind utilities. Those
+  properties live in the shared `.bloom` base now.
+
+**Removed**
+- `.course-detail-curriculum-bloom` rule from globals.css — JSX
+  span deleted; pseudo-element on the parent replaces it.
+- PR #150 light-mode carve on `.course-hero-bloom--warm/--cool`
+  standalone rule — replaced by the unified selector list in the
+  shared `.bloom` base light-mode carve.
+- `<span class="course-detail-curriculum-bloom pointer-events-none
+  absolute -inset-x-12 -inset-y-8 rounded-full blur-3xl">` JSX
+  div from `apps/web/app/[locale]/courses/[course]/page.tsx`.
+  Eliminates the JSX-vs-CSS specificity fight over the `-inset-*`
+  Tailwind utilities.
+
+**Fixed**
+- The visible rectangular-boundary defect on items 1, 2, 4, 5, 6
+  from the D42 inventory (`.ls-hero::before/::after`,
+  `.ls-sec::before`, `.ls-sec + .ls-sec::before`,
+  `.ls-audience::before`). Same defect class as PR #150 closed
+  on the course hero, now closed on every ambient surface. The
+  four-edge mask kills the boundary band at every edge regardless
+  of gradient geometry; the directional anchor survives.
+- The course hero's `overflow: hidden` clipping of the gradient's
+  brightest source — unchanged from PR #150, now consolidated onto
+  the shared base.
+- Light-mode wash on parchment that didn't earn its place on the
+  ambient surfaces (verified visually in `bloom-stop-light-*.png`
+  captures). All six surfaces now suppress the bloom under
+  `[data-theme='light']`.
+
+### [2026-09-03] — polish/course-hero-bloom-mask — Four-edge mask + light-mode drop (PR #150)
+
+**Fixed**
+- **`apps/web/app/globals.css`** (`.course-hero-bloom`): rewrote the
+  base rule with `inset: 0; overflow: hidden;` + a four-edge
+  `mask-image` (two intersecting `linear-gradient`s fading the bottom
+  6rem and the right 6rem to zero alpha, with `mask-composite:
+  intersect`). Vendor-prefixed (`-webkit-mask-*`) for Safari iOS /
+  macOS pre-15.4. The parent's `overflow: hidden` now clips fully
+  transparent pixels, not the gradient core, so the visible hard band
+  at the hero's bottom edge is closed.
 - **`apps/web/app/globals.css`** (`.course-hero-bloom--warm` /
   `--cool`): removed explicit `top / left / right / bottom / width /
   height` positioning; each gradient now anchors to its parent corner
@@ -219,6 +306,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - One PR, two changes — both target the same defect class (sized
   rectangular bloom overlapped the parent's clipped edges). The
   user explicitly bundled them.
+- **`apps/web/app/[locale]/courses/[course]/page.tsx`**: removed
+  `-inset-x-12 -inset-y-8 rounded-full blur-3xl` from both
+  `.course-hero-bloom` `<div>` classNames so the CSS-side
+  `inset: 0` rule wins cleanly with no specificity race against
+  Tailwind utilities.
+
+**Architecture decisions**
+- One PR, two changes — both target the same defect class (sized
+  rectangular bloom overlapped the parent's clipped edges). The user
+  explicitly bundled them.
 - Dark unchanged from prior capture — verified by `md5` byte-identity
   to `bloom-stop-dark-mask4.png`. The four-edge mask produces the
   same dark-mode ambient depth; light now shows zero painted layer.
@@ -233,6 +330,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `.course-detail-curriculum-bloom`, `.ls-blog-card` warm overlay).
   Audit captures at `docs/scratch/bloom-stop-{dark,light}-en-bloom-audit.png`
   and `...-en-blog-bloom-audit.png`. Out of scope for this PR per
+  `pnpm test` 3/3 (incl. `react-jsx-key-hygiene.test.ts`),
+  `pnpm build` 0 exit, `pnpm verify:prerender` 196/196 + 18/18,
+  `pnpm verify:frontmatter` 196/196, `pnpm agents:check` ✓,
+  `hermes verify --json` ok=true, readiness HTTP 200 in 9.53 s.
+- **D42** opened — sized-rectangle bloom pattern is still present on
+  five other surfaces (`.ls-hero::before` / `::after`,
+  `.ls-sec::before`, `.ls-sec + .ls-sec::before`,
+  `.ls-audience::before`, `.course-detail-curriculum-bloom`).
+  Audit captures at
+  `docs/scratch/bloom-stop-{dark,light}-en-bloom-audit.png` and
+  `...-en-blog-bloom-audit.png`. Out of scope for this PR per
   user's explicit deferral.
 
 ### [2026-09-02] — polish/react-jsx-key-hygiene — React lint + missing-key + conditional hooks

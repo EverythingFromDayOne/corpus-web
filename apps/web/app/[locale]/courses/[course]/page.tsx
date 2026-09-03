@@ -128,11 +128,11 @@ export default async function CourseDetailPage({ params }: PageProps) {
       <header className="course-hero relative mt-6 overflow-hidden">
         <div
           aria-hidden="true"
-          className="course-hero-bloom course-hero-bloom--warm pointer-events-none absolute"
+          className="course-hero-bloom course-hero-bloom--warm"
         />
         <div
           aria-hidden="true"
-          className="course-hero-bloom course-hero-bloom--cool pointer-events-none absolute"
+          className="course-hero-bloom course-hero-bloom--cool"
         />
         <h1 className="relative text-4xl bg-gradient-to-b from-display to-signal bg-clip-text text-transparent">
           {course.title}
@@ -162,11 +162,7 @@ export default async function CourseDetailPage({ params }: PageProps) {
           </a>
         </div>
       </header>
-      <section id="curriculum" className="course-detail-curriculum mt-16 scroll-mt-24 relative">
-        <span
-          aria-hidden="true"
-          className="course-detail-curriculum-bloom pointer-events-none absolute -inset-x-12 -inset-y-8 rounded-full blur-3xl"
-        />
+      <section id="curriculum" className="course-detail-curriculum mt-16 scroll-mt-24">
         <h2 className="course-detail-curriculum-eyebrow relative text-2xl">{t(messages, 'courses.curriculumHeading')}</h2>
         <CurriculumList locale={locale} course={course} messages={messages} />
       </section>
