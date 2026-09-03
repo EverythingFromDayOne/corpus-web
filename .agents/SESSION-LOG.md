@@ -7464,3 +7464,95 @@ prior polish PRs (`#143`, `#144`, `#146`) had silently introduced.
   beyond the lint-pass proof.
 
 ---
+
+## Session 157 — polish/course-hero-bloom-mask — 2026-09-03
+
+**Branch:** `polish/course-hero-bloom-mask` off `develop @ 816d2e6` (PR pending)
+
+**Files changed:**
+- `apps/web/app/globals.css` — rewrote `.course-hero-bloom` base rule (was
+  empty / implicit) with `inset: 0; overflow: hidden;` + a four-edge
+  `mask-image` (two intersecting `linear-gradient`s with `mask-composite:
+  intersect`, both unprefixed + `-webkit-` prefixed); removed the explicit
+  `top / left / right / bottom / width / height` from `--warm` and `--cool`
+  so each gradient anchors to its parent corner via `at 100% 100%` / `at 0%
+  100%` instead of sitting in a sized rectangle; added a `[data-theme='light']`
+  carve that disables both bloom backgrounds + their masks in light mode.
+- `apps/web/app/[locale]/courses/[course]/page.tsx` — removed
+  `-inset-x-12 -inset-y-8 rounded-full blur-3xl` from both `.course-hero-bloom`
+  `<div>` classNames. The CSS-side `inset: 0` rule now wins cleanly with no
+  specificity race against Tailwind utilities.
+
+**Why:** The `.course-hero` accent bloom had three related defects visible on
+`/en/courses/[slug]`, all caused by the same architectural mistake — radial
+gradients anchored at the parent corners (where the parent's `overflow: hidden`
+clips) painted from oversized standalone `<div>` rectangles in the JSX that
+also carried `rounded-full blur-3xl` Tailwind utilities. The first fix attempt
+(masked the `width/height` divs to fully fill the parent) removed the
+rectangular outline in dark mode but left a soft-edged warm rectangle in light
+mode (verified at `bloom-stop-light-mask4.png`). User correctly diagnosed
+this as the gradient's brightest 0% sitting on the clipped edge, and
+directed Option C: a CSS mask that takes the bottom 6rem AND the right 6rem
+to zero alpha with `mask-composite: intersect`, so the parent's clipping
+operates on transparent pixels. After applying that, dark mode was clean but
+light mode STILL showed a bounded tan wash on parchment because
+`--marketing-accent-bloom` (light = `#7d4f12`) at 30% over white is too low
+on chromatic-contrast to disappear. Fix #3: a `[data-theme='light']` carve
+that turns the bloom off entirely in light mode — consistent with how the
+rest of the corpus treats light mode as flat editorial paper.
+
+**Invented decisions:**
+- Applied the JSX Tailwind-utility removal the user explicitly directed
+  in turn 3 of this thread, rather than overriding the Tailwind class
+  with CSS. Rationale: removes the specificity race at the source.
+- Routed the four-edge mask through two intersecting `linear-gradient`s
+  + `mask-composite: intersect` rather than four separate elements
+  / pseudo-elements. Rationale: composable, declarative, GPU-composited,
+  no JSX change. Considered a four-corner mask-image but the right
+  edge of the hero has no clipped edge (it's the visible border of
+  the page), so the right-edge fade is precautionary, not strictly
+  necessary. Kept the right-edge fade anyway because it documents
+  the asymmetry between `--warm` (right-edge faded to avoid bleed
+  for future content) and `--cool` (left-edge faded because the cool
+  gradient anchored at `0% 100%` would otherwise hit the parent's
+  clipped left edge).
+- Vendor-prefixed all four `mask-*` declarations with `-webkit-` for
+  Safari iOS pre-15.4 / Safari macOS 14. The user did not request
+  it explicitly; it matches the same prefixing pattern in the rest
+  of `globals.css` for `background-image` radial gradients.
+- Used the `[data-theme='light']` attribute selector rather than a
+  `:has(...)` query. The project writes `data-theme` to `<html>` via
+  inline script (cookie + SSR fallback) so this selector is the
+  canonical way to theme-conditional a rule. `:has(.course-hero)`-and-
+  -something would be more brittle.
+- Disclosed in the PR body that D42 is open and out of scope for this
+  PR (the same defect class lives on `.ls-hero::before` / `::after`,
+  `.course-detail-curriculum-bloom`, and `.ls-blog-card` warm overlay).
+  User said deferral to a separate PR is correct; kept the audit findings
+  in the PR body as a future-self brief.
+
+**Known issues / next steps:**
+- **D42** (new) — sized-rectangle bloom pattern in three more surfaces:
+  `.ls-hero::before` and `::after` (`apps/web/components/home.css:120-150`,
+  light mode shows bounded shapes in upper-right + lower-left), and
+  `.course-detail-curriculum-bloom` (PR #147 deferred this; same code path
+  as the course-hero fix). `.ls-blog-card` warm radial also reads as
+  "trapped inside a card container" but is more a clip question than
+  a shape question — possibly out of D42 scope, possibly a separate debt.
+  Visible artifacts captured at `docs/scratch/bloom-stop-{dark,light}-en
+  -bloom-audit.png` and `bloom-stop-{dark,light}-en-blog-bloom-audit.png`
+  for the next session.
+- The four-edge mask introduces a small performance cost: the bloom
+  elements now have a per-pixel mask compositing pass on every paint.
+  With `overflow: hidden` + `position: absolute; inset: 0` this is
+  GPU-cheap, but two masks stacked + composite is non-zero. Not
+  measured; if Vercel Analytics or a profile flag this in production,
+  drop one of the two mask images (the right-edge fade is precautionary
+  for the `--warm` variant; the bottom-edge fade is necessary for both).
+- The `[data-theme='light']` carve uses `background: none` instead of
+  `background: transparent`. They are functionally equivalent but `none`
+  is the conventional form for "no painted layer at all" and matches the
+  project's existing style.
+
+---
+

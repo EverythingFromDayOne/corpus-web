@@ -4,6 +4,62 @@ All notable changes to this project are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
+### [2026-09-03] — polish/course-hero-bloom-mask — Four-edge mask + light-mode drop
+
+**Fixed**
+- **`apps/web/app/globals.css`** (`.course-hero-bloom`): rewrote the
+  base rule with `inset: 0; overflow: hidden;` + a four-edge `mask-image`
+  (two intersecting `linear-gradient`s fading the bottom 6rem and the
+  right 6rem to zero alpha, with `mask-composite: intersect`).
+  Vendor-prefixed (`-webkit-mask-*`) for Safari iOS / macOS pre-15.4.
+  The parent's `overflow: hidden` now clips fully transparent pixels,
+  not the gradient core, so the visible hard band at the hero's
+  bottom edge is closed.
+- **`apps/web/app/globals.css`** (`.course-hero-bloom--warm` /
+  `--cool`): removed explicit `top / left / right / bottom / width /
+  height` positioning; each gradient now anchors to its parent corner
+  via `at 100% 100%` / `at 0% 100%` with `ellipse 60rem 40rem`.
+- **`apps/web/app/globals.css`** (light-mode carve): added
+  `[data-theme='light'] .course-hero-bloom--warm,
+  [data-theme='light'] .course-hero-bloom--cool { background: none;
+  -webkit-mask-image: none; mask-image: none; }`. Against the
+  parchment canvas, `--marketing-accent-bloom` (#7d4f12) at 30% sits
+  too low on chromatic-contrast to disappear; the wash reads as a
+  bounded tan shape rather than ambient depth. The bloom's whole
+  purpose is dark-mode atmospheric depth; light mode stays flat
+  editorial paper, consistent with the rest of the corpus.
+- **`apps/web/app/[locale]/courses/[course]/page.tsx`**:
+  removed `-inset-x-12 -inset-y-8 rounded-full blur-3xl` from both
+  `.course-hero-bloom` `<div>` classNames so the CSS-side `inset: 0`
+  rule wins cleanly with no specificity race against Tailwind
+  utilities.
+
+**Removed**
+- Nothing.
+
+**Added**
+- Nothing.
+
+**Architecture decisions**
+- One PR, two changes — both target the same defect class (sized
+  rectangular bloom overlapped the parent's clipped edges). The
+  user explicitly bundled them.
+- Dark unchanged from prior capture — verified by `md5` byte-identity
+  to `bloom-stop-dark-mask4.png`. The four-edge mask produces the
+  same dark-mode ambient depth; light now shows zero painted layer.
+- All gates green: `pnpm typecheck` 5/5, `pnpm lint` 5/5 (incl.
+  `react/jsx-key` and `react-hooks/rules-of-hooks` from PR #149),
+  `pnpm test` 3/3 (incl. `react-jsx-key-hygiene.test.ts`), `pnpm build`
+  0 exit, `pnpm verify:prerender` 196/196 + 18/18, `pnpm verify:frontmatter`
+  196/196, `pnpm agents:check` ✓, `hermes verify --json` ok=true,
+  readiness HTTP 200 in 9.53 s.
+- **D42** opened — sized-rectangle bloom pattern is still present on
+  three other surfaces (`.ls-hero::before` / `::after`,
+  `.course-detail-curriculum-bloom`, `.ls-blog-card` warm overlay).
+  Audit captures at `docs/scratch/bloom-stop-{dark,light}-en-bloom-audit.png`
+  and `...-en-blog-bloom-audit.png`. Out of scope for this PR per
+  user's explicit deferral.
+
 ### [2026-09-02] — polish/react-jsx-key-hygiene — React lint + missing-key + conditional hooks
 
 **Fixed**
