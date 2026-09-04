@@ -23,11 +23,13 @@
 import { adaptAllArticles } from './lib/adapt-all.mjs';
 import { printGroupedFailures } from './lib/corpus-fs.mjs';
 import { buildLinkReport } from './lib/link-report.mjs';
+import { assertManifestSizes } from './lib/roadmap-manifest.mjs';
 
 let articlesByUid;
 let failures;
+let manifestsByRepo;
 try {
-  ({ articlesByUid, failures } = adaptAllArticles());
+  ({ articlesByUid, failures, manifestsByRepo } = adaptAllArticles());
 } catch (err) {
   console.error(`verify-links: FAIL — ${err.message}`);
   process.exit(1);
@@ -45,7 +47,20 @@ if (articlesByUid.size === 0) {
   process.exit(1);
 }
 
-const report = buildLinkReport(articlesByUid, { failures });
+// Surface roadmap-manifest sizes once per run. Bounds-check fails fast
+// if a silent over- or under-collection has slipped into the parser.
+// The size line is the operator's first stop when a forward-ref
+// unexpectedly graduates from WARN to FAIL — was the manifest shape
+// what they thought it was?
+const { ok: manifestSizesOk, sizes: manifestSizes } = assertManifestSizes(manifestsByRepo);
+console.log(
+  `verify-links: roadmap manifest: ${Object.entries(manifestSizes)
+    .map(([r, n]) => `${r}=${n}`)
+    .join(', ')}`,
+);
+if (!manifestSizesOk) process.exit(1);
+
+const report = buildLinkReport(articlesByUid, { failures, manifestsByRepo });
 
 let ok = true;
 

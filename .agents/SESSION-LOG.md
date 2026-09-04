@@ -4354,6 +4354,59 @@ Commit `f1e301b` on branch `polish/d20-blog-spec`, pushed to `origin/polish/d20-
 
 ---
 
+## Session 166 — fix(verify-links): roadmap-driven planned classification (D13 → D46) — 2026-09-04
+
+**Branch:** `fix/verify-links-roadmap-classification` off `develop @ 64145c7`. Branch not pushed yet.
+
+**Files changed (this session):**
+- `scripts/lib/roadmap-manifest.mjs` — NEW (~150 lines). Parses each submodule's `roadmap.md` into a `Set<basename>` of planned-but-unwritten articles. Heading-text-driven section detection (recognises "Article inventory" / "Concept articles" for the concept section and "Recipe tracks" / "Planned recipes" for the recipe section). `BACKTICKED_SLUG` regex matches both bare basenames (`providers-and-di`) and slash-paths (`foundations/typescript-for-nest`), anchored on lowercase-start to exclude prose tokens like `@Entity` / `useState` / `1.1.x` / `[text](../path/file.md#anchor)`. `SECTION_HEADING` regex anchored on exactly `## ` (non-`#`) so `### Wave 1 — the spine` does NOT clobber the active section. Exports `MANIFEST_BOUNDS` (per-repo expected size range) and `assertManifestSizes(manifestsByRepo)` (returns `{ok, sizes}`).
+- `scripts/lib/adapt-all.mjs` — added `manifestsByRepo` to the return shape; parses each repo's `roadmap.md` once per `adaptAllArticles()` call, before adapting articles. Missing-or-unparseable roadmap emits a WARN and returns an empty set.
+- `scripts/lib/link-report.mjs` — `buildLinkReport` now accepts `{ failures, manifestsByRepo }`. In the `if (!target)` branch, an unresolved ref whose `(repo, articleId)` is in the manifest is pushed to `plannedTargets` (WARN) instead of `unresolvedTargets` (FAIL). Mirrors the per-corpus `scripts/verify-links.mjs` behaviour, which has always consulted `roadmap.md`.
+- `scripts/verify-links.mjs` — destructure `manifestsByRepo`; pass through to `buildLinkReport`; emit `roadmap manifest: nextjs=N, nestjs=N, react=N, angular=0` log line; fail fast on `assertManifestSizes` outside bounds.
+- `scripts/build-catalog.mjs` — same destructure + manifest log + bounds check. `buildLinkReport` receives `manifestsByRepo` so `catalog.json` now records `plannedTargets` correctly (was always 0 before).
+- `packages/content-schema/test/link-report.test.ts` — NEW. 9 tests pinning the classification boundary with fixture manifests, not real roadmaps. Covers: planned promotion via manifest hit, unresolved when manifest misses, demo, excluded, live edges, recipe-by-basename lookup, empty-manifest fallback to today's behaviour, Group 4 simulation (19 nestjs recipe refs without manifest entries all FAIL), Group 2+3 simulation (21 nextjs/nestjs concept refs in manifest all WARN).
+- `docs/DEBT.md` — `Highest ID issued` bumped D45 → D46. D13 row moved from Open to Closed with closure narrative. D46 row opened: 19 nestjs recipe refs not on any manifest.
+
+**Why:** D13's `verify-links` gate has been red for weeks — 44 unresolved refs / 33 distinct targets, every squash-merge to `main` for the past three weeks has been `--admin` to bypass it. Root cause: classification asymmetry. The per-corpus `scripts/verify-links.mjs` files have always consulted their own `roadmap.md` to classify forward refs as `planned` (WARN), but the root `scripts/verify-links.mjs` did not — by deliberate design ("Cross-repo links WARN in the corpus repos because they cannot resolve standalone. Here they CAN, so here they are fatal"). That asymmetry was the bug. With this change, the root gate has the same semantics as the per-corpus gates; the 44 unresolved refs collapse to 19.
+
+**Fix shape:** post-resolution reclassification in `buildLinkReport`. Adapter layer left alone (schema enum is wrong layer — would force every consumer to either consult roadmaps or not). Reclassification lives in `buildLinkReport` which already owns the bucket decisions.
+
+**Test coverage (user-flagged gap):** 9 tests, picked up by existing `pnpm test` runner via Turbo. Test runner had no coverage of `buildLinkReport` before. Synthetic `articlesByUid` + inline manifests — no dependency on real roadmaps.
+
+**Bounds-check (user-flagged over-collection risk):** `MANIFEST_BOUNDS` with per-repo expected size ranges. `assertManifestSizes` FAILs the build if any repo's manifest falls outside bounds. Live sizes as of 2026-09-04: nextjs=83, nestjs=64, react=43, angular=0 (no roadmap.md). Bounds set with 2-3x margin so a wave landing does not invalidate them.
+
+**Live manifest log line (user-flagged drift visibility):** every `pnpm verify:links` and `pnpm build:catalog` invocation emits one line: `verify-links: roadmap manifest: nextjs=83, nestjs=64, react=43, angular=0`.
+
+**Two parser bugs found and fixed during verification (bounds-check earned its keep):**
+1. `### Wave 1 — the spine` was matching the section-heading regex. Original regex `^##\s+\S+` accepted `###` because `\s+` matches space and `\S+` matches `#`. Fix: regex is now `^##\s+[^#]` — exactly two `#`, then space, then non-`#`.
+2. nestjs's Wave 1/2 article IDs are bare basenames. Original regex `BACKTICKED_PATH` required at least one slash, so it missed all single-segment table-cell slugs. Fix: regex is now `BACKTICKED_SLUG` with zero-or-more `/segment` parts, anchored on `[a-z0-9]` lowercase-start.
+
+**Final verify-links output:**
+```
+verify-links: roadmap manifest: nextjs=83, nestjs=64, react=43, angular=0
+verify-links: FAIL — 19 `related` ref(s) pointing at an article that
+                exists in no corpus (15 distinct target(s))
+verify-links: WARN — 25 ref(s) to a planned (unmounted) corpus
+verify-links: WARN — 6 ref(s) to a demo app, not an article
+ ELIFECYCLE  Command failed with exit code 1.
+```
+
+**Cheap gates green:** typecheck ✓, lint ✓, test 35/35 (was 26/26, +9), agents:check ✓, verify:prerender 196/196+18/18, verify:frontmatter 196/196, verify:links (19 FAIL — D46).
+
+**Known issues / next steps:**
+- **D46 (19 nestjs recipe refs without manifest entries)** — owned by `content/nestjs` (submodule). Closure: (a) write the recipe and re-tag, (b) drop the ref, or (c) add per-recipe-slug manifest to `nestjs/roadmap.md §5` mirroring `nextjs/roadmap.md §4`'s "Planned recipes". Recommend (c) for symmetry.
+- **`catalog.json`'s `plannedTargets`** is now non-empty (was always 0 before). Content-watch diffs will see real signal for the first time.
+- **PR not yet opened.** Branch `fix/verify-links-roadmap-classification` exists locally; not pushed yet.
+
+**Invented decisions:**
+- Parser in `scripts/lib/`, not in `packages/content-schema/src/adapters/`. Roadmap classification is corpus-web concern; adapter layer is shared schema.
+- Test file in `packages/content-schema/test/` to get picked up by existing `pnpm test` runner.
+- Manifest parser recognises both bare basenames AND slash-paths.
+- No submodule changes. Per user's hard rule.
+- D46's 19 refs are NOT a misclassification. User endorsed in previous turn.
+
+---
+
 ## Session Polish-2 — 3-column audience-fit cards on home (D20 §4) — 2026-08-31
 
 **Branch:** `polish/d20-audience-cards`
@@ -7987,3 +8040,4 @@ top-left, etc.) so the directional bias survives.
 
 ---
 - 1 open PR: #88 (this session's commit, awaiting review/merge)
+

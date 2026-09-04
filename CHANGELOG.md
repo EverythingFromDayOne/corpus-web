@@ -4,6 +4,64 @@ All notable changes to this project are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
+
+### [2026-09-04] — fix/verify-links-roadmap-classification — root gate learns per-repo roadmap manifests (D13 → D46)
+
+**Added**
+- `scripts/lib/roadmap-manifest.mjs` — NEW (~150 lines). Parses each
+  submodule's `roadmap.md` into a `Set<basename>` of planned-but-unwritten
+  articles. Heading-text-driven section detection
+  (`Article inventory` / `Concept articles` /
+  `Recipe tracks` / `Planned recipes`). `BACKTICKED_SLUG` regex matches
+  both bare basenames and slash-paths, anchored on lowercase-start to
+  exclude prose tokens. Exports `MANIFEST_BOUNDS` and
+  `assertManifestSizes(manifestsByRepo)`.
+- `packages/content-schema/test/link-report.test.ts` — NEW. 9 tests
+  pinning the link-report classification boundary with fixture
+  manifests. Covers: planned promotion via manifest hit, unresolved
+  when manifest misses, demo, excluded, live edges, recipe-by-basename
+  lookup, empty-manifest fallback, Group 4 simulation
+  (19 nestjs recipe refs without manifest entries all FAIL), Group 2+3
+  simulation (21 nextjs/nestjs concept refs in manifest all WARN).
+- `docs/DEBT.md` D46 — **19 `related` refs in `content/nestjs/*/...md`
+  point at recipe slugs that exist in no manifest.** Owned by
+  `content/nestjs` (submodule). Closure: write the recipe, drop the
+  ref, or add a per-recipe-slug manifest to `nestjs/roadmap.md §5`
+  mirroring `nextjs/roadmap.md §4`'s "Planned recipes" subsection.
+
+**Changed**
+- `scripts/lib/adapt-all.mjs`: `adaptAllArticles()` now also returns
+  `manifestsByRepo: Record<string, Set<string>>` — each repo's
+  roadmap manifest parsed once before adapting articles.
+- `scripts/lib/link-report.mjs`: `buildLinkReport()` now accepts
+  `{ failures, manifestsByRepo }`. In the `if (!target)` branch, a
+  ref whose `(repo, articleId)` is in the manifest is pushed to
+  `plannedTargets` (WARN) instead of `unresolvedTargets` (FAIL).
+  Mirrors the per-corpus `scripts/verify-links.mjs` behaviour.
+- `scripts/verify-links.mjs`: emits
+  `verify-links: roadmap manifest: nextjs=N, nestjs=N, react=N, angular=0`
+  on every run; fails fast on `assertManifestSizes` outside bounds.
+- `scripts/build-catalog.mjs`: same manifest log + bounds check;
+  passes `manifestsByRepo` through to `buildLinkReport` so
+  `catalog.json`'s `plannedTargets` is now non-empty (was always 0).
+- `docs/DEBT.md` D13: closed 2026-09-04. Originally 44 refs / 33
+  distinct targets; groups 1+2+3 (25 refs total) now WARN via the
+  roadmap-classification reclassification. Only group 4 (D46) survives
+  as FAIL — correctly.
+
+**Verification**
+- `pnpm verify:links` against `develop @ 64145c7` + this branch:
+  - `roadmap manifest: nextjs=83, nestjs=64, react=43, angular=0`
+  - **FAIL: 19 `related` ref(s) pointing at an article that exists in
+    no corpus (15 distinct target(s))** — D46 (group 4 only)
+  - **WARN: 25 ref(s) to a planned (unmounted) corpus** — D13 groups
+    1+2+3 (4 + 12 + 9)
+  - **WARN: 6 ref(s) to a demo app, not an article** — unchanged
+  - Exit code 1 — gate still fails on D46 (correct behaviour)
+- All other cheap gates green: typecheck ✓, lint ✓, test 35/35
+  (was 26/26, +9 new link-report tests), `agents:check` ✓,
+  `verify:prerender` 196/196+18/18, `verify:frontmatter` 196/196.
+
 ### [2026-09-03] — Merge recovered-d42-merge — D42 destructive merge (items 1-6 close)
 
 **Added**

@@ -33,7 +33,7 @@ import { articleUid, LinkReport } from '../../packages/content-schema/src/index.
  * @param {{ failures?: Array<{ repo: string, sourcePath: string, reason: string }> }} options
  * @returns {import('../../packages/content-schema/src/index.ts').LinkReport}
  */
-export function buildLinkReport(articlesByUid, { failures = [] } = {}) {
+export function buildLinkReport(articlesByUid, { failures = [], manifestsByRepo = {} } = {}) {
   const excludedByUid = indexFailuresByUid(failures);
 
   /** @type {Array<{ from: string, to: string }>} */
@@ -65,6 +65,14 @@ export function buildLinkReport(articlesByUid, { failures = [] } = {}) {
         const excluded = excludedByUid.get(targetUid);
         if (excluded) {
           excludedTargets.push({ from: article.uid, to: targetUid, sourcePath: excluded.sourcePath });
+        } else if (manifestsByRepo[ref.repo]?.has(ref.articleId)) {
+          // Forward ref to a roadmap-enumerated article in a mounted
+          // corpus. The submodule scripts already classify this as a
+          // planned WARN; mirror that here so the cross-corpus gate
+          // has the same semantics as the per-corpus gate. Mirrors of
+          // D13's group 1 (`.tpl`-coincident slugs) and groups 2+3
+          // (concept forward refs) land here.
+          plannedTargets.push({ from: article.uid, raw: ref.raw, repo: ref.repo });
         } else {
           unresolvedTargets.push({
             from: article.uid,
