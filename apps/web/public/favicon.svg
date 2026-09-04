@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- 01-c-signal: solid C glyph, ink fill with signal cutout via even-odd -->
+  <rect width="64" height="64" fill="#0e141b"/>
+  <path fill="#e4a548" fill-rule="evenodd" d="
+    M 50 18
+    A 22 22 0 1 0 50 46
+    L 50 38
+    A 14 14 0 1 1 50 26
+    Z
+  "/>
+</svg>

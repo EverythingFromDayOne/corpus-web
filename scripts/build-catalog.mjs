@@ -35,13 +35,15 @@ import { adaptAllArticles } from './lib/adapt-all.mjs';
 import { printGroupedFailures, ROOT } from './lib/corpus-fs.mjs';
 import { loadPathDefinitions } from './lib/curation.mjs';
 import { buildLinkReport } from './lib/link-report.mjs';
+import { assertManifestSizes } from './lib/roadmap-manifest.mjs';
 import { Catalog } from '../packages/content-schema/src/index.ts';
 
 let sources;
 let articlesByUid;
 let failures;
+let manifestsByRepo;
 try {
-  ({ sources, articlesByUid, failures } = adaptAllArticles());
+  ({ sources, articlesByUid, failures, manifestsByRepo } = adaptAllArticles());
 } catch (err) {
   console.error(`build-catalog: FAIL — ${err.message}`);
   process.exit(1);
@@ -51,6 +53,17 @@ if (failures.length > 0) {
   printGroupedFailures('build-catalog: WARN — excluded from catalog.json', failures);
 }
 
+// Surface roadmap-manifest sizes once per run. Makes parser drift
+// visible without reading the diff. Bounds-check fails fast if a
+// silent over- or under-collection has slipped into the parser.
+const { ok: manifestSizesOk, sizes: manifestSizes } = assertManifestSizes(manifestsByRepo);
+console.log(
+  `build-catalog: roadmap manifest: ${Object.entries(manifestSizes)
+    .map(([r, n]) => `${r}=${n}`)
+    .join(', ')}`,
+);
+if (!manifestSizesOk) process.exit(1);
+
 if (articlesByUid.size === 0) {
   console.error('build-catalog: FAIL — zero articles adapted across all four corpora. Refusing to emit an empty catalog.');
   process.exit(1);
@@ -59,7 +72,7 @@ if (articlesByUid.size === 0) {
 // ---------------------------------------------------------------------------
 // Resolve every `related` ref against the full article set.
 
-const linkReport = buildLinkReport(articlesByUid, { failures });
+const linkReport = buildLinkReport(articlesByUid, { failures, manifestsByRepo });
 
 if (linkReport.unresolvedTargets.length > 0) {
   const distinct = countDistinct(linkReport.unresolvedTargets, (u) => u.reason);

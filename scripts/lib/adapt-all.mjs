@@ -9,6 +9,7 @@ import matter from 'gray-matter';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { CONTENT_DIR, readGitmodules, selectArticleFiles, sha256, submoduleRef } from './corpus-fs.mjs';
+import { parseRoadmapManifest } from './roadmap-manifest.mjs';
 import {
   ADAPTERS,
   AdapterError,
@@ -23,6 +24,7 @@ import {
  *   sources: Record<string, { tag: string, commit: string }>,
  *   articlesByUid: Map<string, object>,
  *   failures: Array<{ repo: string, sourcePath: string, reason: string }>,
+ *   manifestsByRepo: Record<string, Set<string>>,
  * }}
  */
 export function adaptAllArticles() {
@@ -39,6 +41,8 @@ export function adaptAllArticles() {
   const articlesByUid = new Map();
   /** @type {Array<{ repo: string, sourcePath: string, reason: string }>} */
   const failures = [];
+  /** @type {Record<string, Set<string>>} */
+  const manifestsByRepo = {};
 
   for (const repo of mountedRepos) {
     const mod = modules.find((m) => m.path === `content/${repo}`);
@@ -48,6 +52,12 @@ export function adaptAllArticles() {
     if (!existsSync(repoDir)) {
       throw new Error(`content/${repo} is missing on disk — run \`pnpm sync:content\` first`);
     }
+
+    // Parse the roadmap manifest before adapting any articles: a missing
+    // or malformed roadmap is reported up-front (as a console.warn) so
+    // the operator knows planned-forward classification is disabled
+    // before the link report runs.
+    manifestsByRepo[repo] = parseRoadmapManifest(join(repoDir, 'roadmap.md'));
 
     sources[repo] = submoduleRef(repoDir);
 
@@ -93,7 +103,7 @@ export function adaptAllArticles() {
     }
   }
 
-  return { sources, articlesByUid, failures };
+  return { sources, articlesByUid, failures, manifestsByRepo };
 }
 
 export class SubmoduleCountError extends Error {
