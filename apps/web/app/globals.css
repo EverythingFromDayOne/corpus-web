@@ -179,6 +179,14 @@
  * `--nav-progress` custom property set by <NavProgressBar>. The bar
  * sits at z-index above the topbar but below dialog overlays so it
  * never blocks input focus.
+ *
+ * Chrome on Android draws its own native progress bar at the very top
+ * (Chrome 119+, November 2023). When we detect that environment the
+ * component short-circuits to `null` (see shouldSuppressForNativeBrowserBar
+ * in apps/web/lib/nav-progress.ts), so this rule only ever renders on
+ * browsers that don't have a native one. Safari, Firefox, desktop
+ * Chrome, Edge, Samsung Internet, and Opera on Android all use this
+ * bar as the sole loading signal.
  */
 .nav-progress {
   position: fixed;
