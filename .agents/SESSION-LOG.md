@@ -8041,3 +8041,31 @@ top-left, etc.) so the directional bias survives.
 ---
 - 1 open PR: #88 (this session's commit, awaiting review/merge)
 
+---
+
+## Session 167 — docs(DEBT): close D38 (superseded by D13/D46 + already-fixed derive-title) — 2026-09-04
+
+**Branch:** `develop @ cabd33b`. Not branched off (docs-only commit).
+
+**Files changed:**
+- `docs/DEBT.md` — D38 row in Open rewritten to "closed 2026-09-04, superseded" sentinel form (matching the established D39/D40 pattern); new D38 row added in Closed section with closure metadata. No new ID issued; D38 is a status flip.
+- `.agents/summary.md` — Last-updated header bumped; Polish-residue D38 bullet removed; D46 row kept; D42 carry-forward note refreshed.
+- `progress.md` — session-log entry added.
+- `CHANGELOG.md` — `[Unreleased]` section: new bullet "docs(DEBT): close D38 (superseded + already-fixed; row archived per append-only rule)".
+
+**Why:** D38 has been in Open since 2026-08-28 but its contents went fully stale after PR #157 (D13→D46 roadmap-classification) reproved the verify-links gate. D38(a) tracked a 44-ref count that D13's actual fix (PR #157) collapsed to 19/15 (now D46). D38(b) tracked three `derive-title.test.ts` failures that are no longer failing — `node --import tsx --test packages/content-schema/test/derive-title.test.ts` reports 11/11 pass on this branch. Carrying a debt row that points at observations that are no longer true is worse than no row: every future reader who skims DEBT.md before working on verify-links or content-schema tests now has to verify whether D38 is live, and the "no, but it's a superseded number" tripwire is one of the failure modes this project has explicitly designed against (the boot context's "Don't reopen a theory the user has explicitly closed without NEW server-side evidence" rule extends naturally to debt rows).
+
+The closure follows the established D39/D40 pattern (both of which have a "closed" sentinel in Open AND a full row in Closed) — this is the repo's convention for debt rows whose contents went stale rather than fully resolving to a single PR. The row stays archived per the append-only ID rule (never delete, never reuse).
+
+**Invented decisions:**
+- Pattern-matched D38's closure on D39/D40's dual-row shape (one in Open as "closed" sentinel, one in Closed with metadata) rather than moving the row out of Open. Reason: D39/D40 are the only precedents in this register; following them keeps the table searchable by ID and gives future readers the cross-reference shape (closure reasoning + the original symptom description both visible).
+- Did NOT open a new ID (D47) for a passing-this-session change. Reason: no new debt was created. D38's status flip is bookkeeping.
+- Did NOT update the D46 row even though D46 inherits D38(a)'s "what's the live verify-links debt" framing. D46 is correct as written (it was just opened in this branch's history by PR #157); cross-references stay.
+- Did NOT touch the body of any other debt row. The task was D38 only; touching neighbours widens the diff and risks regressing session-156/163/165 wrap decisions.
+
+**Known issues / next steps:**
+- The develop→main promotion PR (D46 still FAIL, 19 refs / 15 distinct) is still unblocked by code, gated on user action.
+- ADR-0003 acceptance (Option A, --no-ff) is still `proposed — I decide`. Best applied as the first commit after the develop→main promotion lands.
+- Polish residue still open (carry-forward): D21 Pagefind Preview verification (Vercel Auth bypass, user action), D22 SEO/OG image subdomain (DNS+Vercel, user action), D30 FAQ half (corpus-side schema), D33 attribution (corpus-side schema), D42 items 7-8 (`.ls-card` / `.ls-blog-card` warm radials, deferred session 158), D44 misdiagnosis (closed, archived).
+- Session log structural issue: session 166's entry is currently orphaned at line 4357 (between session 132 and 133), the result of an earlier turn's `replace_all=true` patch that hit two `---/n- 1 open PR: #88...` patterns. Out of scope for this commit (would be a structural change to a doc whose append-only principle makes reordering risky); called out for a future hygiene pass.
+

@@ -5,6 +5,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-04] — docs(d38-close) — close D38 in DEBT.md (superseded by D13/D46 + derive-title already-fixed)
+
+**Changed**
+- `docs/DEBT.md` — D38 row in Open rewritten to "closed 2026-09-04, superseded" sentinel form (matching D39/D40 pattern); new D38 row added in Closed section. D38's 44-ref verify-links count was superseded by D13's fix (PR #157, now D46: 19 FAIL / 15 distinct); the three `derive-title.test.ts` failures are no longer reproducing (re-verified 11/11 pass on this branch). No new debt ID issued.
+- `.agents/SESSION-LOG.md` — session 167 entry appended (docs-only commit).
+- `.agents/summary.md` — Last-updated header bumped; Polish-residue D38 bullet removed (still referenced from D46 cross-link); D42 carry-forward note refreshed.
+- `progress.md` — session-log entry added.
+
 ### [2026-09-04] — fix/verify-links-roadmap-classification — root gate learns per-repo roadmap manifests (D13 → D46)
 
 **Added**
