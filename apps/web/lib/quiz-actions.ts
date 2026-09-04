@@ -15,41 +15,52 @@
  * already intended — "must not appear on the radios until after the reader
  * submits" — actually holds at the network/payload level, not just in the
  * rendered UI.
+ *
+ * Session 165 (D43 close). The previous design called
+ * `loadCatalogForAction()` which read `catalog.json` from disk at
+ * request time. That worked on `pnpm start` (local production build)
+ * but failed on Vercel's serverless Lambda with
+ * `ENOENT /var/task/catalog.json` — the catalog is a gitignored
+ * build artifact at repo root, never bundled. The action now imports
+ * a static module emitted by `scripts/build-answer-keys.mjs` at
+ * `prebuild` time. Turbopack bundles that module into the Lambda as
+ * part of the app graph, so no fs read is required at request time.
+ * `catalog.json` is still emitted and consumed by
+ * `verify-catalog` / `verify-prerender` / Pagefind — those are
+ * separate consumers that need the disk file.
  */
 import type { QuizGradeInput, GradeResult } from '@corpus/mdx-components';
-import { loadCatalogForAction } from './catalog';
-import { loadArticleQuizWidgets } from './article-widgets';
+import { answerKeys, answerKeysByArticle } from './data/answer-keys';
+
+const ARTICLE_UID_SET = new Set<string>(answerKeys.articleUids);
 
 export async function gradeQuizAnswer({
   articleUid,
   questionId,
   selectedLabel,
 }: QuizGradeInput): Promise<GradeResult> {
-  const view = await loadCatalogForAction();
-  const article = view.byUid[articleUid];
-  if (!article) {
+  if (!ARTICLE_UID_SET.has(articleUid)) {
     throw new Error(`gradeQuizAnswer: unknown article "${articleUid}"`);
   }
 
-  const question = loadArticleQuizWidgets(article)
-    .flatMap((widget) => widget.sidecar.questions)
-    .find((candidate) => candidate.id === questionId);
+  const articleEntry = answerKeysByArticle[articleUid];
+  if (!articleEntry) {
+    // Defensive — should be unreachable because articleUids and byArticle
+    // keys are derived from the same source set.
+    throw new Error(`gradeQuizAnswer: no answer-key entry for "${articleUid}"`);
+  }
+  const question = articleEntry.quiz[questionId];
   if (!question) {
     throw new Error(`gradeQuizAnswer: unknown question "${questionId}" on "${articleUid}"`);
   }
-
-  const correct = question.options.find((option) => option.correct);
-  if (!correct) {
-    throw new Error(`gradeQuizAnswer: question "${questionId}" has no correct option`);
-  }
-  if (!question.options.some((option) => option.label === selectedLabel)) {
+  if (!question.validLabels.includes(selectedLabel)) {
     throw new Error(`gradeQuizAnswer: "${selectedLabel}" is not an option on "${questionId}"`);
   }
 
   return {
     selectedLabel,
-    correctLabel: correct.label,
-    isCorrect: selectedLabel === correct.label,
+    correctLabel: question.correctLabel,
+    isCorrect: selectedLabel === question.correctLabel,
     explanation: question.explanation,
   };
 }

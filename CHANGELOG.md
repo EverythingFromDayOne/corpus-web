@@ -4,6 +4,109 @@ All notable changes to this project are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
+
+### [2026-09-04] — fix/d43-answer-keys — Serverless-safe answer keys for Quiz + DragDrop server actions
+
+**Added**
+- **`scripts/build-answer-keys.mjs`** — NEW. Walks every YAML in
+  `curation/overrides/` at build time, parses via the existing
+  `OverrideFile` zod schema, projects the `Quiz` + `DragDrop`
+  injection props into per-article answer keys
+  (`correctLabel` / `explanation` / `validLabels` for quiz;
+  `slots` / `chips` / `mode` for dragdrop). Emits
+  `apps/web/lib/data/answer-keys.ts` as a static TS module —
+  `as const` data + `as unknown as` cast to
+  `Record<string, ArticleAnswerEntry>` for consumer ergonomic typing.
+  31,991 bytes for 6 articles, 27 quiz keys, 6 drag-drop keys.
+- **`apps/web/lib/data/answer-keys.ts`** — NEW build artifact
+  (emitted by the script above). `articleUids: string[]` +
+  `byArticle: Record<articleUid, { quiz: ..., dragdrop: ... }>`.
+  Tracked in git, matching the `apps/web/slug-allowlist.json`
+  precedent — build artifact imported by source.
+- **`apps/web/package.json`** `prebuild` hook — now runs both
+  `scripts/build-slug-allowlist.mjs` AND
+  `scripts/build-answer-keys.mjs` (via `tsx`) before `next build`.
+
+**Changed**
+- **`apps/web/lib/quiz-actions.ts`** — rewrote. Imports
+  `answerKeys, answerKeysByArticle` from `./data/answer-keys`.
+  `ARTICLE_UID_SET = new Set(answerKeys.articleUids)` for cheap
+  membership gate. Removed the `loadCatalogForAction()` call +
+  the `loadArticleQuizWidgets()` call from the request path.
+  Returns the grade result directly from the static module.
+- **`apps/web/lib/dragdrop-actions.ts`** — rewrote. Same static-
+  import pattern. Reconstructs the sidecar shape from
+  `answerKeysByArticle[articleUid].dragdrop[sidecarId]` and
+  forwards to `gradeSubmission` from `@corpus/mdx-components`.
+
+**Removed**
+- Nothing in this commit (the unused `loadCatalogForAction()` and
+  `loadArticleQuizWidgets()` / `loadArticleDragDropWidgets()`
+  exports stay in place for now — they may still be useful
+  surfaces and removing them widens the diff scope).
+
+**Fixed**
+- D43 serverless-fs pattern (partial): the Quiz + DragDrop
+  server actions no longer read `catalog.json` or
+  `curation/overrides/*.yaml` from disk at request time. The
+  Vercel log error `ENOENT: no such file or directory, open
+  '/var/task/catalog.json'` is resolved at the action-handler
+  layer. Static-import of the answer-keys module is what
+  Turbopack bundles into the Lambda; no `fs` reach at request
+  time. Verified at the build level: the server chunks contain
+  the answer-key content (`grep -oE 'cc-owner-of-closure.{200}'
+  apps/web/.next/server/chunks/ssr/[root-of-the-server]__*.js`
+  returns `"correctLabel":"B","explanation":"…"`); client
+  chunks do NOT contain `correctLabel` strings outside the
+  Quiz client's own field-reference variable.
+
+**Architecture decisions**
+- Emit module shape: `as const` data on `answerKeys` (narrow
+  literal-typed, useful for build-time iteration) +
+  `as unknown as Readonly<Record<string, ArticleAnswerEntry>>`
+  cast on a renamed binding `answerKeysByArticle` (loose
+  Record-typed, used by consumer code). Avoids a `as any`
+  cast inside the action body.
+- Two-artifact split retained: `catalog.json` (978 KB, full
+  catalog, emitted at repo root) is still consumed by
+  `verify-catalog` / `verify-prerender` / Pagefind from disk.
+  The new `answer-keys.ts` (32 KB, answer keys only) is
+  consumed by the server actions via static import.
+  Different consumers, different shapes — per user directive
+  "Emit both — don't migrate the toolchain in this PR".
+- Tracked in git (not gitignored). Adding
+  `apps/web/lib/data/answer-keys.ts` to `.gitignore` would
+  break fresh-clone builds because `prebuild` runs DURING
+  `next build` (after the bundler has resolved source imports).
+- `tsx` for the emit script (already a workspace dev dep) —
+  matches `build-catalog.mjs`'s tooling pattern.
+
+**Known issues**
+- **The Quiz is STILL broken in production** despite this fix.
+  The 500 / React #441 reported in session 165 has TWO causes,
+  not one: (a) ENOENT catalog.json (fixed here) and (b) cache-
+  boundary action-reference loss. The `'use cache'` directive at
+  `apps/web/lib/article-markdown.tsx:207` captures the
+  `gradeAction={gradeQuizAnswerForClient}` JSX binding at line
+  390; under Cache Components the action reference is dropped
+  from the RSC payload. Zero `$F<…>` action refs reach the
+  client (verified: `grep -oE '\$F[A-Za-z0-9_-]+'
+  apps/web/.next/server/app/en/blog/react/thinking-in-react.html`
+  returns 0 matches across 114 inline scripts). Closure:
+  split `renderArticleMarkdown` into cached body renderer (no
+  action refs) + non-cached wrapper (action refs bound outside
+  the cache). The session-165 stash held this refactor; the
+  user told me to set it aside pending the real-fault
+  investigation. The investigation found TWO bugs. The fix for
+  (b) is the gating dependency for the Quiz to work in
+  production. See D44 in `docs/DEBT.md`.
+- **Not pushed to a Preview URL.** Per user strict directive
+  "Verification is a blocker, not a checkbox: this must be
+  tested on a deployed Preview URL, not localhost. PR #146
+  shipped this same bug because it was verified with
+  `pnpm start`." Without the cache-boundary fix, a Preview
+  deploy will reproduce the same UI failure.
+
 ### [2026-09-03] — Merge recovered-d42-merge — D42 destructive merge (items 1-6 close)
 
 **Added**
