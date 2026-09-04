@@ -23,14 +23,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const messages = getMessages(locale);
   const url = absoluteUrl(homePath(locale));
   return {
-    title: t(messages, 'home.title'),
+    title: t(messages, 'home.metaTitle'),
     description: t(messages, 'home.description'),
     alternates: { canonical: url },
     openGraph: {
       type: 'website',
       url,
       siteName: t(messages, 'site.name'),
-      title: t(messages, 'home.title'),
+      title: t(messages, 'home.metaTitle'),
       description: t(messages, 'home.description'),
       locale,
       images: [
@@ -44,7 +44,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     },
     twitter: {
       card: 'summary_large_image',
-      title: t(messages, 'home.title'),
+      title: t(messages, 'home.metaTitle'),
       description: t(messages, 'home.description'),
       images: [ogImageUrl()],
     },
