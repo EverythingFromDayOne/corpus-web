@@ -8138,3 +8138,44 @@ The discovery during this session was that `branch protection: main.required_lin
 - **Tag `v0.1.0` has no `gh release` body.** The user said `git tag -a v0.1.0 -m "First tagged release"` and `push the tag`. No `gh release create`. If a GitHub Release is wanted later, `gh release create v0.1.0 --notes <text>` can be run against the existing tag.
 
 ---
+
+## Session 169 — D45 close — 2026-09-05
+
+**Branch:** `fix/d45-article-source-bodies` (PR #162 against develop)
+
+**Files changed:**
+- `scripts/build-article-bodies.mjs` — NEW (~165 lines). Reads `catalog.json`, walks every adapting article from the four content submodules, strips the YAML frontmatter with the same regex `article-source.ts:9` used (kept in lock-step), emits `apps/web/lib/data/article-bodies.ts` as a typed static TS module. Mirrors the D43 `build-answer-keys.mjs` shape: `mkdirSync` on the data dir, fail loudly on a missing `catalog.json` or zero-article adapting set, sorted `articleUids` for deterministic output, narrow `as const` + wide `Record<string, string>` cast for consumer ergonomics.
+- `apps/web/lib/article-source.ts` — rewritten. Dropped `readFileSync` + `node:fs` import; `readArticleMarkdown` now consumes the static module via a Set-guarded lookup. Same `'use cache'` + `cacheLife('max')` wrap (build-time cache hit still holds because the static-import indirection resolves at bundle time, not at call time). Defensive throws on unknown uid or missing body — surfaces any drift between `catalog.json` and `generateStaticParams` loudly rather than silently returning empty.
+- `apps/web/package.json` — `prebuild` chain now runs `build-article-bodies.mjs` after `build-answer-keys.mjs`. Order matters: `build-answer-keys` depends on `catalog.json` indirectly via the override parsing, but `build-article-bodies` reads `catalog.json` directly, so both must come after `build-slug-allowlist` (which validates the catalog's article shape via `catalog.json`).
+- `.gitignore` — added `apps/web/lib/data/article-bodies.ts`. 4 MB generated module, untrackable across content submodule bumps. Same gitignore treatment as `catalog.json`. The build script regenerates it from `catalog.json` + the four submodules; `pnpm build:catalog && node scripts/build-article-bodies.mjs` is the recovery recipe on a fresh clone or after a submodule bump.
+
+**Why:** D43 caught the serverless-fs runtime read pattern when Quiz/DragDrop grading crossed the build-container/Lambda boundary at request time (`ENOENT /var/task/catalog.json`). The fix landed as `fix/d43-answer-keys` (PR landed 2026-09-04, deployed verified on `nxhhuy.tech` via PR #161 / v0.1.0). D45 was opened in the same investigation as the latent twin: `apps/web/lib/article-source.ts:8` had the same `readFileSync(articleFilePath(article), 'utf8')` shape. The risk was dormant because the function was only called from the prerender pass (`generateStaticParams` drives `next build`), which runs in a container where the `content/<repo>/` submodule gitlinks are readable. The closure condition for D45 — per the D43 row text "Closure depends on D43's deployed verification" — was met the moment v0.1.0 shipped with the answer-keys fix confirmed live. The fix is preemptive: prevents the same ENOENT from firing the moment any future Server Action needs the markdown body (e.g. a `gradeReadingTimeEstimate()` action or a future "highlight this passage" interaction).
+
+**Invented decisions:**
+- **Gitignore the 4 MB generated module** (D43's `answer-keys.ts` is tracked at 32 KB; the 100x size difference inverts the trade-off — reviewable diffs vs repo-bloat). The `catalog.json` precedent already establishes the pattern: build-artifact, regenerated from source, not tracked. The `prebuild` hook regenerates it on every build; manual recovery is `pnpm build:catalog && node scripts/build-article-bodies.mjs`.
+- **Set-membership guard throws on unknown uid.** A pure static import + `articleBodiesByUid[uid]` lookup would silently return `undefined` if the catalog and the static-import source ever drift (e.g. a submodule bump lands after `build:catalog` but before `build:article-bodies`). Defensive throw surfaces that loudly.
+- **No content-hash check on the build artifact.** Considered emitting a `{ body, contentHash }` pair and verifying at runtime that the cached body matches the article's `contentHash` field from `catalog.json`. Rejected: adds runtime work for a build-time consistency check that should fail at build time. If `catalog.json` and the article-bodies module ever diverge, `build-catalog` and `build-article-bodies` should both run in the same `prebuild` chain (they already do via the package.json ordering) and produce consistent output.
+- **Mirror the D43 type-shape.** `answerKeys` + `answerKeysByArticle` paired with a `Record<string, ...>` cast. The new module uses `articleBodies` + `articleBodiesByUid` with the same shape. Consistency between the two static-import modules is a feature, not a coincidence — both are the same emit-then-static-import pattern.
+
+**Known issues / next steps:**
+- **PR #162 awaits review and merge into develop.** Per the session-168 wrap, this is a feature→develop merge, not a develop→main promotion. The two develop-ahead-of-main commits from session 168 (ADR-0003 accepted + session-168 docs wrap) still need a user-authorised promotion PR; that's a separate decision and a separate PR.
+- **The 4 MB generated module is gitignored** — `git status` on a fresh clone after running `pnpm install && pnpm build:catalog && node scripts/build-article-bodies.mjs && pnpm dev` is the developer-side recovery flow.
+- **D46 (19 nestjs recipe refs)** still the only Content gate red. Corpus-side fix requires `content/nestjs` submodule worktree (STOP-AND-ASK per AGENTS.md "Touching submodules is forbidden without explicit ask").
+- **D42 items 7-8** (`.ls-card`, `.ls-blog-card` warm radials) — explicitly deferred per session 158 ("different defect shape, separate decision").
+- **D21 Pagefind Preview** and **D22 SEO/OG image** — user-action items, not code.
+
+**Verification:**
+- Cold `hermes verify --json --port 3000 --ready-timeout 300` against `2c16d66`: **9/9 phases PASS** (bootstrap 2.2s, build 73.1s cold / 1.5s cached, typecheck 7.9s, test 3.9s, lint 6.7s), readiness `http://127.0.0.1:3000/` returns 200 in 11.499s.
+- Live `curl` probes against `pnpm dev`:
+  - `GET /en/blog/nextjs/cache-components-model` → 200, 839 KB body. `<h1 class="post-header-title">The Cache Components model</h1>` + multiple `cacheLife` mentions confirm the static-import rendered the actual markdown body.
+  - `GET /en/courses/react-render-cycle/lessons/jsx-and-rendering` → 200, 580 KB body. Lesson route also reads via the same static module.
+  - `GET /en/blog/nestjs/dependency-injection` → 404 (correct — that slug doesn't exist; the real one is `nestjs/di-and-modules/dependency-injection`).
+- 6 cheap gates green: typecheck 5/5, lint 5/5, test 67/67, `agents:check` ✓, `verify:prerender` 196/196 blog + 18/18 lesson (all non-empty `<body>`), `verify:frontmatter` 196/196 across 4 corpora.
+- `verify:links` still fails on D46 (19 refs / 15 distinct — unchanged; the only standing Content gate red, per ADR-0003 protocol).
+- `verify:catalog` exits 0 (196 articles, 445 edges, 2 paths).
+- Bundle inspection: `apps/web/.next/server/chunks/ssr/*.js` contains three references to `readArticleMarkdown` (blog route + lesson route + a shared chunk). Turbopack bundles the static module into the Lambda as part of the app graph — no runtime fs read.
+
+**Deployed verification status (CRITICAL — per session-165 hard rule):**
+The fix is **not yet deployed-verified**. Local `pnpm start` and `pnpm dev` pass (Lambda shape is build-time in dev, build-time + cacheComponents-prerender in `pnpm start`), and the bundled JS no longer calls `readFileSync` for article bodies. The actual "Server Action calls `readArticleMarkdown` and gets a 200, not an ENOENT" probe needs a deployed Preview URL with a synthesized Server-Action invocation. Currently no such action exists — `readArticleMarkdown` is only invoked from the prerender pass, which runs in the build container where the fs is readable. The fix is **preventive**: it ensures the latent D43-shaped bug never fires the moment someone wires the function into an action body. **D45 row in `docs/DEBT.md` should be flipped to "Closed — preventive fix"** once the PR merges and the row in DEBT.md can be updated. The deployed-verification condition for "preventive" fixes is structurally weaker than for "active" fixes: there is no prod-surface bug to reproduce, only a forward guarantee. Marking this caveat in the row keeps the audit trail honest.
+
+---
