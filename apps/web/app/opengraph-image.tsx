@@ -33,7 +33,7 @@ import path from 'node:path';
 export const size = { width: 1200, height: 630 } as const;
 export const contentType = 'image/png';
 export const alt =
-  'corpus.web — every claim resolves. A verified reference corpus: 196 articles across 4 corpora.';
+  'corpus.web — verified reference for web engineering. Every claim resolves. 196 articles across 4 corpora.';
 
 // No `export const dynamic` here: Cache Components (nextConfig.cacheComponents
 // = true) forbids route segment config `dynamic`. The `opengraph-image.tsx`
@@ -84,18 +84,18 @@ export default async function OpengraphImage() {
           </span>
         </div>
 
-        {/* Centre: title + thesis */}
+        {/* Centre: title (two lines) + thesis */}
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: '24px',
-            maxWidth: '900px',
+            gap: '20px',
+            maxWidth: '1040px',
           }}
         >
           <div
             style={{
-              fontSize: '116px',
+              fontSize: '140px',
               fontWeight: 700,
               lineHeight: 1.0,
               letterSpacing: '-0.025em',
@@ -106,7 +106,20 @@ export default async function OpengraphImage() {
               display: 'flex',
             }}
           >
-            Every claim resolves.
+            corpus.web
+          </div>
+          <div
+            style={{
+              fontSize: '56px',
+              fontWeight: 700,
+              lineHeight: 1.1,
+              letterSpacing: '-0.015em',
+              color: '#e7edf4',
+              display: 'flex',
+              maxWidth: '1000px',
+            }}
+          >
+            verified reference for web engineering
           </div>
           <div
             style={{
@@ -115,6 +128,7 @@ export default async function OpengraphImage() {
               color: '#b9c5d2',
               display: 'flex',
               maxWidth: '900px',
+              marginTop: '8px',
             }}
           >
             Every claim traces to official docs, framework source, or a measurement someone ran.

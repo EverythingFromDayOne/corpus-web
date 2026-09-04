@@ -1,6 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <!-- 10-corpus-eyebrow: 'CORPUS.WEB' eyebrow text in metadata style -->
+  <!-- 01-c-signal: solid C glyph, ink fill with signal cutout via even-odd -->
   <rect width="64" height="64" fill="#0e141b"/>
-  <text x="32" y="30" text-anchor="middle" font-family="ui-monospace, 'IBM Plex Mono', 'SF Mono', Menlo, monospace" font-size="10" font-weight="700" fill="#e7edf4" letter-spacing="1.5">CORPUS</text>
-  <text x="32" y="44" text-anchor="middle" font-family="ui-monospace, 'IBM Plex Mono', 'SF Mono', Menlo, monospace" font-size="10" font-weight="700" fill="#e4a548" letter-spacing="1.5">.WEB</text>
+  <path fill="#e4a548" fill-rule="evenodd" d="
+    M 50 18
+    A 22 22 0 1 0 50 46
+    L 50 38
+    A 14 14 0 1 1 50 26
+    Z
+  "/>
 </svg>

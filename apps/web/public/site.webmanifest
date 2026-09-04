@@ -1,7 +1,7 @@
 {
-  "name": "corpus.web",
+  "name": "corpus.web — verified reference for web engineering",
   "short_name": "corpus.web",
-  "description": "Every claim resolves. A verified reference corpus for Next.js, React, Angular, and NestJS — every claim traces to official docs, framework source, or a measurement someone ran.",
+  "description": "Verified reference corpus for web engineering. Every claim resolves — every claim traces to official docs, framework source, or a measurement someone ran.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0e141b",

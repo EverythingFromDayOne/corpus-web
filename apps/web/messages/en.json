@@ -64,6 +64,7 @@
     "footerLicenseLink": "Read the licence"
   },
   "home": {
+    "metaTitle": "corpus.web — verified reference for web engineering",
     "title": "Every claim resolves.",
     "description": "Every claim traces to official docs, framework source, or a measurement someone ran. Code is extracted from demos that build, not typed into a code fence. CI fails when the two drift apart.",
     "eyebrow": "Four corpora · one graph",
