@@ -92,20 +92,20 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   from the RSC payload. Zero `$F<…>` action refs reach the
   client (verified: `grep -oE '\$F[A-Za-z0-9_-]+'
   apps/web/.next/server/app/en/blog/react/thinking-in-react.html`
-  returns 0 matches across 114 inline scripts). Closure:
-  split `renderArticleMarkdown` into cached body renderer (no
-  action refs) + non-cached wrapper (action refs bound outside
-  the cache). The session-165 stash held this refactor; the
-  user told me to set it aside pending the real-fault
-  investigation. The investigation found TWO bugs. The fix for
-  (b) is the gating dependency for the Quiz to work in
-  production. See D44 in `docs/DEBT.md`.
-- **Not pushed to a Preview URL.** Per user strict directive
-  "Verification is a blocker, not a checkbox: this must be
-  tested on a deployed Preview URL, not localhost. PR #146
-  shipped this same bug because it was verified with
-  `pnpm start`." Without the cache-boundary fix, a Preview
-  deploy will reproduce the same UI failure.
+  returns 0 matches across 114 inline scripts). **Disproved
+  on 2026-09-04 by deployed Preview verification**: the Quiz
+  grades correctly on
+  `https://corpus-7jb9ycfcs-huycong2798s-projects.vercel.app`
+  (commit `0e2db4c`). D44 was a misdiagnosis — local probe
+  negative result was a Next.js 16.3 dev-mode artefact, not
+  a real defect. D44 archived in `docs/DEBT.md` row D44.
+
+- **Verified on a deployed Preview URL.** Pushed `0e2db4c` to
+  origin/develop → Vercel Preview deploy completed in ~80s at
+  `https://corpus-7jb9ycfcs-huycong2798s-projects.vercel.app`.
+  User clicked "Check answer" on the Quiz widget; verdict +
+  explanation rendered correctly. End-to-end Quiz grading
+  verified in production.
 
 ### [2026-09-03] — Merge recovered-d42-merge — D42 destructive merge (items 1-6 close)
 
