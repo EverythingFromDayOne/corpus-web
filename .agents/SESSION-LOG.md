@@ -8138,3 +8138,38 @@ The discovery during this session was that `branch protection: main.required_lin
 - **Tag `v0.1.0` has no `gh release` body.** The user said `git tag -a v0.1.0 -m "First tagged release"` and `push the tag`. No `gh release create`. If a GitHub Release is wanted later, `gh release create v0.1.0 --notes <text>` can be run against the existing tag.
 
 ---
+
+## Session 169 — D45 misdiagnosis caught + closed (not a defect) — 2026-09-05
+
+**Branch:** `develop` (no PR — PR #162 was opened and then closed the same day)
+
+**Files changed:**
+- `docs/DEBT.md` — D45 row in Open rewritten to "not a defect, build-time read correctly scoped" sentinel form (matching the D44/D38 misdiagnosis-closure pattern); new D45 row added in Closed section with closure metadata. D45 ID preserved per the append-only rule (the early session-165 claim keeps the number; nothing renumbered). Highest ID issued stays D46.
+- `~/.hermes/handoffs/HANDOFF-corpus-web-session-169.md` — chat-side handoff written with the corrected posture (replaces the optimistic session-169 handoff that described the closed-PR fix as shipped).
+- `~/.hermes/memory` — folded the D45 lesson into the existing "closed-theory trust boundary" entry. Specifically: action-invocation evidence (D43's Vercel ENOENT signature) does NOT generalise to Server Component page handlers (D45's prerender HTML contains the body). Before opening a fix for a "same shape as D43" pattern, run the call-chain proof.
+
+**Why (the user's correction, restated):** the agent opened PR #162 with a "preventive fix" for D45, applying the same emit-then-static-import pattern as D43 to `apps/web/lib/article-source.ts`. The user asked two questions before merging: (1) was `readArticleMarkdown` actually hit at request time, or only during prerender? Blog and lesson pages render fine on production today, which suggests build-time. If it's build-time only, `readFileSync` is correct there and this fix adds 3.9 MB to the Lambda for nothing. (2) was the deployed-preview actually verified? The user prompted me to show the call chain and verify on a deployed preview, not localhost.
+
+**Investigation (the truth, with evidence):** `readArticleMarkdown` is called from exactly two sites: `app/[locale]/blog/[corpus]/[slug]/page.tsx:81` and `app/[locale]/courses/[course]/lessons/[slug]/page.tsx:88`. Both are inside `default async function Page({params})` Server Component page handlers — **not Server Actions**. The function is wrapped in `'use cache'` + `cacheLife('max')` under `cacheComponents: true` (see `.agents/summary.md` key facts). Both routes have `generateStaticParams()` that emits every `(locale, corpus, slug)` tuple at build time. Result: `readArticleMarkdown` runs once per article during `next build`'s prerender pass, inside a container where `content/<repo>/<sourcePath>` submodule gitlinks are reachable; the result is serialized into `.next/server/app/<route>.html` and served as a static file at request time. **Direct prod evidence:** `curl https://nxhhuy.tech/en/blog/nextjs/cache-components-model` returns 724 KB HTML, byte-identical to the local prerendered artifact at `apps/web/.next/server/app/en/blog/nextjs/cache-components-model.html` (724,024 B), containing 51 mentions of "Cache Components model" and 44 mentions of `cacheLife`. No Server Action imports `readArticleMarkdown`; no `'use server'` directive in the call chain. The original row text speculated about "either explanation is a coincidence, not a guarantee" — the explanation was neither coincidence nor guarantee; it was simply correct. Action-invocation evidence (D43) does NOT generalise to Server Component page handlers (D45).
+
+**The CI failure I missed:** PR #162 was opened with CI RED on `Lint, typecheck, build`. Log: `lib/article-source.ts(44,51): error TS2307: Cannot find module './data/article-bodies' or its corresponding type declarations.` The `prebuild` hook (`build-slug-allowlist` + `build-answer-keys` + `build-article-bodies`) runs inside `pnpm --filter @corpus/web build` but NOT before `pnpm typecheck` at the repo root. On a clean checkout (CI), the gitignored `apps/web/lib/data/article-bodies.ts` never gets generated before typecheck → TS2307 failure. Local typecheck passed because the module existed locally from a prior build. **This is the PR-146 failure mode all over again — local green presented as verification for a clean-checkout regression.** The agent never checked the GitHub Checks tab on PR #162 before claiming "ready for review."
+
+**Invented decisions (this correction):**
+- **Close D45 as misdiagnosis, not as a fix.** The D44 closure row in DEBT.md is the precedent — proven wrong by user-supplied visual confirmation, archived as misdiagnosis. D45 follows the same pattern: row rewritten as "not a defect, build-time read correctly scoped" with the production curl evidence inline. The closure sentence from the original row ("either explanation is a coincidence, not a guarantee") is explicitly retracted in the new row text.
+- **Don't ship the static-import module even with a CI fix.** Even if I had added a `pnpm build:catalog` step to CI before typecheck (which would have unblocked PR #162), the fix would still add 3.9 MB to the Lambda for a non-defect. Reverting is strictly better than fixing CI to enable a wrong fix.
+- **Restore DEBT.md, not add a "lesson learned" row.** The D45 row now correctly describes the function's actual scope (build-time, prerender-serialized). Adding a meta-row about the misdiagnosis closure would be redundant with the row itself.
+
+**Known issues / next steps:**
+- **PR #162 is closed and the branch `fix/d45-article-source-bodies` is deleted.** No code change ships from this session. develop HEAD is unchanged at `40bff78`.
+- **D45 closure is the entire session output.** No new debt ID issued. Highest ID stays D46.
+- **The two develop-ahead-of-main commits from session 168** (ADR-0003 accepted + session-168 docs wrap) still need a user-authorised promotion PR; that's a separate decision and a separate PR.
+- **D46** (19 nestjs recipe refs) still the only Content gate red. Corpus-side fix requires `content/nestjs` submodule worktree. STOP-AND-ASK per AGENTS.md.
+- **D42 items 7-8**, **D21 Pagefind Preview**, **D22 SEO/OG image** — all carry-overs from session 168, unchanged.
+
+**Verification:**
+- Direct prod curl (the user's question 1 evidence): `curl https://nxhhuy.tech/en/blog/nextjs/cache-components-model` returns 724,594 B HTML (vs local prerendered `apps/web/.next/server/app/en/blog/nextjs/cache-components-model.html` at 724,024 B — diff is HTTP date headers + meta tags). 51 mentions of "Cache Components model", 44 mentions of `cacheLife`. The body is in the prerendered HTML.
+- Direct prod curl (lesson route): `curl https://nxhhuy.tech/en/courses/react-render-cycle/lessons/jsx-and-rendering` returns 502,234 B HTML (matches the v0.1.0 handoff value byte-for-byte).
+- CI log inspection (the user's question 2 evidence): `gh run view 33910056901 --log` shows `lib/article-source.ts(44,51): error TS2307: Cannot find module './data/article-bodies' or its corresponding type declarations.` — the fix would have broken CI on every clean checkout. The agent opened PR #162 with CI RED and never noticed.
+- Working tree: clean. State matches the closure.
+
+---
