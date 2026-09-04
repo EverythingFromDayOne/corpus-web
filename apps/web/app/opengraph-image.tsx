@@ -33,7 +33,7 @@ import path from 'node:path';
 export const size = { width: 1200, height: 630 } as const;
 export const contentType = 'image/png';
 export const alt =
-  'corpus.web — a verified reference corpus. 196 articles across 4 corpora.';
+  'corpus.web — every claim resolves. A verified reference corpus: 196 articles across 4 corpora.';
 
 // No `export const dynamic` here: Cache Components (nextConfig.cacheComponents
 // = true) forbids route segment config `dynamic`. The `opengraph-image.tsx`
@@ -95,10 +95,10 @@ export default async function OpengraphImage() {
         >
           <div
             style={{
-              fontSize: '92px',
+              fontSize: '116px',
               fontWeight: 700,
-              lineHeight: 1.05,
-              letterSpacing: '-0.02em',
+              lineHeight: 1.0,
+              letterSpacing: '-0.025em',
               backgroundImage:
                 'linear-gradient(180deg, #e7edf4 0%, #e4a548 100%)',
               backgroundClip: 'text',
@@ -106,7 +106,7 @@ export default async function OpengraphImage() {
               display: 'flex',
             }}
           >
-            A verified reference corpus
+            Every claim resolves.
           </div>
           <div
             style={{
@@ -114,6 +114,7 @@ export default async function OpengraphImage() {
               lineHeight: 1.4,
               color: '#b9c5d2',
               display: 'flex',
+              maxWidth: '900px',
             }}
           >
             Every claim traces to official docs, framework source, or a measurement someone ran.

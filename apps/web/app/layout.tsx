@@ -28,6 +28,22 @@ const themeScript = `(function(){try{var m=document.cookie.match(/(?:^|; )${THEM
 export const metadata = {
   metadataBase: new URL('https://nxhhuy.tech'),
   robots: { index: true, follow: true },
+  // Favicon set. SVG is the primary (modern browsers); .ico is the legacy
+  // IE/Edge/Windows-bots fallback; PNG sizes are referenced via Next.js
+  // shortcut, which emits the right `<link rel="icon" type="image/png"
+  // sizes="...">` tags. apple-touch-icon is the iOS Home Screen icon
+  // (180×180 PNG; never alpha, never transparent — iOS adds its own
+  // rounded mask).
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon-32.png', type: 'image/png', sizes: '32x32' },
+      { url: '/favicon-16.png', type: 'image/png', sizes: '16x16' },
+      { url: '/favicon.ico', sizes: 'any' },
+    ],
+    apple: [{ url: '/favicon-180.png', sizes: '180x180', type: 'image/png' }],
+  },
+  manifest: '/site.webmanifest',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
