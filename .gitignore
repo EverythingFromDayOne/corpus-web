@@ -13,6 +13,16 @@ coverage/
 !.env.example
 *.log
 catalog.json
+# Article bodies module emitted by `scripts/build-article-bodies.mjs`
+# (prebuild hook). Static TS module that bundles every adapting
+# article's frontmatter-stripped markdown body so the article-render
+# codepath never reads from disk at request time (D45 close, same
+# shape as D43's answer-keys.ts). 4 MB for 196 articles — too large
+# to track; the build script regenerates it from `catalog.json` and
+# the four content submodules. Recreate locally with
+# `pnpm build:catalog && node scripts/build-article-bodies.mjs`
+# after a fresh clone or submodule bump.
+apps/web/lib/data/article-bodies.ts
 .pnpm-store/
 # Pagefind index is build output emitted by `pnpm --filter @corpus/web
 # build` (postbuild hook). Recreate locally with `pnpm search:index`
