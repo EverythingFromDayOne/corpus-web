@@ -4356,7 +4356,7 @@ Commit `f1e301b` on branch `polish/d20-blog-spec`, pushed to `origin/polish/d20-
 
 ## Session 166 — fix(verify-links): roadmap-driven planned classification (D13 → D46) — 2026-09-04
 
-**Branch:** `fix/verify-links-roadmap-classification` off `develop @ 64145c7`. Branch not pushed yet.
+**Branch:** `fix/verify-links-roadmap-classification` off `develop @ 4851dc3`. Merged as PR #157 (`4851dc3`); branch was deleted post-merge.
 
 **Files changed (this session):**
 - `scripts/lib/roadmap-manifest.mjs` — NEW (~150 lines). Parses each submodule's `roadmap.md` into a `Set<basename>` of planned-but-unwritten articles. Heading-text-driven section detection (recognises "Article inventory" / "Concept articles" for the concept section and "Recipe tracks" / "Planned recipes" for the recipe section). `BACKTICKED_SLUG` regex matches both bare basenames (`providers-and-di`) and slash-paths (`foundations/typescript-for-nest`), anchored on lowercase-start to exclude prose tokens like `@Entity` / `useState` / `1.1.x` / `[text](../path/file.md#anchor)`. `SECTION_HEADING` regex anchored on exactly `## ` (non-`#`) so `### Wave 1 — the spine` does NOT clobber the active section. Exports `MANIFEST_BOUNDS` (per-repo expected size range) and `assertManifestSizes(manifestsByRepo)` (returns `{ok, sizes}`).
@@ -4396,7 +4396,7 @@ verify-links: WARN — 6 ref(s) to a demo app, not an article
 **Known issues / next steps:**
 - **D46 (19 nestjs recipe refs without manifest entries)** — owned by `content/nestjs` (submodule). Closure: (a) write the recipe and re-tag, (b) drop the ref, or (c) add per-recipe-slug manifest to `nestjs/roadmap.md §5` mirroring `nextjs/roadmap.md §4`'s "Planned recipes". Recommend (c) for symmetry.
 - **`catalog.json`'s `plannedTargets`** is now non-empty (was always 0 before). Content-watch diffs will see real signal for the first time.
-- **PR not yet opened.** Branch `fix/verify-links-roadmap-classification` exists locally; not pushed yet.
+- **PR #157 merged 2026-09-04 (merge commit `4851dc3`).** Branch `fix/verify-links-roadmap-classification` was deleted post-merge.
 
 **Invented decisions:**
 - Parser in `scripts/lib/`, not in `packages/content-schema/src/adapters/`. Roadmap classification is corpus-web concern; adapter layer is shared schema.
