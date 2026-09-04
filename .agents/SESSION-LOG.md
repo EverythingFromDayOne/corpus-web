@@ -8069,3 +8069,72 @@ The closure follows the established D39/D40 pattern (both of which have a "close
 - Polish residue still open (carry-forward): D21 Pagefind Preview verification (Vercel Auth bypass, user action), D22 SEO/OG image subdomain (DNS+Vercel, user action), D30 FAQ half (corpus-side schema), D33 attribution (corpus-side schema), D42 items 7-8 (`.ls-card` / `.ls-blog-card` warm radials, deferred session 158), D44 misdiagnosis (closed, archived).
 - Session log structural issue: session 166's entry is currently orphaned at line 4357 (between session 132 and 133), the result of an earlier turn's `replace_all=true` patch that hit two `---/n- 1 open PR: #88...` patterns. Out of scope for this commit (would be a structural change to a doc whose append-only principle makes reordering risky); called out for a future hygiene pass.
 
+
+## Session 168 — develop → main promotion (PR #161), ADR-0003 accepted, v0.1.0 tagged — 2026-09-04
+
+**Branch:** develop @ `957eeaf` (this commit) ahead of main @ `16fecf7`.
+
+**Files changed:**
+- `docs/adr/0003-promotion-strategy.md` — Status: Accepted; Option A replaces Option B; documented `required_linear_history` as the mechanism that forced squash-merge at the GitHub API layer.
+- (history) PR #161 merged into main on 2026-09-04 — merge commit `16fecf7` (parents `d38b2a0` + `9f5b99a`).
+- (history) PR #158 closed as stale (develop had moved twice since — through PR #159 and PR #160).
+- (history) Conflict resolution commit `9f5b99a` on develop — six content-conflict hunks across three files (`.agents/summary.md`, `docs/DEBT.md`, `progress.md`), all resolved toward develop. Three union-driver auto-merges (SESSION-LOG, CHANGELOG, package.json).
+- (history) Tag `v0.1.0` (`c7e2e23`) pointing at the merge commit `16fecf7`, pushed to origin.
+
+**Why:** Two themes.
+
+(a) The develop → main promotion chain. PR #161 was opened against `origin/main @ d38b2a0` carrying 5 chain commits (D38 close → D13 close + D46 open → nav-progress → favicon + title) plus the conflict-resolution commit on develop itself. Conflict map: 3 files × 6 content-conflict hunks, all "keep develop" per user's standing pattern from PR #156. Auto-merged: SESSION-LOG, CHANGELOG, package.json.
+
+(b) ADR-0003 acceptance. The original ADR (drafted session 165) chose Option B (squash + reset). The user's standing reasoning for Option B was "depends on remembering a reset step after every promotion, and agents push to develop without asking. A strategy that fails silently when someone forgets is the wrong." In practice, the discipline broke — develop stayed ahead of main for three weeks because no agent or session re-set it, and the conflict tax kept recurring.
+
+The discovery during this session was that `branch protection: main.required_linear_history: true` was forcing squash-merge at the GitHub API layer regardless. The original ADR framed the symptom (recurring conflict tax) but not the cause (the protection rule). With `required_linear_history` disabled (per user decision on PR #161), Option A becomes genuinely available and is the right choice. Status flipped from `proposed` to `Accepted`.
+
+**Branch protection now in place for main:**
+- `required_linear_history: false` (was `true`; disabled via `gh api -X PUT` because PATCH returned 404 against this repo).
+- `enforce_admins: true` (unchanged).
+- `required_status_checks: []` (no CI gate enforced at protection layer; gates run locally via `pnpm verify:*`).
+
+**Promotion protocol documented in ADR-0003 (paraphrased):**
+1. Verify Content gates — D46 must be the only red check, or user has explicitly authorized `--admin` for the rest.
+2. On develop, merge origin/main locally; resolve conflicts toward develop (PR #156 + PR #161 pattern).
+3. Commit the resolution on develop; push develop.
+4. Open PR develop → main with a per-file conflict-resolution table.
+5. `gh pr merge <N> --admin -m -F <body>` — `-m` creates the merge commit, `--admin` overrides branch protection mechanics. `--squash` not used.
+6. Confirm Vercel deploys main.
+7. Run the post-promotion curl checks against the production alias.
+8. Tag the merge commit.
+
+**Verification (deployed):**
+- Vercel production deployment at `corpus-naakeccj3-huycong2798s-projects.vercel.app` — Built + Ready in ~2 min, aliased to `nxhhuy.tech`.
+- Curl `https://nxhhuy.tech/en`:
+  - `<title>corpus.web — verified reference for web engineering</title>` ✓
+  - `<h1 class="bg-gradient-to-b ...">Every claim resolves.</h1>` ✓
+  - `/favicon.ico` → 200, 2747 B, MS Windows icon resource, 3 sizes (16/32/48) ✓
+  - `/en/courses/react-render-cycle/lessons/jsx-and-rendering` (lesson with quiz) → 200, 502 KB ✓
+- Tag `v0.1.0` (commit `c7e2e23`, pointing at `16fecf7`) pushed to origin.
+
+**Invented decisions:**
+
+1. **Discovery method for `required_linear_history`:** the user authorized `--admin` for the D46 case but did not anticipate that `--admin` would not override the protection rule. I tried `gh pr merge 161 --admin -m`, got `GraphQL: Merge commits are not allowed on this repository. (mergePullRequest)`, then queried `gh api /repos/.../branches/main/protection` and read `required_linear_history: enabled: true` from the response. Surface-the-blocker-to-user came next; user replied "leave it off" (PR #161 turn).
+
+2. **Disabled `required_linear_history` via PUT, not PATCH.** The PATCH endpoint on this repo returned 404 against `repos/.../branches/main/protection` with the standard Content-Type and `X-GitHub-Api-Version` headers. PUT with the full body (including the explicit current values for every field) returned 200 and updated the rule. PUT is technically not the documented PATCH endpoint, but PUT is documented as the alternative for "Update branch protection" in the same docs page and is the path that worked. If PUT is later unavailable, re-test PATCH (the 404 may have been a transient).
+
+3. **All other protection settings preserved.** I sent the full PUT body including the existing values for `enforce_admins: true`, `required_status_checks: { contexts: [] }`, `allow_force_pushes: false`, `allow_deletions: false`, `required_pull_request_reviews: { ... 0 }`, etc. After the PUT, GET confirmed all other settings unchanged. The user's "do not change any other protection setting" constraint was met.
+
+4. **ADR-0003 rewritten to Option A with the `required_linear_history` discovery in the same edit.** Status flipped from `proposed` to `Accepted`. Documented the protocol, consequences, and revisit conditions. Did NOT remove Option B from the document — kept it as a "considered and rejected" alternative with the actual reasoning ("discipline step was forgotten in practice"). Future readers can audit why we ended up here.
+
+5. **ADR-0003 commit landed on develop, not main.** Branch protection forbids direct pushes to main; the ADR doc-only commit needed a develop → main promotion. Since the user said "do not reset develop onto main," develop remains ahead of main until the next promotion. The ADR-0003 update will ride with whatever future PR brings develop back to main. (Local main's `c714013` is now in the reflog only — soft-reset before checkout develop dropped it; reflog expires in 90 days by default.)
+
+6. **No `--reset-develop-onto-main`.** User's explicit instruction "Do not reset develop onto main. That one waits for me." Develop remains N commits ahead of main by the chain of `develop → main` PRs.
+
+**Known issues / next steps:**
+
+- **Develop is now 1 commit ahead of main.** The ADR-0003 acceptance commit `957eeaf` on develop is the only delta. It will ride with the next promotion (which will be a fast-forward if develop and main haven't moved in between, or another small conflict-resolution commit if more chain work lands first).
+- **Vercel Preview gate (D21) still gated on Vercel Auth bypass.** `/pagefind/*` + `/api/*` + `/opengraph-image` + article route URLs all need bypass rules; this is a Vercel dashboard config, no code. Outstanding since session 159.
+- **D22 SEO/OG image subdomain still deferred.** DNS + Vercel config, user-action gated.
+- **D46 is the only Content gate red.** 19 refs / 15 distinct nestjs recipe slugs. Closure path: per-recipe-slug manifest in `nestjs/roadmap.md §5` (recommended in DEBT.md).
+- **D45 still open.** `apps/web/lib/article-source.ts:8` same fs-read pattern as D43; closure requires deployed verification per session-165 hard rule.
+- **The session-166 orphan at line 4357.** Out of scope (doc structural change); future hygiene pass.
+- **Tag `v0.1.0` has no `gh release` body.** The user said `git tag -a v0.1.0 -m "First tagged release"` and `push the tag`. No `gh release create`. If a GitHub Release is wanted later, `gh release create v0.1.0 --notes <text>` can be run against the existing tag.
+
+---
