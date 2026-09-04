@@ -23,7 +23,7 @@ A 500 with a server stack trace, not a 404. The action was invoked; it threw.
 
 ## What we got wrong first
 
-The first diagnosis in session 164 was "cache-boundary action-reference loss — `$F<id>` is missing from the RSC payload because the JSX binding is inside a `'use cache'` scope in `apps/web/lib/article-markdown.tsx:207`." The user told me to drop that theory in favour of the ENOENT theory. I complied and wrote a fix for the ENOENT only, then re-derived the cache-boundary theory in session 165 after a local `pnpm start` probe. **Both derivations reached the cache-boundary theory. The user pointed out that 500 with a server stack trace proves the action was invoked; missing `$F` would never produce a server-side stack trace.** The user's correction landed. The cache-boundary theory (now tracked as D44) was set aside again pending real evidence, which we still don't have on the deployed side. The lesson: re-deriving a theory the user told you to drop, without new evidence, is a boundary violation.
+The first diagnosis in session 164 was "cache-boundary action-reference loss — `$F<id>` is missing from the RSC payload because the JSX binding is inside a `'use cache'` scope in `apps/web/lib/article-markdown.tsx:207`." The user told me to drop that theory in favour of the ENOENT theory. I complied and wrote a fix for the ENOENT only, then re-derived the cache-boundary theory in session 165 after a local `pnpm start` probe. **Both derivations reached the cache-boundary theory. The user pointed out that 500 with a server stack trace proves the action was invoked; missing `$F` would never produce a server-side stack trace.** The user's correction landed. The cache-boundary theory (tracked briefly as D44) was set aside again pending real evidence. **Disproved on 2026-09-04 by deployed Preview verification:** the Quiz grades correctly on `https://corpus-7jb9ycfcs-huycong2798s-projects.vercel.app`, so the local-probe negative result was a Next.js 16.3 dev-mode artefact, not a real defect. D44 archived in `docs/DEBT.md` as a closed misdiagnosis row. The lesson: re-deriving a theory the user told you to drop, without new evidence, is a boundary violation — and local-red is not evidence for a defect either, when dev's serialisation path differs from production's.
 
 ## The real fault (D43)
 
@@ -77,7 +77,7 @@ Turbo, Turbopack, Next.js's `.next/` cache, and every other build-cache layer ca
 
 ### Rule 3: One line of production log settles what two sessions of theorising cannot
 
-The session-164 cache-boundary theory, the session-164 ENOENT theory, the session-165 reinvestigation of the cache-boundary theory, and the session-165 dismissal of it again — all resolved the moment the user shared one Vercel log line:
+The session-164 cache-boundary theory (now disproved), the session-164 ENOENT theory (correct), the session-165 reinvestigation of the cache-boundary theory (also disproved), and the session-165 dismissal of it again — all resolved the moment the user shared one Vercel log line:
 
 ```
 Error: ENOENT: no such file or directory, open '/var/task/catalog.json'
@@ -104,7 +104,7 @@ Three lines of reasoning would have given us this. Instead it took two sessions.
 ## What is not yet proven
 
 - The Quiz works on the deployed Preview URL. The user has the URL; the log line settles it. Until the log is clean, D43 is **partially** closed (code shipped, fix shape correct, action handler no longer reads fs, but production invocation not yet verified end-to-end).
-- D44 (cache-boundary action-reference loss) was reopened, then set aside again. Status: still open. The session-165 stash was popped, the refactor discarded. Closure refactor design is preserved in the D44 row of `docs/DEBT.md`.
+- D44 (cache-boundary action-reference loss) was reopened in session 165, then closed on 2026-09-04 as a misdiagnosis. The local-probe negative result was a Next.js 16.3 dev-mode artefact; deployed Preview verification showed the Quiz grades correctly with no fix applied. D44 row archived in `docs/DEBT.md`.
 - D45 (`article-source.ts:8` serverless-fs read) is quiescent but unverified. Same emit-then-static-import pattern as D43 will close it; needs its own deployed verification.
 
 ## Reference
@@ -116,7 +116,7 @@ Three lines of reasoning would have given us this. Instead it took two sessions.
 - Original Quiz feature commit: `7547249` "fix(web): strip quiz answer key before it crosses the client boundary." Body explicitly notes "`cacheLife('max')` throws outside a real Next build, verified by hand" — author aware the action was untested in a real Next.js build. Landed on develop directly, never PR'd.
 - PR #146 squash: `a652bde` "fix(quiz): rebrand to Quick quiz, fix prod server action, add 3-zone footer (#146)." Body: "Reproducible for every question in `curation/overrides/react-thinking-in-react.yaml` against `pnpm start` (production build)." — verification was `pnpm start` only.
 - D43 partial close: `0e2db4c`.
-- D44 row: `docs/DEBT.md` line 48.
+- D44 row: `docs/DEBT.md` (Closed section, archived as misdiagnosis).
 - D45 row: `docs/DEBT.md` line 49.
 - ADR-0003: `docs/adr/0003-promotion-strategy.md`.
 - Hand-off protocol: `prompts/HANDOFF-session-protocol.md` (read alongside this file).
@@ -125,4 +125,4 @@ Three lines of reasoning would have given us this. Instead it took two sessions.
 
 ## End of session 165 handoff
 
-Next session: pull the Vercel Functions log for the Preview URL after the user exercises "Check answer." If clean, D43 is closed. If 500 with a server stack trace, the log tells us whether D44 (cache-boundary) is also live, or whether there's a third bug in the answer-keys path.
+Session 165 closed with the Quiz verified working on the deployed Preview URL. D43 partial-close landed in commit `0e2db4c` and pushed to origin/develop. D44 was reopened in the session, then closed in the wrap as a misdiagnosis — local-probe artefacts are not evidence for serverless-fs defects when the deployment shape differs from dev's. The wrap commit `5cd52db` on `chore/session-165-wrap` (PR #155) carries the docs updates: D45 debt row, ADR-0003, this handoff file.
