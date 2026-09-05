@@ -8173,3 +8173,75 @@ The discovery during this session was that `branch protection: main.required_lin
 - Working tree: clean. State matches the closure.
 
 ---
+## Session 170 — fix/progress-v1-schema-and-defensive-writes (PR #163, OPEN) — 2026-09-05
+
+**Branch:** `fix/progress-v1-schema-and-defensive-writes @ e72c59d` (worktree clean; PR #163 OPEN against `develop`).
+
+**Files changed (this commit):**
+- `CHANGELOG.md` — `## [Unreleased]` entry appended (Added/Changed/Fixed bullets).
+- `.agents/SESSION-LOG.md` — this session 170 entry appended.
+- `progress.md` — session-log line appended at end.
+
+**Files changed (PR #163 commit e72c59d):**
+- `apps/web/lib/progress.ts` — added `version: 1` and `activity: Record<YYYY-MM-DD, number>` on the persisted `ProgressStore`; in-place upgrade of unversioned v0 blobs in `readProgress()`; try-catch around `writeProgress()`; `clientId` salvage on `JSON.parse` failure.
+- `apps/web/test/progress.test.ts` — NEW (11 tests including the non-circular TZ=Asia/Ho_Chi_Minh boundary test pinning literal `"2026-09-06"` (01:30 local on Sep 6 from a `2026-09-05T18:30:00Z` instant) and the absence of `"2026-09-05"`; sanity check refuses to run under any other TZ).
+- `apps/web/package.json` — `scripts.test` prefix `TZ=Asia/Ho_Chi_Minh`; other tests unaffected (TZ-insensitive) — verified 78/78.
+
+**Why (the architectural decision):** The client-progress storage layer (`apps/web/lib/progress.ts`) was an implicit v0 schema with three latent defects.
+
+1. **No version field.** Any future addition would have no way to distinguish a fresh device from a device that hasn't updated. Closed by adding `version: 1` and an in-place migration branch in `readProgress` that writes the upgraded blob back rather than discarding `completed`/`seen`. The write-back is the contract: any future schema bump mirrors this pattern — read-side defensive parsing + write-side defensive upgrade-in-place, **never silent discard**.
+
+2. **`writeProgress` was unguarded.** Called from `markSeen` / `markComplete` via `apps/web/components/article/toc-rail.tsx`'s scroll handler. Safari private-browsing throws `SecurityError`; long-session writes throw `QuotaExceededError`. Either propagated unhandled and crashed the scroll handler. Wrapped in try-catch — the in-memory store remains authoritative for the running session.
+
+3. **`JSON.parse` failures silently minted a new `clientId`.** A recoverable `"clientId":"…"` substring was discarded. Now salvaged via a best-effort regex before falling back to minting. The test `readProgress on JSON.parse failure` covers both shaped-but-broken (retained) and pure garbage (new) cases.
+
+Plus, deferred from `D26 — Accounts + progress sync roadmap §10`: a browser-local `activity: Record<YYYY-MM-DD, number>` ledger so the future Nest `progress` module can answer "active on day X" without backfill complexity.
+
+**Migration-payload shape — the future `POST /progress/migrate` will receive this exact JSON:**
+
+```
+{ "clientId": "…", "completed": { "<uid>": true }, "seen": { "<uid>": ["<anchor>", …] }, "activity": { "YYYY-MM-DD": <count> }, "version": 1 }
+```
+
+The full snapshot of `ProgressStore` is the payload. The recipient is the future Nest `progress` module (currently a bare `apps/api/` scaffold; home-for-later; D26 / Phase 2). **The receiver has no merge policy baked in — the client sends both `completed` and `seen` plus `version`; the server decides.** Schema-migration discipline mirrors D13's roadmap-classification fix.
+
+**Activity collection starts at merge date — no backfill possible.** v0 data has no timestamps on `completed` (just `true` literal) and no per-anchor timestamps on `seen`, so days before merge are unrecoverable. Anyone reading activity stats from the future Nest endpoint will see "today forward" only. This is intentional and was disclosed at design time; not a defect to fix later.
+
+**Invented decisions:**
+
+- **One event per call (not per anchor).** `markSeen(uid, anchor)` increments `activity[<today>]` by exactly 1, regardless of anchor count. Anchors are present in `seen[uid]` for de-dup display but are not activity-related. Picked because it matches "reading today" intuition and avoids an unbounded map growth.
+
+- **No timestamps in `completed`.** Per the user's spec, the `completed` map stays as `{ uid: true }`. Means the migration endpoint cannot re-derive "first completed" without a future v2 schema change. Documented here so the next session that hits the question finds the answer.
+
+- **Salvage regex on broken blobs is best-effort, not a JSON parser.** Extracts `"clientId":"…"` substring from arbitrary garbage; if the regex matches a plausible UUID or `anon-` prefix, it keeps it. Silent failure mode for clients who never wrote `clientId` at all: the regex doesn't match, the test `readProgress on JSON.parse failure` covers both branches.
+
+- **`TZ=Asia/Ho_Chi_Minh` in the test script, not in-test.** Per the iron-law "Cross-TZ CI Flakiness" rule. The boundary test's internal sanity check asserts `getTimezoneOffset() === -420` so the test fails loudly if a future maintainer runs `pnpm test` outside the script (e.g., `node --test` directly without the env prefix).
+
+- **One PR, not two.** The boundary + call-through test additions landed in the same commit as the schema work, per user direction "Same PR". Rationale: the test additions are part of "make the new schema verifiable", not a separate concern.
+
+- **No new debt ID.** This is a forward feature, not a defect closure. `docs/DEBT.md` Highest ID stays D46.
+
+**Known issues / next steps:**
+
+- **PR #163 is OPEN, not merged.** Status of merge-of-this-PR is a user decision. **D46 standing red** on `Content gates` is the only thing in the way (19 nestjs recipe refs against `content/nestjs/*/...md`; same D46 number from PR #157 session). Branch-protection `required_status_checks.contexts` is empty on `develop`, so `--admin` would bypass.
+- **The `progress` schema's `activity` field carries local-time buckets.** If the device's `Intl.DateTimeFormat().resolvedOptions().timeZone` ever changes (travel, DST amplitude at zone boundaries), the user may see an unexpected bucket split. Inherent to any local-clock tracker; not a defect, an inherent property.
+- **`apps/api` is a bare Nest scaffold today** (`apps/api/src/main.ts` + `app.module.ts`, empty `@Module({})`); the future progress module is a Phase 2 deliverable. No code change required here; the data shape is final and stable.
+- **The boundary test refuses to run under TZ ≠ Asia/Ho_Chi_Minh.** If a future maintainer wants multi-TZ CI, the test pattern needs to change (per-TZ expected keys, parameterised by env var), not the script. Out of scope for this PR.
+- **MEMORY.md is locked for write per the session-169 directive.** The line-16 entry on D44/D45 verification rigour is documented (in this session's handoff) as factually wrong on part (b) — it must be amended when the user lifts the prohibition. Not touched here.
+- **`docs/DEBT.md` integrity carry-over from session 169**: Highest ID header missing at the top of the file; 8 closed-but-still-in-Open IDs (D20/D21/D22/D25/D32/D38/D39/D40); D45 dual-row violation persists. All pre-existing, not touched by this session.
+
+**Verification (raw evidence at `/tmp/hermes-verify-progress-v6.json`, `/tmp/gates-progress-v4-fresh.txt`, `/tmp/gates-progress-v3-fresh.txt`):**
+
+- `pnpm --filter @corpus/web test` → **78/78 pass** under `TZ=Asia/Ho_Chi_Minh`.
+- `pnpm --filter @corpus/web typecheck` → exit 0.
+- `pnpm --filter @corpus/web lint` → exit 0.
+- `pnpm verify:frontmatter` → 196/196 articles adapt cleanly.
+- `pnpm verify:prerender` → 196/196 blog + 18/18 lesson HTML, non-empty.
+- `pnpm agents:check` → ✓ AGENTS.md, ✓ CLAUDE.md, ✓ 60-skills.mdc.
+- `pnpm verify:links` → exit 1 — D46 standing red, unchanged from this PR.
+- `hermes verify --json` cold boot → `ok: true`, 9/9 phases PASS, HTTP 200 on `/` in 12.903s, zero ELIFECYCLE/`##[error]` markers, stderr empty.
+- Boundary test under `TZ=UTC` (CI default) refuses with: "this test requires TZ=Asia/Ho_Chi_Minh (UTC+7), got timezone offset 0 minutes". (Intentional — refusing to run is correct.)
+- CI: Lint/typecheck/build PASS; Vercel Preview PASS; Repo guards PASS; Content gates FAIL on D46 (unchanged).
+- Working tree at `e72c59d`: clean (only Next's auto-regen `next-env.d.ts` and an untracked `docs/architecture/` directory, neither staged).
+
+---
