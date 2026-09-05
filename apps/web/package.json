@@ -12,7 +12,7 @@
     "search:index": "pagefind --site .next/server/app --output-path public/pagefind",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test test/*.test.ts"
+    "test": "TZ=Asia/Ho_Chi_Minh node --import tsx --test test/*.test.ts"
   },
   "dependencies": {
     "@corpus/mdx-components": "workspace:*",
