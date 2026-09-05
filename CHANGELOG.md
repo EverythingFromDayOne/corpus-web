@@ -5,6 +5,32 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-05] — fix/progress-v1-schema-and-defensive-writes — v1 ProgressStore schema + activity ledger + defensive writeProgress
+
+**Added**
+- `version: 1` field on `ProgressStore`; new exported `PROGRESS_VERSION = 1` constant in `apps/web/lib/progress.ts`.
+- `activity: Record<YYYY-MM-DD, number>` on `ProgressStore`; both `markSeen` and `markComplete` increment `activity[today]` once per call using local-time date methods.
+- `apps/web/test/progress.test.ts` (NEW): 11 tests covering the v1 schema, in-place upgrade of unversioned blobs, call-through `QuotaExceededError`/`SecurityError` swallow from `markSeen`/`markComplete`, JSON.parse-failure clientId retention/salvage, and a TZ-pinned (`Asia/Ho_Chi_Minh`) non-circular boundary test pinning literal `"2026-09-06"`/`"2026-09-05"` keys against the module.
+
+**Changed**
+- `apps/web/lib/progress.ts`: `readProgress()` upgrades an unversioned blob in place and writes back with `version: 1`.
+- `apps/web/lib/progress.ts`: `writeProgress()` wrapped in try-catch — quota or SecurityError no longer propagates to the scroll handler.
+- `apps/web/lib/progress.ts`: `JSON.parse` failures retain any salvageable `clientId` substring before minting a new one.
+- `apps/web/package.json`: `scripts.test` prefixed `TZ=Asia/Ho_Chi_Minh` so the boundary test runs under a pinned timezone. Other tests are TZ-insensitive; verified 78/78 pass.
+
+**Fixed**
+- `apps/web/components/article/toc-rail.tsx`: scroll handler no longer crashes on `markSeen` under Safari private-browsing (`SecurityError`) or large `localStorage` writes (`QuotaExceededError`). Defensive wrap lives in `writeProgress`; callers unchanged.
+
+### [2026-09-04] — develop → main promotion (PR #161) — ADR-0003 accepted, v0.1.0 tagged
+
+**Changed**
+- `docs/adr/0003-promotion-strategy.md` — Status flipped from `proposed` to `Accepted`. Decision moves from Option B (squash + reset) to Option A (`--no-ff` merge commits). Documents `required_linear_history` on main as the mechanism that forced squash-merge at the GitHub API layer; now disabled per user direction. Promotion protocol documented.
+- Promotion merge commit `16fecf7` (parents `d38b2a0` + `9f5b99a`) on main via PR #161 with `--no-ff` per ADR-0003 Option A. Conflict resolution commit `9f5b99a` on develop carries the six content-conflict hunks across `.agents/summary.md`, `docs/DEBT.md`, `progress.md`, all resolved toward develop.
+- Tag `v0.1.0` (commit `c7e2e23`, pointing at `16fecf7`) created and pushed.
+
+**Added**
+- First tagged release of corpus-web. Tag annotates the merge commit; no GitHub Release body (per user instruction `git tag -a v0.1.0 -m "First tagged release"` + push).
+
 ### [2026-09-04] — docs(d38-close) — close D38 in DEBT.md (superseded by D13/D46 + derive-title already-fixed)
 
 **Changed**
