@@ -5,6 +5,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-06] — feat/activity-streak-heatmap — border-based active signal replaces fill-only ladder
+
+**Fixed**
+- Heatmap active cells were still imperceptible after the session-172 contrast fix — the measured 3.42:1 (dark) / 3.45:1 (light) ladder clears WCAG's 3:1 floor on paper but is imperceptible as an 8x8px area-fill patch. Every active cell (level >= 1) now carries a 1px border in unmixed `--color-signal-soft` (dark 7.65:1, light 4.97:1 against `--color-graphite`) as the primary "was this day active" signal, independent of the fill-mix percentage.
+
+**Changed**
+- `apps/web/components/article/activity-heatmap.css`: `.av-heatmap-cell` gains `border: 1px solid transparent`; new `.av-heatmap-cell-active` rule sets the border color.
+
 ### [2026-09-06] — feat/activity-streak-heatmap — Activity block placement + measured contrast ladder
 
 **Changed**
