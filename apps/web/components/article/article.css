@@ -13,6 +13,18 @@
   background: var(--color-surface);
   border-right: 1px solid var(--color-graphite);
   padding: 1.1rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* The nav-group list scrolls independently below the sticky Activity block,
+   so streak/heatmap stays visible without the reader scrolling the corpus
+   tree first (session 172 placement fix — was previously the last child of
+   `.av-sb` and only visible after scrolling past the entire article list). */
+.av-grp-scroll {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 

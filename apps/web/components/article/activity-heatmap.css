@@ -4,9 +4,9 @@
    visual as --color-graphite hairlines elsewhere in the sidebar). */
 
 .av-heatmap {
-  margin-top: 1.1rem;
-  padding-top: 1.1rem;
-  border-top: 1px solid var(--color-graphite);
+  margin-bottom: 1.1rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--color-graphite);
 }
 
 .av-heatmap h3 {
@@ -74,22 +74,61 @@
   background: transparent;
 }
 
-/* Intensity levels — thin wrappers over the existing signal-accent family
-   (DEBT.md discipline: the accent is provenance/position only, never a
-   general-purpose fill; using color-mix keeps every level traceable back
-   to --color-signal rather than introducing a parallel palette). */
+/* Intensity levels — mix(--color-signal-soft, --color-graphite, N%), kept
+   traceable to the existing accent family (never a parallel palette) but
+   using -soft rather than plain -signal because plain -signal cannot reach
+   a 3:1 non-text contrast ratio against graphite in light mode even at
+   100% mix (measured: 3.33:1 at 100%, and every lower percentage is worse).
+
+   Percentages are DIFFERENT per theme because the two themes' graphite/
+   signal-soft pairs have different luminance gaps — a single shared
+   percentage ladder cannot clear 3:1 at every level in both themes
+   simultaneously (verified: the dark-mode ladder's level-1 percentage,
+   applied unmodified to light mode, computes to 2.23:1 — a hue shift with
+   no discriminable brightness change, the exact bug this replaces).
+
+   All 8 values (4 levels x 2 themes) computed via WCAG relative-luminance
+   contrast ratio, verified >=3.0 (WCAG SC 1.4.11 non-text contrast floor
+   for UI/graphical objects), monotonically increasing level 1->4:
+
+   dark  (graphite #2b3745, signal-soft #f2c782):
+     L1  55% -> rgb(152,134,103)  contrast 3.42:1
+     L2  70% -> rgb(182,156,112)  contrast 4.60:1
+     L3  85% -> rgb(212,177,121)  contrast 5.97:1
+     L4 100% -> rgb(242,199,130)  contrast 7.65:1
+   light (graphite #d3dae3, signal-soft #7d4f12):
+     L1  80% -> rgb(142,107, 60)  contrast 3.45:1
+     L2  87% -> rgb(136, 97, 45)  contrast 3.93:1
+     L3  93% -> rgb(131, 89, 33)  contrast 4.36:1
+     L4 100% -> rgb(125, 79, 18)  contrast 4.97:1 */
 .av-heatmap-cell[data-level='1'] {
-  background: color-mix(in srgb, var(--color-signal) 25%, var(--color-graphite));
+  background: color-mix(in srgb, var(--color-signal-soft) 55%, var(--color-graphite));
 }
 
 .av-heatmap-cell[data-level='2'] {
-  background: color-mix(in srgb, var(--color-signal) 50%, var(--color-graphite));
+  background: color-mix(in srgb, var(--color-signal-soft) 70%, var(--color-graphite));
 }
 
 .av-heatmap-cell[data-level='3'] {
-  background: color-mix(in srgb, var(--color-signal) 75%, var(--color-graphite));
+  background: color-mix(in srgb, var(--color-signal-soft) 85%, var(--color-graphite));
 }
 
 .av-heatmap-cell[data-level='4'] {
-  background: var(--color-signal);
+  background: var(--color-signal-soft);
+}
+
+:root[data-theme='light'] .av-heatmap-cell[data-level='1'] {
+  background: color-mix(in srgb, var(--color-signal-soft) 80%, var(--color-graphite));
+}
+
+:root[data-theme='light'] .av-heatmap-cell[data-level='2'] {
+  background: color-mix(in srgb, var(--color-signal-soft) 87%, var(--color-graphite));
+}
+
+:root[data-theme='light'] .av-heatmap-cell[data-level='3'] {
+  background: color-mix(in srgb, var(--color-signal-soft) 93%, var(--color-graphite));
+}
+
+:root[data-theme='light'] .av-heatmap-cell[data-level='4'] {
+  background: var(--color-signal-soft);
 }

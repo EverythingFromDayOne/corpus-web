@@ -96,6 +96,8 @@ export function CorpusSidebar({
         aria-label={t(messages, 'article.searchSidebar')}
         placeholder={t(messages, 'placeholders.search')}
       />
+      <ActivityHeatmap messages={messages} />
+      <div className="av-grp-scroll">
       {groups.map((group) => (
         <div key={group.folder} className="av-grp">
           <h4>
@@ -125,7 +127,7 @@ export function CorpusSidebar({
           })}
         </div>
       ))}
-      <ActivityHeatmap messages={messages} />
+      </div>
     </aside>
   );
 }
@@ -179,28 +181,30 @@ export function CurriculumSidebar({
           {doneCount} / {course.lessonCount}
         </span>
       </div>
-      <ol className="av-lsn">
-        {course.items.map((item, index) => {
-          const on = item.article === currentUid;
-          const done = Boolean(completed[item.article]);
-          return (
-            <li key={item.article}>
-              <a
-                href={lessonPath(locale, course.slug, item.articleId)}
-                className={on ? 'on' : undefined}
-                aria-current={on ? 'page' : undefined}
-              >
-                <span className="av-n">{String(index + 1).padStart(2, '0')}</span>
-                <span>
-                  {item.title}
-                  <i className={`av-k${done ? ' done' : ''}`} />
-                  {item.note ? <span className="av-note">{item.note}</span> : null}
-                </span>
-              </a>
-            </li>
-          );
-        })}
-      </ol>
+      <div className="av-grp-scroll">
+        <ol className="av-lsn">
+          {course.items.map((item, index) => {
+            const on = item.article === currentUid;
+            const done = Boolean(completed[item.article]);
+            return (
+              <li key={item.article}>
+                <a
+                  href={lessonPath(locale, course.slug, item.articleId)}
+                  className={on ? 'on' : undefined}
+                  aria-current={on ? 'page' : undefined}
+                >
+                  <span className="av-n">{String(index + 1).padStart(2, '0')}</span>
+                  <span>
+                    {item.title}
+                    <i className={`av-k${done ? ' done' : ''}`} />
+                    {item.note ? <span className="av-note">{item.note}</span> : null}
+                  </span>
+                </a>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
     </aside>
   );
 }
