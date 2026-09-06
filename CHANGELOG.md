@@ -5,6 +5,19 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-05] — feat/activity-streak-heatmap — streak + activity heatmap sidebar widget
+
+**Added**
+- `apps/web/lib/activity-heatmap.ts` (NEW): `computeCurrentStreak`, `computeMaxStreak`, `buildHeatmapWeeks` — pure date/grid functions over `ProgressStore.activity` only.
+- `apps/web/components/article/activity-heatmap.tsx` (NEW): client-only sidebar widget rendering current/longest streak numbers plus a 12-month GitHub-style heatmap grid.
+- `apps/web/components/article/activity-heatmap.css` (NEW): token-only styling (`@corpus/ui` tokens, `color-mix()` intensity levels off `--color-signal`).
+- 4 new i18n keys under `article.*` in `apps/web/messages/en.json`: `activityHeading`, `currentStreak`, `maxStreak`, `activityGridLabel`.
+- `apps/web/test/activity-heatmap.test.ts` (NEW): 17 tests, verified GREEN under both `TZ=Asia/Ho_Chi_Minh` and `TZ=UTC`.
+
+**Changed**
+- `apps/web/components/article/sidebars.tsx`: `CorpusSidebar` now renders `<ActivityHeatmap>` below the existing article-group list.
+- `apps/web/components/article/article.css`: added `@import './activity-heatmap.css';`.
+
 ### [2026-09-05] — fix/progress-v1-schema-and-defensive-writes — v1 ProgressStore schema + activity ledger + defensive writeProgress
 
 **Added**
