@@ -5,6 +5,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-06] — feat/activity-streak-heatmap — Activity block placement + measured contrast ladder
+
+**Changed**
+- `apps/web/components/article/sidebars.tsx`: `<ActivityHeatmap>` moved above the article-group list in `CorpusSidebar`; both `CorpusSidebar`'s group list and `CurriculumSidebar`'s lesson list wrapped in a new `.av-grp-scroll` div with independent scrolling.
+- `apps/web/components/article/article.css`: `.av-sb` changed to `display: flex; flex-direction: column`; new `.av-grp-scroll` rule.
+- `apps/web/components/article/activity-heatmap.css`: heatmap intensity levels rewritten to a WCAG-measured per-theme contrast ladder using `--color-signal-soft` (was `--color-signal`, which cannot clear 3:1 in light mode at any mix percentage); `.av-heatmap` border/margin flipped top→bottom to match the new above-nav position.
+
+**Fixed**
+- Activity block was only visible after scrolling past the entire article-group nav tree — now sticky above the fold.
+- Heatmap level-1 cells (streak = 1, the most common early state) were visually indistinguishable from empty cells (measured 1.57:1 contrast in dark mode) — all 4 intensity levels now measure ≥3:1 (WCAG SC 1.4.11) in both themes.
+
 ### [2026-09-05] — feat/activity-streak-heatmap — streak + activity heatmap sidebar widget
 
 **Added**
