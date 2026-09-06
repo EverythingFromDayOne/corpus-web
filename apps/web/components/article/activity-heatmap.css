@@ -67,11 +67,29 @@
   height: 8px;
   border-radius: 2px;
   background: var(--color-graphite);
+  border: 1px solid transparent;
   flex-shrink: 0;
 }
 
 .av-heatmap-cell-pad {
   background: transparent;
+}
+
+/* Border is the PRIMARY "was this day active" signal, independent of the
+   fill-mix percentage below. Measured finding (session 173): at this cell's
+   actual rendered size (8x8 CSS px), a fill-only ladder even at a
+   WCAG-3:1-clearing mix percentage is imperceptible — pixel-scanned a real
+   screenshot at native scale and found zero detectable deviation from the
+   empty-cell color, despite a seeded streak=1 (one cell should have been
+   level-1). Confirmed via direct pixel measurement, not visual inspection:
+   edge/border contrast is resolved by the visual system far better than a
+   uniform-area luminance shift at this size, so every active cell gets a
+   full-strength (unmixed) --color-signal-soft border regardless of level —
+   this does not depend on the mix ladder below and cannot fall below the
+   strongest contrast this token family offers (dark 7.65:1, light 4.97:1
+   against --color-graphite, same numbers as the unmixed level-4 fill). */
+.av-heatmap-cell-active {
+  border-color: var(--color-signal-soft);
 }
 
 /* Intensity levels — mix(--color-signal-soft, --color-graphite, N%), kept
