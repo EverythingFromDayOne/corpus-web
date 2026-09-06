@@ -7,6 +7,7 @@ import type { Locale } from '@/lib/locales';
 import { articlePath, coursePath, lessonPath } from '@/lib/routes';
 import { isRepoId, REPOS, type RepoId } from '@/lib/repos';
 import { readProgress } from '@/lib/progress';
+import { ActivityHeatmap } from './activity-heatmap';
 import { sidebarClassName, useArticleChrome } from './article-shell';
 
 /** Matches `article.css` / `toggle()`: `@media (width <= 1000px)`. */
@@ -124,6 +125,7 @@ export function CorpusSidebar({
           })}
         </div>
       ))}
+      <ActivityHeatmap messages={messages} />
     </aside>
   );
 }

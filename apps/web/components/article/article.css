@@ -1,4 +1,5 @@
 @import './lesson-tokens.css';
+@import './activity-heatmap.css';
 
 /* Article shell + body. Tokens from @corpus/ui. No raw hex.
    Shell (pinned columns, document scroll) follows listing-pages-poc.html.

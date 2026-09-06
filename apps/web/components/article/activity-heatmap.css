@@ -1,0 +1,95 @@
+/* Streak + 12-month activity heatmap. Sidebar-scoped chrome — tokens from
+   @corpus/ui only, no raw hex. Reads ProgressStore.activity exclusively;
+   an empty activity map renders every cell at data-level="0" (the same
+   visual as --color-graphite hairlines elsewhere in the sidebar). */
+
+.av-heatmap {
+  margin-top: 1.1rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--color-graphite);
+}
+
+.av-heatmap h3 {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin: 0 0 0.6rem;
+  font-weight: 500;
+}
+
+.av-heatmap-streaks {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.7rem;
+}
+
+.av-heatmap-streak {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.av-heatmap-streak-n {
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.av-heatmap-streak-label {
+  font-size: var(--text-2xs);
+  color: var(--color-muted);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+
+.av-heatmap-grid {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  /* Hide the scrollbar visually but keep it keyboard/touch scrollable —
+     the sidebar column is narrower than 12 months of weekly columns. */
+  scrollbar-width: thin;
+}
+
+.av-heatmap-week {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.av-heatmap-cell {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--color-graphite);
+  flex-shrink: 0;
+}
+
+.av-heatmap-cell-pad {
+  background: transparent;
+}
+
+/* Intensity levels — thin wrappers over the existing signal-accent family
+   (DEBT.md discipline: the accent is provenance/position only, never a
+   general-purpose fill; using color-mix keeps every level traceable back
+   to --color-signal rather than introducing a parallel palette). */
+.av-heatmap-cell[data-level='1'] {
+  background: color-mix(in srgb, var(--color-signal) 25%, var(--color-graphite));
+}
+
+.av-heatmap-cell[data-level='2'] {
+  background: color-mix(in srgb, var(--color-signal) 50%, var(--color-graphite));
+}
+
+.av-heatmap-cell[data-level='3'] {
+  background: color-mix(in srgb, var(--color-signal) 75%, var(--color-graphite));
+}
+
+.av-heatmap-cell[data-level='4'] {
+  background: var(--color-signal);
+}
