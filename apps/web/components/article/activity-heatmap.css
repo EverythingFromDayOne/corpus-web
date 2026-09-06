@@ -92,33 +92,42 @@
   border-color: var(--color-signal-soft);
 }
 
-/* Intensity levels — mix(--color-signal-soft, --color-graphite, N%), kept
-   traceable to the existing accent family (never a parallel palette) but
-   using -soft rather than plain -signal because plain -signal cannot reach
-   a 3:1 non-text contrast ratio against graphite in light mode even at
-   100% mix (measured: 3.33:1 at 100%, and every lower percentage is worse).
+/* Intensity levels — mix(--color-signal-soft, --color-graphite, N%).
+   STATUS (session 174, measured, not assumed): now that every active cell
+   (level 1-4) shares the identical unmixed border, this fill ladder is
+   DECORATIVE, not a working signal. Direct pixel measurement of adjacent
+   levels at native 8x8px render size: level1-vs-2 1.34:1, level2-vs-3
+   1.67:1, level3-vs-4 1.01:1 (dark) — all far below the ~3:1 floor needed
+   for reliable discrimination, confirmed independently by vision
+   inspection ("cannot tell the 4 activity levels apart from each other
+   ... all 4 ... appear to share the same golden/tan fill color"). The
+   border (added session 173) made every active cell converge toward the
+   same near-full-strength perceived color, since border + adjacent fill
+   read as one visual unit at this size — the WCAG-floor-clearing
+   percentages below were correct arithmetic for a *fill-only* cell, a
+   precondition the border fix quietly invalidated.
 
-   Percentages are DIFFERENT per theme because the two themes' graphite/
-   signal-soft pairs have different luminance gaps — a single shared
-   percentage ladder cannot clear 3:1 at every level in both themes
-   simultaneously (verified: the dark-mode ladder's level-1 percentage,
-   applied unmodified to light mode, computes to 2.23:1 — a hue shift with
-   no discriminable brightness change, the exact bug this replaces).
+   Kept rather than removed: the classification is still real data (higher
+   levels ARE more mixed toward signal-soft), recoverable by a sighted user
+   with a color picker or an assistive technology reading computed style,
+   and removing it would require re-deriving level granularity from
+   scratch if a future session finds a mechanism (e.g. cell size increase,
+   width-based intensity, a second border ring) that makes it perceptible
+   again. If no such mechanism ships, this ladder should be removed rather
+   than carried indefinitely as inert code — flagged, not resolved, here.
 
-   All 8 values (4 levels x 2 themes) computed via WCAG relative-luminance
-   contrast ratio, verified >=3.0 (WCAG SC 1.4.11 non-text contrast floor
-   for UI/graphical objects), monotonically increasing level 1->4:
-
+   Values (unchanged since session 172, kept for provenance — WCAG
+   0-vs-N floor-clearing arithmetic, no longer the relevant test):
    dark  (graphite #2b3745, signal-soft #f2c782):
-     L1  55% -> rgb(152,134,103)  contrast 3.42:1
-     L2  70% -> rgb(182,156,112)  contrast 4.60:1
-     L3  85% -> rgb(212,177,121)  contrast 5.97:1
-     L4 100% -> rgb(242,199,130)  contrast 7.65:1
+     L1  55% -> rgb(152,134,103)  vs graphite 3.42:1
+     L2  70% -> rgb(182,156,112)  vs graphite 4.60:1
+     L3  85% -> rgb(212,177,121)  vs graphite 5.97:1
+     L4 100% -> rgb(242,199,130)  vs graphite 7.65:1
    light (graphite #d3dae3, signal-soft #7d4f12):
-     L1  80% -> rgb(142,107, 60)  contrast 3.45:1
-     L2  87% -> rgb(136, 97, 45)  contrast 3.93:1
-     L3  93% -> rgb(131, 89, 33)  contrast 4.36:1
-     L4 100% -> rgb(125, 79, 18)  contrast 4.97:1 */
+     L1  80% -> rgb(142,107, 60)  vs graphite 3.45:1
+     L2  87% -> rgb(136, 97, 45)  vs graphite 3.93:1
+     L3  93% -> rgb(131, 89, 33)  vs graphite 4.36:1
+     L4 100% -> rgb(125, 79, 18)  vs graphite 4.97:1 */
 .av-heatmap-cell[data-level='1'] {
   background: color-mix(in srgb, var(--color-signal-soft) 55%, var(--color-graphite));
 }

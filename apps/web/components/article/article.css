@@ -282,12 +282,27 @@
 .av-inner {
   max-width: 60rem;
   margin-inline: auto;
+  /* Single source of truth for the article H1's line-wrap measure, shared
+     by both `.av-inner h1` (plain lesson/course H1) and blog-content.css's
+     `.post-header-title` (higher-specificity, wins silently on blog routes
+     since both select the same element under this ancestor). Was two
+     independent `22ch` literals — a body-copy measure inherited by copy-
+     paste, never re-derived for a heading. Measured against the full
+     corpus title distribution (209 titles, median 28 / p75 46 / p90 58 /
+     max 86 chars): 34ch puts 95% of real titles at <=2 lines (vs. 72% at
+     22ch), and turns the reported 3-line-with-empty-gutter case
+     ("use client" crept..., 73ch) into 2 lines. Verified via CDP against
+     the shortest (Nx, 2ch) and longest (mutateAsync..., 82ch) real corpus
+     titles, at the sidebar breakpoint (999px/1001px) and mobile widths —
+     both themes (layout-only property, theme-independent by construction,
+     confirmed identical rectWidth/lines in light mode). */
+  --article-h1-measure: 34ch;
 }
 
 .av-inner h1 {
   font-size: clamp(1.85rem, 3.6vw, 2.45rem);
   margin: 0.5rem 0 0.6rem;
-  max-width: 22ch;
+  max-width: var(--article-h1-measure);
 }
 
 .av-dek {
