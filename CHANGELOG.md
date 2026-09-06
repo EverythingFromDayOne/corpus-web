@@ -5,6 +5,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-06] — feat/activity-streak-heatmap — H1 measure reconciled to 34ch; heatmap ladder annotated decorative
+
+**Fixed**
+- `h1.post-header-title` (blog-content.css) wrapped short titles to 3 lines with a wide empty gutter — the `22ch` max-width was a body-copy measure, not derived for a heading, and was duplicated verbatim in a competing `.av-inner h1` rule (article.css).
+
+**Changed**
+- Both rules now read a single `--article-h1-measure: 34ch` custom property declared on `.av-inner`, chosen by measuring all 209 real corpus article titles (median 28 / p75 46 / p90 58 / max 86 chars) — puts 95% of titles at <=2 lines vs. 72% at the old value.
+- `apps/web/components/article/activity-heatmap.css`: the level 1-4 intensity-ladder comment rewritten to state, with measured evidence, that the ladder is now decorative (session 173's border makes every active cell converge to the same perceived color at 8px) — no rule bodies changed.
+
 ### [2026-09-06] — feat/activity-streak-heatmap — border-based active signal replaces fill-only ladder
 
 **Fixed**
