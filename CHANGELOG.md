@@ -5,6 +5,47 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-06] — feat/activity-streak-heatmap — H1 measure reconciled to 34ch; heatmap ladder annotated decorative
+
+**Fixed**
+- `h1.post-header-title` (blog-content.css) wrapped short titles to 3 lines with a wide empty gutter — the `22ch` max-width was a body-copy measure, not derived for a heading, and was duplicated verbatim in a competing `.av-inner h1` rule (article.css).
+
+**Changed**
+- Both rules now read a single `--article-h1-measure: 34ch` custom property declared on `.av-inner`, chosen by measuring all 209 real corpus article titles (median 28 / p75 46 / p90 58 / max 86 chars) — puts 95% of titles at <=2 lines vs. 72% at the old value.
+- `apps/web/components/article/activity-heatmap.css`: the level 1-4 intensity-ladder comment rewritten to state, with measured evidence, that the ladder is now decorative (session 173's border makes every active cell converge to the same perceived color at 8px) — no rule bodies changed.
+
+### [2026-09-06] — feat/activity-streak-heatmap — border-based active signal replaces fill-only ladder
+
+**Fixed**
+- Heatmap active cells were still imperceptible after the session-172 contrast fix — the measured 3.42:1 (dark) / 3.45:1 (light) ladder clears WCAG's 3:1 floor on paper but is imperceptible as an 8x8px area-fill patch. Every active cell (level >= 1) now carries a 1px border in unmixed `--color-signal-soft` (dark 7.65:1, light 4.97:1 against `--color-graphite`) as the primary "was this day active" signal, independent of the fill-mix percentage.
+
+**Changed**
+- `apps/web/components/article/activity-heatmap.css`: `.av-heatmap-cell` gains `border: 1px solid transparent`; new `.av-heatmap-cell-active` rule sets the border color.
+
+### [2026-09-06] — feat/activity-streak-heatmap — Activity block placement + measured contrast ladder
+
+**Changed**
+- `apps/web/components/article/sidebars.tsx`: `<ActivityHeatmap>` moved above the article-group list in `CorpusSidebar`; both `CorpusSidebar`'s group list and `CurriculumSidebar`'s lesson list wrapped in a new `.av-grp-scroll` div with independent scrolling.
+- `apps/web/components/article/article.css`: `.av-sb` changed to `display: flex; flex-direction: column`; new `.av-grp-scroll` rule.
+- `apps/web/components/article/activity-heatmap.css`: heatmap intensity levels rewritten to a WCAG-measured per-theme contrast ladder using `--color-signal-soft` (was `--color-signal`, which cannot clear 3:1 in light mode at any mix percentage); `.av-heatmap` border/margin flipped top→bottom to match the new above-nav position.
+
+**Fixed**
+- Activity block was only visible after scrolling past the entire article-group nav tree — now sticky above the fold.
+- Heatmap level-1 cells (streak = 1, the most common early state) were visually indistinguishable from empty cells (measured 1.57:1 contrast in dark mode) — all 4 intensity levels now measure ≥3:1 (WCAG SC 1.4.11) in both themes.
+
+### [2026-09-05] — feat/activity-streak-heatmap — streak + activity heatmap sidebar widget
+
+**Added**
+- `apps/web/lib/activity-heatmap.ts` (NEW): `computeCurrentStreak`, `computeMaxStreak`, `buildHeatmapWeeks` — pure date/grid functions over `ProgressStore.activity` only.
+- `apps/web/components/article/activity-heatmap.tsx` (NEW): client-only sidebar widget rendering current/longest streak numbers plus a 12-month GitHub-style heatmap grid.
+- `apps/web/components/article/activity-heatmap.css` (NEW): token-only styling (`@corpus/ui` tokens, `color-mix()` intensity levels off `--color-signal`).
+- 4 new i18n keys under `article.*` in `apps/web/messages/en.json`: `activityHeading`, `currentStreak`, `maxStreak`, `activityGridLabel`.
+- `apps/web/test/activity-heatmap.test.ts` (NEW): 17 tests, verified GREEN under both `TZ=Asia/Ho_Chi_Minh` and `TZ=UTC`.
+
+**Changed**
+- `apps/web/components/article/sidebars.tsx`: `CorpusSidebar` now renders `<ActivityHeatmap>` below the existing article-group list.
+- `apps/web/components/article/article.css`: added `@import './activity-heatmap.css';`.
+
 ### [2026-09-05] — fix/progress-v1-schema-and-defensive-writes — v1 ProgressStore schema + activity ledger + defensive writeProgress
 
 **Added**

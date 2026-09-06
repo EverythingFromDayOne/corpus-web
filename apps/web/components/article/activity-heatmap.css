@@ -1,0 +1,161 @@
+/* Streak + 12-month activity heatmap. Sidebar-scoped chrome — tokens from
+   @corpus/ui only, no raw hex. Reads ProgressStore.activity exclusively;
+   an empty activity map renders every cell at data-level="0" (the same
+   visual as --color-graphite hairlines elsewhere in the sidebar). */
+
+.av-heatmap {
+  margin-bottom: 1.1rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--color-graphite);
+}
+
+.av-heatmap h3 {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin: 0 0 0.6rem;
+  font-weight: 500;
+}
+
+.av-heatmap-streaks {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.7rem;
+}
+
+.av-heatmap-streak {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.av-heatmap-streak-n {
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.av-heatmap-streak-label {
+  font-size: var(--text-2xs);
+  color: var(--color-muted);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+
+.av-heatmap-grid {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  /* Hide the scrollbar visually but keep it keyboard/touch scrollable —
+     the sidebar column is narrower than 12 months of weekly columns. */
+  scrollbar-width: thin;
+}
+
+.av-heatmap-week {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.av-heatmap-cell {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--color-graphite);
+  border: 1px solid transparent;
+  flex-shrink: 0;
+}
+
+.av-heatmap-cell-pad {
+  background: transparent;
+}
+
+/* Border is the PRIMARY "was this day active" signal, independent of the
+   fill-mix percentage below. Measured finding (session 173): at this cell's
+   actual rendered size (8x8 CSS px), a fill-only ladder even at a
+   WCAG-3:1-clearing mix percentage is imperceptible — pixel-scanned a real
+   screenshot at native scale and found zero detectable deviation from the
+   empty-cell color, despite a seeded streak=1 (one cell should have been
+   level-1). Confirmed via direct pixel measurement, not visual inspection:
+   edge/border contrast is resolved by the visual system far better than a
+   uniform-area luminance shift at this size, so every active cell gets a
+   full-strength (unmixed) --color-signal-soft border regardless of level —
+   this does not depend on the mix ladder below and cannot fall below the
+   strongest contrast this token family offers (dark 7.65:1, light 4.97:1
+   against --color-graphite, same numbers as the unmixed level-4 fill). */
+.av-heatmap-cell-active {
+  border-color: var(--color-signal-soft);
+}
+
+/* Intensity levels — mix(--color-signal-soft, --color-graphite, N%).
+   STATUS (session 174, measured, not assumed): now that every active cell
+   (level 1-4) shares the identical unmixed border, this fill ladder is
+   DECORATIVE, not a working signal. Direct pixel measurement of adjacent
+   levels at native 8x8px render size: level1-vs-2 1.34:1, level2-vs-3
+   1.67:1, level3-vs-4 1.01:1 (dark) — all far below the ~3:1 floor needed
+   for reliable discrimination, confirmed independently by vision
+   inspection ("cannot tell the 4 activity levels apart from each other
+   ... all 4 ... appear to share the same golden/tan fill color"). The
+   border (added session 173) made every active cell converge toward the
+   same near-full-strength perceived color, since border + adjacent fill
+   read as one visual unit at this size — the WCAG-floor-clearing
+   percentages below were correct arithmetic for a *fill-only* cell, a
+   precondition the border fix quietly invalidated.
+
+   Kept rather than removed: the classification is still real data (higher
+   levels ARE more mixed toward signal-soft), recoverable by a sighted user
+   with a color picker or an assistive technology reading computed style,
+   and removing it would require re-deriving level granularity from
+   scratch if a future session finds a mechanism (e.g. cell size increase,
+   width-based intensity, a second border ring) that makes it perceptible
+   again. If no such mechanism ships, this ladder should be removed rather
+   than carried indefinitely as inert code — flagged, not resolved, here.
+
+   Values (unchanged since session 172, kept for provenance — WCAG
+   0-vs-N floor-clearing arithmetic, no longer the relevant test):
+   dark  (graphite #2b3745, signal-soft #f2c782):
+     L1  55% -> rgb(152,134,103)  vs graphite 3.42:1
+     L2  70% -> rgb(182,156,112)  vs graphite 4.60:1
+     L3  85% -> rgb(212,177,121)  vs graphite 5.97:1
+     L4 100% -> rgb(242,199,130)  vs graphite 7.65:1
+   light (graphite #d3dae3, signal-soft #7d4f12):
+     L1  80% -> rgb(142,107, 60)  vs graphite 3.45:1
+     L2  87% -> rgb(136, 97, 45)  vs graphite 3.93:1
+     L3  93% -> rgb(131, 89, 33)  vs graphite 4.36:1
+     L4 100% -> rgb(125, 79, 18)  vs graphite 4.97:1 */
+.av-heatmap-cell[data-level='1'] {
+  background: color-mix(in srgb, var(--color-signal-soft) 55%, var(--color-graphite));
+}
+
+.av-heatmap-cell[data-level='2'] {
+  background: color-mix(in srgb, var(--color-signal-soft) 70%, var(--color-graphite));
+}
+
+.av-heatmap-cell[data-level='3'] {
+  background: color-mix(in srgb, var(--color-signal-soft) 85%, var(--color-graphite));
+}
+
+.av-heatmap-cell[data-level='4'] {
+  background: var(--color-signal-soft);
+}
+
+:root[data-theme='light'] .av-heatmap-cell[data-level='1'] {
+  background: color-mix(in srgb, var(--color-signal-soft) 80%, var(--color-graphite));
+}
+
+:root[data-theme='light'] .av-heatmap-cell[data-level='2'] {
+  background: color-mix(in srgb, var(--color-signal-soft) 87%, var(--color-graphite));
+}
+
+:root[data-theme='light'] .av-heatmap-cell[data-level='3'] {
+  background: color-mix(in srgb, var(--color-signal-soft) 93%, var(--color-graphite));
+}
+
+:root[data-theme='light'] .av-heatmap-cell[data-level='4'] {
+  background: var(--color-signal-soft);
+}
