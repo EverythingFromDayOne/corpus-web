@@ -222,8 +222,12 @@ export function buildHeatmapWeeks(
 }
 
 /**
- * Buckets a raw count into a 0-4 visual intensity level for the CSS to
- * key off. Boundaries chosen against the real distribution of events-per-
+ * Buckets a raw count into a 0-5 visual intensity level for the CSS to
+ * key off. Six levels (was five) — level 0 (empty) plus five non-empty
+ * intensity steps, matching the six-step opacity ladder (0%/15%/35%/55%/
+ * 80%/100% of `--color-signal` over the theme background).
+ *
+ * Boundaries chosen against the real distribution of events-per-
  * end-to-end-article-read across the four mounted corpora (re-measured
  * 2026-09-07 against 257 articles with H2s):
  *
@@ -236,25 +240,26 @@ export function buildHeatmapWeeks(
  *
  * Each "event" is one progress mutation — either a `markSeen(uid, anchor)`
  * firing as a section heading crosses the 20% reading line, or the
- * `markComplete(uid)` firing when the last part is seen. The boundary
- * cuts were picked to keep the four non-empty levels visually
- * distinguishable in real-world reading sessions (a typical end-to-end
- * article read lands at level 3; glances at level 1-2; long or multi-
- * article days at level 4):
+ * `markComplete(uid)` firing when the last part is seen. The old 4-bucket
+ * boundaries (1-2 / 3-5 / 6-9 / 10+) are split one level finer at the p25
+ * and p90 marks so the sixth level has room to exist:
  *
  *   0  — empty day (no progress mutations that day)
  *   1  — 1-2 events (a single heading crossed, or two quick glances)
  *   2  — 3-5 events (partial read of a short article, or a long scroll
  *        through a few sections of a long one)
- *   3  — 6-9 events (typical end-to-end read of a short-to-medium
- *        article — p25 of the corpus distribution)
- *   4  — 10+ events (long article read or a multi-article day —
- *        p90+ of the corpus distribution)
+ *   3  — 6-8 events (just under a typical end-to-end read — p25 of the
+ *        corpus distribution)
+ *   4  — 9-13 events (typical end-to-end read of a short-to-medium
+ *        article, up to just under p90 of the corpus distribution)
+ *   5  — 14+ events (long article read or a multi-article day — p90+
+ *        of the corpus distribution)
  */
-export function heatLevel(count: number): 0 | 1 | 2 | 3 | 4 {
+export function heatLevel(count: number): 0 | 1 | 2 | 3 | 4 | 5 {
   if (count <= 0) return 0;
   if (count <= 2) return 1;
   if (count <= 5) return 2;
-  if (count <= 9) return 3;
-  return 4;
+  if (count <= 8) return 3;
+  if (count <= 13) return 4;
+  return 5;
 }

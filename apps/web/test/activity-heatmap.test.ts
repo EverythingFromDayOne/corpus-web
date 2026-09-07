@@ -261,28 +261,34 @@ test('heatLevel: 3-5 map to level 2 (partial read of a short article)', () => {
   assert.equal(heatLevel(5), 2);
 });
 
-test('heatLevel: 6-9 map to level 3 (typical end-to-end read of a short-to-medium article — p25 of the corpus distribution)', () => {
+test('heatLevel: 6-8 map to level 3 (just under a typical end-to-end read — p25 of the corpus distribution)', () => {
   assert.equal(heatLevel(6), 3);
   assert.equal(heatLevel(7), 3);
   assert.equal(heatLevel(8), 3);
-  assert.equal(heatLevel(9), 3);
 });
 
-test('heatLevel: 10+ maps to level 4 (long article read or multi-article day — p90+ of the corpus distribution)', () => {
+test('heatLevel: 9-13 map to level 4 (typical end-to-end read of a short-to-medium article, up to just under p90)', () => {
+  assert.equal(heatLevel(9), 4);
   assert.equal(heatLevel(10), 4);
-  assert.equal(heatLevel(14), 4);
-  assert.equal(heatLevel(22), 4);
-  assert.equal(heatLevel(100), 4);
+  assert.equal(heatLevel(13), 4);
 });
 
-test('heatLevel: the four non-empty levels carry information across the real corpus distribution', () => {
+test('heatLevel: 14+ maps to level 5 (long article read or multi-article day — p90+ of the corpus distribution)', () => {
+  assert.equal(heatLevel(14), 5);
+  assert.equal(heatLevel(22), 5);
+  assert.equal(heatLevel(100), 5);
+});
+
+test('heatLevel: the five non-empty levels carry information across the real corpus distribution', () => {
   // Re-validate against the measured distribution: min=2, p25=8, p50=9,
-  // p75=14, p90=14, max=22. With the new boundaries, these spread across
-  // levels 1-4 instead of saturating at level 4 as the old (1 / 2-3 /
-  // 4-6 / 7+) boundaries did.
-  const distribution: Array<[number, 0 | 1 | 2 | 3 | 4]> = [
-    [2, 1], [8, 3], [9, 3], [14, 4], [14, 4], [22, 4], // real distribution examples
-    [1, 1], [3, 2], [5, 2], [6, 3], [10, 4], // boundary smoke tests
+  // p75=14, p90=14, max=22. With the six-level boundaries (was five —
+  // the level ladder went from colour-mix to opacity-based, which
+  // supports six distinguishable steps), these spread across
+  // levels 1-5 instead of saturating at level 4 as the previous
+  // 5-level (1 / 2-3 / 4-6 / 7-9 / 10+) boundaries did.
+  const distribution: Array<[number, 0 | 1 | 2 | 3 | 4 | 5]> = [
+    [2, 1], [8, 3], [9, 4], [14, 5], [14, 5], [22, 5], // real distribution examples
+    [1, 1], [3, 2], [5, 2], [6, 3], [10, 4], [13, 4], // boundary smoke tests
   ];
   for (const [count, expected] of distribution) {
     assert.equal(heatLevel(count), expected, `heatLevel(${count}) expected ${expected}`);

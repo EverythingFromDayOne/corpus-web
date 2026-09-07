@@ -8947,3 +8947,38 @@ D46 standing: Content-gate, 19 nestjs recipe refs / 15 distinct. User decision.
 Next polish residue candidates: D32 (.ls-card hover radial), D33 (.ls-blog-card
 grid spacing), D30/D34 (lesson header text balance), D40 (nested link contrast
 in callout blocks).
+
+## Session 185 wrap — heatmap round 7: opacity-based 6-level ladder, weekday-label centering, shared inset variable — 2026-09-08
+
+Chain from session 184 / round-6. User directive: "Three fixes to the heatmap, one pass."
+
+1. **Level ladder — colour-mix toward a dark endpoint to opacity over the page background.** The reference holds 6 levels because it uses one brand colour at fixed opacity steps over the theme background (muted empty, then 15/35/55/80/100%). Applied the same method: level 0 = `var(--color-muted)`; levels 1-4 = `color-mix(in srgb, var(--color-signal) {15,35,55,80}%, var(--color-surface))`; level 5 = `var(--color-signal)` (100% opacity is the pure signal colour, no mix needed). `heatLevel()` in `apps/web/lib/activity-heatmap.ts` and its render-time copy in `activity-heatmap.tsx` rebucketed from 5 levels (0/1-2/3-5/6-9/10+) to 6 levels (0/1-2/3-5/6-8/9-13/14+). Legend expanded to 6 swatches in both themes; new `legendMidLow` message key added to `messages/en.json`; the round-5 light-mode "hide levels 1-3" swatch-suppression CSS rule removed since both themes now render distinct colours per level.
+
+2. **Weekday-label vertical centering.** `.av-heatmap-weekday-label` already had `flex items-center justify-end` from round 6, but no explicit `line-height`, so it inherited the ambient `1.65` prose leading — the label's own flex box was 13.2px tall against an 8.66px cell, and because the grid row auto-sizes to the tallest item while the (empty) cell box sits top-anchored, the label rendered ~2.27px low. Fix: `line-height: 1` on `.av-heatmap-weekday-label`.
+
+3. **Shared inset variable.** Introduced `--av-heatmap-weekday-col-width: 20px` and `--av-heatmap-cell-gap: 2px` custom properties on `.av-heatmap-grid`, with `--av-heatmap-inset: calc(var(--av-heatmap-weekday-col-width) + var(--av-heatmap-cell-gap))` derived from both. `.av-heatmap-body`'s inline `gridTemplateColumns` (JSX) and `.av-heatmap-month-labels { margin-left }` (CSS) both now read from these variables instead of separately hardcoded `20px` / `22px` literals — can no longer drift apart.
+
+**Bug found and fixed during verification (not part of the ask, discovered while measuring):** a stale `:root[data-theme='light'] .av-heatmap-cell { background: #E2E5EA; }` rule — leftover from the round-4/5 3-level light ladder — had equal-or-higher specificity than the new `[data-level='N']` rules and was painting every light-mode cell the same flat colour regardless of its level, silently defeating the entire opacity ladder in light mode. Removed. Also tokenized the pre-existing `.av-heatmap-cell` base-rule fallback background from a hardcoded `#2B3745` hex to `var(--color-muted)`.
+
+**CDP measurement method:** fresh Chrome profile (`/tmp/chrome-cdp-fix*`, incrementing per run to avoid `localStorage` pollution per the established lesson), `pnpm start` production server, `/en/blog/react/use-client-sprawl` (corpus-blog article — mounts `ActivityHeatmap`). Verified own-page `color-mix()` output against a Python re-implementation bit-for-bit (both computed the identical rgb triple for a spot-check swatch) before trusting the Python contrast math for values not independently re-queried from the DOM.
+
+**Measured results:**
+- Weekday-label-to-cell vertical-center offset: `2.27px` → `0.0039px` (all 7 weekday rows, both before/after fix).
+- Month-label drift: unchanged at max `0.0053px` (subpixel, effectively `0.00px`) — the alignment/inset changes did not touch month-label geometry, confirmed by direct re-measurement, not assumption.
+- `--av-heatmap-inset` resolves to `calc(20px + 2px)` = `22px`, matching the JSX's `monthsMarginLeft` computed style exactly.
+- Tooltip edge clearance: unchanged, no clipping on any of the 24 week columns (weeks 0-3 anchor `left:0`, weeks 20-23 anchor `right:0`, tooltip range fully inside the `[0, 304]`px sidebar in both cases).
+- **Contrast (real `color-mix()` output, `--color-signal` over `--color-surface`, WCAG relative-luminance ratio, threshold 1.6:1 per adjacent pair):**
+  - Dark: L0→L1 `3.722` PASS · L1→L2 `1.588` FAIL · L2→L3 `1.582` FAIL · L3→L4 `1.677` PASS · L4→L5 `1.432` FAIL — **3 of 5 pairs fail.**
+  - Light: L0→L1 `4.706` PASS · L1→L2 `1.315` FAIL · L2→L3 `1.361` FAIL · L3→L4 `1.515` FAIL · L4→L5 `1.429` FAIL — **4 of 5 pairs fail.**
+  - The middle-band opacity steps (15/35/55/80%) compress into too narrow a luminance range against this codebase's actual `--color-signal` / `--color-surface` token values in BOTH themes. This is a materially different (and worse) outcome than round 6's light-only 3-level fallback — the opacity method does not fix the underlying token-range problem here, it only changes which theme fails and by how much. Reported per the user's explicit "don't assume the earlier result carries over, re-measure, report the numbers" instruction — not silently reverted or patched. All 6 DOM levels + 6-swatch legend are wired exactly per the literal ask in both themes; the contrast verdict is a measurement, not a judgment call, and awaits the user's decision on next step.
+
+**Gates:**
+- typecheck 5/5 PASS
+- lint 5/5 PASS
+- test 108/108 PASS (boundary tests rewritten for the 6-level cuts, no net test-count change)
+- `pnpm --filter @corpus/web build` clean
+- `hermes verify --json`: `ok: true`, all phases PASS, readiness HTTP 200
+
+**Files:** `apps/web/lib/activity-heatmap.ts` (`heatLevel()` 6-level rebucket), `apps/web/components/article/activity-heatmap.tsx` (render-time `heatLevel()` copy, legend levels array, inline `gridTemplateColumns` reads shared var), `apps/web/components/article/activity-heatmap.css` (opacity-based `[data-level]` rules, `--av-heatmap-*` custom properties, `line-height: 1` on weekday label, stale light-mode override removed, base-rule fallback tokenized), `apps/web/messages/en.json` (`legendMidLow` key), `apps/web/test/activity-heatmap.test.ts` (boundary tests updated for 6-level cuts).
+
+D46 standing: Content-gate, 19 nestjs recipe refs / 15 distinct. User decision, unchanged this round.

@@ -120,7 +120,9 @@ function HeatmapCells({ layout, messages }: { layout: HeatmapLayout; messages: M
 
       <div
         className="av-heatmap-body"
-        style={{ gridTemplateColumns: `20px repeat(${weeks.length}, minmax(0px, 1fr))` }}
+        style={{
+          gridTemplateColumns: `var(--av-heatmap-weekday-col-width) repeat(${weeks.length}, minmax(0px, 1fr))`,
+        }}
       >
         {/* Weekday label column — one cell per row, parallel to the cell grid. */}
         <div className="av-heatmap-weekday-col" aria-hidden="true">
@@ -223,27 +225,31 @@ function HeatmapCellBtn({
  * `heatLevel()` in apps/web/lib/activity-heatmap.ts; the test file
  * enforces both.
  */
-function heatLevelForRender(count: number): 0 | 1 | 2 | 3 | 4 {
+function heatLevelForRender(count: number): 0 | 1 | 2 | 3 | 4 | 5 {
   if (count <= 0) return 0;
   if (count <= 2) return 1;
   if (count <= 5) return 2;
-  if (count <= 9) return 3;
-  return 4;
+  if (count <= 8) return 3;
+  if (count <= 13) return 4;
+  return 5;
 }
 
 /**
- * "Less [swatches] More" legend below the grid, all 5 levels shown.
+ * "Less [swatches] More" legend below the grid, all 6 levels shown in
+ * both themes now that the opacity-based ladder gives both themes the
+ * same six distinguishable steps.
  * Keyboard-focusable so a screen reader can announce each level; the
  * `aria-hidden` swatches are decorative — the label + value carry the
  * meaning.
  */
 function HeatmapLegend({ messages }: { messages: Messages }) {
-  const levels: Array<{ level: 0 | 1 | 2 | 3 | 4; labelKey: string }> = [
+  const levels: Array<{ level: 0 | 1 | 2 | 3 | 4 | 5; labelKey: string }> = [
     { level: 0, labelKey: 'article.legendNone' },
     { level: 1, labelKey: 'article.legendLow' },
-    { level: 2, labelKey: 'article.legendMid' },
-    { level: 3, labelKey: 'article.legendHigh' },
-    { level: 4, labelKey: 'article.legendMax' },
+    { level: 2, labelKey: 'article.legendMidLow' },
+    { level: 3, labelKey: 'article.legendMid' },
+    { level: 4, labelKey: 'article.legendHigh' },
+    { level: 5, labelKey: 'article.legendMax' },
   ];
   return (
     <div className="av-heatmap-legend" aria-label={t(messages, 'article.activityLegendLabel')}>

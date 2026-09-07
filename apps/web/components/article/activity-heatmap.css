@@ -86,6 +86,19 @@
      anchor to the cell. */
   overflow: visible;
   position: relative;
+
+  /* Single source of truth for the "inset" shared by the month-label row
+     and the cell body: both must start their first week-column at the
+     same x-offset, or the month labels drift out of alignment with the
+     cells they name. `--av-heatmap-inset` is DERIVED (weekday-col width +
+     the column gap) rather than hardcoded twice, so changing either the
+     weekday-label column width or the grid's column-gap automatically
+     keeps the month-label row in step — they cannot drift apart because
+     there is exactly one number that combines both, not two independent
+     22px literals that happen to agree today. */
+  --av-heatmap-weekday-col-width: 20px;
+  --av-heatmap-cell-gap: 2px;
+  --av-heatmap-inset: calc(var(--av-heatmap-weekday-col-width) + var(--av-heatmap-cell-gap));
 }
 
 /* === Month label row ===================================================
@@ -94,15 +107,18 @@
    * 100`), matching the reference's percentage-positioned month labels
    over its fluid `repeat(N, minmax(0px, 1fr))` grid — this keeps labels
    aligned to their week column regardless of the grid's rendered width.
-   `margin-left: 22px` insets the row by the weekday column width (20px)
-   + column-gap (2px) so 0% sits directly over the first grid column.
+   `margin-left: var(--av-heatmap-inset)` insets the row by the weekday
+   column width + column-gap so 0% sits directly over the first grid
+   column — the SAME variable `.av-heatmap-body`'s inline
+   `grid-template-columns` reads its weekday-col width from, so the two
+   rows cannot drift apart (see `.av-heatmap-grid` for the definition).
    `font-size: 7px` provides ample breathing room between consecutive month
    labels without touching or crowding at small cell scale. */
 
 .av-heatmap-month-labels {
   position: relative;
   height: 12px;
-  margin-left: 22px; /* align with the cell-grid column, past the weekday labels */
+  margin-left: var(--av-heatmap-inset); /* align with the cell-grid column, past the weekday labels */
   overflow: visible;
 }
 
@@ -139,14 +155,16 @@
 .av-heatmap-body {
   display: grid;
   /* grid-template-columns is set inline by JSX as
-     `20px repeat(<weeks.length>, minmax(0px, 1fr))` — matches the
-     reference's `auto repeat(24, minmax(0px, 1fr))` pattern, with a
-     fixed weekday-label column instead of `auto` (our weekday labels
-     are a fixed 20px wide, no intrinsic-sizing content to measure). */
+     `var(--av-heatmap-weekday-col-width) repeat(<weeks.length>, minmax(0px, 1fr))`
+     — matches the reference's `auto repeat(24, minmax(0px, 1fr))` pattern,
+     with a fixed weekday-label column instead of `auto` (our weekday
+     labels are a fixed width, no intrinsic-sizing content to measure).
+     Reads the same `--av-heatmap-weekday-col-width` variable the month-label
+     inset derives from (see `.av-heatmap-grid`), so the two can't drift. */
   grid-auto-flow: column;
   grid-template-rows: repeat(7, 1fr);
-  column-gap: 2px;
-  row-gap: 2px;
+  column-gap: var(--av-heatmap-cell-gap);
+  row-gap: var(--av-heatmap-cell-gap);
   width: 100%;
 }
 
@@ -158,6 +176,16 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  /* line-height: 1 (not the ambient 1.65 prose leading) — without this the
+     label's own box is 13.2px tall vs. the cell's 8.66px, and since the CSS
+     Grid row auto-sizes to the tallest item, the cell (top-anchored by
+     default with no align-self) sits at the TOP of the oversized row while
+     `align-items: center` centers the label within the full row height —
+     a ~2.27px downward visual offset that reads as "label sits low /
+     bottom-aligned against its row". Matching line-height to font-size
+     shrinks the label's box to the cell's height, so both are centered
+     within the same row and `align-items: center` does real work. */
+  line-height: 1;
   font-family: var(--font-mono);
   font-size: 8px;
   letter-spacing: 0.02em;
@@ -182,7 +210,7 @@
   width: 100%;
   aspect-ratio: 1 / 1;
   border-radius: 1.5px;
-  background: #2B3745;
+  background: var(--color-muted); /* fallback if data-level is ever absent; [data-level] rules below take precedence */
   border: 1px solid transparent;
   padding: 0;
   margin: 0;
@@ -193,10 +221,6 @@
   appearance: none;
   -webkit-appearance: none;
   min-width: 0;
-}
-
-:root[data-theme='light'] .av-heatmap-cell {
-  background: #E2E5EA;
 }
 
 .av-heatmap-cell-pad {
@@ -287,56 +311,62 @@
 }
 
 /* === Intensity levels ===================================================
-   5-level luminance ladder (Dark) / 3-level ladder (Light).
-   Per measurement, every adjacent pair (0-1, 1-2, 2-3, 3-4) clears
-   the 1.6:1 floor in both themes:
+   6-level opacity-based ladder in BOTH themes (was: 5-level colour-mix
+   ladder in dark, collapsed to 3 visible swatches in light because the
+   mix-toward-a-dark-endpoint approach couldn't clear 1.6:1 in light with
+   only a 9.24x luminance range). Per instruction, the method changes:
 
-     Dark, 5 levels (L0..L4): #2B3745 #6D500C #956F15 #C29222 #F0BC4E
-       contrasts: 1.615 / 1.628 / 1.628 / 1.617
-     Light, 3 levels (L0, L2, L4):  #E2E5EA #DB7730 #6B4D0D
-       contrasts: 2.484 / 2.486
+     L0        = var(--color-muted)          -- unchanged from before
+     L1..L5    = var(--color-signal) at 15% / 35% / 55% / 80% / 100%
+                 opacity OVER var(--color-surface) (the sidebar's actual
+                 background, confirmed via CDP: dark #151d26, light #fff)
 
-   Light was reduced to 3 levels because the L0..L4 luminance ratio is
-   only 6.18x, below the 6.55x needed to clear 1.6 across 4 adjacent
-   pairs with these anchors. Per user instruction, drop rather than
-   ship undifferentiable levels.
+   Implemented with color-mix() rather than literal alpha compositing
+   since these are solid swatches painted directly on --color-surface
+   (no stacking-context layering to preserve) — color-mix(in srgb, X Y%,
+   Z) against the OPAQUE surface colour is bit-identical to rgba(X, Y%)
+   painted over that same solid background, and keeps the ladder as CSS
+   custom properties instead of hard-coded hex per level.
 
-   Border on active levels (>= 1) preserves session-173 edge definition. */
+   MEASURED (2026-09-08, real color-mix() output confirmed against this
+   Python re-implementation bit-for-bit via CDP getComputedStyle,
+   background = --color-surface, WCAG relative-luminance contrast):
+
+     Dark   L0-L1: 3.722 PASS | L1-L2: 1.588 FAIL | L2-L3: 1.582 FAIL
+            L3-L4: 1.677 PASS | L4-L5: 1.432 FAIL
+     Light  L0-L1: 4.706 PASS | L1-L2: 1.315 FAIL | L2-L3: 1.361 FAIL
+            L3-L4: 1.515 FAIL | L4-L5: 1.429 FAIL
+
+   Neither theme clears 1.6:1 on every adjacent pair with our actual
+   --color-signal / --color-muted / --color-surface values — the L1-L4
+   opacity band compresses into a narrow luminance range in BOTH themes,
+   not just light. This is a materially different result than the prior
+   round's light-only failure and needs a decision before shipping six
+   visually-verifiable swatches; six DOM levels are wired per the literal
+   opacity-method instruction below pending that call. */
 
 .av-heatmap-cell[data-level='0'] {
-  background: #2B3745;
+  background: var(--color-muted);
 }
 .av-heatmap-cell[data-level='1'] {
-  background: #6D500C;
+  background: color-mix(in srgb, var(--color-signal) 15%, var(--color-surface));
 }
 .av-heatmap-cell[data-level='2'] {
-  background: #956F15;
+  background: color-mix(in srgb, var(--color-signal) 35%, var(--color-surface));
 }
 .av-heatmap-cell[data-level='3'] {
-  background: #C29222;
+  background: color-mix(in srgb, var(--color-signal) 55%, var(--color-surface));
 }
 .av-heatmap-cell[data-level='4'] {
-  background: #F0BC4E;
+  background: color-mix(in srgb, var(--color-signal) 80%, var(--color-surface));
 }
-
-:root[data-theme='light'] .av-heatmap-cell[data-level='0'] {
-  background: #E2E5EA;
-}
-/* Light has 3 levels. L1 visually maps to L2 (and L3) of the dark ladder
-   so that the visual "intensity" mapping stays consistent: cells at higher
-   event counts are darker regardless of theme. */
-:root[data-theme='light'] .av-heatmap-cell[data-level='1'],
-:root[data-theme='light'] .av-heatmap-cell[data-level='2'],
-:root[data-theme='light'] .av-heatmap-cell[data-level='3'] {
-  background: #DB7730;
-}
-:root[data-theme='light'] .av-heatmap-cell[data-level='4'] {
-  background: #6B4D0D;
+.av-heatmap-cell[data-level='5'] {
+  background: var(--color-signal);
 }
 
 /* === Legend (below the grid, horizontal, right-aligned) =================
    Matches the MiniMax reference layout: horizontal row below the cell
-   grid, aligned to the right edge. "Less" label, 5 swatches, "More" label. */
+   grid, aligned to the right edge. "Less" label, 6 swatches, "More" label. */
 
 .av-heatmap-legend {
   display: flex;
@@ -379,17 +409,13 @@
   border-color: transparent;
 }
 
-/* Light mode collapses heat levels 1-3 to a single rendered colour
-   (see the data-level='1','2','3' rule above) — showing 5 swatches would
-   imply 5 distinct colours when only 3 exist. Hide the redundant middle
-   swatches (1 and 2) in light mode so "Less [swatch] [swatch] [swatch]
-   More" shows exactly the 3 colours that actually render: L0, the
-   collapsed L1-L3 colour (carried by the L3 swatch), and L4. Dark mode
-   keeps all 5 — it has 5 distinct colours. */
-:root[data-theme='light'] .av-heatmap-cell-legend[data-level='1'],
-:root[data-theme='light'] .av-heatmap-cell-legend[data-level='2'] {
-  display: none;
-}
+/* Both themes render 6 distinct swatches now that the ladder is
+   opacity-based (see the data-level rules above) — no theme-specific
+   swatch hiding needed. Whether the rendered colours are all
+   distinguishable enough to justify 6 vs. fewer visible steps is a
+   contrast-measurement question, not a "does the DOM have 6 levels"
+   question; see the measured numbers in the comment above the
+   data-level rules. */
 
 /* Suppress the legend swatch's own tooltip — the swatches carry
    aria-label for AT but should not show the badge tooltip. */

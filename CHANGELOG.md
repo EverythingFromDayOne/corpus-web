@@ -5,9 +5,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### [2026-09-08] — fix/heatmap-github-style-6mo — round 6: fluid grid fills container, percentage month labels
+### [2026-09-08] — fix/heatmap-github-style-6mo — round 7: opacity-based 6-level ladder, weekday-label centering, shared inset variable
+
+**Changed**
+- **Level ladder — colour-mix toward a dark endpoint replaced with opacity over the page background**: `heatLevel()` now buckets into 6 levels (0-5, was 0-4). Level 0 stays `var(--color-muted)`; levels 1-5 are `color-mix(in srgb, var(--color-signal) {15,35,55,80,100}%, var(--color-surface))` — mathematically identical to painting `--color-signal` at 15/35/55/80/100% opacity over the theme's own background, matching the reference's method. Six DOM levels + six-swatch legend now render in BOTH themes (previously dark had 5 distinct swatches, light was suppressed to 3 visible).
+- **Re-measured contrast — method changed, does not carry over the prior light-only failure.** Measured live via CDP `getComputedStyle` on the actual rendered `color-mix()` output (not assumed): **neither theme clears 1.6:1 on every adjacent pair.** Dark: L0-L1 `3.722` PASS, L1-L2 `1.588` FAIL, L2-L3 `1.582` FAIL, L3-L4 `1.677` PASS, L4-L5 `1.432` FAIL. Light: L0-L1 `4.706` PASS, L1-L2 `1.315` FAIL, L2-L3 `1.361` FAIL, L3-L4 `1.515` FAIL, L4-L5 `1.429` FAIL. The L1-L4 opacity band compresses into too narrow a luminance range against our actual `--color-signal` / `--color-surface` values in both themes, not just light as previously found. Six DOM levels are wired per the literal instruction; the contrast verdict is reported for a follow-up call, not silently patched.
 
 **Fixed**
+- **Weekday-label vertical alignment**: `.av-heatmap-weekday-label` had `flex items-center justify-end` but no explicit `line-height`, so it inherited the ambient `1.65` prose leading — the label's own box was `13.2px` tall against an `8.66px` cell, so `align-items: center` centered the text inside an oversized box, reading as ~2.27px low / bottom-aligned. Fixed with `line-height: 1` so the label's box matches the cell height and centers for real. Measured label-center-to-cell-center offset: `2.27px` → `0.0039px` (all 7 weekday rows).
+- **Weekday-column gap vs. month-label inset could drift apart**: both were separately-typed `22px` / `20px+2px` literals. Introduced `--av-heatmap-weekday-col-width: 20px` and `--av-heatmap-cell-gap: 2px` on `.av-heatmap-grid`, with `--av-heatmap-inset: calc(var(--av-heatmap-weekday-col-width) + var(--av-heatmap-cell-gap))` derived from both. `.av-heatmap-body`'s inline `gridTemplateColumns` and `.av-heatmap-month-labels { margin-left }` both now read `var(--av-heatmap-inset)` / `var(--av-heatmap-weekday-col-width)` — one source of truth, cannot diverge.
 - **Grid fill**: `.av-heatmap-body` was a flex with fixed `7px × 7px` cells + `2px` gaps (`9px` stride), so 24 columns used only ~216 px of the 275.81 px sidebar budget — ~60 px of dead space on the right. Switched the body to a CSS grid with `grid-template-columns: 20px repeat(<weeks.length>, minmax(0px, 1fr))` set inline by JSX; `.av-heatmap-weekday-col`, `.av-heatmap-weeks`, and `.av-heatmap-week` declared `display: contents` so the existing DOM order flows into the grid column-by-column. Cells now size from available width (`width: 100%; aspect-ratio: 1 / 1`). Measured: cellWidth / cellHeight = 8.6563 × 8.6563 px; container fill = 100% (was ~78.3%); right-side dead space = 0 px (was ~60 px). The legend swatches (`.av-heatmap-cell-legend`) opt back out to a fixed `8px × 8px` so the horizontal legend row doesn't balloon with the grid.
 
 **Changed**
@@ -20,6 +26,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Tests: 107/107 pass. Build clean.
 
 **Round-6 contrast question (the follow-up to round-5's light-legend decision)**: the user asked whether enlarging cells could free a 5-level light legend at the 1.6:1 adjacent-pair threshold. Cell size is orthogonal to color contrast — palette decisions don't change with geometry. Recomputed best-case single-hue ramps across muted/brand/dark endpoints: `L0-L1 1.345:1, L1-L2 1.475:1, L2-L3 1.539:1, L3-L4 1.920:1` — three of four adjacent pairs fall below 1.6:1. **Conclusion: NO, 5 distinguishable light-level colors cannot clear 1.6:1 between all adjacent pairs in the muted → brand → dark band.** The 3-level light ladder remains correct: light keeps 3 visible swatches (muted `#E2E5EA`, brand `#DB7730` collapsed across levels 1-3, dark `#6B4D0D`); dark keeps 5 distinct swatches (`#2B3745 → #6D500C → #956F15 → #C29222 → #F0BC4E`).
+
+**Verified (round 7, CDP, `/en/blog/react/use-client-sprawl`, fresh Chrome profile)**:
+- Month-label drift re-checked after the alignment/inset changes: max `0.0053px` (was `0.0053px` in round 6 — unchanged, alignment changes did not touch month-label geometry).
+- Tooltip edge clearance re-checked: weeks 0-3 anchor `left:0` (tooltip `[37.59, 289.41]`px range, entirely inside sidebar `[0, 304]`px), weeks 20-23 anchor `right:0`, no clipping on any of the 24 columns.
+- Tests: 108/108 pass. Typecheck, lint, build all clean. `hermes verify --json`: `ok: true`, all phases PASS.
 
 ### [2026-09-07] — fix/heatmap-github-style-6mo — round 5: 24-week window matching MiniMax reference, light legend to 3 swatches
 
