@@ -86,15 +86,16 @@ export function ActivityHeatmap({ messages }: { messages: Messages }) {
 function HeatmapCells({ layout, messages }: { layout: HeatmapLayout; messages: Messages }) {
   const { weeks, weekdayLabels, monthLabels } = layout;
 
-  // Compute the absolute left offset for each week column.
-  // With uniform 2px gaps between week columns (matching the MiniMax reference),
-  // each column's left edge is simply `weekIndex * (cell_width + gap)`.
-  // Cell is 7px, gap is 2px, so stride is 9px.
-  // Month labels anchor at the left edge of their first week column.
-  const STRIDE = 9; // 7px cell + 2px gap
+  // Column positions are now percentage-based, matching the reference's
+  // `grid-template-columns: auto repeat(N, minmax(0px, 1fr))`: each week
+  // column is an equal fraction of the fluid grid width (weekday column
+  // excluded), so a month label's left offset is
+  // `weekIndex / weeks.length * 100%` — the same math the reference uses
+  // (Apr 0%, May 16.6667% ... for N=24). This keeps month labels aligned
+  // to their column regardless of the grid's actual rendered width.
   const labelOffsets = new Map<number, number>();
   for (let i = 0; i < weeks.length; i++) {
-    labelOffsets.set(i, i * STRIDE);
+    labelOffsets.set(i, (i / weeks.length) * 100);
   }
 
   return (
@@ -110,14 +111,17 @@ function HeatmapCells({ layout, messages }: { layout: HeatmapLayout; messages: M
             key={m.weekIndex}
             data-week-idx={m.weekIndex}
             className="av-heatmap-month-label"
-            style={{ left: `${labelOffsets.get(m.weekIndex) ?? 0}px` }}
+            style={{ left: `${labelOffsets.get(m.weekIndex) ?? 0}%` }}
           >
             {m.label}
           </span>
         ))}
       </div>
 
-      <div className="av-heatmap-body">
+      <div
+        className="av-heatmap-body"
+        style={{ gridTemplateColumns: `20px repeat(${weeks.length}, minmax(0px, 1fr))` }}
+      >
         {/* Weekday label column — one cell per row, parallel to the cell grid. */}
         <div className="av-heatmap-weekday-col" aria-hidden="true">
           {weekdayLabels.map((wd, dow) => (

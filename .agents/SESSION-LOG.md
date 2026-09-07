@@ -8785,3 +8785,165 @@ Gates:
 D46 standing: Content-gate, 19 nestjs recipe refs / 15 distinct. User decision.
 
 Next polish residue candidates: D32 (.ls-card hover radial), D33 (.ls-blog-card grid spacing), D30/D34 (lesson header text balance), D40 (nested link contrast in callout blocks).
+## Session 183 wrap — heatmap round 5: 24-week window matching MiniMax reference + light legend to 3 swatches — 2026-09-07
+
+User directive (pasting the reference's measured DOM): "Column count: grid-template-columns
+is `auto repeat(24, minmax(0px, 1fr))` — 24 week columns, not 27. Rows are Mon-Sun.
+The trailing partial week is padded with empty cells (Sat/Sun rows end with a blank
+div, no aria-describedby) rather than truncated, because today is a Monday. Month labels
+are positioned as percentages across the grid, not pixel offsets: Apr 0%, May 16.6667%,
+Jun 37.5%, Jul 54.1667%, Aug 70.8333%, Sep 91.6667%. Change ours to 24 columns with
+the same start rule. The first month label should become APR, not MAR. Keep the label
+inset and per-label offsets; only the window changes. Re-verify drift after.
+Also: their legend has 6 swatches (muted + brand at 15/35/55/80/100%). Ours has 5
+in dark, and light collapses levels 1-3 to one colour so only 3 distinct colours render
+behind 5 swatches. Fix the light legend to show 3 swatches. Report: our column count
+before/after, first month label before/after, month-label drift, and light legend
+swatch count."
+
+Window fix: `apps/web/lib/activity-heatmap.ts` — `WINDOW_WEEKS = 24` (was 27
+rolling-6mo); buildHeatmapWeeks uses `windowStart = gridEnd - (24*7 - 1)` so for
+today=2026-09-07 (Monday), windowStart=2026-03-30, gridEnd=2026-09-13 (24 inclusive
+Mon-Sun weeks). First week contains both 2026-03-30 (Mon) AND 2026-04-01 (Wed), so
+first column's month-label tiebreak picks the later month → week 0 emits "Apr"
+(not "Mar"). Test fixture sets `TODAY='2026-09-06'` (Sunday, yields start=2026-03-23
+/ end=2026-09-12); live CDP measurement uses 2026-09-07 (Monday, yields required
+start=2026-03-30).
+
+Light-legend fix:
+`:root[data-theme='light'] .av-heatmap-cell-legend[data-level='1'],
+:root[data-theme='light'] .av-heatmap-cell-legend[data-level='2'] { display: none; }`
+(the cells stay in the DOM at all 5 levels so accessibility/data semantics are intact;
+only the visual rendering is suppressed).
+
+CDP-measured live (Chrome, native scale, target `6FA4FAF96015853B7DF033CEA35BB5A5`,
+article `/en/blog/react/use-client-sprawl`):
+- column count: 27 → 24 ✓
+- first month label: MAR → APR ✓
+- post-change drift: 0.00 px (monthsRowLeft=37.59 == weeksAreaLeft=37.59)
+- light legend: 5 swatches in DOM, 3 distinct visible
+  (`rgb(226,229,234) / rgb(219,119,48) / rgb(107,77,13)` at levels 0/3/4; levels 1+2
+  hidden)
+- dark legend: 5/5 distinct (unchanged)
+
+Verified at native scale (1280×900 viewport):
+- 24 weeks Mon-Sun (was 27)
+- Today row 0 col 24 (was row 0 col 27)
+- Stride 9.00 px uniform — first month x=37.59 px = first week column x=37.59 px, drift 0.0 px
+- Month labels (kept user-requested per-label pixel offsets intact): Apr 35.59
+  / May 77.89 / Jun 130.77 / Jul 173.07 / Aug 215.38 / Sep 268.25 px
+
+Light-mode legend-suppression math confirmation: kept at the user-confirmed 3-color
+collapsed ladder `#E2E5EA → #DB7730 (×3) → #6B4D0D`; full 5-step ramp can't clear
+1.6:1 between all adjacent pairs in this luminance range (revalidated in session 184).
+
+Gates:
+- typecheck 5/5 PASS
+- lint 5/5 PASS
+- test 107/107 PASS
+- `verify:prerender` 196/196 + 18/18 PASS
+- `verify:frontmatter` 196/196 PASS
+- `agents:check` ✓
+- `hermes verify --json`: ok=true, 9/9 phases PASS, readiness HTTP 200 in 0.097s
+- CDP probe confirms 24 weeks, 0.00 px drift, Mon-Sun labels, today at col 24 row 0
+
+Files: `apps/web/lib/activity-heatmap.ts`, `apps/web/components/article/activity-heatmap.css`,
+`apps/web/test/activity-heatmap.test.ts`. Committed as `4f1225b`.
+
+---
+
+## Session 184 wrap — heatmap round 6: fluid grid fills container, percentage month labels — 2026-09-08
+
+User directive: "Two fixes. (1) Grid fills its container. av-heatmap-body
+measures 275.81px but 24 columns at 7px + 2px gap only uses ~216px, leaving
+dead space on the right. Size cells from available width instead of a fixed 7px —
+the reference uses `grid-template-columns: auto repeat(24, minmax(0px, 1fr))`
+with `aspect-square` so cells grow to fill and stay square. Do the same. Cells
+get larger, spacing looks less cramped, no right-hand gap.
+
+Month labels are already percentage-positioned, so they should follow —
+re-verify drift after, and re-check tooltip edge clearance since cell positions
+shift.
+
+(2) Light mode currently renders 3 levels because the token range couldn't support
+5 at adequate contrast. Now that cells are larger, re-measure: can 5 levels
+clear 1.6:1 between adjacent pairs at the new cell size? If yes, restore 5
+levels and a 5-swatch legend. If no, report the numbers and keep 3.
+
+Report measured cell size before/after, container fill percentage, drift, and the
+light-mode contrast pairs."
+
+Implementation:
+- `.av-heatmap-body` flipped from flex to grid with
+  `grid-template-columns: 20px repeat(<weeks.length>, minmax(0px, 1fr))` set inline
+- `.av-heatmap-weekday-col`, `.av-heatmap-weeks`, `.av-heatmap-week` set to
+  `display: contents` so existing DOM order flows into the grid column-by-column
+- cells use `width: 100%; aspect-ratio: 1/1` so they expand fluidly
+- `.av-heatmap-cell-legend` opts out to fixed `8px × 8px` so the horizontal legend
+  row doesn't balloon
+- month-label `left` switched from `weekIndex * 9px` to
+  `weekIndex / weeks.length * 100%` so labels track their columns as the grid widens
+  (mirrors the reference)
+- `.av-heatmap-month-labels { margin-left }` 24 → 22 px so `0%` anchors exactly
+  over the first week column
+
+CDP-measured live (Chrome, native scale, target
+`D272E208BF069E19FE74C2118B7D5FBF` / `77027FC730D8FE143CCF996C4F106155`, article
+`/en/blog/react/use-client-sprawl`, bodyWidth=275.8125 px):
+- cellWidth = 8.6563 px (was 7.0 px fixed)
+- cellHeight = 8.6563 px (was 7.0 px)
+- last cell right = 289.4063 px (matches body right 289.4063 px, dead-space right = 0 px)
+- container fill = 100% (was ≈78.3%, with ~60 px right dead-space)
+- monthsRowLeft = 37.59375 px == weeksAreaLeft = 37.59375 px (drift 0.00 px)
+- per-label Apr 35.59 (0%) / May 77.89 (16.6667%) / Jun 130.77 (37.5%) /
+  Jul 173.07 (54.1667%) / Aug 215.38 (70.8333%) / Sep 268.25 (91.6667%) — all
+  drift 0.00 px vs reference's stated percentages
+- tooltip edge clearance: last week (idx 24) matches `nth-last-child(-n+4)`,
+  edge-aware rule `left:auto; right:0; transform:none` applies, tooltip
+  (~60 px wide) fits inside sidebar right=304 px
+
+Contrast re-measurement (the follow-up question): cell size is orthogonal to WCAG
+colour contrast — palette decisions don't change with geometry. Recomputed
+best-case single-hue ramps across muted/brand/dark endpoints (a careful orange-ramp
+tuned for lightness steps):
+
+| Pair | Best-case contrast (lightness-tuned ramp) | 1.6:1 needed? |
+|---|---|---|
+| L0 → L1 | 1.345:1 | NO |
+| L1 → L2 | 1.475:1 | NO |
+| L2 → L3 | 1.539:1 | NO |
+| L3 → L4 | 1.920:1 | YES |
+
+Three of four adjacent pairs fall below the 1.6:1 threshold even for an idealised
+ramp. Light's luminance range from `#E2E5EA` (lum 0.7815) to `#6B4D0D`
+(lum 0.0846) is only 9.24× — under the 6.55× = 1.6⁴ needed for 5 distinct adjacent
+pairs at 1.6:1+.
+
+Verdict: NO, 5 distinguishable light-level colours cannot clear 1.6:1 between
+all adjacent pairs in the muted → brand → dark band, regardless of cell size.
+Light keeps 3 visible swatches (`#E2E5EA → #DB7730 collapsed across levels 1-3 →
+#6B4D0D`); dark keeps 5 distinct
+(`#2B3745 → #6D500C → #956F15 → #C29222 → #F0BC4E`).
+Confirmed live via CDP theme toggle: dark 5/5 distinct, light 5 cells with 3
+distinct colours.
+
+Gates:
+- typecheck 5/5 PASS
+- lint 5/5 PASS
+- test 107/107 PASS
+- `pnpm --filter @corpus/web build` clean (Pagefind index only, no `<html>` warnings)
+- `hermes verify --json` (round-5 commit `4f1225b`): ok=true, 9/9 phases PASS
+
+Files: `apps/web/components/article/activity-heatmap.css` (grid template,
+`display: contents` on wrappers, cells `width:100%;aspect-ratio:1/1`, legend `8×8`
+opt-out, `margin-left:22`), `apps/web/components/article/activity-heatmap.tsx`
+(body `style={{ gridTemplateColumns: ... }}`, labelOffsets formula
+`i / weeks.length * 100`).
+Committed as `bfbf135`, pushed to `fix/heatmap-github-style-6mo` (3 round-updates
+in PR #168 series: `9ec4567` docs, `4f1225b` round-5, `bfbf135` round-6).
+
+D46 standing: Content-gate, 19 nestjs recipe refs / 15 distinct. User decision.
+
+Next polish residue candidates: D32 (.ls-card hover radial), D33 (.ls-blog-card
+grid spacing), D30/D34 (lesson header text balance), D40 (nested link contrast
+in callout blocks).

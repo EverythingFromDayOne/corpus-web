@@ -5,6 +5,30 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-08] — fix/heatmap-github-style-6mo — round 6: fluid grid fills container, percentage month labels
+
+**Fixed**
+- **Grid fill**: `.av-heatmap-body` was a flex with fixed `7px × 7px` cells + `2px` gaps (`9px` stride), so 24 columns used only ~216 px of the 275.81 px sidebar budget — ~60 px of dead space on the right. Switched the body to a CSS grid with `grid-template-columns: 20px repeat(<weeks.length>, minmax(0px, 1fr))` set inline by JSX; `.av-heatmap-weekday-col`, `.av-heatmap-weeks`, and `.av-heatmap-week` declared `display: contents` so the existing DOM order flows into the grid column-by-column. Cells now size from available width (`width: 100%; aspect-ratio: 1 / 1`). Measured: cellWidth / cellHeight = 8.6563 × 8.6563 px; container fill = 100% (was ~78.3%); right-side dead space = 0 px (was ~60 px). The legend swatches (`.av-heatmap-cell-legend`) opt back out to a fixed `8px × 8px` so the horizontal legend row doesn't balloon with the grid.
+
+**Changed**
+- **Month-label positioning**: per-label `left` switched from `weekIndex * 9px` to `weekIndex / weeks.length * 100%` so labels track their columns as the grid widens (mirrors the reference's percentage-positioned labels over its fluid `repeat(N, minmax(0px, 1fr))` grid). `.av-heatmap-month-labels { margin-left }` adjusted from 24 px to 22 px (weekday col 20 px + column-gap 2 px) so the `0%` anchor sits exactly above the first week column.
+
+**Verified (CDP, sidebar at `/en/blog/react/use-client-sprawl`, bodyWidth = 275.8125 px)**:
+- `monthsRowLeft == weeksAreaLeft == 37.59375 px` (drift 0.00 px)
+- Per-label actualLeft / styleLeft: `Apr 35.59 / 0%`, `May 77.89 / 16.6667%`, `Jun 130.77 / 37.5%`, `Jul 173.07 / 54.1667%`, `Aug 215.38 / 70.8333%`, `Sep 268.25 / 91.6667%` — all drift 0.00 px vs expected percentages.
+- Tooltip edge clearance: last-week col matches `nth-last-child(-n+4)`, so the edge-aware `left: auto; right: 0; transform: none` rule applies unchanged; measured tooltip (~60 px wide) fits 229-289 px, inside sidebar right at 304 px.
+- Tests: 107/107 pass. Build clean.
+
+**Round-6 contrast question (the follow-up to round-5's light-legend decision)**: the user asked whether enlarging cells could free a 5-level light legend at the 1.6:1 adjacent-pair threshold. Cell size is orthogonal to color contrast — palette decisions don't change with geometry. Recomputed best-case single-hue ramps across muted/brand/dark endpoints: `L0-L1 1.345:1, L1-L2 1.475:1, L2-L3 1.539:1, L3-L4 1.920:1` — three of four adjacent pairs fall below 1.6:1. **Conclusion: NO, 5 distinguishable light-level colors cannot clear 1.6:1 between all adjacent pairs in the muted → brand → dark band.** The 3-level light ladder remains correct: light keeps 3 visible swatches (muted `#E2E5EA`, brand `#DB7730` collapsed across levels 1-3, dark `#6B4D0D`); dark keeps 5 distinct swatches (`#2B3745 → #6D500C → #956F15 → #C29222 → #F0BC4E`).
+
+### [2026-09-07] — fix/heatmap-github-style-6mo — round 5: 24-week window matching MiniMax reference, light legend to 3 swatches
+
+**Fixed**
+- **Window**: replaced the calendar "6-month rolling" assumption with a fixed 24-week inclusive Monday-Sunday window ending at the Sunday of the current week. Matches the reference's `grid-template-columns: auto repeat(24, minmax(0px, 1fr))`. For the confirmed Monday fixture (today = 2026-09-07), `window_start = 2026-03-30`, `grid_end = 2026-09-13` (24 weeks). First column emits `APR` via the existing later-month-tiebreak — `2026-03-30` start carries both March 30 and April 1, so week 0 is labeled `Apr`, not `Mar`.
+- **Light legend**: light theme now visually suppresses duplicate levels 1 and 2 (both share `#DB7730`), yielding 3 distinct visible swatches (muted, brand, dark) instead of the misleading 5. Dark theme keeps 5 distinct swatches unchanged.
+
+**Tests**: 107/107 pass; `TODAY=2026-09-06` (Sunday) fixture asserts the exact 24-week window and the new month-label sequence.
+
 ### [2026-09-07] — fix/heatmap-github-style-6mo — round 4: month-label row offset, Mon-Sun row order, measured luminance palette
 
 **Trigger**: user correction after round-3. "Do not iterate on prose descriptions of the layout. Measure the reference, match the numbers, report the measured comparison side by side." Same reference (MiniMax usage heatmap), this round addresses three findings the round-3 measurement exposed:

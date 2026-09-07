@@ -90,16 +90,19 @@
 
 /* === Month label row ===================================================
    Labels are absolutely-positioned over the cell grid; each label's
-   `left` is set inline by JSX to `weekIndex * stride`.
-   `margin-left: 24px` insets the row by the weekday column width (20px)
-   + gap (4px) so the first month sits directly over the first grid column.
+   `left` is set inline by JSX as a PERCENTAGE (`weekIndex / weeks.length
+   * 100`), matching the reference's percentage-positioned month labels
+   over its fluid `repeat(N, minmax(0px, 1fr))` grid — this keeps labels
+   aligned to their week column regardless of the grid's rendered width.
+   `margin-left: 22px` insets the row by the weekday column width (20px)
+   + column-gap (2px) so 0% sits directly over the first grid column.
    `font-size: 7px` provides ample breathing room between consecutive month
-   labels without touching or crowding at 7px cell scale. */
+   labels without touching or crowding at small cell scale. */
 
 .av-heatmap-month-labels {
   position: relative;
   height: 12px;
-  margin-left: 24px; /* align with the cell-grid column, past the weekday labels */
+  margin-left: 22px; /* align with the cell-grid column, past the weekday labels */
   overflow: visible;
 }
 
@@ -119,72 +122,68 @@
   pointer-events: none;
 }
 
-/* === Body row: weekday column + weeks area + (vertically stacked) legend ===
-   The legend moved INTO this row (session-179) so it sits to the RIGHT
-   of the cell grid, matching the MiniMax layout. The legend is
-   vertically stacked inside its narrow column: "Less" label, 5 swatches,
-   "More" label — saves the horizontal space a horizontal legend would
-   need and lets the legend "belong" to the grid row rather than
-   floating below it. */
+/* === Body row: weekday column + weeks area, one unified CSS Grid ========
+   Reference layout: `grid-template-columns: auto repeat(N, minmax(0px,
+   1fr))` with square cells that grow to fill available width. We mirror
+   that with a single grid spanning the weekday-label column (fixed
+   20px) plus one fr-column per week, `grid-auto-flow: column` so DOM
+   order (7 weekday labels, then each week's 7 cells) fills column-by-
+   column exactly like the old per-week flex columns did — just with
+   fluid fr widths instead of a fixed 9px stride.
+
+   `.av-heatmap-weekday-col`, `.av-heatmap-weeks`, and `.av-heatmap-week`
+   are `display: contents` — they exist in the DOM (for the `data-week-idx`
+   test/tooltip-edge selectors) but contribute no box of their own; their
+   children become direct grid items of `.av-heatmap-body`. */
 
 .av-heatmap-body {
-  display: flex;
-  /* The gap is the SIDEBAR weekday-col-to-weeks spacing; this MUST match
-     `.av-heatmap-month-labels { margin-left: 24px }` (20 weekday + 4 gap =
-     24) so the label overlay is column-aligned with the cell grid. If
-     these two values drift apart, month labels desync from their columns. */
-  gap: 4px;
-  align-items: flex-start;
+  display: grid;
+  /* grid-template-columns is set inline by JSX as
+     `20px repeat(<weeks.length>, minmax(0px, 1fr))` — matches the
+     reference's `auto repeat(24, minmax(0px, 1fr))` pattern, with a
+     fixed weekday-label column instead of `auto` (our weekday labels
+     are a fixed 20px wide, no intrinsic-sizing content to measure). */
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, 1fr);
+  column-gap: 2px;
+  row-gap: 2px;
+  width: 100%;
 }
 
 .av-heatmap-weekday-col {
-  display: flex;
-  flex-direction: column;
-  /* Row stride matches the cell grid EXACTLY: 7px cell + 2px gap = 9px.
-     The weekday labels below are 7px tall, with 2px gap — total stride = 9px. */
-  gap: 2px;
-  width: 20px;
-  flex-shrink: 0;
+  display: contents;
 }
 
 .av-heatmap-weekday-label {
-  display: block;
-  height: 7px;
-  line-height: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   font-family: var(--font-mono);
   font-size: 8px;
   letter-spacing: 0.02em;
   color: var(--color-muted);
-  text-align: right;
   padding: 0;
   margin: 0;
   box-sizing: border-box;
 }
 
 .av-heatmap-weeks {
-  display: flex;
-  flex-direction: row;
-  gap: 2px;
+  display: contents;
 }
 
 .av-heatmap-week {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  /* Weeks must not shrink — the grid relies on each week's natural width. */
-  flex-shrink: 0;
+  display: contents;
 }
 
 /* === Cell ============================================================== */
 
 /* Cell base */
 .av-heatmap-cell {
-  width: 7px;
-  height: 7px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
   border-radius: 1.5px;
   background: #2B3745;
   border: 1px solid transparent;
-  flex-shrink: 0;
   padding: 0;
   margin: 0;
   cursor: pointer;
@@ -193,6 +192,7 @@
   color: inherit;
   appearance: none;
   -webkit-appearance: none;
+  min-width: 0;
 }
 
 :root[data-theme='light'] .av-heatmap-cell {
@@ -362,10 +362,17 @@
 
 .av-heatmap-cell-legend {
   /* Reset the button cursor / hover affordance — legend swatches are
-     decorative, not interactive. */
+     decorative, not interactive. The legend lives in a flex row, not the
+     fluid cell grid, so it must opt OUT of `.av-heatmap-cell`'s
+     width:100%/aspect-ratio sizing (added when the grid went fluid) and
+     keep a small fixed swatch size instead. */
   cursor: default;
   pointer-events: none;
   border: 1px solid var(--color-signal-soft);
+  width: 8px;
+  height: 8px;
+  aspect-ratio: unset;
+  flex-shrink: 0;
 }
 
 .av-heatmap-cell-legend[data-level='0'] {
