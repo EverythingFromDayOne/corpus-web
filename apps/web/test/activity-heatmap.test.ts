@@ -174,7 +174,7 @@ test('buildHeatmapWeeks: the last real cell is "today", not some future padding 
 
 test('buildHeatmapWeeks: window spans roughly 6 months back from today (leap into the prior year)', () => {
   // 6 months back from 2026-09-06 lands in 2026-03. The first cell should
-  // be a Sunday in early-to-mid March 2026 (depending on alignment).
+  // be a Monday in early-to-mid March 2026 (first Monday at or after cutoff).
   const layout = buildHeatmapWeeks({}, TODAY);
   const flat = layout.weeks.flat().filter((c): c is { date: string; count: number } => c !== null);
   const first = flat[0]!;
@@ -185,9 +185,9 @@ test('buildHeatmapWeeks: window spans roughly 6 months back from today (leap int
   );
 });
 
-test('buildHeatmapWeeks: weekdayLabels is Sun..Sat in order', () => {
+test('buildHeatmapWeeks: weekdayLabels is Mon..Sun in order', () => {
   const layout = buildHeatmapWeeks({}, TODAY);
-  assert.deepEqual(layout.weekdayLabels, ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
+  assert.deepEqual(layout.weekdayLabels, ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
 });
 
 test('buildHeatmapWeeks: monthLabels lists one entry per calendar month in the window', () => {

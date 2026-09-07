@@ -90,13 +90,11 @@
 
 /* === Month label row ===================================================
    Labels are absolutely-positioned over the cell grid; each label's
-   `left` is set inline by JSX accounting for cumulative month-break
-   gutters BEFORE the weekIndex (NOT including the gutter at the
-   weekIndex itself, since the gutter applies to that week, pushing
-   its cells right, but the label sits at the START of that column).
-   `transform: translateX(-100%)` shifts the label so its right edge
-   sits at the column's left edge — text overflows leftward over
-   preceding columns (GitHub-contribution-graph convention). */
+   `left` is set inline by JSX to `weekIndex * stride`.
+   `margin-left: 24px` insets the row by the weekday column width (20px)
+   + gap (4px) so the first month sits directly over the first grid column.
+   `font-size: 7px` provides ample breathing room between consecutive month
+   labels without touching or crowding at 7px cell scale. */
 
 .av-heatmap-month-labels {
   position: relative;
@@ -109,14 +107,13 @@
   position: absolute;
   top: 0;
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 7px;
   letter-spacing: 0.02em;
   color: var(--color-muted);
   text-transform: uppercase;
   white-space: nowrap;
-  /* Anchor the label's RIGHT edge at the column's left edge, so the
-     text extends leftward into the preceding column's space. */
-  transform: translateX(-100%);
+  /* Left edge of label aligns with left edge of column */
+  transform: none;
   /* Pointer-events: none — labels are decorative, the cells own the
      interaction (hover/focus). */
   pointer-events: none;
@@ -180,20 +177,17 @@
 
 /* === Cell ============================================================== */
 
-/* Cell is a <button> for keyboard access (Tab lands on it, :focus-visible
-   reveals the tooltip). Reset native button chrome. */
+/* Cell base */
 .av-heatmap-cell {
   width: 7px;
   height: 7px;
   border-radius: 1.5px;
-  background: var(--color-graphite);
+  background: #2B3745;
   border: 1px solid transparent;
   flex-shrink: 0;
   padding: 0;
   margin: 0;
   cursor: pointer;
-  /* Position:relative so the absolutely-positioned tooltip badge anchors
-     to the cell. */
   position: relative;
   font: inherit;
   color: inherit;
@@ -201,15 +195,19 @@
   -webkit-appearance: none;
 }
 
+:root[data-theme='light'] .av-heatmap-cell {
+  background: #E2E5EA;
+}
+
 .av-heatmap-cell-pad {
-  background: transparent;
+  background: transparent !important;
+  border-color: transparent !important;
   pointer-events: none;
 }
 
 /* Border is the PRIMARY "was this day active" signal at 8x8px (carried
    forward from session 173's finding): every active cell shares the same
-   unmixed --color-signal-soft border regardless of fill-mix percentage.
-   Dark 7.65:1, light 4.97:1 against --color-graphite. */
+   unmixed --color-signal-soft border regardless of fill level. */
 .av-heatmap-cell-active {
   border-color: var(--color-signal-soft);
 }
@@ -289,49 +287,51 @@
 }
 
 /* === Intensity levels ===================================================
-   Fill-mix ladder (decorative in light mode, subtle in dark mode —
-   session-174 finding). The BORDER signal (above) is what carries the
-   "was this day active" read; the fill-mix ladder is a recoverable
-   secondary cue.
+   5-level luminance ladder (Dark) / 3-level ladder (Light).
+   Per measurement, every adjacent pair (0-1, 1-2, 2-3, 3-4) clears
+   the 1.6:1 floor in both themes:
 
-   Values (measured in session-178 against the real corpus distribution):
-   dark  (graphite #2b3745, signal-soft #f2c782):
-     L0  (graphite)               — empty day
-     L1  55% -> rgb(152,134,103)  vs graphite 3.42:1
-     L2  70% -> rgb(182,156,112)  vs graphite 4.60:1
-     L3  85% -> rgb(212,177,121)  vs graphite 5.97:1
-     L4 100% -> rgb(242,199,130)  vs graphite 7.65:1
-   light (graphite #d3dae3, signal-soft #7d4f12):
-     L0  (graphite)               — empty day
-     L1  80% -> rgb(142,107, 60)  vs graphite 3.45:1
-     L2  87% -> rgb(136, 97, 45)  vs graphite 3.93:1
-     L3  93% -> rgb(131, 89, 33)  vs graphite 4.36:1
-     L4 100% -> rgb(125, 79, 18)  vs graphite 4.97:1 */
+     Dark, 5 levels (L0..L4): #2B3745 #6D500C #956F15 #C29222 #F0BC4E
+       contrasts: 1.615 / 1.628 / 1.628 / 1.617
+     Light, 3 levels (L0, L2, L4):  #E2E5EA #DB7730 #6B4D0D
+       contrasts: 2.484 / 2.486
 
+   Light was reduced to 3 levels because the L0..L4 luminance ratio is
+   only 6.18x, below the 6.55x needed to clear 1.6 across 4 adjacent
+   pairs with these anchors. Per user instruction, drop rather than
+   ship undifferentiable levels.
+
+   Border on active levels (>= 1) preserves session-173 edge definition. */
+
+.av-heatmap-cell[data-level='0'] {
+  background: #2B3745;
+}
 .av-heatmap-cell[data-level='1'] {
-  background: color-mix(in srgb, var(--color-signal-soft) 55%, var(--color-graphite));
+  background: #6D500C;
 }
 .av-heatmap-cell[data-level='2'] {
-  background: color-mix(in srgb, var(--color-signal-soft) 70%, var(--color-graphite));
+  background: #956F15;
 }
 .av-heatmap-cell[data-level='3'] {
-  background: color-mix(in srgb, var(--color-signal-soft) 85%, var(--color-graphite));
+  background: #C29222;
 }
 .av-heatmap-cell[data-level='4'] {
-  background: var(--color-signal-soft);
+  background: #F0BC4E;
 }
 
-:root[data-theme='light'] .av-heatmap-cell[data-level='1'] {
-  background: color-mix(in srgb, var(--color-signal-soft) 80%, var(--color-graphite));
+:root[data-theme='light'] .av-heatmap-cell[data-level='0'] {
+  background: #E2E5EA;
 }
-:root[data-theme='light'] .av-heatmap-cell[data-level='2'] {
-  background: color-mix(in srgb, var(--color-signal-soft) 87%, var(--color-graphite));
-}
+/* Light has 3 levels. L1 visually maps to L2 (and L3) of the dark ladder
+   so that the visual "intensity" mapping stays consistent: cells at higher
+   event counts are darker regardless of theme. */
+:root[data-theme='light'] .av-heatmap-cell[data-level='1'],
+:root[data-theme='light'] .av-heatmap-cell[data-level='2'],
 :root[data-theme='light'] .av-heatmap-cell[data-level='3'] {
-  background: color-mix(in srgb, var(--color-signal-soft) 93%, var(--color-graphite));
+  background: #DB7730;
 }
 :root[data-theme='light'] .av-heatmap-cell[data-level='4'] {
-  background: var(--color-signal-soft);
+  background: #6B4D0D;
 }
 
 /* === Legend (below the grid, horizontal, right-aligned) =================
@@ -366,6 +366,10 @@
   cursor: default;
   pointer-events: none;
   border: 1px solid var(--color-signal-soft);
+}
+
+.av-heatmap-cell-legend[data-level='0'] {
+  border-color: transparent;
 }
 
 /* Suppress the legend swatch's own tooltip — the swatches carry

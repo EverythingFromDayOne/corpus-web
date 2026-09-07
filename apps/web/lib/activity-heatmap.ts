@@ -117,11 +117,10 @@ export function computeMaxStreak(activity: Record<string, number>): number {
 }
 
 /**
- * Short weekday labels (Sun..Sat), 3-letter form. The render is sized for
- * a sidebar; rendering all seven (Mon..Sun) keeps the visual rhythm of a
- * real calendar without losing orientation.
+ * Short weekday labels (Mon..Sun), 3-letter form. Sized for a sidebar;
+ * Mon..Sun matches ISO-8601 calendar conventions and the MiniMax reference.
  */
-const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
 
 /**
  * Short month labels (Jan..Dec). Same shape used for both the top axis and
@@ -136,17 +135,12 @@ const MONTH_LABELS = [
  * 6-month heatmap grid + the metadata needed to render weekday labels,
  * month labels, and inter-month gutters.
  *
- * Shape: an array of week columns, each an array of 7 day cells (Sun..Sat),
+ * Shape: an array of week columns, each an array of 7 day cells (Mon..Sun),
  * oldest week first. `null` cells are padding (before the window, or after
  * `today`) so every week column has exactly 7 slots for a clean CSS grid.
  *
  * Month labels: one entry per calendar month that appears in the window,
  * anchored at the first week-column index containing a day of that month.
- *
- * Month breaks: a set of week indices at which a new calendar month
- * begins — the React layer inserts a 4-6px gutter column before each
- * break so month boundaries are visually distinct without breaking the
- * week-row rhythm.
  *
  * Every non-null cell's `count` comes directly from `activity[date] ?? 0`.
  * No cell is ever invented from `completed` or `seen`.
@@ -157,16 +151,20 @@ export function buildHeatmapWeeks(
 ): HeatmapLayout {
   const todayDate = parseKey(today);
 
-  // Start of the window: 6 months back from today, then walk back to the
-  // most recent Sunday so week columns are aligned to calendar weeks.
-  const windowStart = new Date(todayDate);
-  windowStart.setMonth(windowStart.getMonth() - 6);
-  windowStart.setDate(windowStart.getDate() - windowStart.getDay());
+  // Start of the window: 6 months back from today (the cutoff), then
+  // advance to the first week boundary (Monday) at or after the cutoff.
+  const cutoff = new Date(todayDate);
+  cutoff.setMonth(cutoff.getMonth() - 6);
 
-  // End of the grid: the Saturday of today's week, so every week column
+  const cutoffDow = (cutoff.getDay() + 6) % 7; // Mon=0, ..., Sun=6
+  const daysToMonday = (7 - cutoffDow) % 7;
+  const windowStart = addDays(cutoff, daysToMonday);
+
+  // End of the grid: the Sunday of today's week, so every week column
   // is complete — cells after today are padding (null), not future data.
-  const gridEnd = new Date(todayDate);
-  gridEnd.setDate(gridEnd.getDate() + (6 - gridEnd.getDay()));
+  const todayDow = (todayDate.getDay() + 6) % 7;
+  const daysToSunday = 6 - todayDow;
+  const gridEnd = addDays(todayDate, daysToSunday);
 
   const weeks: (HeatmapCell | null)[][] = [];
   const monthLabels: MonthLabel[] = [];
@@ -176,6 +174,7 @@ export function buildHeatmapWeeks(
   let cursor = new Date(windowStart);
   while (cursor <= gridEnd) {
     const week: (HeatmapCell | null)[] = [];
+    const currentWeekIndex = weeks.length;
     for (let dow = 0; dow < 7; dow++) {
       const key = localKey(cursor);
       // Cells outside the [windowStart, today] interval are padding (null):
@@ -188,15 +187,12 @@ export function buildHeatmapWeeks(
         week.push({ date: key, count: activity[key] ?? 0 });
       }
 
-      // Detect month boundaries as we walk — a Sunday starting a new
-      // calendar month is the canonical place for a gutter + month label,
-      // and matches the way GitHub's contribution graph lays out.
+      // Detect month boundaries as we walk — the first week containing
+      // a day of a new calendar month anchors the month label.
       const cellMonth = cursor.getMonth();
-      const cellDow = cursor.getDay();
-      if (cellDow === 0 && cellMonth !== lastMonth && !beforeWindow && !afterToday) {
-        const weekIndex = weeks.length;
-        monthLabels.push({ weekIndex, label: MONTH_LABELS[cellMonth]! });
-        monthBreaks.add(weekIndex);
+      if (cellMonth !== lastMonth && !beforeWindow && !afterToday) {
+        monthLabels.push({ weekIndex: currentWeekIndex, label: MONTH_LABELS[cellMonth]! });
+        monthBreaks.add(currentWeekIndex);
         lastMonth = cellMonth;
       }
 
