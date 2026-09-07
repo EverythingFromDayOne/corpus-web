@@ -8555,3 +8555,116 @@ Gates: typecheck=0 lint=0 test=0 (95/95, unchanged — pure CSS) frontmatter=0 p
 - **Re-verify against develop after this branch merges.** The develop→main promotion PR #166 is still open; when both PR #166 and PR #168 land, the production deployment will carry the new heatmap. Live-probe `https://nxhhuy.tech/en/blog/nextjs/cache-components-model` against the prod alias to confirm the same layout renders against real (not synthetic) activity data — and to verify a reader's actual activity distribution falls within the new heatLevel boundaries (the synthetic seed used 1-15 events/day; real readers may hit higher counts on heavy days).
 
 ---
+
+---
+
+## Session 180 — heatmap visual-fixes round 2: re-verify all 4 fixes in both themes × both sidebar states, fix Fix 4b root cause + Fix 2 legend overflow — 2026-09-07
+
+**Branch:** `fix/heatmap-github-style-6mo @ c50018b` (PR #168 OPEN; session 178 built it, session 179/180 verify+fix)
+
+### 1. Dual-Next.js server investigation (session 179 carry-over)
+
+Session 179 left an unresolved mystery: `pgrep -fl "next-server"` showed two PIDs running v16.3.1 AND v16.3.4 simultaneously. Session 180 root-caused this in 5 minutes:
+
+- **v16.3.4 = `9router` system service** at `~/.nvm/versions/node/v24.13.1/lib/node_modules/9router/app` (PID 47853, nvm-managed node v24.13.1). 9router runs its own Next.js bundled app on a separate port.
+- **v16.3.1 = the one and only corpus-web server** — confirmed against `apps/web/package.json` (dep), `pnpm-lock.yaml` (resolution), `node_modules/next/package.json` (installed). All three show 16.3.1. No real version conflict in corpus-web's tree.
+- `pgrep -f "next-server"` matched the 9router process by command-line substring. Filter with `grep -v 9router` from now on. Standing convention added to SESSION-LOG.
+
+### 2. Probe architecture v3 (Target.attachToTarget + per-call timeout)
+
+Session 179's probe had two race-condition bugs:
+1. **Hydration timing**: `ActivityHeatmap` reads localStorage in `useEffect([])`; after first mount, writing to localStorage doesn't trigger re-render. Only a full page reload picks up seeded data.
+2. **`Page.reload` hangs**: CDP `Page.reload` is fire-and-forget; without proper `Target.attachToTarget` session management, the probe loop stalled waiting for `Page.loadEventFired` that never arrived.
+
+Session 180 fix: `/tmp/heatmap-verify-180.py` (602 lines, v3 probe) — `Target.attachToTarget({sessionId})` with `ws.settimeout(30)` per-call, explicit `Page.loadEventFired` dispatch loop, fresh page per theme/sidebar combo via `Target.close` + `Target.createTarget` + `Target.attachToTarget`. Adds 4 screenshots per run.
+
+### 3. Fix 4b — month label alignment, root-cause chain (CORRECT FIX)
+
+**Symptom** (session-179 probe): all 7 month labels sat 4-6px LEFT of their target cells. Compounded across 6 months → progressive drift from -4px to -30px. Visually: MAR label sits 4px left of its column, SEP label sits 30px left.
+
+**Root cause** (session-180): the `labelOffsets` formula in `activity-heatmap.tsx` was bumping `cumulativeBreaks` AFTER setting the offset, so it counted breaks STRICTLY BEFORE week N. But the visual target is week N's CELL LEFT EDGE, which sits AFTER the 4px gutter at week N (if N is a month-break). The correct formula is bumps AT-or-before N, so the label sits at the cell's left edge not the column's left edge.
+
+**Fix**: increment `cumulativeBreaks` BEFORE setting the offset, so it counts breaks AT-or-before N. Verified: max drift = 0px in all 4 (theme × sidebar) combos. The comment above the loop now documents this.
+
+**Lesson**: session-178 had it correct (increment-before). Session-179 "fixed" it to increment-after, breaking Fix 4b. Session-180 restored session-178's logic with a clearer comment. The git history is a record of how easy it is to regress on a 1-line off-by-one.
+
+### 4. Fix 2 — legend overflow at sidebar right edge (NEW BUG DISCOVERED)
+
+**Symptom** (vision-analyze call on probe screenshot): "LESS label truncated to LES, swatches cut off at sidebar right edge". Probe had reported PASS because its `sidebarFits` check used `window.innerWidth` (1280) instead of sidebar width (304). The probe missed the real defect.
+
+**Root cause**: the sidebar (`.av-sb` in `article.css`) has `padding: 17.6px 13.6px`. The heatmap lives inside the sidebar's padded content area. Content area = 304 - 27.2 = 276.8px. The body row (weekday col 20 + gap 4 + weeks intrinsic 247 + gap 4 + legend intrinsic 17) needs ~292px. Overflow: 15px.
+
+The legend overflowed the sidebar's right edge by ~5px (legend.right = 309 vs sidebar.right = 304). The weeks column got shrunk via `flex-shrink: 1` to fit.
+
+**Fix**: applied negative margin `-0.5rem` (7px) on the LEFT ONLY of `.av-heatmap` in `activity-heatmap.css`. This lets the heatmap use the full 304px sidebar width while keeping its leftmost cell at x ≈ 7+28=35 (tooltip centered at 38.5, tooltip width 64, tooltip left ≈ 6.5 — comfortably inside viewport).
+
+Tried negative margin on both sides (`margin: 0 -0.85rem`) first — that pushed cell0 to x=28 and tooltip.left = -0.5, clipping. Then -0.5rem on left only — tooltip fits, legend fits, weeks stays at intrinsic 247px.
+
+**Probe verification**: max drift = 0px for Fix 4b, Fix 1 (tooltip) PASS in both themes × expanded, Fix 2 (legend) PASS in both themes × expanded. SKIP in collapsed because the sidebar is `visibility:hidden` in collapsed mode (not a real defect, probe measures layout boxes regardless of visibility).
+
+### 5. data-week-idx attribute added to JSX (test surface, kept in committed code)
+
+The probe needed to verify Fix 4b by mapping each month label to the cell column it anchors. The JSX had no `data-week-idx` attribute on either the label `<span>` or the week-column `<div>`. The probe had to infer week index from `style.left / 8` which is fragile.
+
+Added `data-week-idx={m.weekIndex}` to:
+- `<span>` inside `monthLabels.map()` (anchor of each month label)
+- `<div className="av-heatmap-week">` inside `weeks.map()` (anchor of each week column)
+
+Both have an in-source comment explaining the attribute is intentional test surface for the verification probe (`/tmp/heatmap-verify-180.py`) and that removing it would silently break the probe. Stays in committed JSX per user directive.
+
+### 6. Per-fix × per-combo verification results
+
+```
+Fix                 light/expanded     light/collapsed       dark/expanded      dark/collapsed
+Tooltip                        PASS        SKIP                 PASS        SKIP
+Legend                         PASS        SKIP                 PASS        SKIP
+Contrast                       PASS                 PASS                 PASS                 PASS
+Weekday                        PASS                 PASS                 PASS                 PASS
+Month                          PASS                 PASS                 PASS                 PASS
+```
+
+SKIP = sidebar collapsed to `visibility:hidden, width:0`; tooltip-clipping and legend-position are not user-visible in this state. The probe measures layout boxes regardless of visibility, so without the SKIP gate it would report false failures. Both Fix 1 and Fix 2 are now SKIP-aware in the probe.
+
+Fix 4b monthly drift table (light/expanded as representative):
+```
+Month   styleLeft  labelRight  cellLeft   diff  wk
+Mar             4          28        28     +0  0
+Apr            48          72        72     +0  5
+May            84         108       108     +0  9
+Jun           128         152       152     +0  14
+Jul           164         188       188     +0  18
+Aug           200         224       224     +0  22
+Sep           244         268       268     +0  27
+```
+Max drift = 0px, average +0.0px. Exact cell alignment.
+
+### 7. Files modified in session 180
+
+- `apps/web/components/article/activity-heatmap.tsx`:
+  - `labelOffsets` formula: increment `cumulativeBreaks` BEFORE setting the offset (revert session-179 regression)
+  - Added comment block above the formula explaining the +4px reasoning
+  - Added `data-week-idx={m.weekIndex}` to month-label `<span>` (with test-surface comment)
+  - Added `data-week-idx={weekIndex}` to week-column `<div>` (with test-surface comment)
+- `apps/web/components/article/activity-heatmap.css`:
+  - `.av-heatmap { margin: 0 0 1.1rem -0.5rem; padding-bottom: 1.1rem; ... }` — negative left margin to use full sidebar width while keeping tooltip visible
+  - Added block comment above the rule explaining the 7px choice and the side-effects
+- `/tmp/heatmap-verify-180.py`:
+  - `decide_fix1` and `decide_fix2` now accept `sidebar_visible=True` and return None (SKIP) when collapsed
+  - Per-combo table shows SKIP instead of PASS for SKIP cases
+  - Aggregate no longer counts SKIP as failure
+  - BUILD_ID now read from disk at startup instead of hardcoded
+  - Screenshot bounds check guards against collapsed-sidebar zero-width returns
+
+**Invented decisions:**
+- **Negative margin `-0.5rem` on LEFT only (not both sides).** `-0.85rem` on both sides pushed the leftmost cell to x=28 and made its tooltip clip at viewport.left = -0.5px. `-0.5rem` on left only gives cell.x ≈ 35, tooltip.left ≈ 6.5 — comfortably inside the viewport. Right edge flush with sidebar.right = 304.
+- **`data-week-idx` kept in committed JSX** (per user directive). With an in-source comment explaining that removal would silently break the probe. This is a small bit of test surface in production code, which is a trade-off the user accepted explicitly.
+- **SKIP rather than FAIL for collapsed-state measures.** The sidebar's `visibility:hidden` in collapsed mode makes the heatmap invisible to the user; the probe measures layout boxes regardless of visibility. Reporting FAIL on hidden layout would be misleading; SKIP is honest.
+- **No defensive overflow:hidden on the heatmap.** This was the session-178 design intent: tooltip must escape the grid column. The CSS comment block at the top of `activity-heatmap.css` documents this for future sessions.
+
+**Known issues / next steps:**
+- **`9router` phantom** — the user's Mac runs `9router` as a system service at `~/.nvm/versions/node/v24.13.1/lib/node_modules/9router/app`, which uses Next.js 16.3.4. `pgrep -f "next-server"` matches it by command-line substring. Standing convention: filter with `grep -v 9router` whenever checking corpus-web's next-server processes.
+- **Inter-month gutter remains at 4px.** Same trade-off as session 178: 4px is what fits the cell width math in the sidebar budget; wider gutters would require either smaller cells (worse visibility) or a wider sidebar (out of scope).
+- **Sidebar width is a hard 304px constraint.** The negative margin trick lets the heatmap span the full sidebar width but doesn't change the sidebar's intrinsic width. If a future design needs even more horizontal room (e.g. 12-month heatmap on a `review` page), the session-178 CSS comment says: "a future `/review` page returning to a wider 12-month window should add overflow clipping at the callsite, not here".
+- **Content gates still FAIL on D46** — 19 nestjs recipe refs / 15 distinct, user holds the call. PR #168 cannot merge until D46 is resolved.
+
+---

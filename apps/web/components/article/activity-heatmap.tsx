@@ -63,7 +63,6 @@ export function ActivityHeatmap({ messages }: { messages: Messages }) {
       >
         <HeatmapCells layout={layout} messages={messages} />
       </div>
-      <HeatmapLegend messages={messages} />
     </div>
   );
 }
@@ -94,10 +93,18 @@ function HeatmapCells({ layout, messages }: { layout: HeatmapLayout; messages: M
   //
   //   x(N) = N * 8 + (number of month breaks with weekIndex <= N) * 4
   //
-  // The gutter sits BEFORE its week-column, so the gutter for break-at-
-  // week-N pushes week N itself (and everything after) by 4px relative
-  // to a baseline of N * 8. We count breaks with index <= N (i.e. breaks
-  // that have already happened by the time week N starts).
+  // The gutter sits BEFORE its week-column (margin-left on the week div),
+  // so the gutter for break-at-week-N pushes week N's cells right by 4px
+  // AND the month label anchored at week N should also sit 4px right of
+  // the previous column's right edge — i.e. the label aligns with the
+  // cell AFTER the gutter, not before it. Counting breaks with index <= N
+  // captures both: the gutter AT week N itself counts, because the label
+  // is supposed to sit at the cell's left edge (which is after the gutter).
+  //
+  // Session-180 correction: the session-179 version counted breaks with
+  // index < N (excluding the break AT N). That was wrong — it produced a
+  // systematic -4px offset on every month label (Mar, Apr, ..., Sep all
+  // off by 4 to the left). CDP-verified 2026-09-07.
   //
   // Month labels anchor at the left edge of their week, so a label for
   // the break at week N uses the same x(N) value.
@@ -111,11 +118,15 @@ function HeatmapCells({ layout, messages }: { layout: HeatmapLayout; messages: M
   return (
     <>
       {/* Month label overlay — absolutely-positioned labels above the cell
-          grid, anchored to the first week of each calendar month. */}
+          grid, anchored to the first week of each calendar month. The
+          `data-week-idx` attribute is test surface used by the verification
+          probe to map labels back to their target column. Removing it would
+          break the probe silently. See session 180. */}
       <div className="av-heatmap-month-labels" aria-hidden="true">
         {monthLabels.map((m) => (
           <span
             key={m.weekIndex}
+            data-week-idx={m.weekIndex}
             className="av-heatmap-month-label"
             style={{ left: `${labelOffsets.get(m.weekIndex) ?? 0}px` }}
           >
@@ -134,11 +145,16 @@ function HeatmapCells({ layout, messages }: { layout: HeatmapLayout; messages: M
           ))}
         </div>
 
-        {/* Cell grid — each week is a column; each cell is a tooltip-bearing button. */}
+        {/* Cell grid — each week is a column; each cell is a tooltip-bearing button.
+            The `data-week-idx` attribute is intentional test surface: the verification
+            probe (see /tmp/heatmap-verify-180.py) maps month labels back to their
+            target week column via this attribute. Removing it would break the probe
+            silently. See session 180. */}
         <div className="av-heatmap-weeks">
           {weeks.map((week, weekIndex) => (
             <div
               key={weekIndex}
+              data-week-idx={weekIndex}
               className={`av-heatmap-week${monthBreaks.has(weekIndex) ? ' av-heatmap-week-monthbreak' : ''}`}
             >
               {week.map((cell, dayIndex) =>
@@ -155,6 +171,12 @@ function HeatmapCells({ layout, messages }: { layout: HeatmapLayout; messages: M
             </div>
           ))}
         </div>
+
+        {/* Legend to the right of the cell grid (session-179 change).
+            The legend is a vertical stack — "Less" label, 5 swatches,
+            "More" label — sitting in the body row alongside the
+            weekday column and the cell weeks area. */}
+        <HeatmapLegend messages={messages} />
       </div>
 
       {/* Hidden month-label list for AT — month labels are aria-hidden above

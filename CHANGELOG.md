@@ -6590,3 +6590,16 @@ remains the open question.
   develop HEAD reports `ok: true`, all 9 phase results
   pass, readiness HTTP 200 on http://127.0.0.1:3000/ in
   9.434s. This is the post-PR #145 / post-PR #144 state.
+
+### [2026-09-07] — fix/heatmap-github-style-6mo — visual-fixes round 2: Fix 4b root cause + Fix 2 legend overflow + test-surface attributes
+
+**Fixed**
+- **Fix 4b (month label alignment)**: the `labelOffsets` formula in `activity-heatmap.tsx` was bumping `cumulativeBreaks` AFTER setting the offset, counting breaks STRICTLY BEFORE week N. Correct formula bumps AT-or-before N (the cell's left edge sits AFTER the 4px gutter at week N if N is a month-break, so the label must include that gutter in its offset). Restored the increment-before-set order that session-178 had correct; session-179's "fix" had regressed it. Verified max drift = 0px in all 4 (theme × sidebar) combos via `/tmp/heatmap-verify-180.py` v3 probe.
+- **Fix 2 (legend overflow)**: the heatmap was clipped to the sidebar's padded content area (276.8px wide), forcing the weeks column to shrink via `flex-shrink: 1` and pushing the legend's right edge to 309px (5px past the sidebar's 304px right edge). Applied negative margin `-0.5rem` (7px) on the LEFT ONLY of `.av-heatmap`, letting the heatmap use the full 304px sidebar width while keeping the leftmost cell's tooltip inside the viewport. Verified PASS in both themes × expanded (SKIP in collapsed because the sidebar is `visibility:hidden`).
+
+**Added**
+- `data-week-idx={m.weekIndex}` on month-label `<span>` and week-column `<div>` in `activity-heatmap.tsx`. Test surface for the verification probe — without these attributes the probe can't map a label to the cell column it anchors and has to infer from `style.left / 8` (fragile). Each addition has an in-source comment explaining the role and warning against removal. Kept in committed code per user directive (will be mentioned in PR #168 body).
+
+**Probe**
+- `/tmp/heatmap-verify-180.py` (602 lines, v3) replaces session-179's probe. Key fixes: `Target.attachToTarget({sessionId})` with `ws.settimeout(30)` per-call, explicit `Page.loadEventFired` dispatch loop, fresh page per theme/sidebar combo. `decide_fix1` and `decide_fix2` now SKIP when the sidebar is `visibility:hidden` (the probe measures layout regardless of visibility, so without the SKIP gate it would false-FAIL). Per-combo table shows SKIP instead of PASS for SKIP cases.
+
