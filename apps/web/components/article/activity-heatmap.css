@@ -48,18 +48,42 @@
 
 .av-heatmap-grid {
   display: flex;
-  gap: 2px;
-  overflow-x: auto;
+  /* Trailing-window, sized to the sidebar column: the full 53 weeks of
+     data render chronologically (oldest first), and `justify-content:
+     flex-end` pushes the row against the right edge of the grid —
+     meaning the latest week (DOM idx 52, containing today) sits at the
+     right edge and stays visible, while the leading weeks overflow
+     past the LEFT edge and get clipped by `overflow: hidden`. The full
+     year stays in `buildHeatmapWeeks`'s data structure and is
+     available for the deferred `/review` page (roadmap Phase 3 item
+     27) — only the *rendered* window is trimmed. The previous
+     implementation used `overflow-x: auto`, which kept the full
+     12-month grid inside a 276-292px sidebar column by enabling
+     horizontal scrolling — that scroll would push the "longest
+     streak" counter off-screen on narrow widths and force a
+     secondary interaction (scroll horizontally to see today) where a
+     static trailing window is sufficient.
+
+     Implementation notes: the row-reverse alternative (which I
+     tried first, then verified live to be wrong) puts DOM idx 52 at
+     the LEFT in the layout's coordinate system, where it gets
+     clipped by `overflow: hidden` — clipping the trailing weeks
+     instead of the leading weeks. `flex-direction: row` +
+     `justify-content: flex-end` keeps idx 52 at the right edge of
+     the visible grid, which is where today's cell belongs. */
+  flex-direction: row;
+  justify-content: flex-end;
+  overflow: hidden;
   padding-bottom: 2px;
-  /* Hide the scrollbar visually but keep it keyboard/touch scrollable —
-     the sidebar column is narrower than 12 months of weekly columns. */
-  scrollbar-width: thin;
 }
 
 .av-heatmap-week {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  /* Weeks must not shrink — the grid relies on each week's natural
+     10px (8 + 2 gap) width to clip predictably on the right. */
+  flex-shrink: 0;
 }
 
 .av-heatmap-cell {
