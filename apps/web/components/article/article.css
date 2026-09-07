@@ -1141,7 +1141,17 @@
     left: 0;
     width: 19rem;
     height: calc(100vh - var(--tb, 3.6rem));
-    overflow-y: auto;
+    /* `overflow: hidden` (not `overflow-y: auto`) — the inner
+       `.av-grp-scroll` is the sole scroll context for the nav tree.
+       The previous `overflow-y: auto` reserved a scrollbar gutter on
+       `.av-sb` (browser still reserves ~1px gutter in overlay mode,
+       more in classic mode) while `.av-grp-scroll` provided its own
+       scrollbar — two scrollbars for one list. The heatmap's own
+       `overflow-x` clipping (now `overflow: hidden` in
+       activity-heatmap.css, with the trailing-window refactor) stays
+       scoped to its own grid; the sidebar itself doesn't need to
+       scroll, so it should not advertise that it does. */
+    overflow: hidden;
     overscroll-behavior: contain;
   }
 
@@ -1210,7 +1220,9 @@
     box-shadow: 6px 0 24px color-mix(in srgb, var(--color-ink) 40%, transparent);
     max-height: none;
     height: auto;
-    overflow-y: auto;
+    /* Mobile counterpart of the desktop `overflow: hidden` fix above —
+       `.av-grp-scroll` is the sole scroll context here too. */
+    overflow: hidden;
   }
 
   .av-view.mobsb > .av-sb {

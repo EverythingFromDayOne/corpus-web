@@ -15,6 +15,25 @@
   html {
     scroll-behavior: smooth;
     color-scheme: dark light;
+    /* Tokenize scrollbar colors globally (Firefox/Chromium with
+       `scrollbar-color` opt-in). The token pair flips per theme via
+       the same `:root[data-theme='light']` overrides already in
+       tokens.css — graphite on surface in dark, the lighter graphite
+       on near-white surface in light, so the scrollbar reads as
+       a recessed track against each theme's surface tone instead of
+       the browser's default dark-mode-leaning fallback that bled
+       into light mode. WebKit/Chromium classic scrollbar fallback
+       (`::-webkit-scrollbar-*`) is intentionally NOT styled here —
+       it would shadow the native overlay scrollbar styling on
+       macOS/Windows and break the "bare chrome" design discipline
+       used elsewhere in this app; with `scrollbar-color` set, the
+       thumb and track pick up the tokenized colors in classic mode
+       too (Chromium honors `scrollbar-color` regardless of overlay
+       vs. classic). Track = surface, thumb = graphite — matches the
+       sidebar's `--color-graphite` hairline dividers and the
+       `--color-surface` sidebar background, so a scrollbar visually
+       reads as part of the same surface furniture. */
+    scrollbar-color: var(--color-graphite) var(--color-surface);
     --tb: 3.6rem;
     /* PR #128 polish/blog-and-topbar-fixes: changed from
        `overflow-x: hidden` (PR #127) to `overflow-x: clip`. The
