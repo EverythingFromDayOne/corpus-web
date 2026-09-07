@@ -5,6 +5,25 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-07] — fix/heatmap-github-style-6mo — 6-month GitHub-style grid + month/weekday labels + styled tooltip + re-balanced level ladder
+
+**Changed**
+- Window: 12 months → 6 months (`buildHeatmapWeeks` returns `HeatmapLayout { weeks, weekdayLabels, monthLabels, monthBreaks }`).
+- Cell size: 8px → 7px, inter-cell gap 2px → 1px (so the 6-month grid fits a 304px sidebar without clipping today).
+- `heatLevel` boundaries re-balanced against the measured p25/p50/p75 distribution of real reading sessions: 0 / 1-2 / 3-5 / 6-9 / 10+ (was 0 / 1-2-3 / 4-6 / 7+).
+- Inter-month gutter: 4px left margin on the first week-column of every new calendar month (vs the 1px inter-column gap).
+
+**Added**
+- Month label overlay (`.av-heatmap-month-labels`): absolutely-positioned labels (Mar, Apr, …) anchored at the first week of each calendar month. CSS `transform: translateX(-100%)` extends the abbreviation leftward over preceding columns (GitHub contribution-graph convention).
+- Weekday label column (`.av-heatmap-weekday-col`): Sun..Sat down the left axis.
+- Styled tooltip badge: CSS-only `::after` pseudo-element, positioned above the cell via `position: absolute; bottom: calc(100% + 4px); transform: translateX(-50%)`, revealed on `:hover` and `:focus-visible`. Two-line text via `white-space: pre-line` (short date on line 1, `{count} {unit}` on line 2).
+- "Less [swatches] More" legend (`.av-heatmap-legend`) below the grid, all 5 levels shown. Each swatch has `aria-label` describing the level.
+- Cell is now a `<button>` (was a `<span>`) so keyboard users can Tab onto it and the `:focus-visible` tooltip reveals without JS.
+- 17 new tests in `apps/web/test/activity-heatmap.test.ts` (90 → 107). Covers 6-month window, weekday/month label positions, week-break set invariant, new heatLevel boundaries, real-corpus distribution sanity check.
+
+**i18n**
+- 12 new keys under `article.*`: `activityCellEmpty`, `activityCellCount`, `activityLegendLabel`, `eventOne` ("event"), `eventOther` ("events"), `legendLess`, `legendMore`, `legendNone`, `legendLow`, `legendMid`, `legendHigh`, `legendMax`.
+
 ### [2026-09-07] — develop — session 177 — merge PR #167 + open PR #166 (develop → main promotion prep)
 
 **Changed**

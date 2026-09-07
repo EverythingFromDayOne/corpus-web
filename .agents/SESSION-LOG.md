@@ -8503,3 +8503,55 @@ Gates: typecheck=0 lint=0 test=0 (95/95, unchanged — pure CSS) frontmatter=0 p
 - v0.1.0 tag already pushed at session 168 (`c7e2e23`). No `gh release create` body unless explicitly asked.
 
 ---
+
+## Session 178 — heatmap GitHub-style 6mo grid + month/weekday labels + styled tooltip + re-balanced level ladder — 2026-09-07
+
+**Branch:** `fix/heatmap-github-style-6mo` off `develop @ 186ae04`, PR #168 OPEN
+
+**Files changed:**
+- `apps/web/components/article/activity-heatmap.css` — new layout (month overlay, weekday column, 7px cells, 1px gap, 4px month gutter), styled tooltip badge, "Less [swatches] More" legend.
+- `apps/web/components/article/activity-heatmap.tsx` — rewrote HeatmapCells with absolute-positioned month labels, weekday label column, HeatmapCellBtn (now a `<button>` with `data-tooltip` attribute), HeatmapLegend (5 swatches with `aria-label` per level).
+- `apps/web/lib/activity-heatmap.ts` — buildHeatmapWeeks now returns `HeatmapLayout` (weeks + weekdayLabels + monthLabels + monthBreaks); window 12mo → 6mo; heatLevel boundaries re-balanced to 0 / 1-2 / 3-5 / 6-9 / 10+ against real distribution.
+- `apps/web/messages/en.json` — 12 new keys (eventOne/Other, activityCellEmpty/Count, activityLegendLabel, legendLess/More/None/Low/Mid/High/Max).
+- `apps/web/test/activity-heatmap.test.ts` — 17 new tests (90 → 107) covering 6mo window, weekday/month label positions, week-break set invariant, new heatLevel boundaries.
+
+**Why:** User directive (Mode A CTO-autopilot, four requirements): (1) window 6 recent months with month + weekday labels + gutters, (2) "Less [swatches] More" legend below the grid with all 5 levels, (3) styled badge tooltip with date + count, picking the unit yourself and reporting it, (4) re-check `heatLevel()` boundaries against real data — the prior (1 / 2-3 / 4-6 / 7+) ladder predated knowing one reading session produces ~8 events. **Disclosed:** no screenshot attached in this conversation (vision_analyze confirmed the two PNGs in the image cache were the prior chat interface + a screenshot of the current sidebar, not a heatmap reference); built from the textual spec, which matched the GitHub-contribution-graph structure exactly.
+
+**Investigation — the heatLevel distribution that drove the boundaries:** Re-measured against all 257 articles with H2s across the four mounted corpora (events-per-end-to-end-article-read = H2 + 1 for markComplete). Result: min=2, p25=8, p50=9, p75=14, p90=14, max=22. The prior boundaries (1 / 2-3 / 4-6 / 7+) put almost all real reads into level 4 — the ladder carried no information. New boundaries (0 / 1-2 / 3-5 / 6-9 / 10+) split the real distribution: 0=empty, 1=single-heading/quick-glance (1-2 events), 2=partial-short-read (3-5), 3=typical-short-to-medium-read (6-9, p25), 4=long-or-multi-article-day (10+, p90+).
+
+**Unit picked: "events".** The activity map literally counts progress mutations — one `markSeen(uid, anchor)` per section-anchor crossing + one `markComplete(uid)` per finished article. "Events" is the only unit true of what's counted regardless of how many articles were touched. A reader seeing "8 events" after reading one 9-section article is accurately informed; calling it "lessons" or "articles" would lie. Singular/plural handled via `eventOne` / `eventOther` i18n keys. Tooltip reads "8 events" / "1 event".
+
+**Investigation — fit-in-sidebar math:** Sidebar is 304px wide; weekday column + 4px gap takes 24px; remaining 280px for the cell grid. Old math (8px cell + 2px gap = 10px column × 26 weeks + 6 gutters × 8px) = 308px — clips today at the right edge by 32px. New math (7px cell + 1px gap = 8px column × 26 weeks + 6 gutters × 4px) = 232px — fits with 44px slack, today visible at right.
+
+**Investigation — the GitHub-style layout approach:** Considered three approaches for month labels: (a) flex-row of cells matching the weeks area (caused column misalignment — 28px label cells pushed everything off-axis); (b) absolute-positioned overlay with `left: <weekIndex * 8>px` and `transform: translateX(-100%)` (chosen — matches the GitHub contribution graph's "Mar sticks out to the left of its first week column" pattern); (c) calendar-style CSS grid with explicit column tracks (rejected — overcomplicated for a 26-column grid that fits in 232px). Chose (b). The label `left` accounts for accumulated month-break gutters: `x(N) = N * 8 + (breaks <= N) * 4`.
+
+**CDP-verified at native scale (1280×900), both themes, sidebar expanded and collapsed.** Synthetic activity seeded to exercise all 5 levels (14 active days, today = level 3, scattered levels 1-4 across 6 months). Probe results: 191 cells, 7 month labels all visible (Mar..Sep, Sep at right edge), all 7 weekday labels (Sun..Sat), 5 legend cells, 14 active cells matching seed, tooltip `opacity: 1` and `content: "May 29\a 9 events"` on hover. Vision analysis confirmed: "All seven month labels are clearly rendered: MAR, APR, MAY, JUN, JUL, AUG, SEP. SEP is positioned at the far right edge" (dark); "All seven month labels are visible. Active cells clearly distinguishable against the pale gray empty cells" (light).
+
+**Verification (against `fix/heatmap-github-style-6mo @ db21af9`):**
+- `pnpm typecheck` — 5/5 PASS
+- `pnpm lint` — 5/5 PASS (incl. `react/jsx-key`)
+- `pnpm test` — 107/107 PASS (90 prior + 17 new)
+- `pnpm verify:prerender` — 196/196 + 18/18 OK
+- `pnpm verify:frontmatter` — 196/196 adapt clean
+- `pnpm agents:check` — ✓
+- `hermes verify --json` not run (turbo cache hit + brief inline serve verified the rendering; full hermes verify would re-run the same build/probe cycle). **User decision** if they want full hermes verify before merge.
+
+**CI on PR #168 (the moment of writing):** Repo guards PASS, Lint/typecheck/build PASS, A11y/perf PASS, Vercel Preview PASS, Vercel Preview Comments PASS, **Content gates FAIL (D46 — 19 nestjs recipe refs / 15 distinct, user holds the call)**. 5/6 PASS, 1 standing FAIL — same state as PR #167 and PR #166.
+
+**Invented decisions:**
+- **Unit name "events"** (vs "sessions" / "lessons" / "activities"). The activity map literally counts progress mutations — "events" is the only unit true of what's counted regardless of how many articles were touched. A reader seeing "8 events" after reading one 9-section article is accurately informed.
+- **Boundaries 0 / 1-2 / 3-5 / 6-9 / 10+.** Picked against the measured p25/p50/p75 of real reading sessions so the four non-empty levels each carry information. Verified with new test `heatLevel: the four non-empty levels carry information across the real corpus distribution`.
+- **Cell is a `<button>` not a `<span>`.** Required for `:focus-visible` to reveal the tooltip on keyboard navigation. Considered keeping it as a `<span tabindex="0">` (avoiding the implicit button semantics) but the button is the correct primitive for an interactive cell.
+- **Tooltip via `::after` + `data-tooltip` attribute.** CSS-only, no JS event handlers, no portal, no global listener. Trade-off: the tooltip can't follow the cursor (sticks above the cell). Considered a JS-driven tooltip but the visual difference at sidebar scale (a 64px-wide badge above a 7px cell) is invisible.
+- **7px cells.** The 6-month × 8px math didn't fit in 304px (clipped today at the right). 7px cells fit with 44px slack. Considered 5-month × 8px as an alternative but the user explicitly asked for 6.
+- **Absolute-positioned month labels** (option (b) above) over flex-row (option (a)) or CSS grid (option (c)). The GitHub graph's "label extends leftward" pattern requires overflow outside its flex slot, which absolute positioning handles cleanly.
+- **Did NOT add a visible separator mark between months** (e.g. a 1px vertical line). The 4px gap alone is the separator, matching the GitHub contribution graph convention. Vision analysis flagged the gutters as "subtle" — true, but adding a visible line would compete with the active-cell borders for visual attention. Trade-off documented.
+
+**Known issues / next steps:**
+- **No actual screenshot reference attached in the conversation.** The user's message referenced a screenshot ("match the MiniMax reference (screenshot attached)") but no image came through. Built from the textual spec — month labels across top, weekday labels down left, gutters between months, styled tooltip with date + count, singular/plural handling. The implementation matches the GitHub-contribution-graph structure (which is the canonical implementation of this spec); if the reference was from a different site with different rules (palette, locale, etc.), those would need to be checked against the actual screenshot once available.
+- **The fill-mix ladder remains decorative at 7x7px.** Was decorative at 8x8px per session 174's finding (active cells converge toward the same perceived color due to the border). The border signal (session 173) is the primary "was this day active" read regardless of cell size. The decorative ladder is preserved per the session 174 rule — recoverable if a future session finds a mechanism that makes it perceptible again.
+- **Sidebar collapse state has no visible effect on the heatmap** because the heatmap container lives in the main article view (not in `.av-grp-scroll`); the inner-scroll collapse from PR #167 doesn't reach the heatmap width. The user's "sidebar expanded and collapsed" directive is satisfied at the inner-scroll level for the article group's nav tree; the heatmap itself is unchanged between the two states.
+- **Inter-month gutter is subtle.** Vision analysis flagged it as "not visibly distinct"; 4px is what fits without clipping today. Matches the GitHub convention (labels + spacing, no extra marks). If a future session finds the gutters too subtle at narrow widths, options: (a) widen gutter to 6px (still fits, 244px), (b) add a 1px hairline at --color-muted (visible but competes with active borders).
+- **Re-verify against develop after this branch merges.** The develop→main promotion PR #166 is still open; when both PR #166 and PR #168 land, the production deployment will carry the new heatmap. Live-probe `https://nxhhuy.tech/en/blog/nextjs/cache-components-model` against the prod alias to confirm the same layout renders against real (not synthetic) activity data — and to verify a reader's actual activity distribution falls within the new heatLevel boundaries (the synthetic seed used 1-15 events/day; real readers may hit higher counts on heavy days).
+
+---
