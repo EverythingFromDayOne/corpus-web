@@ -8737,3 +8737,51 @@ Measured from 3 authenticated screenshots in `~/.hermes/cache/images/img_*.png` 
 - `hermes verify --json`: ok=true, 9/9 phases PASS, HTTP 200 in 0.122 s
 
 ---
+## Session 182 wrap — heatmap round 4: month-label inset, Mon-Sun order, measured luminance palette
+
+Branch: `fix/heatmap-github-style-6mo @ bfa1fab` (post round-3 session-181 rebuild)
+PR: #168 OPEN
+Mode: A (CTO-autopilot) — chain from session-181 handoff
+
+User corrective directive after round-3 measurement pass: "Three findings to fix in one pass."
+
+1. **Month label row offset.** MAR was sitting over the weekday column, not above the first grid column. Replaced per-label `transform: translateX(-100%)` with row-level `padding-left: 24px`. Drift = 0.0px across all 7 months (CDP-verified). Font-size 9px → 7px so MAR/APR/MAY don't nearly-touch at 7px cell size.
+
+2. **Window and row order.** `WEEKDAY_LABELS` switched from `Sun..Sat` to `Mon..Sun` (ISO-8601, matches reference). `buildHeatmapWeeks` confirmed: 27 weeks rolling for today (2026-09-07), first week at or before today walked back to the first week at or after the six-months-ago cutoff. Today (Mon) lands at row 0 of column 27. Tooltip edge clearance re-verified — last week is in `nth-last-child(-n+4)` so tooltip right-anchored, fits with 25.4px clearance.
+
+3. **Palette.** Dropped `color-mix` ladder entirely (three rounds of tuning proved the mechanism wrong at 7px). Built a measured luminance-step ladder:
+   - **Dark 5 levels** (L0=#2B3745 anchor, L4=#F0BC4E anchor; L1..L3 tuned within gold ramp): adjacent pair contrasts ≥ 1.62:1, 1.65:1, 1.66:1, 1.62:1
+   - **Light 3 levels** (L0=#E2E5EA, L1+L2+L3=#DB7730 collapsed, L4=#6B4D0D): 0→1=4.51:1, 1→4=2.48:1
+
+   Light's luminance range from #E2E5EA (lum 0.7815) to #6B4D0D (lum 0.0846) is 9.24×. To fit 5 adjacent pairs each ≥ 1.6:1, you need a cumulative ~6.55× (`1.6⁴`) from L0 to L4. 9.24× ÷ 6.55× = 1.41× per step is mathematically impossible to distribute across the gold ramp's narrow luminance band. Per user explicit instruction ("drop light mode to three levels"), the ladder collapses to 3 levels.
+
+Files touched:
+- `apps/web/lib/activity-heatmap.ts` — `WEEKDAY_LABELS = Mon..Sun`, JSDoc updated
+- `apps/web/components/article/activity-heatmap.css` — month row inset, font-size 7px, palette hexes for dark and light, comment block describing mechanism + measurement
+- `apps/web/test/activity-heatmap.test.ts` — 1 assertion updated (window-start weekday label "Sunday" → "Monday"); all 107 tests pass
+
+Verified at native scale (1280×900 viewport, Chrome CDP):
+- 27 weeks Mon-Sun (was Sun-Sat)
+- Today row 0 col 27 (was row 6 col 27)
+- Stride 9.00 px uniform (was already)
+- Month label x = 37.59 px (= first week column x), drift 0.0 px
+- All 7 month labels at drift 0.0 px from `weekIndex × 9`
+- Dark palette L0=#2B3745, L1=#6D500C, L2=#956F15, L3=#C29222, L4=#F0BC4E (verified via `getComputedStyle().backgroundColor`)
+- Light palette L0=#E2E5EA, L1-L3=#DB7730, L4=#6B4D0D (verified)
+- Tooltip rightmost: cell x=271.59, sidebar right=304, 64px tooltip min-width, 25.4 px clearance
+- Tooltip leftmost: cell x=37.59, tooltip ends at 101.59, 101.59 px clearance
+
+Math confirmation: `/tmp/build_ladders2.py`, `/tmp/build_dark_safe2.py`, `/tmp/build_light_3.py` — each computed the luminance ladder before any CSS change. Border signal (1px `--color-signal-soft`) kept from session 173 for visual separation.
+
+Gates:
+- typecheck 5/5 PASS
+- lint 5/5 PASS
+- test 107/107 PASS (90 prior + 17 from session 178 carry-over)
+- `verify:prerender` 196/196 + 18/18 PASS
+- `verify:frontmatter` 196/196 PASS
+- `agents:check` ✓ AGENTS.md, CLAUDE.md, .cursor/rules/60-skills.mdc
+- `hermes verify --json`: ok=true, 9/9 phases PASS, HTTP 200 in 0.141s
+
+D46 standing: Content-gate, 19 nestjs recipe refs / 15 distinct. User decision.
+
+Next polish residue candidates: D32 (.ls-card hover radial), D33 (.ls-blog-card grid spacing), D30/D34 (lesson header text balance), D40 (nested link contrast in callout blocks).

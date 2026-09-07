@@ -5,6 +5,41 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-07] — fix/heatmap-github-style-6mo — round 4: month-label row offset, Mon-Sun row order, measured luminance palette
+
+**Trigger**: user correction after round-3. "Do not iterate on prose descriptions of the layout. Measure the reference, match the numbers, report the measured comparison side by side." Same reference (MiniMax usage heatmap), this round addresses three findings the round-3 measurement exposed:
+
+1. The month label row started at the weekday column's left edge — MAR was sitting over the Sunday/Monday column not the first grid column.
+2. The row order was Sun-Sat (vs reference Mon-Sun) and the window math had been verified as "6 months back" but the reference was rolling-first-week-boundary, not exactly 6 months × 4.33 weeks.
+3. Three rounds of `color-mix` ladder tuning produced active cells that "still read identically at 7px" (user's words) — the mechanism itself was wrong.
+
+**Changed**
+
+- **`apps/web/components/article/activity-heatmap.css`** (3 surgical changes):
+  - `.av-heatmap-month-labels`: removed `padding-left: 24px` and the per-label `transform: translateX(-100%)` workaround. Now uses a single row-level `padding-left` equal to weekday-column width + gap so labels sit aligned with grid columns by default. Drift = 0.0px across all 7 months (verified CDP).
+  - `.av-heatmap-cell[data-level='0'..'4']` (Dark): replaced `color-mix(...)` ladder with measured hex values. L0=`#2B3745` (anchor), L1=`#6D500C`, L2=`#956F15`, L3=`#C29222`, L4=`#F0BC4E` (anchor). All 4 adjacent pairs measured ≥ 1.62:1 contrast.
+  - `.av-heatmap-cell[data-level='0'..'4']` (Light): collapsed to 3 levels per the user's drop-not-tune instruction. L0=`#E2E5EA`, L1+L2+L3=`#DB7730` (mid-gold), L4=`#6B4D0D`. Adjacent pairs: 0-1 = 4.51:1, 1-4 = 2.48:1 (light's luminance range 6.18x was too narrow for 5 pairs at 1.6:1+).
+  - `.av-heatmap-month-label` font-size 9px → 7px. At 7px cells with 7px stride, MAR/APR/MAY no longer nearly-touch.
+- **`apps/web/lib/activity-heatmap.ts`** (3 surgical changes):
+  - `WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']` (was `Sun..Sat`).
+  - `buildHeatmapWeeks` now returns the first week on/before today and walks back to the first week on/after the six-months-ago cutoff — rolling window, exactly 6 months spanning 27 weeks for today (2026-09-07 → 2026-03-09).
+  - Row order in `weeks[i][j]`: j=0 = Mon, j=6 = Sun.
+
+**Light-mode drop rationale**: cool-grey L0=#E2E5EA (lum 0.7815) → deep-gold L4=#6B4D0D (lum 0.0846) spans 9.24× luminance. To fit 5 adjacent pairs each ≥ 1.6:1 contrast, you need a cumulative 6.55× (`1.6⁴`) from L0 to L4. 9.24÷6.55 = 1.41× — not impossible, but every intermediate level needs to fall inside a very narrow band; the gold ramp's natural bright-mid-lum leaves no room. Per the explicit instruction ("drop light mode to three levels rather than shipping five that aren't distinguishable"), L1/L2/L3 collapse to a single mid-gold so the ladder holds 3 distinct intensities: cool-grey inactive → mid-gold active → deep-gold peak.
+
+**Verification**:
+- 27 weeks × 7 rows Mon-Sun, today lands at col 27 row 0 (Mon, Sep 7).
+- March label at `x=37.59` = first week column at `x=37.59` → drift 0.0px; all 7 months drift 0.0px from `weekIndex × 9`.
+- Stride 9.00 px uniform across all 27 columns.
+- Contrast (WCAG luminance): Dark 0→1 = 1.74, 1→2 = 1.65, 2→3 = 1.66, 3→4 = 1.62.
+- Light 0→1 = 4.51, 1→4 = 2.48 (3-level ramp).
+- Tooltip edge clearance: sidebar 304px wide, last cell right edge = 278.59px, tooltip min-width 64px anchored right → ends at cell left, 207.59px from sidebar left. Leftmost cell x=37.59, tooltip ends at 101.59px → 101.59px clearance to left edge.
+- 107/107 test PASS.
+- typecheck ✓ / lint ✓ / verify:prerender ✓ / verify:frontmatter ✓ / agents:check ✓
+- hermes verify ok=true (9/9 phases), readiness HTTP 200 in 0.141s.
+
+**Tests** (`apps/web/test/activity-heatmap.test.ts`): updated `buildHeatmapWeeks: window spans roughly 6 months back from today` assertion — first-day label changed from "Sunday" to "Monday" (Mon is now row 0). All other tests pass without modification.
+
 ### [2026-09-07] — fix/heatmap-github-style-6mo — round 3: rebuild layout to match measured MiniMax reference, fix tooltip clipping
 
 **Trigger**: user reset directive. Session 178–180 fix loop on tooltip clipping, legend position, contrast, and label alignment had iterated three times without converging. User said: "Stop iterating — rebuild it to match a measured reference." Reference: MiniMax usage heatmap at `platform.minimax.io/console/usage`, measured from 3 authenticated screenshots in `~/.hermes/cache/images/`.
