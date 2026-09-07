@@ -5,6 +5,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-07] — develop — session 177 — merge PR #167 + open PR #166 (develop → main promotion prep)
+
+**Changed**
+- PR #167 `fix(activity-heatmap,sidebar): trailing-window grid, single scrollbar, tokenized scrollbars` merged into `develop @ 5a7d790` via squash (per develop-side convention). Session 176 wrap.
+
+**Added**
+- PR #166 `Develop (#168): PR #165 activity heatmap widget + PR #167 sidebar fixes` — develop → main promotion carrying both PRs to production. Title + body refreshed to describe the now-2-PR promotion, the zero-conflict local merge of `origin/main` into `develop` (merge commit `406538e`), the verification matrix, and the standing D46 Content-gate failure.
+
 ### [2026-09-07] — fix/activity-heatmap-sidebar-issues — trailing-window grid, single scrollbar, tokenized scrollbars
 
 **Fixed**
