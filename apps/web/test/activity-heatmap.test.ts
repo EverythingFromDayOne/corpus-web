@@ -132,11 +132,11 @@ test('computeMaxStreak: unsorted insertion order does not affect the result', ()
 
 // ----- buildHeatmapWeeks --------------------------------------------------
 
-test('buildHeatmapWeeks: empty activity produces a 6-month grid with all-zero cells, no placeholder numbers', () => {
+test('buildHeatmapWeeks: empty activity produces a 24-week grid with all-zero cells, no placeholder numbers', () => {
   const layout = buildHeatmapWeeks({}, TODAY);
-  assert.ok(layout.weeks.length > 0, 'grid must have at least one week column');
+  assert.equal(layout.weeks.length, 24, 'grid must have exactly 24 week columns (matches reference)');
   const allCells = layout.weeks.flat();
-  assert.ok(allCells.length > 150, 'a 6-month grid must have roughly 180+ day cells (incl. padding)');
+  assert.ok(allCells.length > 150, 'a 24-week grid must have 168 day cells (incl. padding)');
   for (const cell of allCells) {
     if (cell === null) continue; // padding cell (before the window or after today)
     assert.equal(cell.count, 0, `cell ${cell.date} must be 0 when activity is empty`);
@@ -172,16 +172,16 @@ test('buildHeatmapWeeks: the last real cell is "today", not some future padding 
   assert.equal(last!.date, TODAY);
 });
 
-test('buildHeatmapWeeks: window spans roughly 6 months back from today (leap into the prior year)', () => {
-  // 6 months back from 2026-09-06 lands in 2026-03. The first cell should
-  // be a Monday in early-to-mid March 2026 (first Monday at or after cutoff).
+test('buildHeatmapWeeks: window is exactly 24 week columns ending on today\'s week (leap into the prior year)', () => {
+  // TODAY = 2026-09-06 (a Sunday). 24 weeks back lands the window start
+  // in March 2026.
   const layout = buildHeatmapWeeks({}, TODAY);
   const flat = layout.weeks.flat().filter((c): c is { date: string; count: number } => c !== null);
   const first = flat[0]!;
   const firstMonth = Number(first.date.slice(5, 7));
   assert.ok(
     firstMonth >= 2 && firstMonth <= 4,
-    `expected the window to start in Mar/Apr 2026 (Mar-1 ± a few weeks for calendar alignment), got ${first.date}`,
+    `expected the window to start in Feb/Mar/Apr 2026, got ${first.date}`,
   );
 });
 
@@ -191,10 +191,9 @@ test('buildHeatmapWeeks: weekdayLabels is Mon..Sun in order', () => {
 });
 
 test('buildHeatmapWeeks: monthLabels lists one entry per calendar month in the window', () => {
-  // 2026-09-06 → 6-month window covers Mar 2026 through Sep 2026 = 7 months
-  // (the window rounds to whole weeks, so the count varies by ±1). Each
-  // label must be a valid 3-letter month abbreviation and the week indices
-  // must be strictly increasing.
+  // TODAY = 2026-09-06 → 24-week window covers Mar 2026 through Sep 2026
+  // = 7 months. Each label must be a valid 3-letter month abbreviation
+  // and the week indices must be strictly increasing.
   const layout = buildHeatmapWeeks({}, TODAY);
   const validLabels = new Set([
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
@@ -233,21 +232,16 @@ test('buildHeatmapWeeks: monthBreaks has no entries that are not monthLabels', (
   }
 });
 
-test('buildHeatmapWeeks: 6-month window is roughly 26 weeks, not 53 (the prior 12-month window)', () => {
+test('buildHeatmapWeeks: window is exactly 24 weeks (matches the reference grid)', () => {
   const layout = buildHeatmapWeeks({}, TODAY);
-  // 6 months ≈ 26 weeks. Loose bounds: 22 ≤ N ≤ 30 (any shift in the
-  // window-alignment math shouldn't push us out of this band).
-  assert.ok(
-    layout.weeks.length >= 22 && layout.weeks.length <= 30,
-    `expected ~26 weeks for 6-month window, got ${layout.weeks.length}`,
-  );
+  assert.equal(layout.weeks.length, 24, `expected exactly 24 weeks, got ${layout.weeks.length}`);
 });
 
-test('buildHeatmapWeeks: 6-month window is shorter than 12-month (regression on the prior window size)', () => {
-  const layout6 = buildHeatmapWeeks({}, TODAY);
-  // The previous 12-month window produced 53 weeks; the new 6-month window
-  // is approximately half. Loose assertion: 6mo ≤ 12mo - 20.
-  assert.ok(layout6.weeks.length <= 33, `6-month window must be ≤33 weeks, got ${layout6.weeks.length}`);
+test('buildHeatmapWeeks: 24-week window is shorter than 12-month (regression on the prior window size)', () => {
+  const layout24 = buildHeatmapWeeks({}, TODAY);
+  // The previous 12-month window produced 53 weeks; 24 weeks is roughly
+  // half that.
+  assert.ok(layout24.weeks.length <= 33, `24-week window must be ≤33 weeks, got ${layout24.weeks.length}`);
 });
 
 // ----- heatLevel ---------------------------------------------------------

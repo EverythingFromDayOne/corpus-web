@@ -372,6 +372,18 @@
   border-color: transparent;
 }
 
+/* Light mode collapses heat levels 1-3 to a single rendered colour
+   (see the data-level='1','2','3' rule above) — showing 5 swatches would
+   imply 5 distinct colours when only 3 exist. Hide the redundant middle
+   swatches (1 and 2) in light mode so "Less [swatch] [swatch] [swatch]
+   More" shows exactly the 3 colours that actually render: L0, the
+   collapsed L1-L3 colour (carried by the L3 swatch), and L4. Dark mode
+   keeps all 5 — it has 5 distinct colours. */
+:root[data-theme='light'] .av-heatmap-cell-legend[data-level='1'],
+:root[data-theme='light'] .av-heatmap-cell-legend[data-level='2'] {
+  display: none;
+}
+
 /* Suppress the legend swatch's own tooltip — the swatches carry
    aria-label for AT but should not show the badge tooltip. */
 .av-heatmap-cell-legend::after {

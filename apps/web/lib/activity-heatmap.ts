@@ -1,7 +1,7 @@
 /**
  * Pure date/grid logic over `ProgressStore.activity`. No localStorage
  * access, no React — this module receives an `activity` map and produces
- * derived values (current streak, max streak, a 6-month heatmap grid +
+ * derived values (current streak, max streak, a 24-week heatmap grid +
  * the metadata the React layer needs to render weekday/month labels and
  * inter-month gutters without recomputing dates).
  *
@@ -131,8 +131,11 @@ const MONTH_LABELS = [
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ] as const;
 
+/** Number of week columns in the grid — matches the MiniMax reference. */
+const WINDOW_WEEKS = 24;
+
 /**
- * 6-month heatmap grid + the metadata needed to render weekday labels,
+ * 24-week heatmap grid + the metadata needed to render weekday labels,
  * month labels, and inter-month gutters.
  *
  * Shape: an array of week columns, each an array of 7 day cells (Mon..Sun),
@@ -151,20 +154,19 @@ export function buildHeatmapWeeks(
 ): HeatmapLayout {
   const todayDate = parseKey(today);
 
-  // Start of the window: 6 months back from today (the cutoff), then
-  // advance to the first week boundary (Monday) at or after the cutoff.
-  const cutoff = new Date(todayDate);
-  cutoff.setMonth(cutoff.getMonth() - 6);
-
-  const cutoffDow = (cutoff.getDay() + 6) % 7; // Mon=0, ..., Sun=6
-  const daysToMonday = (7 - cutoffDow) % 7;
-  const windowStart = addDays(cutoff, daysToMonday);
-
   // End of the grid: the Sunday of today's week, so every week column
   // is complete — cells after today are padding (null), not future data.
-  const todayDow = (todayDate.getDay() + 6) % 7;
+  const todayDow = (todayDate.getDay() + 6) % 7; // Mon=0, ..., Sun=6
   const daysToSunday = 6 - todayDow;
   const gridEnd = addDays(todayDate, daysToSunday);
+
+  // Start of the window: exactly WINDOW_WEEKS week-columns ending at
+  // gridEnd, i.e. the Monday WINDOW_WEEKS*7-1 days before gridEnd. This
+  // matches the reference's fixed 24-column grid rather than a calendar
+  // "6 months back" cutoff — the two rules coincide in week count only
+  // when today happens to fall on specific weekdays, so they must not be
+  // conflated.
+  const windowStart = addDays(gridEnd, -(WINDOW_WEEKS * 7 - 1));
 
   const weeks: (HeatmapCell | null)[][] = [];
   const monthLabels: MonthLabel[] = [];
@@ -188,11 +190,21 @@ export function buildHeatmapWeeks(
       }
 
       // Detect month boundaries as we walk — the first week containing
-      // a day of a new calendar month anchors the month label.
+      // a day of a new calendar month anchors the month label. If two
+      // month transitions land in the same week column (windowStart can
+      // fall a day or two before a month boundary), the later month wins
+      // for that column — matching the reference, which never double-
+      // labels a single column (e.g. windowStart of Mar 30 puts Apr 1
+      // in week 0 too, so week 0 is labeled "Apr", not "Mar").
       const cellMonth = cursor.getMonth();
       if (cellMonth !== lastMonth && !beforeWindow && !afterToday) {
-        monthLabels.push({ weekIndex: currentWeekIndex, label: MONTH_LABELS[cellMonth]! });
-        monthBreaks.add(currentWeekIndex);
+        const prevLabel = monthLabels[monthLabels.length - 1];
+        if (prevLabel && prevLabel.weekIndex === currentWeekIndex) {
+          prevLabel.label = MONTH_LABELS[cellMonth]!;
+        } else {
+          monthLabels.push({ weekIndex: currentWeekIndex, label: MONTH_LABELS[cellMonth]! });
+          monthBreaks.add(currentWeekIndex);
+        }
         lastMonth = cellMonth;
       }
 
