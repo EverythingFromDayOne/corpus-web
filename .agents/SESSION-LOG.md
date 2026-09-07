@@ -8399,3 +8399,61 @@ Mechanism, once measured: the border added in session 173 is full-strength and *
 - **Process note, disclosed honestly:** a `patch` tool call during the CHANGELOG.md edit silently truncated inserted text with a literal `[truncated]` placeholder string, which landed in the file; caught by re-reading the file immediately after the edit (not assumed correct from the tool's success response) and corrected via two follow-up patches before it reached a commit. No stale/incorrect changelog content was committed.
 
 ---
+## Session 176 — trailing-window heatmap, single scrollbar, tokenized scrollbars (fix/activity-heatmap-sidebar-issues, PR #167 OPEN) — 2026-09-07
+
+**Branch:** `fix/activity-heatmap-sidebar-issues` (new branch from develop at 35a9546; PR #165 had been merged between sessions — file content byte-identical to develop, branch was obsolete, deleted and rebranched fresh)
+
+**Files changed:**
+- `apps/web/components/article/activity-heatmap.css` — `.av-heatmap-grid` switched to pure-CSS trailing window (`flex-direction: row; justify-content: flex-end; overflow: hidden`); `.av-heatmap-week` gains `flex-shrink: 0`.
+- `apps/web/components/article/article.css` — `.av-sb` `overflow-y: auto` → `overflow: hidden` at both `>1000px` desktop and `<=1000px` mobile breakpoints.
+- `apps/web/app/globals.css` — `html` gains `scrollbar-color: var(--color-graphite) var(--color-surface)` (tokenized; flips per theme via existing `:root[data-theme='light']` overrides in tokens.css).
+
+**Why:** Three review items raised together on the just-merged PR #165; share sidebar context and verification matrix, so landed as one PR (#167).
+
+**Investigation (each item reproduced via headless Chrome CDP at native scale, both themes, viewports 1440/1200/1001/999/768 before any code change):**
+
+**Item 1 — heatmap scroll pushing streak off-screen.** Reproduced: heatmap grid scrollWidth=528px, clientWidth=276px at desktop (252px overflow). The `overflow-x: auto` on `.av-heatmap-grid` did keep the full grid accessible via horizontal scroll, but the user's symptom was the scrollbar's presence itself (a glanceable widget shouldn't require a secondary interaction) and at narrow widths the horizontal scrollbar competed for the same gutter space the sidebar's vertical nav needed (issue 2).
+
+**Item 2 — double scrollbar.** Reproduced: at desktop, `.av-sb` had `overflowY: auto` with `offsetWidth=304, clientWidth=303` (1px gutter reserved) while `.av-grp-scroll` had its own scrollbar with `clientHeight=471, scrollHeight=3976, canScroll=true`. Both elements advertising scrollability, only one needing it.
+
+**Item 3 — scrollbar colors.** Reproduced: `getComputedStyle(html).scrollbarColor = "auto"`, `colorScheme = "light dark"`, `hasCustomScrollbar = false` (only one `::-webkit-scrollbar` rule in the project: `display: none` on the flashcard track — not a tokenized scrollbar). Tokenizing via `scrollbar-color` resolves to exact token values per theme; verified via CDP (`getComputedStyle().scrollbarColor` returns `rgb(43,55,69) rgb(21,29,38)` dark / `rgb(211,218,227) rgb(255,255,255)` light).
+
+**Fixes (each item):**
+
+**Item 1 — pure-CSS trailing window.** `.av-heatmap-grid` set to `flex-direction: row; justify-content: flex-end; overflow: hidden` with `.av-heatmap-week { flex-shrink: 0 }`. The full 53 weeks still render in DOM (data model unchanged; the deferred `/review` page per roadmap Phase 3 item 27 can use the same data), but the rightmost N that fit are visible — today at the right edge, oldest data clipped on the left.
+
+**Iteration mistake caught and corrected live:** first implementation used `flex-direction: row-reverse` (intuition: reverse so latest weeks go left, like reading direction). Verified live via DOM enumeration that with `row-reverse`, DOM idx 52 (today's week) ended up at x=-148 — fully clipped on the LEFT. The trailing window was inverted. Reverted to `flex-direction: row` + `justify-content: flex-end`, re-verified: DOM idx 52 now sits at x=268-276, rightmost visible (today at right edge). DOM enumeration at x=268 in this configuration matches the desired behavior; the CSS comment in `activity-heatmap.css` documents this iteration so the next session doesn't fall into the same trap.
+
+**Item 2 — single scrollbar.** `.av-sb` `overflow-y: auto` → `overflow: hidden` at both breakpoints. Inner `.av-grp-scroll` is the sole scroll context. Verified: `.av-sb.canScroll=false, .av-grp-scroll.canScroll=true` at desktop (one scrollbar); at mobile (vw<=1000, sidebar hidden by default via `transform: translateX(-102%)`) the outer's `overflow:hidden` means the user scrolls the inner `.av-grp-scroll` when the drawer is open (same interaction as since the heatmap was placed inside the sidebar in PR #172).
+
+**Item 3 — tokenized scrollbars globally.** `html` gains `scrollbar-color: var(--color-graphite) var(--color-surface)`. Both tokens flip per theme via the existing `:root[data-theme='light']` overrides in tokens.css (graphite=#d3dae3, surface=#ffffff in light vs. graphite=#2b3745, surface=#151d26 in dark). Deliberately did NOT add `::-webkit-scrollbar-*` rules — would override native overlay scrollbar styling on macOS/Windows and break the app's bare-chrome design discipline used elsewhere; `scrollbar-color` is honored by Chromium in both overlay and classic modes, so a single property covers all platforms.
+
+**Verification (post-fix, native-scale, both themes, all 5 viewports):**
+
+| | Before | After |
+|---|---|---|
+| `.av-sb` gutter | 1px from `overflow-y:auto` | 1px from border-right only |
+| `.av-sb` canScroll | varies | false at desktop; inner carries scroll |
+| Heatmap grid scrollWidth | 528px (overflows 276px) | 276px (clipped via overflow:hidden) |
+| Trailing-window | none | today at right edge (DOM idx 52 verified at x=268-276) |
+| Active cells visible (seeded 60-day history, 276px sidebar) | only leading weeks (oldest) | all 60 (verified by DOM rect enumeration) |
+| `scrollbar-color` root | auto (UA default) | `rgb(43,55,69) rgb(21,29,38)` dark / `rgb(211,218,227) rgb(255,255,255)` light |
+
+Gates: typecheck=0 lint=0 test=0 (95/95, unchanged — pure CSS) frontmatter=0 prerender=0 agents=0. verify:links=1 — standing D46 (19 nestjs recipe refs), unchanged.
+
+**Invented decisions:**
+- **Pure-CSS trailing window, not JS-measured `ResizeObserver`.** Considered the JS approach to dynamically compute visible-week count for truly-responsive behavior, but the user's framing ("trailing window sized to available width") is satisfied by a fixed trailing window that's correct at every measured breakpoint (the rightmost N weeks that fit; older clipped). The JS-driven approach adds runtime cost + re-render paths for a benefit the user didn't ask for and the design doesn't require. If a future session wants responsive week count, the data model already supports it (53 weeks still in `buildHeatmapWeeks` output).
+- **`flex-direction: row` + `justify-content: flex-end`, not `flex-direction: row-reverse`.** First implementation was row-reverse (intuition: latest goes left, like reading direction). Verified the error live via DOM enumeration before reverting. The CSS comment in `activity-heatmap.css` documents this iteration so the next session doesn't fall into the same trap.
+- **Tokenize scrollbar via `scrollbar-color` only, not vendor-prefixed `::-webkit-scrollbar-*` rules.** Avoids overriding native overlay scrollbar behavior on macOS/Windows, which the rest of the app's design discipline relies on. Chromium honors `scrollbar-color` in both modes so a single property covers everything.
+- **`.av-sb` becomes `overflow: hidden`, not `overflow-x: hidden; overflow-y: auto`.** Keeping `overflow-y: auto` (the previous value) would have preserved the outer scrollbar-gutter reservation that's the visible symptom of issue 2. `overflow: hidden` removes both axes' scrollbar reservation; the inner `.av-grp-scroll` carries the vertical scroll context, the heatmap grid's own `overflow: hidden` carries horizontal clipping.
+
+**Known issues / next steps:**
+- `/review` page (roadmap Phase 3 item 27) for the full 12-month view: still deferred. This fix renders only the trailing window and the data model still builds all 53 weeks for whenever that ships.
+- Mobile drawer (vw<=1000): when the sidebar IS opened (`.mobsb` class), the outer's `overflow: hidden` means the user can't scroll the whole aside with a single wheel gesture — they have to scroll the inner `.av-grp-scroll` explicitly. Same interaction the desktop sidebar has had since the heatmap was placed inside it, so no regression; documented here because the change touched the rule explicitly.
+- No automated test for any of these — pure CSS, verified via CDP DOM/rect enumeration + native pixel sampling, consistent with how every prior session in this thread has verified visual changes (no jsdom / RTL in repo).
+
+**Process notes:**
+- Branch hygiene: PR #165 (the entire 8-commit iteration chain across sessions 171-174) had been MERGED to develop between sessions (mergedAt 2026-09-06T23:29:56Z, develop advanced to 35a9546). My local branch `feat/activity-streak-heatmap` HEAD was 5910092, byte-identical to develop at the file level (squash-merge brought the code + docs across via fast-forward). Deleted the obsolete branch and created `fix/activity-heatmap-sidebar-issues` fresh from origin/develop. **Lesson noted for memory**: before resuming polish work on a previously-open PR, FIRST check `gh pr view <N> --json state,mergedAt` AND `git diff HEAD origin/develop --stat` — if file content already matches develop, the working branch is obsolete.
+- A `patch` tool call during the CHANGELOG.md edit ate one bullet (the `h1.post-header-title` Fixed line) when its `old_string` happened to start where that bullet did; caught on re-read and restored via a follow-up patch before commit. No stale/incorrect changelog content reached a commit.
+
+---

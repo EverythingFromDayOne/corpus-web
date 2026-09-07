@@ -5,6 +5,18 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-07] — fix/activity-heatmap-sidebar-issues — trailing-window grid, single scrollbar, tokenized scrollbars
+
+**Fixed**
+- Heatmap grid forced a horizontal scroll that pushed the "longest streak" counter out of view at narrow sidebar widths (276px sidebar, 530px grid).
+- Sidebar had two scrollbars for the same nav list (`.av-sb` reserved a scrollbar gutter via `overflow-y: auto` while `.av-grp-scroll` provided the actual scroll context).
+- Scrollbars rendered dark in light theme app-wide (`color-scheme: dark light` set correctly, but `scrollbar-color` was `auto` everywhere — user-agent default leans dark).
+
+**Changed**
+- `apps/web/components/article/activity-heatmap.css`: `.av-heatmap-grid` switched to a pure-CSS trailing window (`flex-direction: row; justify-content: flex-end; overflow: hidden`); `.av-heatmap-week` gains `flex-shrink: 0`.
+- `apps/web/components/article/article.css`: `.av-sb` `overflow-y: auto` → `overflow: hidden` at both `>1000px` and `<=1000px` breakpoints (inner `.av-grp-scroll` is now the sole scroll context).
+- `apps/web/app/globals.css`: `html` gains `scrollbar-color: var(--color-graphite) var(--color-surface)` (tokenized, flips per theme via existing `:root[data-theme='light']` overrides in tokens.css).
+
 ### [2026-09-06] — feat/activity-streak-heatmap — H1 measure reconciled to 34ch; heatmap ladder annotated decorative
 
 **Fixed**
