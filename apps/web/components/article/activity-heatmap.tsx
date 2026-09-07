@@ -84,35 +84,17 @@ export function ActivityHeatmap({ messages }: { messages: Messages }) {
  * the leftward text-overflow via `transform: translateX(-100%)`.
  */
 function HeatmapCells({ layout, messages }: { layout: HeatmapLayout; messages: Messages }) {
-  const { weeks, weekdayLabels, monthLabels, monthBreaks } = layout;
+  const { weeks, weekdayLabels, monthLabels } = layout;
 
-  // Compute the absolute left offset for each week column. Cell grid is
-  // 8px per week-column (7 cell + 1 gap); month-break weeks carry an
-  // additional 4px left margin via the CSS `.av-heatmap-week-monthbreak`
-  // rule, so the x-position of a week at index N is:
-  //
-  //   x(N) = N * 8 + (number of month breaks with weekIndex <= N) * 4
-  //
-  // The gutter sits BEFORE its week-column (margin-left on the week div),
-  // so the gutter for break-at-week-N pushes week N's cells right by 4px
-  // AND the month label anchored at week N should also sit 4px right of
-  // the previous column's right edge — i.e. the label aligns with the
-  // cell AFTER the gutter, not before it. Counting breaks with index <= N
-  // captures both: the gutter AT week N itself counts, because the label
-  // is supposed to sit at the cell's left edge (which is after the gutter).
-  //
-  // Session-180 correction: the session-179 version counted breaks with
-  // index < N (excluding the break AT N). That was wrong — it produced a
-  // systematic -4px offset on every month label (Mar, Apr, ..., Sep all
-  // off by 4 to the left). CDP-verified 2026-09-07.
-  //
-  // Month labels anchor at the left edge of their week, so a label for
-  // the break at week N uses the same x(N) value.
+  // Compute the absolute left offset for each week column.
+  // With uniform 2px gaps between week columns (matching the MiniMax reference),
+  // each column's left edge is simply `weekIndex * (cell_width + gap)`.
+  // Cell is 7px, gap is 2px, so stride is 9px.
+  // Month labels anchor at the left edge of their first week column.
+  const STRIDE = 9; // 7px cell + 2px gap
   const labelOffsets = new Map<number, number>();
-  let cumulativeBreaks = 0;
   for (let i = 0; i < weeks.length; i++) {
-    if (monthBreaks.has(i)) cumulativeBreaks += 1;
-    labelOffsets.set(i, i * 8 + cumulativeBreaks * 4);
+    labelOffsets.set(i, i * STRIDE);
   }
 
   return (
@@ -155,7 +137,7 @@ function HeatmapCells({ layout, messages }: { layout: HeatmapLayout; messages: M
             <div
               key={weekIndex}
               data-week-idx={weekIndex}
-              className={`av-heatmap-week${monthBreaks.has(weekIndex) ? ' av-heatmap-week-monthbreak' : ''}`}
+              className="av-heatmap-week"
             >
               {week.map((cell, dayIndex) =>
                 cell === null ? (
@@ -171,13 +153,10 @@ function HeatmapCells({ layout, messages }: { layout: HeatmapLayout; messages: M
             </div>
           ))}
         </div>
-
-        {/* Legend to the right of the cell grid (session-179 change).
-            The legend is a vertical stack — "Less" label, 5 swatches,
-            "More" label — sitting in the body row alongside the
-            weekday column and the cell weeks area. */}
-        <HeatmapLegend messages={messages} />
       </div>
+
+      {/* Legend below the grid, horizontal, right-aligned (matching the MiniMax reference). */}
+      <HeatmapLegend messages={messages} />
 
       {/* Hidden month-label list for AT — month labels are aria-hidden above
           because the cell-level aria-labels already carry dates; the

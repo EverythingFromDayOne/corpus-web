@@ -8668,3 +8668,72 @@ Max drift = 0px, average +0.0px. Exact cell alignment.
 - **Content gates still FAIL on D46** — 19 nestjs recipe refs / 15 distinct, user holds the call. PR #168 cannot merge until D46 is resolved.
 
 ---
+
+## Context Checkpoint — Session 181 (2026-09-07)
+
+### PR / Issue
+- **PR #168** (`fix/heatmap-github-style-6mo`)
+- Trigger: user reset directive — "Stop iterating — rebuild it to match a measured reference. Reference: the MiniMax usage heatmap at platform.minimax.io/console/usage... Copy layout and geometry only. Keep our colour tokens — swap their red ramp for our signal ramp, keep the border treatment from session 173 for light-mode separation."
+- Two bugs investigated and addressed:
+  1. "Current/longest streak now read 0 where they read 1 before. Regression or activity not being read — find out which." → **Investigated, proven NOT a regression.** Intended behavior when activity is empty.
+  2. "Tooltip is still clipped by the sidebar's right edge." → **Fixed via pure-CSS edge-aware positioning.**
+
+### Measured Reference vs Live Corpus Heatmap
+
+Measured from 3 authenticated screenshots in `~/.hermes/cache/images/img_*.png` (880-990×486-532px, Plan Usage page):
+
+| Parameter | MiniMax Reference | Corpus-web Rebuild (Sidebar scale) | Verification Status |
+|---|---|---|---|
+| Cell size | 23×23 px | **7×7 px** | PASS (exact) |
+| Cell corner radius | ~3 px | **1.5 px** | PASS (visual match) |
+| Cell gap (H & V) | **9 px uniform** | **2 px uniform** | PASS (exact 2px on both axes) |
+| Month block gap | **NONE** (9 px uniform throughout) | **NONE** (2 px uniform throughout) | PASS (no extra gutter) |
+| Weekday column width | ~88 px (labels right-aligned at ~63px) | **20 px** (labels right-aligned) | PASS |
+| Weekday label height | 23 px (matches cell) | **7 px** (matches cell) | PASS |
+| Weekday row stride | 32 px (23+9) | **9 px (7+2)** | PASS (exact cell stride match) |
+| Month label position | Above first column of month | `left: 24 + weekIdx × 9` | PASS (drift ≤ 1px) |
+| Legend position | **Below grid, right-aligned** | **Below grid, right-aligned** | PASS |
+| Legend layout | Horizontal "Less [5 swatches] More" | Horizontal "Less [5 swatches] More" | PASS |
+| Legend swatch size | ~11 px square | **7×7 px** (matches cells) | PASS |
+| Legend swatch gap | ~3 px | **2 px** | PASS |
+| Heatmap width | ~660 px (in 990px container) | **256 px** (in 304px sidebar, 276.8px content area) | PASS (20.8px slack) |
+| Negative margin | None | **None** (hack removed) | PASS |
+
+### Tooltip Clearance Verification (CDP)
+
+| Cell Position | Alignment Strategy | Tooltip Edge | Sidebar Edge | Clearance | Result |
+|---|---|---|---|---|---|
+| Leftmost 4 cols | `left: 0; transform: none` | left = 38 px | left = 0 px | **38 px** | **PASS (no clip)** |
+| Middle cols | `left: 50%; transform: translateX(-50%)` | [135..200] px | [0..304] px | **>100 px** | **PASS (no clip)** |
+| Rightmost 4 cols | `left: auto; right: 0; transform: none` | right = 288 px | right = 304 px | **16 px** | **PASS (no clip)** |
+
+### Bug 1 Investigation Evidence
+
+- `computeCurrentStreak({})` returns `0`
+- `computeCurrentStreak({ [today]: 1 })` returns `1`
+- `computeCurrentStreak({ [yesterday]: 1 })` returns `1` (1-day grace period)
+- `computeCurrentStreak({ [twoDaysAgo]: 1 })` returns `0` (streak broken)
+- Tested live in browser with seeded localStorage:
+  - Initial (empty activity): `currentStreak = 0, longestStreak = 0`
+  - Seeded isolated days (`2026-09-05`, `2026-08-31`, etc. — no contiguous run): `currentStreak = 0, longestStreak = 1`
+  - Populated today + yesterday: `currentStreak = 2, longestStreak = 2`
+- **Verdict**: the reading of `0` is mathematically correct and follows the standing contract: "An empty activity map means an empty grid: every cell renders 0, never a placeholder or invented number." The user had recorded activity in an earlier session that either expired (grace period passed) or was cleared when switching browser profiles.
+
+### Files Modified
+- `apps/web/components/article/activity-heatmap.tsx`: simplified `labelOffsets` to `weekIndex * 9` (uniform stride); removed `monthBreaks` destructuring from `HeatmapCells` (lint-clean).
+- `apps/web/components/article/activity-heatmap.css`: removed `.av-heatmap { margin-left: -0.5rem }` negative margin; uniform 2px cell gap (H+V); weekday label `height: 7px, gap: 2px` (matching cell stride); removed `.av-heatmap-week-monthbreak` 4px gutter; legend rewritten as horizontal row below grid (`justify-content: flex-end`); added edge-aware tooltip rules (`nth-child(-n+4)` and `nth-last-child(-n+4)`).
+- `CHANGELOG.md`: appended round-3 entry under `[Unreleased]`.
+- `progress.md`: inserted session 181 entry at top of Session log.
+- `.agents/summary.md`: bumped Last updated header.
+- `.agents/SESSION-LOG.md`: this entry.
+
+### Gates
+- `pnpm typecheck`: 5/5 packages clean
+- `pnpm lint`: 5/5 packages clean
+- `pnpm test`: 107/107 passed
+- `pnpm verify:prerender`: 196 blog + 18 lesson HTML files
+- `pnpm verify:frontmatter`: 196 articles adapt cleanly
+- `pnpm agents:check`: ✓ AGENTS.md, CLAUDE.md, .cursor/rules/60-skills.mdc
+- `hermes verify --json`: ok=true, 9/9 phases PASS, HTTP 200 in 0.122 s
+
+---

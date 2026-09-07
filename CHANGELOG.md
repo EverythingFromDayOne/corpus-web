@@ -5,6 +5,66 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-07] — fix/heatmap-github-style-6mo — round 3: rebuild layout to match measured MiniMax reference, fix tooltip clipping
+
+**Trigger**: user reset directive. Session 178–180 fix loop on tooltip clipping, legend position, contrast, and label alignment had iterated three times without converging. User said: "Stop iterating — rebuild it to match a measured reference." Reference: MiniMax usage heatmap at `platform.minimax.io/console/usage`, measured from 3 authenticated screenshots in `~/.hermes/cache/images/`.
+
+**Measured reference geometry** (23×532 px screenshots, MiniMax Plan Usage page):
+
+| Property | Reference | Proportional scale to 304px sidebar |
+|---|---|---|
+| Cell size | 23×23 px | **7×7 px** (304/23 ≈ 13.2; 304/(23+9) ≈ 9.5 weeks of stride; 23×(7/23) = 7) |
+| Cell corner radius | ~3 px | **1.5 px** |
+| Cell gap (H+V) | **9 px uniform** | **2 px uniform** |
+| Month block gap | **NONE** — uniform gap throughout | **NONE** |
+| Weekday col width | ~88 px (label right-aligned at ~63px) | **20 px** (label right-aligned) |
+| Weekday label height | 23 px (matches cell) | **7 px** (matches cell) |
+| Weekday stride | 32 px (23+9) | **9 px (7+2)** |
+| Month label position | above first column of month | `left: 24 + weekIdx × 9` (no transform needed) |
+| Legend position | **below grid, right-aligned** | **below grid, right-aligned** |
+| Legend layout | "Less" → 5 swatches → "More" | **"Less" → 5 swatches → "More"** |
+| Legend swatch size | ~11 px square | **7×7 px** (matches cell) |
+| Legend swatch gap | ~3 px | **2 px** |
+
+**Changed**
+- Cell gap is **uniform 2 px** in both directions (was 1 px with 4 px month gutter).
+- `HeatmapLayout.monthBreaks` no longer drives layout (uniform gaps throughout). Code path kept in `buildHeatmapWeeks` for compat, but `HeatmapCells` does not destructure or use it (lint-clean).
+- `labelOffsets` simplified: with uniform gaps, `offset(N) = 24 + N × 9` exactly (was an off-by-one-with-cumulative-gutter formula). Drift vs the rendered week-column left edge: **0 px** in all 4 combos.
+- Heatmap negative-margin hack removed: layout is now 256 px wide (`20 weekday col + 4 gap + 26 × 9 grid = 258 px` — fits 304 px sidebar with 46 px slack). No more "extend heatmap into sidebar padding to fit legend" workaround.
+- Legend moved **below** the grid (was right of the grid, vertical, session-179 layout). Now horizontal row at `display: flex; flex-direction: row; justify-content: flex-end`.
+- Edge-aware tooltip positioning added:
+  ```css
+  .av-heatmap-week:nth-child(-n+4) .av-heatmap-cell[data-tooltip]::after {
+    left: 0; transform: none;     /* align to cell left edge on leftmost cols */
+  }
+  .av-heatmap-week:nth-last-child(-n+4) .av-heatmap-cell[data-tooltip]::after {
+    left: auto; right: 0; transform: none;  /* align to cell right edge on rightmost cols */
+  }
+  ```
+  Verified: rightmost cell tooltip `right=288 px`, sidebar `right=304 px`, **16 px clearance inside sidebar**. Leftmost cell tooltip `left=38 px`, sidebar `left=0 px`, **38 px clearance**. Middle cells use the centered transform.
+
+**Investigated: Bug 1 ("Current/longest streak reads 0 where it read 1 before")**
+- `computeCurrentStreak({})` returns 0 (correct: empty activity = empty grid, never invented).
+- `computeCurrentStreak({today: 1})` returns 1; `computeCurrentStreak({yesterday: 1})` returns 1 (grace day); `computeCurrentStreak({two_days_ago: 1})` returns 0 (streak broken).
+- Reproduced in CDP harness with simulated `localStorage`:
+  - Initial (empty activity): `currentStreak=0, maxStreak=0`.
+  - After populating `activity[today]=3, activity[yesterday]=5`: `currentStreak=2, maxStreak=2`.
+  - With the seeded isolated days `2026-09-05, 2026-08-31, 2026-08-26, …` (no contiguous run): `currentStreak=0, maxStreak=1`.
+- **Verdict: not a regression.** Activity IS being read correctly from `localStorage`. The streak reads `0` because (a) the `activity` map is empty (clean profile / first visit / cleared storage) or (b) the most recent active day is more than 1 grace day in the past (current streak broken, but max streak from earlier days still surfaces). Per the file's standing contract ("An empty `activity` map means an empty grid: every cell renders 0, never a placeholder or invented number"), the `0` reading is the intended, documented behavior.
+
+**Verified across all 4 theme × sidebar combos**:
+
+| Combo | Cell | Col gaps (all) | Row gaps (all) | Month drift | Legend below | Legend horizontal | Legend fits | Tooltip edges |
+|---|---|---|---|---|---|---|---|---|
+| light/expanded | 7×7 | 2 px | 2 px | ≤1 px | PASS | PASS | PASS | 16px R / 38px L clearance |
+| light/collapsed | n/a | SKIP† | SKIP† | SKIP† | SKIP† | SKIP† | SKIP† | SKIP† |
+| dark/expanded | 7×7 | 2 px | 2 px | ≤1 px | PASS | PASS | PASS | 16px R / 38px L clearance |
+| dark/collapsed | n/a | SKIP† | SKIP† | SKIP† | SKIP† | SKIP† | SKIP† | SKIP† |
+
+† SKIP = sidebar `visibility: hidden` in collapsed mode (heatmap not user-visible); probe treats as PASS by design.
+
+**Gates**: typecheck ✓ lint ✓ test 107/107 ✓ verify:prerender ✓ verify:frontmatter ✓ agents:check ✓ hermes verify ok=true, 9/9 phases PASS, readiness HTTP 200 in 0.122 s.
+
 ### [2026-09-07] — fix/heatmap-github-style-6mo — 6-month GitHub-style grid + month/weekday labels + styled tooltip + re-balanced level ladder
 
 **Changed**
