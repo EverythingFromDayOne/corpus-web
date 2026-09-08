@@ -7,7 +7,7 @@ import type { Locale } from '@/lib/locales';
 import { articlePath, coursePath, lessonPath } from '@/lib/routes';
 import { isRepoId, REPOS, type RepoId } from '@/lib/repos';
 import { readProgress } from '@/lib/progress';
-import { ActivityHeatmap } from './activity-heatmap';
+import { ActivityHeatmapDisclosure } from './activity-heatmap-disclosure';
 import { sidebarClassName, useArticleChrome } from './article-shell';
 
 /** Matches `article.css` / `toggle()`: `@media (width <= 1000px)`. */
@@ -96,7 +96,7 @@ export function CorpusSidebar({
         aria-label={t(messages, 'article.searchSidebar')}
         placeholder={t(messages, 'placeholders.search')}
       />
-      <ActivityHeatmap messages={messages} />
+      <ActivityHeatmapDisclosure messages={messages} />
       <div className="av-grp-scroll">
       {groups.map((group) => (
         <div key={group.folder} className="av-grp">

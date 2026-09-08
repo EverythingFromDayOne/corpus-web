@@ -5,6 +5,21 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-08] — fix/heatmap-github-style-6mo — round 8: persisted 12-week activity disclosure
+
+**Changed**
+- **Collapsed disclosure by default**: moved the corpus-sidebar activity widget behind one native toggle line — inline flame, current streak, `day streak · best N`, and a right-side chevron. The chevron is a literal 180° flip while expanded; `aria-expanded` and `aria-controls` describe the conditional panel. Expanded inserts a divider, then the heatmap.
+- **Persisted state, additively**: `ProgressStore` now accepts optional `heatmapOpen`; `setHeatmapOpen()` changes only that field. Existing v1 and pre-version blobs retain `version`, `clientId`, `completed`, `seen`, and `activity`; missing state remains absent and renders collapsed.
+- **12 weeks / 3 levels**: replaced 24 weeks / six levels with a fixed Monday–Sunday 12-week window and levels `0`, `1–8`, `9+`. At the measured sidebar geometry, cells are ~19 px and all three swatches read clearly.
+- **One shared breathing-room constant**: `--av-heatmap-row-gap: 20px` both makes room under the month row and widens the weekday track before the first cell. Month labels and the body now share the same CSS Grid template, eliminating gap-induced drift structurally.
+
+**Verified (local production build + fresh-profile CDP on `/en/blog/angular/animations`)**
+- Collapsed default: one 20 px no-wrap toggle row; the panel is absent until toggled. Click writes `heatmapOpen`; reload restores the written state.
+- Both themes: 12 fluid columns at `18.984375 px`; weekday-centre delta `0 px` across all seven rows; Jun/Jul/Aug/Sep month drift `0 px`.
+- Tooltip edges: weeks 0–1 resolve `left: 0`; weeks 10–11 resolve `right: 0`.
+- Browser-rendered adjacent-level contrast: dark `2.608:1` / `2.160:1`; light `1.661:1` / `2.007:1` — every pair clears 1.6:1.
+- Tests: 110/110 pass under UTC and Asia/Ho_Chi_Minh; typecheck, lint, and production build pass (222 Pagefind pages / 26,943 words).
+
 ### [2026-09-08] — fix/heatmap-github-style-6mo — round 7: opacity-based 6-level ladder, weekday-label centering, shared inset variable
 
 **Changed**

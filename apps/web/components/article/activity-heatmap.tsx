@@ -1,25 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { readProgress } from '@/lib/progress';
-import {
-  computeCurrentStreak,
-  computeMaxStreak,
-  buildHeatmapWeeks,
-  type HeatmapLayout,
-} from '@/lib/activity-heatmap';
+import { buildHeatmapWeeks, heatLevel, type HeatmapLayout } from '@/lib/activity-heatmap';
 import { t, type Messages } from '@/lib/i18n';
 
 /**
- * Streak + 6-month activity heatmap, read from `ProgressStore.activity`
- * only. Never reads `completed` or `seen` — v0 progress data has no
- * timestamps to backfill from, and inventing a date for historical
- * activity is not acceptable. An empty `activity` map renders an empty
- * grid: every cell is 0, never a placeholder number.
+ * Streak + 3-month activity heatmap, mounted inside a collapsible
+ * disclosure (see activity-heatmap-disclosure.tsx). Read from
+ * `ProgressStore.activity` only. Never reads `completed` or `seen` — v0
+ * progress data has no timestamps to backfill from, and inventing a date
+ * for historical activity is not acceptable. An empty `activity` map
+ * renders an empty grid: every cell is 0, never a placeholder number.
  *
- * Layout: a GitHub-contribution-shaped 7-row × N-week grid with month
+ * Layout: a GitHub-contribution-shaped 7-row × 12-week grid with month
  * labels across the top (anchored at the first week of each calendar
- * month in the window) and weekday labels down the left (Sun..Sat).
+ * month in the window) and weekday labels down the left (Mon..Sun).
  * Inter-month gutters separate the week columns at every month boundary
  * — the visual rhythm comes from the gutter, the month labels say what
  * the gutter means.
@@ -27,48 +21,32 @@ import { t, type Messages } from '@/lib/i18n';
  * Client-only by necessity (localStorage read) — matches the pattern in
  * `sidebars.tsx`'s `useEffect(() => setCompleted(readProgress().completed))`.
  */
-export function ActivityHeatmap({ messages }: { messages: Messages }) {
-  const [activity, setActivity] = useState<Record<string, number> | null>(null);
-
-  useEffect(() => {
-    setActivity(readProgress().activity);
-  }, []);
-
-  // Render nothing until the client-side read resolves — avoids a
-  // server/client markup mismatch and avoids showing a 0-streak flash
-  // before the real value is known.
-  if (activity === null) return null;
-
-  const currentStreak = computeCurrentStreak(activity);
-  const maxStreak = computeMaxStreak(activity);
+export function ActivityHeatmap({
+  activity,
+  currentStreak,
+  maxStreak,
+  messages,
+}: {
+  activity: Record<string, number>;
+  currentStreak: number;
+  maxStreak: number;
+  messages: Messages;
+}) {
   const layout = buildHeatmapWeeks(activity);
 
   return (
-    <div className="av-heatmap" aria-labelledby="av-heatmap-heading">
-      <h3 id="av-heatmap-heading">{t(messages, 'article.activityHeading')}</h3>
-      <div className="av-heatmap-streaks">
-        <div className="av-heatmap-streak">
-          <span className="av-heatmap-streak-n">{currentStreak}</span>
-          <span className="av-heatmap-streak-label">{t(messages, 'article.currentStreak')}</span>
-        </div>
-        <div className="av-heatmap-streak">
-          <span className="av-heatmap-streak-n">{maxStreak}</span>
-          <span className="av-heatmap-streak-label">{t(messages, 'article.maxStreak')}</span>
-        </div>
-      </div>
-      <div
-        className="av-heatmap-grid"
-        role="img"
-        aria-label={t(messages, 'article.activityGridLabel', { current: currentStreak, max: maxStreak })}
-      >
-        <HeatmapCells layout={layout} messages={messages} />
-      </div>
+    <div
+      className="av-heatmap-grid"
+      role="img"
+      aria-label={t(messages, 'article.activityGridLabel', { current: currentStreak, max: maxStreak })}
+    >
+      <HeatmapCells layout={layout} messages={messages} />
     </div>
   );
 }
 
 /**
- * Renders the 6-month grid: month-label row, weekday-label column, and
+ * Renders the 3-month grid: month-label row, weekday-label column, and
  * the cells themselves. The grid is a CSS `display: grid` with explicit
  * row + column tracks so the weekday labels sit in their own column and
  * the cells align to the 7-row rhythm without per-cell positional math.
@@ -86,32 +64,36 @@ export function ActivityHeatmap({ messages }: { messages: Messages }) {
 function HeatmapCells({ layout, messages }: { layout: HeatmapLayout; messages: Messages }) {
   const { weeks, weekdayLabels, monthLabels } = layout;
 
-  // Column positions are now percentage-based, matching the reference's
-  // `grid-template-columns: auto repeat(N, minmax(0px, 1fr))`: each week
-  // column is an equal fraction of the fluid grid width (weekday column
-  // excluded), so a month label's left offset is
-  // `weekIndex / weeks.length * 100%` — the same math the reference uses
-  // (Apr 0%, May 16.6667% ... for N=24). This keeps month labels aligned
-  // to their column regardless of the grid's actual rendered width.
-  const labelOffsets = new Map<number, number>();
-  for (let i = 0; i < weeks.length; i++) {
-    labelOffsets.set(i, (i / weeks.length) * 100);
-  }
+  // Both the month-label row and the cell body share this EXACT
+  // grid-template-columns string. That's the structural fix for
+  // sub-pixel drift: round 7 used percentage-based `left` offsets to
+  // approximate each week column's position, which is only an
+  // approximation once a column-gap enters the layout math (drift grew
+  // to ~1.7px at week 10 of 12). Grid tracks aren't fractions of a
+  // percentage — reusing the identical template string means the
+  // month-label row's column boundaries are pixel-identical to the
+  // cell body's, by construction, not by calculation.
+  const gridTemplateColumns = `var(--av-heatmap-weekday-col-width) repeat(${weeks.length}, minmax(0px, 1fr))`;
 
   return (
     <>
-      {/* Month label overlay — absolutely-positioned labels above the cell
-          grid, anchored to the first week of each calendar month. The
+      {/* Month label overlay — a grid row using the SAME column template as
+          the cell body below, so each label's column is pixel-identical to
+          its target week column (see gridTemplateColumns above). The
           `data-week-idx` attribute is test surface used by the verification
           probe to map labels back to their target column. Removing it would
           break the probe silently. See session 180. */}
-      <div className="av-heatmap-month-labels" aria-hidden="true">
+      <div
+        className="av-heatmap-month-labels"
+        aria-hidden="true"
+        style={{ gridTemplateColumns }}
+      >
         {monthLabels.map((m) => (
           <span
             key={m.weekIndex}
             data-week-idx={m.weekIndex}
             className="av-heatmap-month-label"
-            style={{ left: `${labelOffsets.get(m.weekIndex) ?? 0}%` }}
+            style={{ gridColumn: m.weekIndex + 2 }}
           >
             {m.label}
           </span>
@@ -120,9 +102,7 @@ function HeatmapCells({ layout, messages }: { layout: HeatmapLayout; messages: M
 
       <div
         className="av-heatmap-body"
-        style={{
-          gridTemplateColumns: `var(--av-heatmap-weekday-col-width) repeat(${weeks.length}, minmax(0px, 1fr))`,
-        }}
+        style={{ gridTemplateColumns }}
       >
         {/* Weekday label column — one cell per row, parallel to the cell grid. */}
         <div className="av-heatmap-weekday-col" aria-hidden="true">
@@ -210,7 +190,7 @@ function HeatmapCellBtn({
     <button
       type="button"
       className={`av-heatmap-cell${cell.count > 0 ? ' av-heatmap-cell-active' : ''}`}
-      data-level={heatLevelForRender(cell.count)}
+      data-level={heatLevel(cell.count)}
       data-tooltip={tooltipText}
       aria-label={ariaLabel}
     />
@@ -218,38 +198,19 @@ function HeatmapCellBtn({
 }
 
 /**
- * Render-time copy of the bucketing rule. Lives in this file (rather than
- * imported) so the boundary cuts stay co-located with the React layer
- * that consumes them — same source-of-truth, no risk of an outdated
- * import if one side is patched in isolation. Kept in lockstep with
- * `heatLevel()` in apps/web/lib/activity-heatmap.ts; the test file
- * enforces both.
- */
-function heatLevelForRender(count: number): 0 | 1 | 2 | 3 | 4 | 5 {
-  if (count <= 0) return 0;
-  if (count <= 2) return 1;
-  if (count <= 5) return 2;
-  if (count <= 8) return 3;
-  if (count <= 13) return 4;
-  return 5;
-}
-
-/**
- * "Less [swatches] More" legend below the grid, all 6 levels shown in
- * both themes now that the opacity-based ladder gives both themes the
- * same six distinguishable steps.
+ * "Less [swatches] More" legend below the grid, all 3 levels shown in
+ * both themes — the 3-level ladder clears WCAG contrast in both themes
+ * at the 12-week cell size (see activity-heatmap.css for measured
+ * numbers), so no theme-specific swatch hiding is needed.
  * Keyboard-focusable so a screen reader can announce each level; the
  * `aria-hidden` swatches are decorative — the label + value carry the
  * meaning.
  */
 function HeatmapLegend({ messages }: { messages: Messages }) {
-  const levels: Array<{ level: 0 | 1 | 2 | 3 | 4 | 5; labelKey: string }> = [
+  const levels: Array<{ level: 0 | 1 | 2; labelKey: string }> = [
     { level: 0, labelKey: 'article.legendNone' },
     { level: 1, labelKey: 'article.legendLow' },
-    { level: 2, labelKey: 'article.legendMidLow' },
-    { level: 3, labelKey: 'article.legendMid' },
-    { level: 4, labelKey: 'article.legendHigh' },
-    { level: 5, labelKey: 'article.legendMax' },
+    { level: 2, labelKey: 'article.legendHigh' },
   ];
   return (
     <div className="av-heatmap-legend" aria-label={t(messages, 'article.activityLegendLabel')}>
