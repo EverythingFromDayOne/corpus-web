@@ -30,6 +30,7 @@ import {
   markSeen,
   markComplete,
   emptyProgress,
+  setHeatmapOpen,
 } from '../lib/progress.js';
 
 // ----- in-memory localStorage shim -----------------------------------------
@@ -448,8 +449,86 @@ test('markComplete: does not throw when storage throws QuotaExceededError (call-
   );
 });
 
-// ----- helpers -------------------------------------------------------------
+// ----- (e) heatmapOpen persistence (round 8) --------------------------------
 
+test('emptyProgress: heatmapOpen is undefined (collapsed default, UI-owned)', () => {
+  const store = emptyProgress();
+  assert.equal(store.heatmapOpen, undefined, 'a fresh store must not opine on UI open/closed state');
+});
+
+test('setHeatmapOpen: persists true without touching completed/seen/activity', () => {
+  const storage = new MemoryStorage();
+  installStorage(storage);
+
+  markSeen('nextjs/cache-components-model', 'what-it-is');
+  markComplete('nextjs/cache-components-model');
+
+  const before = readProgress();
+  const result = setHeatmapOpen(true);
+
+  assert.equal(result.heatmapOpen, true, 'setHeatmapOpen(true) must set heatmapOpen');
+  assert.deepEqual(result.completed, before.completed, 'completed must be untouched');
+  assert.deepEqual(result.seen, before.seen, 'seen must be untouched');
+  assert.deepEqual(result.activity, before.activity, 'activity must be untouched');
+
+  const persisted = JSON.parse(storage.getItem(PROGRESS_KEY) as string);
+  assert.equal(persisted.heatmapOpen, true, 'heatmapOpen must be persisted to localStorage');
+});
+
+test('setHeatmapOpen: toggling false after true persists false, not a stale true', () => {
+  const storage = new MemoryStorage();
+  installStorage(storage);
+
+  setHeatmapOpen(true);
+  setHeatmapOpen(false);
+
+  const result = readProgress();
+  assert.equal(result.heatmapOpen, false);
+});
+
+test('readProgress: an unversioned (pre-round-8) blob upgrades without inventing a heatmapOpen value', () => {
+  const storage = new MemoryStorage();
+  installStorage(storage);
+
+  const legacy = {
+    // note: NO version field, NO heatmapOpen — pre-v1, pre-round-8 shape
+    clientId: 'preserved-client-id-456',
+    completed: {},
+    seen: {},
+  };
+  storage.setItem(PROGRESS_KEY, JSON.stringify(legacy));
+
+  const result = readProgress();
+  assert.equal(result.version, 1);
+  assert.equal(result.heatmapOpen, undefined, 'upgrade path must not fabricate a heatmapOpen value');
+
+  const persisted = JSON.parse(storage.getItem(PROGRESS_KEY) as string);
+  assert.equal(
+    'heatmapOpen' in persisted && persisted.heatmapOpen !== undefined,
+    false,
+    'the persisted upgraded blob must not carry a fabricated heatmapOpen key',
+  );
+});
+
+test('readProgress: a v1 blob with heatmapOpen:true round-trips it unchanged', () => {
+  const storage = new MemoryStorage();
+  installStorage(storage);
+
+  const v1WithHeatmap = {
+    version: 1,
+    clientId: 'client-789',
+    completed: {},
+    seen: {},
+    activity: {},
+    heatmapOpen: true,
+  };
+  storage.setItem(PROGRESS_KEY, JSON.stringify(v1WithHeatmap));
+
+  const result = readProgress();
+  assert.equal(result.heatmapOpen, true, 'an existing heatmapOpen:true must round-trip, not reset to collapsed');
+});
+
+// ----- helpers -------------------------------------------------------------
 /**
  * Local-date key for a fixed Date instance. Mirrors what `progress.ts` must
  * compute — testing the OUTPUT of the module-under-test against the

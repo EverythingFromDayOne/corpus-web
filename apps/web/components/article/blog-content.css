@@ -149,7 +149,13 @@
   line-height: 1.18;
   letter-spacing: -0.012em;
   color: var(--color-display);
-  max-width: 22ch;
+  /* Shares `.av-inner`'s `--article-h1-measure` (article.css) rather than
+     a second `22ch` literal — this rule already wins on blog routes via
+     higher specificity ([data-blog] .lesson-surface .post-header-title >
+     .av-inner h1), which made the two values silently divergeable. One
+     definition, two consumers. See `.av-inner`'s comment in article.css
+     for the corpus-title-distribution measurement behind 34ch. */
+  max-width: var(--article-h1-measure);
 }
 
 [data-blog] .lesson-surface .post-header-meta {

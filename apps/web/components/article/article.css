@@ -1,4 +1,5 @@
 @import './lesson-tokens.css';
+@import './activity-heatmap.css';
 
 /* Article shell + body. Tokens from @corpus/ui. No raw hex.
    Shell (pinned columns, document scroll) follows listing-pages-poc.html.
@@ -12,6 +13,18 @@
   background: var(--color-surface);
   border-right: 1px solid var(--color-graphite);
   padding: 1.1rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* The nav-group list scrolls independently below the sticky Activity block,
+   so streak/heatmap stays visible without the reader scrolling the corpus
+   tree first (session 172 placement fix — was previously the last child of
+   `.av-sb` and only visible after scrolling past the entire article list). */
+.av-grp-scroll {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -269,12 +282,27 @@
 .av-inner {
   max-width: 60rem;
   margin-inline: auto;
+  /* Single source of truth for the article H1's line-wrap measure, shared
+     by both `.av-inner h1` (plain lesson/course H1) and blog-content.css's
+     `.post-header-title` (higher-specificity, wins silently on blog routes
+     since both select the same element under this ancestor). Was two
+     independent `22ch` literals — a body-copy measure inherited by copy-
+     paste, never re-derived for a heading. Measured against the full
+     corpus title distribution (209 titles, median 28 / p75 46 / p90 58 /
+     max 86 chars): 34ch puts 95% of real titles at <=2 lines (vs. 72% at
+     22ch), and turns the reported 3-line-with-empty-gutter case
+     ("use client" crept..., 73ch) into 2 lines. Verified via CDP against
+     the shortest (Nx, 2ch) and longest (mutateAsync..., 82ch) real corpus
+     titles, at the sidebar breakpoint (999px/1001px) and mobile widths —
+     both themes (layout-only property, theme-independent by construction,
+     confirmed identical rectWidth/lines in light mode). */
+  --article-h1-measure: 34ch;
 }
 
 .av-inner h1 {
   font-size: clamp(1.85rem, 3.6vw, 2.45rem);
   margin: 0.5rem 0 0.6rem;
-  max-width: 22ch;
+  max-width: var(--article-h1-measure);
 }
 
 .av-dek {
@@ -1113,7 +1141,17 @@
     left: 0;
     width: 19rem;
     height: calc(100vh - var(--tb, 3.6rem));
-    overflow-y: auto;
+    /* `overflow: hidden` (not `overflow-y: auto`) — the inner
+       `.av-grp-scroll` is the sole scroll context for the nav tree.
+       The previous `overflow-y: auto` reserved a scrollbar gutter on
+       `.av-sb` (browser still reserves ~1px gutter in overlay mode,
+       more in classic mode) while `.av-grp-scroll` provided its own
+       scrollbar — two scrollbars for one list. The heatmap's own
+       `overflow-x` clipping (now `overflow: hidden` in
+       activity-heatmap.css, with the trailing-window refactor) stays
+       scoped to its own grid; the sidebar itself doesn't need to
+       scroll, so it should not advertise that it does. */
+    overflow: hidden;
     overscroll-behavior: contain;
   }
 
@@ -1182,7 +1220,9 @@
     box-shadow: 6px 0 24px color-mix(in srgb, var(--color-ink) 40%, transparent);
     max-height: none;
     height: auto;
-    overflow-y: auto;
+    /* Mobile counterpart of the desktop `overflow: hidden` fix above —
+       `.av-grp-scroll` is the sole scroll context here too. */
+    overflow: hidden;
   }
 
   .av-view.mobsb > .av-sb {

@@ -63,7 +63,7 @@
   --text-xs: 0.8125rem;   /* 13 — mono metadata */
   --text-sm: 0.875rem;    /* 14 — captions, sidebar */
   --text-base: 1.0625rem; /* 17 — prose */
-  --text-lg: 1.25rem;     /* 20 — lead paragraph */
+  --text-lg: 1.2rem;     /* 20 — lead paragraph */
   --text-xl: 1.5rem;      /* 24 — h3 */
   --text-2xl: 1.8125rem;  /* 29 — h2 */
   --text-3xl: 2.1875rem;  /* 35 — h1 */
