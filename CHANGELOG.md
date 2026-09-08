@@ -5,6 +5,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-08] — chore(debt) — merge `origin/main` into `develop`; file D50/D51
+
+**Fixed**
+- Hand-resolved a real `CHANGELOG.md` conflict blocking PR #174 (develop → main promotion). GitHub's server-side merge does not honor `.gitattributes`' `merge=union` driver — only a local `git merge` does — so the conflict never surfaced until probed directly. Merged `origin/main` into `develop` (`9b4a0cf`), kept develop's `[Unreleased]` ordering, dropped the redundant duplicate entry pulled in from `main`.
+
+**Added**
+- `docs/DEBT.md`: D50 (`merge=union` doesn't apply server-side on GitHub) and D51 (`develop` branch protection still requires linear history, unlike `main` post-ADR-0003). Both report-only.
+
 ### [2026-09-08] — chore(protection) — branch protection now enforces Content gates on main + develop
 
 **Documented, not made by this session** — the user applied this directly on GitHub per their own D46-era note ("I'll add verify-links to required_status_checks.contexts myself once Content gates is green on develop"). This entry records the resulting state for the record; no `gh api` protection call was made by the agent in this session.
