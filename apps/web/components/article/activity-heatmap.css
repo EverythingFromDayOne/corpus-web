@@ -175,7 +175,7 @@
 .av-heatmap-weekday-label {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   /* line-height: 1 (not the ambient 1.65 prose leading) — without this the
      label's own box is 13.2px tall vs. the cell's 8.66px, and since the CSS
      Grid row auto-sizes to the tallest item, the cell (top-anchored by
@@ -210,7 +210,7 @@
   width: 100%;
   aspect-ratio: 1 / 1;
   border-radius: 1.5px;
-  background: var(--color-muted); /* fallback if data-level is ever absent; [data-level] rules below take precedence */
+  background: var(--color-graphite); /* fallback if data-level is ever absent; [data-level] rules below take precedence */
   border: 1px solid transparent;
   padding: 0;
   margin: 0;
@@ -316,7 +316,7 @@
    mix-toward-a-dark-endpoint approach couldn't clear 1.6:1 in light with
    only a 9.24x luminance range). Per instruction, the method changes:
 
-     L0        = var(--color-muted)          -- unchanged from before
+     L0        = var(--color-graphite)          -- unchanged from before
      L1..L5    = var(--color-signal) at 15% / 35% / 55% / 80% / 100%
                  opacity OVER var(--color-surface) (the sidebar's actual
                  background, confirmed via CDP: dark #151d26, light #fff)
@@ -338,7 +338,7 @@
             L3-L4: 1.515 FAIL | L4-L5: 1.429 FAIL
 
    Neither theme clears 1.6:1 on every adjacent pair with our actual
-   --color-signal / --color-muted / --color-surface values — the L1-L4
+   --color-signal / --color-graphite / --color-surface values — the L1-L4
    opacity band compresses into a narrow luminance range in BOTH themes,
    not just light. This is a materially different result than the prior
    round's light-only failure and needs a decision before shipping six
@@ -346,7 +346,7 @@
    opacity-method instruction below pending that call. */
 
 .av-heatmap-cell[data-level='0'] {
-  background: var(--color-muted);
+  background: var(--color-graphite);
 }
 .av-heatmap-cell[data-level='1'] {
   background: color-mix(in srgb, var(--color-signal) 15%, var(--color-surface));
