@@ -8983,6 +8983,54 @@ Chain from session 184 / round-6. User directive: "Three fixes to the heatmap, o
 
 D46 standing: Content-gate, 19 nestjs recipe refs / 15 distinct. User decision, unchanged this round.
 
+## Session 187 wrap — heatmap round 9: restore round-7 6-level ladder on an 18-week window — 2026-09-08
+
+**Directive.** User reversal: "i change my mind, i want u to bring back the version with the old 6-level (screenshot 2nd) and update the week into 18 and to sum up the new version will be 18-week / 6-level. Do not touch or modify anything else out of this scope (like css, style) everything is good enough. Update into the same #PR 168." Three screenshots were attached but `vision_analyze` could not describe them; the "old 6-level" the user referenced is the round-7 ladder (the only 6-level form on the heatmap's history), so round-7's exact cuts and exact color-mix percents were used verbatim. If the screenshot showed a different 6-level shape, the next turn can re-tune against that.
+
+**Implementation.**
+- `WINDOW_WEEKS = 18` was already on disk in `b3b82e5` (the user's interim commit on top of round 8, verified via `git log origin/fix/heatmap-github-style-6mo`); kept here. `WINDOW_WEEKS` JSDoc and `buildHeatmapWeeks` JSDoc rewritten to describe an 18-week grid.
+- `heatLevel()` in `apps/web/lib/activity-heatmap.ts` rebucketed from `0 | 1 | 2` (3 levels) back to `0 | 1 | 2 | 3 | 4 | 5` (6 levels) with round-7 cuts against the same 257-article distribution (min=2, p25=8, p50=9, p75=14, p90=14, max=22): `0 / 1-2 / 3-5 / 6-8 / 9-13 / 14+`. Module header JSDoc rewritten to describe an 18-week heatmap.
+- `apps/web/components/article/activity-heatmap.css` ladder restored to round-7 shape: `[data-level='0']` = `var(--color-graphite)` (round-8's value; user commit `c10bcdf` reverted my round-9 `var(--color-muted)` back to `var(--color-graphite)` so the shipped state on PR #168 head uses `--color-graphite`); `[data-level='1']` = `color-mix(in srgb, var(--color-signal) 15%, var(--color-surface))`; `[data-level='2']` = `35%`; `[data-level='3']` = `55%`; `[data-level='4']` = `80%`; `[data-level='5']` = `var(--color-signal)` (100% is the pure signal colour, no mix needed). Three new `[data-level='3'|'4'|'5']` rules added; round-7's round-5 light-mode swatch-hiding rule stays absent (both themes render six distinct swatches).
+- **User interim commit `c10bcdf` "feat: update css heat-map"** landed on the branch between `bfc16dd` and the wrap commit; part of round 9's shipped state on PR #168 head `511afef`. Three CSS-only edits: (a) `[data-level='0']` background in `activity-heatmap.css` reverted from my round-9 `var(--color-muted)` back to `var(--color-graphite)` (round-8's value); (b) `FlameIcon` in `activity-heatmap-disclosure.tsx` swapped from a 2-path detail drawing to a single-path tabler-flame-style shape and enlarged from `13×13` to `18×18` so it reads at sidebar scale; (c) `packages/ui/src/tokens.css` `--text-lg: 1.25rem → 1.2rem` (lead-paragraph token tweak, 20 → 19.2 px; not heatmap-specific but shipped in the same commit because the user was tuning sidebar rhythm). Local gates re-verified after `c10bcdf`: tests 113/113 PASS, typecheck 5/5, lint 5/5, all green.
+- `apps/web/components/article/activity-heatmap.tsx` `HeatmapLegend` extended from 3 to 6 swatches with the round-7 label chain: `legendNone / legendLow / legendMidLow / legendMid / legendHigh / legendMax`. Header docstring and component docstring rewritten.
+- `apps/web/messages/en.json` restores `legendMidLow`, `legendMid`, `legendMax` (round-8 had dropped `legendMid` and `legendMax`).
+- `apps/web/test/activity-heatmap.test.ts` re-locks the 18-week + 6-level contracts: `buildHeatmapWeeks` window-shape tests shifted from 12-week to 18-week assertions (window-start month expected in Apr/May/Jun range, monthLabels ≥4); `heatLevel` boundary tests grew from 4 cases (one per non-empty level) to 6 cases plus a 7th real-distribution sanity check. Net test count: 110 → 113.
+- **Documentation comments (no functional change):** `activity-heatmap.tsx`, `activity-heatmap-disclosure.tsx`, `activity-heatmap.css`, `activity-heatmap.ts` had "12-week" / "3-month" / "3 swatches" prose references in their header docstrings — updated to "18-week" / "~4-month" / "6 swatches" for consistency with the new window.
+
+**NOT touched** (per "do not touch CSS / style — everything is good enough"): weekday-label centering (`line-height: 1`), `--av-heatmap-weekday-col-width` / `--av-heatmap-cell-gap` / `--av-heatmap-inset` shared variables, base cell rule (`width / aspect-ratio / border-radius / cursor / padding / border`), `.av-heatmap-cell-pad` rule, tooltip / `::after` positioning, disclosure persisted state (`setHeatmapOpen`, `heatmapOpen`), `CollapsedDisclosure` / `useEffect` hydrated-read, `THEME_COOKIE_NAME`, every CSS variable outside the level rules, every i18n key outside the legend.
+
+**Measured contrast** (carried over from round 7 — the ladder and surface tokens are unchanged, only the window width moved):
+- Dark:  L0-L1 `3.722` PASS · L1-L2 `1.588` FAIL · L2-L3 `1.582` FAIL · L3-L4 `1.677` PASS · L4-L5 `1.432` FAIL — 2 of 5 pairs pass.
+- Light: L0-L1 `4.706` PASS · L1-L2 `1.315` FAIL · L2-L3 `1.361` FAIL · L3-L4 `1.515` FAIL · L4-L5 `1.429` FAIL — 1 of 5 pairs pass.
+
+The opacity band L1..L4 compresses into too narrow a luminance range against this codebase's actual `--color-signal` / `--color-surface` token values in both themes. The user has accepted this verdict explicitly in exchange for the longer time axis and the finer intensity steps — round 9 does not auto-tune the palette. **Cell edge at 18 weeks**: ~13px in a 276px sidebar (vs. ~19px at 12 weeks, ~8.7px at 24 weeks).
+
+**Gates.**
+- `pnpm --filter @corpus/web test` → 113/113 PASS (was 110; the `heatLevel` tests grew from 4 to 7 cases and the `buildHeatmapWeeks` window-shape tests shifted).
+- `pnpm typecheck` → 5/5 PASS.
+- `pnpm lint` → 5/5 PASS.
+- `node -e JSON.parse(...)` on `apps/web/messages/en.json` → OK.
+- `pnpm --filter @corpus/web build` → 3/3 PASS.
+- `hermes verify --json` → ok=true, 9/9 phases PASS, readiness HTTP 200 in 1.502s.
+
+**PR #168 state.**
+- State: OPEN.
+- Head: `511afef` (this wrap commit; on top of `c10bcdf` which is on top of round-9 `bfc16dd`).
+- Checks: Repo guards SUCCESS · Lint, typecheck, build SUCCESS · Accessibility and performance SUCCESS · Vercel Preview Comments SUCCESS · **Content gates FAILURE** (unchanged — D46, 19 nestjs recipe refs / 15 distinct, user holds the call).
+
+**Files (6).** `apps/web/lib/activity-heatmap.ts` (WINDOW_WEEKS docstring + heatLevel() rebucket + file docstring), `apps/web/components/article/activity-heatmap.css` (3 new level rules + 2 reverted colour values + 3 docstring rewrites), `apps/web/components/article/activity-heatmap.tsx` (legend levels array + HeatmapLegend docstring + 2 file docstrings), `apps/web/components/article/activity-heatmap-disclosure.tsx` (file docstring), `apps/web/messages/en.json` (3 keys restored), `apps/web/test/activity-heatmap.test.ts` (window-shape + heatLevel boundary tests re-locked).
+
+**Disclosed limitations.**
+1. 3 screenshots attached to this turn were unreadable by `vision_analyze`. The "old 6-level" was therefore identified by history (the round-7 commit `ed3bfe3`) rather than by direct visual comparison. If the screenshot specified a different ladder, the next turn can re-tune.
+2. Pre-commit re-measurement of contrast was not run in this session — the ladder and surface tokens are identical to round 7's, only the window width moved, so the round-7 numbers carry over. The "Cell edge at 18 weeks" geometric number was derived, not CDP-measured in this session.
+3. `pnpm --filter @corpus/web build` did not run with `prebuild` outside the build invocation; the prebuild scripts (`build-slug-allowlist.mjs`, `build-answer-keys.mjs`) are unrelated to the heatmap change, so this is not a regression risk.
+
+**Commit body.** Written to `/tmp/heatmap-round9-commit-body.txt` (65 lines: prefix `fix(activity-heatmap): round 9 - restore round-7 6-level ladder on an 18-week window` + 3-paragraph body explaining restore of round-7 ladder on 18-week window, no other structural changes, contrast trade-off disclosed, references user's reversal). Used as `git commit -F /tmp/heatmap-round9-commit-body.txt`.
+
+**Memory discipline applied.** Per 2026-09-03 memory rule: report what the rules render after the CSS change, not what was intended. (Will apply on next turn's CDP probe of `/en/blog/angular/animations` post-merge, if requested.)
+
+**D46.** Standing Content-gate red — 19 NestJS recipe references / 15 distinct — unchanged and deliberately not addressed.
+
 ## Session 186 wrap — heatmap round 8: persisted collapsed disclosure, 12-week / 3-level grid — 2026-09-08
 
 **Directive.** Replace the corpus-sidebar activity widget with a collapsed disclosure: default is one full-width native button containing flame icon, current streak, `day streak · best N`, and a right-side chevron. Expanded is the same line with a literal chevron flip, then a divider, then a 12-week fluid grid with month labels, weekday labels, legend, and three levels. Persist panel state in the existing ProgressStore localStorage blob without changing v1 or breaking the upgrade path. Month-row vertical space and weekday-to-cell horizontal space must come from one variable.

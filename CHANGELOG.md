@@ -5,6 +5,38 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-08] — fix/heatmap-github-style-6mo — round 9: restore round-7 6-level ladder on an 18-week window
+
+**Changed (user-directed; reverted the round-8 ladder collapse)**
+- `WINDOW_WEEKS = 18` (already bumped on top of round 8 in `b3b82e5`; kept here, docstring rewritten to reflect the round-7 ladder pairing).
+- `heatLevel()` in `apps/web/lib/activity-heatmap.ts` restored from `0 | 1 | 2` (3 levels) to `0 | 1 | 2 | 3 | 4 | 5` (6 levels) with round-7 cuts against the same 257-article distribution (min=2, p25=8, p50=9, p75=14, p90=14, max=22): `0 / 1-2 / 3-5 / 6-8 / 9-13 / 14+`.
+- `apps/web/components/article/activity-heatmap.css` ladder restored to round-7 shape: `[data-level='0']` = `var(--color-graphite)` (round-8's value; user commit `c10bcdf` reverted my round-9 `var(--color-muted)` back to `var(--color-graphite)` so the shipped state on PR #168 head uses `--color-graphite`); `[data-level='1']` = `color-mix(in srgb, var(--color-signal) 15%, var(--color-surface))`; `[data-level='2']` = `35%`; `[data-level='3']` = `55%`; `[data-level='4']` = `80%`; `[data-level='5']` = `var(--color-signal)` (100% is the pure signal colour, no mix needed). Three new `[data-level='3'|'4'|'5']` rules added; round-7's round-5 light-mode swatch-hiding rule stays absent (both themes render six distinct swatches).
+- `apps/web/components/article/activity-heatmap.tsx` `HeatmapLegend` extended from 3 to 6 swatches with the round-7 label chain: `legendNone / legendLow / legendMidLow / legendMid / legendHigh / legendMax`.
+- `apps/web/messages/en.json` restores `legendMidLow`, `legendMid`, `legendMax` (round-8 had dropped `legendMid` and `legendMax`).
+- `apps/web/test/activity-heatmap.test.ts` re-locks the 18-week and 6-level contracts the way round 7 had them: `buildHeatmapWeeks` window-shape tests shifted from 12-week to 18-week assertions; `heatLevel` boundary tests expanded from 4 cases (one per non-empty level) to 6 cases plus a 7th real-distribution sanity check.
+
+**Documentation comments (no functional change)**
+- `apps/web/components/article/activity-heatmap.tsx`, `activity-heatmap-disclosure.tsx`, `apps/web/components/article/activity-heatmap.css`, and `apps/web/lib/activity-heatmap.ts` had "12-week" / "3-month" / "3 swatches" prose references in their header docstrings — updated to "18-week" / "~4-month" / "6 swatches" for consistency with the new window.
+
+**NOT touched** (per "do not touch CSS / style — everything is good enough"): weekday-label centering (`line-height: 1`), `--av-heatmap-weekday-col-width` / `--av-heatmap-cell-gap` / `--av-heatmap-inset` shared variables, base cell rule (`width / aspect-ratio / border-radius / cursor / padding / border`), `.av-heatmap-cell-pad` rule, tooltip / `::after` positioning, disclosure persisted state (`setHeatmapOpen`, `heatmapOpen`), `CollapsedDisclosure` / `useEffect` hydrated-read, `THEME_COOKIE_NAME`, every CSS variable outside the level rules, every i18n key outside the legend.
+
+**Measured contrast** (carried over from round 7 — the ladder and surface tokens are unchanged, only the window width moved):
+- Dark:  L0-L1 `3.722` PASS · L1-L2 `1.588` FAIL · L2-L3 `1.582` FAIL · L3-L4 `1.677` PASS · L4-L5 `1.432` FAIL — 2 of 5 pairs pass.
+- Light: L0-L1 `4.706` PASS · L1-L2 `1.315` FAIL · L2-L3 `1.361` FAIL · L3-L4 `1.515` FAIL · L4-L5 `1.429` FAIL — 1 of 5 pairs pass.
+The opacity band L1..L4 compresses into too narrow a luminance range against this codebase's actual `--color-signal` / `--color-surface` token values in both themes. The user has accepted this verdict explicitly in exchange for the longer time axis and the finer intensity steps — round 9 does not auto-tune the palette.
+
+**Cell edge at 18 weeks**: ~13px in a 276px sidebar (vs. ~19px at 12 weeks, ~8.7px at 24 weeks). 18-week cell is smaller than the round-8 cell but larger than the round-7 24-week cell, so the ladder is on the same geometric register as round 7's measurement.
+
+**Gates**: `hermes verify --json` ok=true, 9/9 phases PASS, readiness HTTP 200 in 1.502s. Tests 113/113 PASS (was 110; the `heatLevel` tests grew from 4 to 7 cases and the `buildHeatmapWeeks` window-shape tests shifted). Typecheck 5/5 PASS. Lint 5/5 PASS. Build 3/3 PASS. PR #168: 4/5 checks green (Repo guards / Lint, typecheck, build / Accessibility and performance / Vercel Preview Comments all SUCCESS); Content gates FAILURE unchanged — D46 (19 nestjs recipe refs / 15 distinct), user holds the call.
+
+**User interim commit `c10bcdf` "feat: update css heat-map"** (landed on the branch between this round's `bfc16dd` and the wrap commit; part of round 9's shipped state on PR #168 head `511afef`):
+- `apps/web/components/article/activity-heatmap.css` — `[data-level='0']` background reverted from my round-9 `var(--color-muted)` back to `var(--color-graphite)` (round-8's value); shipped state on PR #168 uses `--color-graphite`, not `--color-muted`.
+- `apps/web/components/article/activity-heatmap-disclosure.tsx` — `FlameIcon` simplified from the previous 2-path detail drawing to a single-path tabler-flame-style shape (`M12 12c2 -2.96 0 -7 -1 -8c0 3.038 -1.773 4.741 -3 6...`); SVG box enlarged from `13×13` to `18×18` so the icon reads at sidebar scale.
+- `packages/ui/src/tokens.css` — `--text-lg: 1.25rem → 1.2rem` (20 → 19.2 px lead-paragraph size, a small typography-token tweak; affects every surface that uses `--text-lg`, not heatmap-specific but shipped in the same commit because the user was tuning sidebar rhythm).
+- Local gates re-verified after `c10bcdf`: tests 113/113 PASS, typecheck 5/5, lint 5/5 (all green; the disclosure component swap is purely a JSX/SVG path data change with no behaviour impact).
+
+**Committed** `bfc16dd`, pushed to `fix/heatmap-github-style-6mo`. PR #168 updated (head `511afef` after the user's interim commit `c10bcdf` and this wrap commit, OPEN). `apps/web/next-env.d.ts` was a clean file (auto-regenerated noise from the prior session was discarded before this work).
+
 ### [2026-09-08] — fix/heatmap-github-style-6mo — round 8: persisted 12-week activity disclosure
 
 **Changed**
