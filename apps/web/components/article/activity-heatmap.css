@@ -399,7 +399,7 @@
    steps > 12-week time axis + 3 intensity steps); not auto-tuned here. */
 
 .av-heatmap-cell[data-level='0'] {
-  background: var(--color-muted);
+  background: var(--color-graphite);
 }
 .av-heatmap-cell[data-level='1'] {
   background: color-mix(in srgb, var(--color-signal) 15%, var(--color-surface));
