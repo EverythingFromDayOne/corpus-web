@@ -65,14 +65,30 @@ jobs:
       - name: Links
         run: pnpm verify:links
 
+      # catalog.json must be built before verify:catalog runs; the verify
+      # script deliberately fails on a missing file rather than skipping
+      # (scripts/verify-catalog.mjs header). This step was missing on the
+      # PR workflow even though content-watch.yml has had it since the
+      # catalog gate was first wired — Content gates has been failing on
+      # the missing artifact on every PR since, masking any actual link
+      # or catalog regressions downstream. Adding it here surfaces the
+      # gate without changing its semantics.
+      - name: Build catalog
+        run: pnpm build:catalog
+
       - name: Catalog
         run: pnpm verify:catalog
 
-      - name: Sidecars
-        run: pnpm verify:sidecars
-
-      - name: Code block drift
-        run: pnpm verify:code-blocks
+      # The Sidecars and Code block drift steps that previously sat here
+      # are removed. `verify:sidecars` and `verify:code-blocks` were
+      # referenced in ci.yml but have never existed in any commit of this
+      # repo (verified 2026-09-08 via `git log --all --diff-filter=AD
+      # --name-only -- 'scripts/'` — neither filename appears in any
+      # added/deleted file ever). They were aspirational lines that
+      # blocked nothing because the steps would have failed with
+      # "command not found" even if `Catalog` had passed. Removing them
+      # loses no behaviour we had; the lines were unreachable in
+      # practice from the day ci.yml was first written.
 
   build:
     name: Lint, typecheck, build
