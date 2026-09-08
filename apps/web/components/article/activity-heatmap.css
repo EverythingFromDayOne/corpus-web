@@ -148,7 +148,7 @@
   --av-heatmap-weekday-label-width: 20px;
   --av-heatmap-cell-gap: 2px;
   --av-heatmap-row-gap: var(--av-heatmap-weekday-label-width);
-  --av-heatmap-weekday-col-width: calc(var(--av-heatmap-weekday-label-width) + var(--av-heatmap-row-gap));
+  --av-heatmap-weekday-col-width: var(--av-heatmap-weekday-label-width);
 }
 
 /* === Month label row ===================================================
@@ -167,7 +167,7 @@
 .av-heatmap-month-labels {
   display: grid;
   height: 12px;
-  margin-bottom: var(--av-heatmap-row-gap); /* breathing room above the grid, ~one cell width — round 8 */
+ /* margin-bottom: var(--av-heatmap-row-gap); /* breathing room above the grid, ~one cell width — round 8 */
   column-gap: var(--av-heatmap-cell-gap);
 }
 

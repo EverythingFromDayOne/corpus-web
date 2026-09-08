@@ -136,7 +136,7 @@ const MONTH_LABELS = [
  * enough for a 3-level ladder to read clearly without needing the
  * opacity-compression tricks the 24-week/6-level version required to
  * (partially) clear WCAG contrast. Geometry, not palette, is the fix. */
-const WINDOW_WEEKS = 12;
+const WINDOW_WEEKS = 18;
 
 /**
  * 12-week heatmap grid + the metadata needed to render weekday labels,
