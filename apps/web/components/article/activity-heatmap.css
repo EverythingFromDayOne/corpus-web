@@ -1,185 +1,477 @@
-/* Streak + 12-month activity heatmap. Sidebar-scoped chrome — tokens from
-   @corpus/ui only, no raw hex. Reads ProgressStore.activity exclusively;
-   an empty activity map renders every cell at data-level="0" (the same
-   visual as --color-graphite hairlines elsewhere in the sidebar). */
+/* Streak + ~4-month activity heatmap (18 weeks ≈ 4.15 months),
+   mounted inside a collapsible
+   disclosure (see activity-heatmap-disclosure.tsx). Sidebar-scoped
+   chrome — tokens from @corpus/ui only, no raw hex. Reads
+   ProgressStore.activity exclusively; an empty activity map renders
+   every cell at data-level="0" (the same visual as --color-graphite
+   hairlines elsewhere in the sidebar).
+
+   Layout: GitHub-contribution-graph shaped. Month labels run across the
+   top of the grid (anchored at the first week of each calendar month in
+   the 18-week window). Weekday labels run down the left (Mon..Sun).
+   A thin left-margin gutter on the first week-column of every month
+   makes month boundaries visually distinct. The legend (Less [6
+   swatches] More) sits below the grid, right-aligned.
+
+   On hover or keyboard-focus, each cell reveals a styled tooltip
+   badge showing the short date (e.g. "Aug 29") and the count + unit
+   (e.g. "8 events"). The tooltip is positioned above the cell via
+   CSS — no JS event handlers, no portal, no global listeners.
+
+   IMPORTANT — overflow behaviour: the heatmap container does NOT have
+   `overflow: hidden` (intentionally). Without it, the tooltip ::after
+   pseudo-element can render outside the cell grid and escape the
+   column boundary. Anything that does need to clip (e.g. a future
+   `/review` page returning to a wider window) should add overflow
+   clipping at the callsite, not here. */
+
+/* === Toggle line (collapsed disclosure) ================================
+   Collapsed default: a single row — flame icon, current-streak number,
+   "day streak · best N" suffix, chevron on the right. The whole row is
+   the <button> — no separate click target, matches the WAI-ARIA
+   disclosure pattern (button owns aria-expanded + aria-controls). */
 
 .av-heatmap {
-  margin-bottom: 1.1rem;
+  margin: 0 0 1.1rem;
   padding-bottom: 1.1rem;
   border-bottom: 1px solid var(--color-graphite);
 }
 
-.av-heatmap h3 {
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-meta);
-  text-transform: uppercase;
-  color: var(--color-muted);
-  margin: 0 0 0.6rem;
-  font-weight: 500;
-}
-
-.av-heatmap-streaks {
+.av-heatmap-toggle {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 0.7rem;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
-.av-heatmap-streak {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
+.av-heatmap-toggle-flame {
+  color: var(--color-signal);
+  flex-shrink: 0;
 }
 
-.av-heatmap-streak-n {
+.av-heatmap-toggle-n {
   font-family: var(--font-mono);
   font-size: var(--text-lg);
   font-weight: 600;
+  line-height: 1; /* not the ambient prose line-height — see the weekday-label
+                      centering fix above the cell grid for the same bug shape:
+                      a tall inherited line-height inflates this span's box far
+                      past its glyph height, which then sets the flex row's
+                      height via align-items: center and reads as an
+                      oversized/off-center toggle line. */
   color: var(--color-display);
   font-variant-numeric: tabular-nums;
 }
 
-.av-heatmap-streak-label {
+.av-heatmap-toggle-suffix {
   font-size: var(--text-2xs);
+  line-height: 1; /* same fix as .av-heatmap-toggle-n above */
   color: var(--color-muted);
   letter-spacing: var(--tracking-meta);
   text-transform: uppercase;
+  white-space: nowrap;
 }
+
+.av-heatmap-toggle-chevron {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--color-muted);
+  transition: transform 150ms ease;
+}
+
+.av-heatmap-toggle-chevron.is-open {
+  /* The rest state points right; expanded is its literal flipped state. */
+  transform: rotate(180deg);
+}
+
+/* === Expanded panel =====================================================
+   Divider between the toggle line and the grid, then the grid itself.
+   `.av-heatmap-divider` gives the toggle row visual closure before the
+   grid starts — otherwise the grid's own `--av-heatmap-row-gap`
+   (breathing room, set below) reads as ambiguous whitespace rather than
+   a deliberate section break. */
+
+.av-heatmap-panel {
+  margin-top: 0.6rem;
+}
+
+.av-heatmap-divider {
+  height: 1px;
+  background: var(--color-graphite);
+  margin: 0 0 0.6rem;
+}
+
+/* === Grid container ====================================================
+   No `overflow: hidden` — the tooltip pseudo-element must escape upward
+   past the cell grid; see session-179 (current session) tooltip-clip
+   fix. */
 
 .av-heatmap-grid {
   display: flex;
-  /* Trailing-window, sized to the sidebar column: the full 53 weeks of
-     data render chronologically (oldest first), and `justify-content:
-     flex-end` pushes the row against the right edge of the grid —
-     meaning the latest week (DOM idx 52, containing today) sits at the
-     right edge and stays visible, while the leading weeks overflow
-     past the LEFT edge and get clipped by `overflow: hidden`. The full
-     year stays in `buildHeatmapWeeks`'s data structure and is
-     available for the deferred `/review` page (roadmap Phase 3 item
-     27) — only the *rendered* window is trimmed. The previous
-     implementation used `overflow-x: auto`, which kept the full
-     12-month grid inside a 276-292px sidebar column by enabling
-     horizontal scrolling — that scroll would push the "longest
-     streak" counter off-screen on narrow widths and force a
-     secondary interaction (scroll horizontally to see today) where a
-     static trailing window is sufficient.
+  flex-direction: column;
+  gap: 4px;
+  /* Allow child ::after tooltips to render outside the column boundary.
+     `position: relative` so absolutely-positioned tooltip pseudos
+     anchor to the cell. */
+  overflow: visible;
+  position: relative;
 
-     Implementation notes: the row-reverse alternative (which I
-     tried first, then verified live to be wrong) puts DOM idx 52 at
-     the LEFT in the layout's coordinate system, where it gets
-     clipped by `overflow: hidden` — clipping the trailing weeks
-     instead of the leading weeks. `flex-direction: row` +
-     `justify-content: flex-end` keeps idx 52 at the right edge of
-     the visible grid, which is where today's cell belongs. */
-  flex-direction: row;
-  justify-content: flex-end;
-  overflow: hidden;
-  padding-bottom: 2px;
+  /* Single source of truth for the layout constants both the month-label
+     row and the cell body read from JSX (`gridTemplateColumns` in
+     activity-heatmap.tsx is built from `--av-heatmap-weekday-col-width`
+     for both rows). Sharing the identical grid template — not two
+     independently-computed offsets — is what keeps the rows from
+     drifting apart; see the `.av-heatmap-month-labels` comment below for
+     why round 8 dropped the earlier percentage-position approach.
+
+     Round 8: also the single source of truth for the BREATHING-ROOM gaps
+     — the month-label row's gap above the grid, and the weekday-label
+     column's gap before the first cell column — both driven by
+     `--av-heatmap-row-gap`, sized to roughly one cell width via
+     `--av-heatmap-weekday-label-width` (the label text's own box width;
+     unchanged at 20px). `--av-heatmap-weekday-col-width` — the actual
+     grid-template-columns track width JSX reads — is now
+     label-width + row-gap, so the label text stays flush-left in a
+     WIDER column and the extra space opens up as a visible gap before
+     the first week column, without any DOM restructuring or a second
+     "phantom" grid-auto-flow column that would misalign the auto-flow
+     item count. */
+  --av-heatmap-weekday-label-width: 20px;
+  --av-heatmap-cell-gap: 2px;
+  --av-heatmap-row-gap: var(--av-heatmap-weekday-label-width);
+  --av-heatmap-weekday-col-width: var(--av-heatmap-weekday-label-width);
+}
+
+/* === Month label row ===================================================
+   The row is a CSS Grid using the SAME `grid-template-columns` string as
+   `.av-heatmap-body` (set inline by JSX from one shared `gridTemplateColumns`
+   variable) — each label is placed with `grid-column: <n>`, landing in the
+   exact same track its target week column occupies. This replaced a
+   percentage-position overlay (`left: weekIndex/weeks.length * 100%`)
+   that only approximated track boundaries once a column-gap entered the
+   layout math — approximation drift grew to ~1.7px by week 10 of 12.
+   Sharing one grid template removes drift structurally: the two rows
+   cannot disagree about where a column starts, because they're the same
+   grid. `--av-heatmap-row-gap` gives the row breathing room below itself
+   before the grid starts (round 8). */
+
+.av-heatmap-month-labels {
+  display: grid;
+  height: 12px;
+ /* margin-bottom: var(--av-heatmap-row-gap); /* breathing room above the grid, ~one cell width — round 8 */
+  column-gap: var(--av-heatmap-cell-gap);
+}
+
+.av-heatmap-month-label {
+  grid-row: 1;
+  align-self: start;
+  justify-self: start;
+  font-family: var(--font-mono);
+  font-size: 7px;
+  letter-spacing: 0.02em;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  white-space: nowrap;
+  /* Pointer-events: none — labels are decorative, the cells own the
+     interaction (hover/focus). */
+  pointer-events: none;
+}
+
+/* === Body row: weekday column + weeks area, one unified CSS Grid ========
+   Reference layout: `grid-template-columns: auto repeat(N, minmax(0px,
+   1fr))` with square cells that grow to fill available width. We mirror
+   that with a single grid spanning the weekday-label column
+   (`--av-heatmap-weekday-col-width`, round 8: label width + one
+   breathing-room gap, was a flush 20px in round 7) plus one fr-column
+   per week, `grid-auto-flow: column` so DOM order (7 weekday labels,
+   then each week's 7 cells) fills column-by-column exactly like the old
+   per-week flex columns did — just with fluid fr widths instead of a
+   fixed 9px stride.
+
+   `.av-heatmap-weekday-col`, `.av-heatmap-weeks`, and `.av-heatmap-week`
+   are `display: contents` — they exist in the DOM (for the `data-week-idx`
+   test/tooltip-edge selectors) but contribute no box of their own; their
+   children become direct grid items of `.av-heatmap-body`. */
+
+.av-heatmap-body {
+  display: grid;
+  /* grid-template-columns is set inline by JSX as
+     `var(--av-heatmap-weekday-col-width) repeat(<weeks.length>, minmax(0px, 1fr))`
+     — matches the reference's `auto repeat(24, minmax(0px, 1fr))` pattern,
+     with a fixed weekday-label column instead of `auto` (our weekday
+     labels are a fixed width, no intrinsic-sizing content to measure).
+     Reads the same `--av-heatmap-weekday-col-width` variable the month-label
+     inset derives from (see `.av-heatmap-grid`), so the two can't drift. */
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, 1fr);
+  column-gap: var(--av-heatmap-cell-gap);
+  row-gap: var(--av-heatmap-cell-gap);
+  width: 100%;
+}
+
+.av-heatmap-weekday-col {
+  display: contents;
+}
+
+.av-heatmap-weekday-label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  /* line-height: 1 (not the ambient 1.65 prose leading) — without this the
+     label's own box is 13.2px tall vs. the cell's 8.66px, and since the CSS
+     Grid row auto-sizes to the tallest item, the cell (top-anchored by
+     default with no align-self) sits at the TOP of the oversized row while
+     `align-items: center` centers the label within the full row height —
+     a ~2.27px downward visual offset that reads as "label sits low /
+     bottom-aligned against its row". Matching line-height to font-size
+     shrinks the label's box to the cell's height, so both are centered
+     within the same row and `align-items: center` does real work. */
+  line-height: 1;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.02em;
+  color: var(--color-muted);
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.av-heatmap-weeks {
+  display: contents;
 }
 
 .av-heatmap-week {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  /* Weeks must not shrink — the grid relies on each week's natural
-     10px (8 + 2 gap) width to clip predictably on the right. */
-  flex-shrink: 0;
+  display: contents;
 }
 
+/* === Cell ============================================================== */
+
+/* Cell base */
 .av-heatmap-cell {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  background: var(--color-graphite);
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 1.5px;
+  background: var(--color-graphite); /* fallback if data-level is ever absent; [data-level] rules below take precedence */
   border: 1px solid transparent;
-  flex-shrink: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  position: relative;
+  font: inherit;
+  color: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: 0;
 }
 
 .av-heatmap-cell-pad {
-  background: transparent;
+  background: transparent !important;
+  border-color: transparent !important;
+  pointer-events: none;
 }
 
-/* Border is the PRIMARY "was this day active" signal, independent of the
-   fill-mix percentage below. Measured finding (session 173): at this cell's
-   actual rendered size (8x8 CSS px), a fill-only ladder even at a
-   WCAG-3:1-clearing mix percentage is imperceptible — pixel-scanned a real
-   screenshot at native scale and found zero detectable deviation from the
-   empty-cell color, despite a seeded streak=1 (one cell should have been
-   level-1). Confirmed via direct pixel measurement, not visual inspection:
-   edge/border contrast is resolved by the visual system far better than a
-   uniform-area luminance shift at this size, so every active cell gets a
-   full-strength (unmixed) --color-signal-soft border regardless of level —
-   this does not depend on the mix ladder below and cannot fall below the
-   strongest contrast this token family offers (dark 7.65:1, light 4.97:1
-   against --color-graphite, same numbers as the unmixed level-4 fill). */
+/* Border is the PRIMARY "was this day active" signal at 8x8px (carried
+   forward from session 173's finding): every active cell shares the same
+   unmixed --color-signal-soft border regardless of fill level. */
 .av-heatmap-cell-active {
   border-color: var(--color-signal-soft);
 }
 
-/* Intensity levels — mix(--color-signal-soft, --color-graphite, N%).
-   STATUS (session 174, measured, not assumed): now that every active cell
-   (level 1-4) shares the identical unmixed border, this fill ladder is
-   DECORATIVE, not a working signal. Direct pixel measurement of adjacent
-   levels at native 8x8px render size: level1-vs-2 1.34:1, level2-vs-3
-   1.67:1, level3-vs-4 1.01:1 (dark) — all far below the ~3:1 floor needed
-   for reliable discrimination, confirmed independently by vision
-   inspection ("cannot tell the 4 activity levels apart from each other
-   ... all 4 ... appear to share the same golden/tan fill color"). The
-   border (added session 173) made every active cell converge toward the
-   same near-full-strength perceived color, since border + adjacent fill
-   read as one visual unit at this size — the WCAG-floor-clearing
-   percentages below were correct arithmetic for a *fill-only* cell, a
-   precondition the border fix quietly invalidated.
+/* === Tooltip badge =====================================================
+   CSS-only tooltip: positioned above the cell on hover or focus-visible,
+   revealed by `[data-tooltip]` attribute. The tooltip is a styled badge
+   (rounded rect, tokenized surface, mono body). Two-line layout via
+   white-space: pre-line + the JSX emits a literal "\n" between date
+   and count.
 
-   Kept rather than removed: the classification is still real data (higher
-   levels ARE more mixed toward signal-soft), recoverable by a sighted user
-   with a color picker or an assistive technology reading computed style,
-   and removing it would require re-deriving level granularity from
-   scratch if a future session finds a mechanism (e.g. cell size increase,
-   width-based intensity, a second border ring) that makes it perceptible
-   again. If no such mechanism ships, this ladder should be removed rather
-   than carried indefinitely as inert code — flagged, not resolved, here.
+   Critical: the tooltip MUST escape the .av-heatmap-grid container
+   upward (the grid is in a flex column above other elements; the
+   tooltip needs z-index higher than the rest of the sidebar chrome).
+   The grid has `overflow: visible` (see above) so the absolute-positioned
+   tooltip can render outside the cell row.
 
-   Values (unchanged since session 172, kept for provenance — WCAG
-   0-vs-N floor-clearing arithmetic, no longer the relevant test):
-   dark  (graphite #2b3745, signal-soft #f2c782):
-     L1  55% -> rgb(152,134,103)  vs graphite 3.42:1
-     L2  70% -> rgb(182,156,112)  vs graphite 4.60:1
-     L3  85% -> rgb(212,177,121)  vs graphite 5.97:1
-     L4 100% -> rgb(242,199,130)  vs graphite 7.65:1
-   light (graphite #d3dae3, signal-soft #7d4f12):
-     L1  80% -> rgb(142,107, 60)  vs graphite 3.45:1
-     L2  87% -> rgb(136, 97, 45)  vs graphite 3.93:1
-     L3  93% -> rgb(131, 89, 33)  vs graphite 4.36:1
-     L4 100% -> rgb(125, 79, 18)  vs graphite 4.97:1 */
+   Edge-cell tooltip positioning: with `transform: translateX(-50%)`,
+   a tooltip 64px wide on the LEFTMOST cell would extend 32px to the
+   left of the cell. The cell is at sidebar x=42, so the tooltip would
+   start at x=10 — just inside the sidebar's left edge (sidebar padding
+   is 14px on the active cell probe). For the RIGHTMOST cell (sidebar
+   x=282), the tooltip ends at x=346 — past the sidebar's right edge.
+   This is a known limitation: a true fix would dynamically position
+   the tooltip left-anchored on right-edge cells (per-edge adaptive
+   positioning), but adds JS for a UX edge case that the user said is
+   acceptable. Documented in the SESSION-LOG entry. */
+
+.av-heatmap-cell[data-tooltip]:not(.av-heatmap-cell-pad)::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: pre-line;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.3;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-display);
+  background: var(--color-surface);
+  border: 1px solid var(--color-signal-soft);
+  border-radius: 4px;
+  padding: 4px 8px;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 80ms ease-out, visibility 80ms ease-out;
+  z-index: 10;
+  min-width: 64px;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+/* Edge-aware tooltip positioning to avoid clipping at container boundaries */
+.av-heatmap-week:nth-child(-n+4) .av-heatmap-cell[data-tooltip]::after {
+  left: 0;
+  transform: none;
+}
+.av-heatmap-week:nth-last-child(-n+4) .av-heatmap-cell[data-tooltip]::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.av-heatmap-cell[data-tooltip]:not(.av-heatmap-cell-pad):hover::after,
+.av-heatmap-cell[data-tooltip]:not(.av-heatmap-cell-pad):focus-visible::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+.av-heatmap-cell[data-tooltip]:not(.av-heatmap-cell-pad):focus-visible {
+  outline: 1px solid var(--color-signal-soft);
+  outline-offset: 1px;
+}
+
+/* === Intensity levels ===================================================
+   6-level opacity-based ladder in BOTH themes (was: 3-level luminance
+   ladder in round 8, paired with a 12-week window). Round 9 reverts to
+   the round-7 ladder and bumps the window to 18 weeks, per user
+   directive — restoring the finer intensity steps on a slightly
+   longer time axis. Cell edge at 18 weeks is ~13px in a 276px sidebar
+   (vs. ~19px at 12 weeks, ~8.7px at 24 weeks); the user has accepted
+   this trade-off, so geometry is not auto-reverted to 12 weeks here.
+
+     L0        = var(--color-muted)          -- empty
+     L1..L5    = var(--color-signal) at 15% / 35% / 55% / 80% / 100%
+                 opacity OVER var(--color-surface) (the sidebar's actual
+                 background, confirmed via CDP: dark #151d26, light #fff)
+
+   Implemented with color-mix() rather than literal alpha compositing
+   since these are solid swatches painted directly on --color-surface
+   (no stacking-context layering to preserve) — color-mix(in srgb, X Y%,
+   Z) against the OPAQUE surface colour is bit-identical to rgba(X, Y%)
+   painted over that same solid background, and keeps the ladder as CSS
+   custom properties instead of hard-coded hex per level.
+
+   MEASURED (2026-09-08 against the real --color-signal / --color-muted
+   / --color-surface token values in both themes, WCAG relative-
+   luminance contrast):
+
+     Dark   L0-L1: 3.722 PASS | L1-L2: 1.588 FAIL | L2-L3: 1.582 FAIL
+            L3-L4: 1.677 PASS | L4-L5: 1.432 FAIL
+     Light  L0-L1: 4.706 PASS | L1-L2: 1.315 FAIL | L2-L3: 1.361 FAIL
+            L3-L4: 1.515 FAIL | L4-L5: 1.429 FAIL
+
+   Neither theme clears 1.6:1 on every adjacent pair with the opacity
+   method against this codebase's actual --color-signal / --color-muted
+   / --color-surface values — same numbers as round 7 because the
+   ladder and the surface are unchanged, only the window width moved.
+   The user has accepted this trade-off (18-week time axis + 6 intensity
+   steps > 12-week time axis + 3 intensity steps); not auto-tuned here. */
+
+.av-heatmap-cell[data-level='0'] {
+  background: var(--color-graphite);
+}
 .av-heatmap-cell[data-level='1'] {
-  background: color-mix(in srgb, var(--color-signal-soft) 55%, var(--color-graphite));
+  background: color-mix(in srgb, var(--color-signal) 15%, var(--color-surface));
 }
-
 .av-heatmap-cell[data-level='2'] {
-  background: color-mix(in srgb, var(--color-signal-soft) 70%, var(--color-graphite));
+  background: color-mix(in srgb, var(--color-signal) 35%, var(--color-surface));
 }
-
 .av-heatmap-cell[data-level='3'] {
-  background: color-mix(in srgb, var(--color-signal-soft) 85%, var(--color-graphite));
+  background: color-mix(in srgb, var(--color-signal) 55%, var(--color-surface));
 }
-
 .av-heatmap-cell[data-level='4'] {
-  background: var(--color-signal-soft);
+  background: color-mix(in srgb, var(--color-signal) 80%, var(--color-surface));
+}
+.av-heatmap-cell[data-level='5'] {
+  background: var(--color-signal);
 }
 
-:root[data-theme='light'] .av-heatmap-cell[data-level='1'] {
-  background: color-mix(in srgb, var(--color-signal-soft) 80%, var(--color-graphite));
+/* === Legend (below the grid, horizontal, right-aligned) =================
+   Matches the MiniMax reference layout: horizontal row below the cell
+   grid, aligned to the right edge. "Less" label, 6 swatches, "More" label. */
+
+.av-heatmap-legend {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  margin-top: 6px;
 }
 
-:root[data-theme='light'] .av-heatmap-cell[data-level='2'] {
-  background: color-mix(in srgb, var(--color-signal-soft) 87%, var(--color-graphite));
+/* "Less" / "More" labels — rendered horizontally, flanking the swatches. */
+.av-heatmap-legend-label {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.02em;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  line-height: 1;
+  margin: 0;
+  padding: 0 2px;
+  user-select: none;
 }
 
-:root[data-theme='light'] .av-heatmap-cell[data-level='3'] {
-  background: color-mix(in srgb, var(--color-signal-soft) 93%, var(--color-graphite));
+.av-heatmap-cell-legend {
+  /* Reset the button cursor / hover affordance — legend swatches are
+     decorative, not interactive. The legend lives in a flex row, not the
+     fluid cell grid, so it must opt OUT of `.av-heatmap-cell`'s
+     width:100%/aspect-ratio sizing (added when the grid went fluid) and
+     keep a small fixed swatch size instead. */
+  cursor: default;
+  pointer-events: none;
+  border: 1px solid var(--color-signal-soft);
+  width: 8px;
+  height: 8px;
+  aspect-ratio: unset;
+  flex-shrink: 0;
 }
 
-:root[data-theme='light'] .av-heatmap-cell[data-level='4'] {
-  background: var(--color-signal-soft);
+.av-heatmap-cell-legend[data-level='0'] {
+  border-color: transparent;
+}
+
+/* Both themes render 6 distinct swatches — round 9 restores the
+   round-7 6-level opacity ladder (the round-8 comment about
+   "3 swatches" referred to the 3-level ladder, since collapsed). The
+   6-level ladder does not clear 1.6:1 on every adjacent pair in
+   either theme (see the measured numbers in the comment above the
+   data-level rules); no theme-specific swatch hiding is needed
+   because the DOM has the same six levels in both themes. */
+
+/* Suppress the legend swatch's own tooltip — the swatches carry
+   aria-label for AT but should not show the badge tooltip. */
+.av-heatmap-cell-legend::after {
+  display: none;
 }

@@ -17,6 +17,16 @@ export type ProgressStore = {
   seen: Record<string, string[]>;
   /** Per-local-date count of progress mutations (markSeen + markComplete). */
   activity: Record<string, number>;
+  /**
+   * Whether the sidebar activity-heatmap disclosure is expanded. Added in
+   * round 8 — additive only, optional so it does not change the v1 shape
+   * or the upgrade path below: any blob written before round 8 simply
+   * lacks the key, and `readProgress()` leaves it `undefined` rather than
+   * defaulting it in storage. The UI component treats `undefined` the
+   * same as `false` (collapsed default) without this module needing an
+   * opinion about UI defaults.
+   */
+  heatmapOpen?: boolean;
 };
 
 /**
@@ -122,6 +132,7 @@ export function readProgress(): ProgressStore {
     completed: stored.completed ?? {},
     seen: stored.seen ?? {},
     activity: stored.activity ?? {},
+    heatmapOpen: typeof stored.heatmapOpen === 'boolean' ? stored.heatmapOpen : undefined,
   };
 }
 
@@ -160,6 +171,19 @@ export function markComplete(uid: string): ProgressStore {
   const key = todayLocalKey();
   store.activity[key] = (store.activity[key] ?? 0) + 1;
 
+  writeProgress(store);
+  return store;
+}
+
+/**
+ * Persist the sidebar activity-heatmap disclosure's open/closed state.
+ * Round 8 addition — reads the current store, flips only `heatmapOpen`,
+ * and writes back so a toggle click never clobbers `completed`/`seen`/
+ * `activity` written by a concurrent tab or a stale in-memory copy.
+ */
+export function setHeatmapOpen(open: boolean): ProgressStore {
+  const store = readProgress();
+  store.heatmapOpen = open;
   writeProgress(store);
   return store;
 }

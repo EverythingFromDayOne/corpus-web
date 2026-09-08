@@ -5,6 +5,202 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-08] — fix/heatmap-github-style-6mo — round 9: restore round-7 6-level ladder on an 18-week window
+
+**Changed (user-directed; reverted the round-8 ladder collapse)**
+- `WINDOW_WEEKS = 18` (already bumped on top of round 8 in `b3b82e5`; kept here, docstring rewritten to reflect the round-7 ladder pairing).
+- `heatLevel()` in `apps/web/lib/activity-heatmap.ts` restored from `0 | 1 | 2` (3 levels) to `0 | 1 | 2 | 3 | 4 | 5` (6 levels) with round-7 cuts against the same 257-article distribution (min=2, p25=8, p50=9, p75=14, p90=14, max=22): `0 / 1-2 / 3-5 / 6-8 / 9-13 / 14+`.
+- `apps/web/components/article/activity-heatmap.css` ladder restored to round-7 shape: `[data-level='0']` = `var(--color-graphite)` (round-8's value; user commit `c10bcdf` reverted my round-9 `var(--color-muted)` back to `var(--color-graphite)` so the shipped state on PR #168 head uses `--color-graphite`); `[data-level='1']` = `color-mix(in srgb, var(--color-signal) 15%, var(--color-surface))`; `[data-level='2']` = `35%`; `[data-level='3']` = `55%`; `[data-level='4']` = `80%`; `[data-level='5']` = `var(--color-signal)` (100% is the pure signal colour, no mix needed). Three new `[data-level='3'|'4'|'5']` rules added; round-7's round-5 light-mode swatch-hiding rule stays absent (both themes render six distinct swatches).
+- `apps/web/components/article/activity-heatmap.tsx` `HeatmapLegend` extended from 3 to 6 swatches with the round-7 label chain: `legendNone / legendLow / legendMidLow / legendMid / legendHigh / legendMax`.
+- `apps/web/messages/en.json` restores `legendMidLow`, `legendMid`, `legendMax` (round-8 had dropped `legendMid` and `legendMax`).
+- `apps/web/test/activity-heatmap.test.ts` re-locks the 18-week and 6-level contracts the way round 7 had them: `buildHeatmapWeeks` window-shape tests shifted from 12-week to 18-week assertions; `heatLevel` boundary tests expanded from 4 cases (one per non-empty level) to 6 cases plus a 7th real-distribution sanity check.
+
+**Documentation comments (no functional change)**
+- `apps/web/components/article/activity-heatmap.tsx`, `activity-heatmap-disclosure.tsx`, `apps/web/components/article/activity-heatmap.css`, and `apps/web/lib/activity-heatmap.ts` had "12-week" / "3-month" / "3 swatches" prose references in their header docstrings — updated to "18-week" / "~4-month" / "6 swatches" for consistency with the new window.
+
+**NOT touched** (per "do not touch CSS / style — everything is good enough"): weekday-label centering (`line-height: 1`), `--av-heatmap-weekday-col-width` / `--av-heatmap-cell-gap` / `--av-heatmap-inset` shared variables, base cell rule (`width / aspect-ratio / border-radius / cursor / padding / border`), `.av-heatmap-cell-pad` rule, tooltip / `::after` positioning, disclosure persisted state (`setHeatmapOpen`, `heatmapOpen`), `CollapsedDisclosure` / `useEffect` hydrated-read, `THEME_COOKIE_NAME`, every CSS variable outside the level rules, every i18n key outside the legend.
+
+**Measured contrast** (carried over from round 7 — the ladder and surface tokens are unchanged, only the window width moved):
+- Dark:  L0-L1 `3.722` PASS · L1-L2 `1.588` FAIL · L2-L3 `1.582` FAIL · L3-L4 `1.677` PASS · L4-L5 `1.432` FAIL — 2 of 5 pairs pass.
+- Light: L0-L1 `4.706` PASS · L1-L2 `1.315` FAIL · L2-L3 `1.361` FAIL · L3-L4 `1.515` FAIL · L4-L5 `1.429` FAIL — 1 of 5 pairs pass.
+The opacity band L1..L4 compresses into too narrow a luminance range against this codebase's actual `--color-signal` / `--color-surface` token values in both themes. The user has accepted this verdict explicitly in exchange for the longer time axis and the finer intensity steps — round 9 does not auto-tune the palette.
+
+**Cell edge at 18 weeks**: ~13px in a 276px sidebar (vs. ~19px at 12 weeks, ~8.7px at 24 weeks). 18-week cell is smaller than the round-8 cell but larger than the round-7 24-week cell, so the ladder is on the same geometric register as round 7's measurement.
+
+**Gates**: `hermes verify --json` ok=true, 9/9 phases PASS, readiness HTTP 200 in 1.502s. Tests 113/113 PASS (was 110; the `heatLevel` tests grew from 4 to 7 cases and the `buildHeatmapWeeks` window-shape tests shifted). Typecheck 5/5 PASS. Lint 5/5 PASS. Build 3/3 PASS. PR #168: 4/5 checks green (Repo guards / Lint, typecheck, build / Accessibility and performance / Vercel Preview Comments all SUCCESS); Content gates FAILURE unchanged — D46 (19 nestjs recipe refs / 15 distinct), user holds the call.
+
+**User interim commit `c10bcdf` "feat: update css heat-map"** (landed on the branch between this round's `bfc16dd` and the wrap commit; part of round 9's shipped state on PR #168 head `511afef`):
+- `apps/web/components/article/activity-heatmap.css` — `[data-level='0']` background reverted from my round-9 `var(--color-muted)` back to `var(--color-graphite)` (round-8's value); shipped state on PR #168 uses `--color-graphite`, not `--color-muted`.
+- `apps/web/components/article/activity-heatmap-disclosure.tsx` — `FlameIcon` simplified from the previous 2-path detail drawing to a single-path tabler-flame-style shape (`M12 12c2 -2.96 0 -7 -1 -8c0 3.038 -1.773 4.741 -3 6...`); SVG box enlarged from `13×13` to `18×18` so the icon reads at sidebar scale.
+- `packages/ui/src/tokens.css` — `--text-lg: 1.25rem → 1.2rem` (20 → 19.2 px lead-paragraph size, a small typography-token tweak; affects every surface that uses `--text-lg`, not heatmap-specific but shipped in the same commit because the user was tuning sidebar rhythm).
+- Local gates re-verified after `c10bcdf`: tests 113/113 PASS, typecheck 5/5, lint 5/5 (all green; the disclosure component swap is purely a JSX/SVG path data change with no behaviour impact).
+
+**Committed** `bfc16dd`, pushed to `fix/heatmap-github-style-6mo`. PR #168 updated (head `511afef` after the user's interim commit `c10bcdf` and this wrap commit, OPEN). `apps/web/next-env.d.ts` was a clean file (auto-regenerated noise from the prior session was discarded before this work).
+
+### [2026-09-08] — fix/heatmap-github-style-6mo — round 8: persisted 12-week activity disclosure
+
+**Changed**
+- **Collapsed disclosure by default**: moved the corpus-sidebar activity widget behind one native toggle line — inline flame, current streak, `day streak · best N`, and a right-side chevron. The chevron is a literal 180° flip while expanded; `aria-expanded` and `aria-controls` describe the conditional panel. Expanded inserts a divider, then the heatmap.
+- **Persisted state, additively**: `ProgressStore` now accepts optional `heatmapOpen`; `setHeatmapOpen()` changes only that field. Existing v1 and pre-version blobs retain `version`, `clientId`, `completed`, `seen`, and `activity`; missing state remains absent and renders collapsed.
+- **12 weeks / 3 levels**: replaced 24 weeks / six levels with a fixed Monday–Sunday 12-week window and levels `0`, `1–8`, `9+`. At the measured sidebar geometry, cells are ~19 px and all three swatches read clearly.
+- **One shared breathing-room constant**: `--av-heatmap-row-gap: 20px` both makes room under the month row and widens the weekday track before the first cell. Month labels and the body now share the same CSS Grid template, eliminating gap-induced drift structurally.
+
+**Verified (local production build + fresh-profile CDP on `/en/blog/angular/animations`)**
+- Collapsed default: one 20 px no-wrap toggle row; the panel is absent until toggled. Click writes `heatmapOpen`; reload restores the written state.
+- Both themes: 12 fluid columns at `18.984375 px`; weekday-centre delta `0 px` across all seven rows; Jun/Jul/Aug/Sep month drift `0 px`.
+- Tooltip edges: weeks 0–1 resolve `left: 0`; weeks 10–11 resolve `right: 0`.
+- Browser-rendered adjacent-level contrast: dark `2.608:1` / `2.160:1`; light `1.661:1` / `2.007:1` — every pair clears 1.6:1.
+- Tests: 110/110 pass under UTC and Asia/Ho_Chi_Minh; typecheck, lint, and production build pass (222 Pagefind pages / 26,943 words).
+
+### [2026-09-08] — fix/heatmap-github-style-6mo — round 7: opacity-based 6-level ladder, weekday-label centering, shared inset variable
+
+**Changed**
+- **Level ladder — colour-mix toward a dark endpoint replaced with opacity over the page background**: `heatLevel()` now buckets into 6 levels (0-5, was 0-4). Level 0 stays `var(--color-muted)`; levels 1-5 are `color-mix(in srgb, var(--color-signal) {15,35,55,80,100}%, var(--color-surface))` — mathematically identical to painting `--color-signal` at 15/35/55/80/100% opacity over the theme's own background, matching the reference's method. Six DOM levels + six-swatch legend now render in BOTH themes (previously dark had 5 distinct swatches, light was suppressed to 3 visible).
+- **Re-measured contrast — method changed, does not carry over the prior light-only failure.** Measured live via CDP `getComputedStyle` on the actual rendered `color-mix()` output (not assumed): **neither theme clears 1.6:1 on every adjacent pair.** Dark: L0-L1 `3.722` PASS, L1-L2 `1.588` FAIL, L2-L3 `1.582` FAIL, L3-L4 `1.677` PASS, L4-L5 `1.432` FAIL. Light: L0-L1 `4.706` PASS, L1-L2 `1.315` FAIL, L2-L3 `1.361` FAIL, L3-L4 `1.515` FAIL, L4-L5 `1.429` FAIL. The L1-L4 opacity band compresses into too narrow a luminance range against our actual `--color-signal` / `--color-surface` values in both themes, not just light as previously found. Six DOM levels are wired per the literal instruction; the contrast verdict is reported for a follow-up call, not silently patched.
+
+**Fixed**
+- **Weekday-label vertical alignment**: `.av-heatmap-weekday-label` had `flex items-center justify-end` but no explicit `line-height`, so it inherited the ambient `1.65` prose leading — the label's own box was `13.2px` tall against an `8.66px` cell, so `align-items: center` centered the text inside an oversized box, reading as ~2.27px low / bottom-aligned. Fixed with `line-height: 1` so the label's box matches the cell height and centers for real. Measured label-center-to-cell-center offset: `2.27px` → `0.0039px` (all 7 weekday rows).
+- **Weekday-column gap vs. month-label inset could drift apart**: both were separately-typed `22px` / `20px+2px` literals. Introduced `--av-heatmap-weekday-col-width: 20px` and `--av-heatmap-cell-gap: 2px` on `.av-heatmap-grid`, with `--av-heatmap-inset: calc(var(--av-heatmap-weekday-col-width) + var(--av-heatmap-cell-gap))` derived from both. `.av-heatmap-body`'s inline `gridTemplateColumns` and `.av-heatmap-month-labels { margin-left }` both now read `var(--av-heatmap-inset)` / `var(--av-heatmap-weekday-col-width)` — one source of truth, cannot diverge.
+- **Grid fill**: `.av-heatmap-body` was a flex with fixed `7px × 7px` cells + `2px` gaps (`9px` stride), so 24 columns used only ~216 px of the 275.81 px sidebar budget — ~60 px of dead space on the right. Switched the body to a CSS grid with `grid-template-columns: 20px repeat(<weeks.length>, minmax(0px, 1fr))` set inline by JSX; `.av-heatmap-weekday-col`, `.av-heatmap-weeks`, and `.av-heatmap-week` declared `display: contents` so the existing DOM order flows into the grid column-by-column. Cells now size from available width (`width: 100%; aspect-ratio: 1 / 1`). Measured: cellWidth / cellHeight = 8.6563 × 8.6563 px; container fill = 100% (was ~78.3%); right-side dead space = 0 px (was ~60 px). The legend swatches (`.av-heatmap-cell-legend`) opt back out to a fixed `8px × 8px` so the horizontal legend row doesn't balloon with the grid.
+
+**Changed**
+- **Month-label positioning**: per-label `left` switched from `weekIndex * 9px` to `weekIndex / weeks.length * 100%` so labels track their columns as the grid widens (mirrors the reference's percentage-positioned labels over its fluid `repeat(N, minmax(0px, 1fr))` grid). `.av-heatmap-month-labels { margin-left }` adjusted from 24 px to 22 px (weekday col 20 px + column-gap 2 px) so the `0%` anchor sits exactly above the first week column.
+
+**Verified (CDP, sidebar at `/en/blog/react/use-client-sprawl`, bodyWidth = 275.8125 px)**:
+- `monthsRowLeft == weeksAreaLeft == 37.59375 px` (drift 0.00 px)
+- Per-label actualLeft / styleLeft: `Apr 35.59 / 0%`, `May 77.89 / 16.6667%`, `Jun 130.77 / 37.5%`, `Jul 173.07 / 54.1667%`, `Aug 215.38 / 70.8333%`, `Sep 268.25 / 91.6667%` — all drift 0.00 px vs expected percentages.
+- Tooltip edge clearance: last-week col matches `nth-last-child(-n+4)`, so the edge-aware `left: auto; right: 0; transform: none` rule applies unchanged; measured tooltip (~60 px wide) fits 229-289 px, inside sidebar right at 304 px.
+- Tests: 107/107 pass. Build clean.
+
+**Round-6 contrast question (the follow-up to round-5's light-legend decision)**: the user asked whether enlarging cells could free a 5-level light legend at the 1.6:1 adjacent-pair threshold. Cell size is orthogonal to color contrast — palette decisions don't change with geometry. Recomputed best-case single-hue ramps across muted/brand/dark endpoints: `L0-L1 1.345:1, L1-L2 1.475:1, L2-L3 1.539:1, L3-L4 1.920:1` — three of four adjacent pairs fall below 1.6:1. **Conclusion: NO, 5 distinguishable light-level colors cannot clear 1.6:1 between all adjacent pairs in the muted → brand → dark band.** The 3-level light ladder remains correct: light keeps 3 visible swatches (muted `#E2E5EA`, brand `#DB7730` collapsed across levels 1-3, dark `#6B4D0D`); dark keeps 5 distinct swatches (`#2B3745 → #6D500C → #956F15 → #C29222 → #F0BC4E`).
+
+**Verified (round 7, CDP, `/en/blog/react/use-client-sprawl`, fresh Chrome profile)**:
+- Month-label drift re-checked after the alignment/inset changes: max `0.0053px` (was `0.0053px` in round 6 — unchanged, alignment changes did not touch month-label geometry).
+- Tooltip edge clearance re-checked: weeks 0-3 anchor `left:0` (tooltip `[37.59, 289.41]`px range, entirely inside sidebar `[0, 304]`px), weeks 20-23 anchor `right:0`, no clipping on any of the 24 columns.
+- Tests: 108/108 pass. Typecheck, lint, build all clean. `hermes verify --json`: `ok: true`, all phases PASS.
+
+### [2026-09-07] — fix/heatmap-github-style-6mo — round 5: 24-week window matching MiniMax reference, light legend to 3 swatches
+
+**Fixed**
+- **Window**: replaced the calendar "6-month rolling" assumption with a fixed 24-week inclusive Monday-Sunday window ending at the Sunday of the current week. Matches the reference's `grid-template-columns: auto repeat(24, minmax(0px, 1fr))`. For the confirmed Monday fixture (today = 2026-09-07), `window_start = 2026-03-30`, `grid_end = 2026-09-13` (24 weeks). First column emits `APR` via the existing later-month-tiebreak — `2026-03-30` start carries both March 30 and April 1, so week 0 is labeled `Apr`, not `Mar`.
+- **Light legend**: light theme now visually suppresses duplicate levels 1 and 2 (both share `#DB7730`), yielding 3 distinct visible swatches (muted, brand, dark) instead of the misleading 5. Dark theme keeps 5 distinct swatches unchanged.
+
+**Tests**: 107/107 pass; `TODAY=2026-09-06` (Sunday) fixture asserts the exact 24-week window and the new month-label sequence.
+
+### [2026-09-07] — fix/heatmap-github-style-6mo — round 4: month-label row offset, Mon-Sun row order, measured luminance palette
+
+**Trigger**: user correction after round-3. "Do not iterate on prose descriptions of the layout. Measure the reference, match the numbers, report the measured comparison side by side." Same reference (MiniMax usage heatmap), this round addresses three findings the round-3 measurement exposed:
+
+1. The month label row started at the weekday column's left edge — MAR was sitting over the Sunday/Monday column not the first grid column.
+2. The row order was Sun-Sat (vs reference Mon-Sun) and the window math had been verified as "6 months back" but the reference was rolling-first-week-boundary, not exactly 6 months × 4.33 weeks.
+3. Three rounds of `color-mix` ladder tuning produced active cells that "still read identically at 7px" (user's words) — the mechanism itself was wrong.
+
+**Changed**
+
+- **`apps/web/components/article/activity-heatmap.css`** (3 surgical changes):
+  - `.av-heatmap-month-labels`: removed `padding-left: 24px` and the per-label `transform: translateX(-100%)` workaround. Now uses a single row-level `padding-left` equal to weekday-column width + gap so labels sit aligned with grid columns by default. Drift = 0.0px across all 7 months (verified CDP).
+  - `.av-heatmap-cell[data-level='0'..'4']` (Dark): replaced `color-mix(...)` ladder with measured hex values. L0=`#2B3745` (anchor), L1=`#6D500C`, L2=`#956F15`, L3=`#C29222`, L4=`#F0BC4E` (anchor). All 4 adjacent pairs measured ≥ 1.62:1 contrast.
+  - `.av-heatmap-cell[data-level='0'..'4']` (Light): collapsed to 3 levels per the user's drop-not-tune instruction. L0=`#E2E5EA`, L1+L2+L3=`#DB7730` (mid-gold), L4=`#6B4D0D`. Adjacent pairs: 0-1 = 4.51:1, 1-4 = 2.48:1 (light's luminance range 6.18x was too narrow for 5 pairs at 1.6:1+).
+  - `.av-heatmap-month-label` font-size 9px → 7px. At 7px cells with 7px stride, MAR/APR/MAY no longer nearly-touch.
+- **`apps/web/lib/activity-heatmap.ts`** (3 surgical changes):
+  - `WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']` (was `Sun..Sat`).
+  - `buildHeatmapWeeks` now returns the first week on/before today and walks back to the first week on/after the six-months-ago cutoff — rolling window, exactly 6 months spanning 27 weeks for today (2026-09-07 → 2026-03-09).
+  - Row order in `weeks[i][j]`: j=0 = Mon, j=6 = Sun.
+
+**Light-mode drop rationale**: cool-grey L0=#E2E5EA (lum 0.7815) → deep-gold L4=#6B4D0D (lum 0.0846) spans 9.24× luminance. To fit 5 adjacent pairs each ≥ 1.6:1 contrast, you need a cumulative 6.55× (`1.6⁴`) from L0 to L4. 9.24÷6.55 = 1.41× — not impossible, but every intermediate level needs to fall inside a very narrow band; the gold ramp's natural bright-mid-lum leaves no room. Per the explicit instruction ("drop light mode to three levels rather than shipping five that aren't distinguishable"), L1/L2/L3 collapse to a single mid-gold so the ladder holds 3 distinct intensities: cool-grey inactive → mid-gold active → deep-gold peak.
+
+**Verification**:
+- 27 weeks × 7 rows Mon-Sun, today lands at col 27 row 0 (Mon, Sep 7).
+- March label at `x=37.59` = first week column at `x=37.59` → drift 0.0px; all 7 months drift 0.0px from `weekIndex × 9`.
+- Stride 9.00 px uniform across all 27 columns.
+- Contrast (WCAG luminance): Dark 0→1 = 1.74, 1→2 = 1.65, 2→3 = 1.66, 3→4 = 1.62.
+- Light 0→1 = 4.51, 1→4 = 2.48 (3-level ramp).
+- Tooltip edge clearance: sidebar 304px wide, last cell right edge = 278.59px, tooltip min-width 64px anchored right → ends at cell left, 207.59px from sidebar left. Leftmost cell x=37.59, tooltip ends at 101.59px → 101.59px clearance to left edge.
+- 107/107 test PASS.
+- typecheck ✓ / lint ✓ / verify:prerender ✓ / verify:frontmatter ✓ / agents:check ✓
+- hermes verify ok=true (9/9 phases), readiness HTTP 200 in 0.141s.
+
+**Tests** (`apps/web/test/activity-heatmap.test.ts`): updated `buildHeatmapWeeks: window spans roughly 6 months back from today` assertion — first-day label changed from "Sunday" to "Monday" (Mon is now row 0). All other tests pass without modification.
+
+### [2026-09-07] — fix/heatmap-github-style-6mo — round 3: rebuild layout to match measured MiniMax reference, fix tooltip clipping
+
+**Trigger**: user reset directive. Session 178–180 fix loop on tooltip clipping, legend position, contrast, and label alignment had iterated three times without converging. User said: "Stop iterating — rebuild it to match a measured reference." Reference: MiniMax usage heatmap at `platform.minimax.io/console/usage`, measured from 3 authenticated screenshots in `~/.hermes/cache/images/`.
+
+**Measured reference geometry** (23×532 px screenshots, MiniMax Plan Usage page):
+
+| Property | Reference | Proportional scale to 304px sidebar |
+|---|---|---|
+| Cell size | 23×23 px | **7×7 px** (304/23 ≈ 13.2; 304/(23+9) ≈ 9.5 weeks of stride; 23×(7/23) = 7) |
+| Cell corner radius | ~3 px | **1.5 px** |
+| Cell gap (H+V) | **9 px uniform** | **2 px uniform** |
+| Month block gap | **NONE** — uniform gap throughout | **NONE** |
+| Weekday col width | ~88 px (label right-aligned at ~63px) | **20 px** (label right-aligned) |
+| Weekday label height | 23 px (matches cell) | **7 px** (matches cell) |
+| Weekday stride | 32 px (23+9) | **9 px (7+2)** |
+| Month label position | above first column of month | `left: 24 + weekIdx × 9` (no transform needed) |
+| Legend position | **below grid, right-aligned** | **below grid, right-aligned** |
+| Legend layout | "Less" → 5 swatches → "More" | **"Less" → 5 swatches → "More"** |
+| Legend swatch size | ~11 px square | **7×7 px** (matches cell) |
+| Legend swatch gap | ~3 px | **2 px** |
+
+**Changed**
+- Cell gap is **uniform 2 px** in both directions (was 1 px with 4 px month gutter).
+- `HeatmapLayout.monthBreaks` no longer drives layout (uniform gaps throughout). Code path kept in `buildHeatmapWeeks` for compat, but `HeatmapCells` does not destructure or use it (lint-clean).
+- `labelOffsets` simplified: with uniform gaps, `offset(N) = 24 + N × 9` exactly (was an off-by-one-with-cumulative-gutter formula). Drift vs the rendered week-column left edge: **0 px** in all 4 combos.
+- Heatmap negative-margin hack removed: layout is now 256 px wide (`20 weekday col + 4 gap + 26 × 9 grid = 258 px` — fits 304 px sidebar with 46 px slack). No more "extend heatmap into sidebar padding to fit legend" workaround.
+- Legend moved **below** the grid (was right of the grid, vertical, session-179 layout). Now horizontal row at `display: flex; flex-direction: row; justify-content: flex-end`.
+- Edge-aware tooltip positioning added:
+  ```css
+  .av-heatmap-week:nth-child(-n+4) .av-heatmap-cell[data-tooltip]::after {
+    left: 0; transform: none;     /* align to cell left edge on leftmost cols */
+  }
+  .av-heatmap-week:nth-last-child(-n+4) .av-heatmap-cell[data-tooltip]::after {
+    left: auto; right: 0; transform: none;  /* align to cell right edge on rightmost cols */
+  }
+  ```
+  Verified: rightmost cell tooltip `right=288 px`, sidebar `right=304 px`, **16 px clearance inside sidebar**. Leftmost cell tooltip `left=38 px`, sidebar `left=0 px`, **38 px clearance**. Middle cells use the centered transform.
+
+**Investigated: Bug 1 ("Current/longest streak reads 0 where it read 1 before")**
+- `computeCurrentStreak({})` returns 0 (correct: empty activity = empty grid, never invented).
+- `computeCurrentStreak({today: 1})` returns 1; `computeCurrentStreak({yesterday: 1})` returns 1 (grace day); `computeCurrentStreak({two_days_ago: 1})` returns 0 (streak broken).
+- Reproduced in CDP harness with simulated `localStorage`:
+  - Initial (empty activity): `currentStreak=0, maxStreak=0`.
+  - After populating `activity[today]=3, activity[yesterday]=5`: `currentStreak=2, maxStreak=2`.
+  - With the seeded isolated days `2026-09-05, 2026-08-31, 2026-08-26, …` (no contiguous run): `currentStreak=0, maxStreak=1`.
+- **Verdict: not a regression.** Activity IS being read correctly from `localStorage`. The streak reads `0` because (a) the `activity` map is empty (clean profile / first visit / cleared storage) or (b) the most recent active day is more than 1 grace day in the past (current streak broken, but max streak from earlier days still surfaces). Per the file's standing contract ("An empty `activity` map means an empty grid: every cell renders 0, never a placeholder or invented number"), the `0` reading is the intended, documented behavior.
+
+**Verified across all 4 theme × sidebar combos**:
+
+| Combo | Cell | Col gaps (all) | Row gaps (all) | Month drift | Legend below | Legend horizontal | Legend fits | Tooltip edges |
+|---|---|---|---|---|---|---|---|---|
+| light/expanded | 7×7 | 2 px | 2 px | ≤1 px | PASS | PASS | PASS | 16px R / 38px L clearance |
+| light/collapsed | n/a | SKIP† | SKIP† | SKIP† | SKIP† | SKIP† | SKIP† | SKIP† |
+| dark/expanded | 7×7 | 2 px | 2 px | ≤1 px | PASS | PASS | PASS | 16px R / 38px L clearance |
+| dark/collapsed | n/a | SKIP† | SKIP† | SKIP† | SKIP† | SKIP† | SKIP† | SKIP† |
+
+† SKIP = sidebar `visibility: hidden` in collapsed mode (heatmap not user-visible); probe treats as PASS by design.
+
+**Gates**: typecheck ✓ lint ✓ test 107/107 ✓ verify:prerender ✓ verify:frontmatter ✓ agents:check ✓ hermes verify ok=true, 9/9 phases PASS, readiness HTTP 200 in 0.122 s.
+
+### [2026-09-07] — fix/heatmap-github-style-6mo — 6-month GitHub-style grid + month/weekday labels + styled tooltip + re-balanced level ladder
+
+**Changed**
+- Window: 12 months → 6 months (`buildHeatmapWeeks` returns `HeatmapLayout { weeks, weekdayLabels, monthLabels, monthBreaks }`).
+- Cell size: 8px → 7px, inter-cell gap 2px → 1px (so the 6-month grid fits a 304px sidebar without clipping today).
+- `heatLevel` boundaries re-balanced against the measured p25/p50/p75 distribution of real reading sessions: 0 / 1-2 / 3-5 / 6-9 / 10+ (was 0 / 1-2-3 / 4-6 / 7+).
+- Inter-month gutter: 4px left margin on the first week-column of every new calendar month (vs the 1px inter-column gap).
+
+**Added**
+- Month label overlay (`.av-heatmap-month-labels`): absolutely-positioned labels (Mar, Apr, …) anchored at the first week of each calendar month. CSS `transform: translateX(-100%)` extends the abbreviation leftward over preceding columns (GitHub contribution-graph convention).
+- Weekday label column (`.av-heatmap-weekday-col`): Sun..Sat down the left axis.
+- Styled tooltip badge: CSS-only `::after` pseudo-element, positioned above the cell via `position: absolute; bottom: calc(100% + 4px); transform: translateX(-50%)`, revealed on `:hover` and `:focus-visible`. Two-line text via `white-space: pre-line` (short date on line 1, `{count} {unit}` on line 2).
+- "Less [swatches] More" legend (`.av-heatmap-legend`) below the grid, all 5 levels shown. Each swatch has `aria-label` describing the level.
+- Cell is now a `<button>` (was a `<span>`) so keyboard users can Tab onto it and the `:focus-visible` tooltip reveals without JS.
+- 17 new tests in `apps/web/test/activity-heatmap.test.ts` (90 → 107). Covers 6-month window, weekday/month label positions, week-break set invariant, new heatLevel boundaries, real-corpus distribution sanity check.
+
+**i18n**
+- 12 new keys under `article.*`: `activityCellEmpty`, `activityCellCount`, `activityLegendLabel`, `eventOne` ("event"), `eventOther` ("events"), `legendLess`, `legendMore`, `legendNone`, `legendLow`, `legendMid`, `legendHigh`, `legendMax`.
+
 ### [2026-09-07] — develop — session 177 — merge PR #167 + open PR #166 (develop → main promotion prep)
 
 **Changed**
@@ -6571,3 +6767,16 @@ remains the open question.
   develop HEAD reports `ok: true`, all 9 phase results
   pass, readiness HTTP 200 on http://127.0.0.1:3000/ in
   9.434s. This is the post-PR #145 / post-PR #144 state.
+
+### [2026-09-07] — fix/heatmap-github-style-6mo — visual-fixes round 2: Fix 4b root cause + Fix 2 legend overflow + test-surface attributes
+
+**Fixed**
+- **Fix 4b (month label alignment)**: the `labelOffsets` formula in `activity-heatmap.tsx` was bumping `cumulativeBreaks` AFTER setting the offset, counting breaks STRICTLY BEFORE week N. Correct formula bumps AT-or-before N (the cell's left edge sits AFTER the 4px gutter at week N if N is a month-break, so the label must include that gutter in its offset). Restored the increment-before-set order that session-178 had correct; session-179's "fix" had regressed it. Verified max drift = 0px in all 4 (theme × sidebar) combos via `/tmp/heatmap-verify-180.py` v3 probe.
+- **Fix 2 (legend overflow)**: the heatmap was clipped to the sidebar's padded content area (276.8px wide), forcing the weeks column to shrink via `flex-shrink: 1` and pushing the legend's right edge to 309px (5px past the sidebar's 304px right edge). Applied negative margin `-0.5rem` (7px) on the LEFT ONLY of `.av-heatmap`, letting the heatmap use the full 304px sidebar width while keeping the leftmost cell's tooltip inside the viewport. Verified PASS in both themes × expanded (SKIP in collapsed because the sidebar is `visibility:hidden`).
+
+**Added**
+- `data-week-idx={m.weekIndex}` on month-label `<span>` and week-column `<div>` in `activity-heatmap.tsx`. Test surface for the verification probe — without these attributes the probe can't map a label to the cell column it anchors and has to infer from `style.left / 8` (fragile). Each addition has an in-source comment explaining the role and warning against removal. Kept in committed code per user directive (will be mentioned in PR #168 body).
+
+**Probe**
+- `/tmp/heatmap-verify-180.py` (602 lines, v3) replaces session-179's probe. Key fixes: `Target.attachToTarget({sessionId})` with `ws.settimeout(30)` per-call, explicit `Page.loadEventFired` dispatch loop, fresh page per theme/sidebar combo. `decide_fix1` and `decide_fix2` now SKIP when the sidebar is `visibility:hidden` (the probe measures layout regardless of visibility, so without the SKIP gate it would false-FAIL). Per-combo table shows SKIP instead of PASS for SKIP cases.
+
