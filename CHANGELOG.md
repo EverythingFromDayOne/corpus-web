@@ -5,6 +5,33 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-08] — chore(debt) — merge `origin/main` into `develop`; file D50/D51
+
+**Fixed**
+- Hand-resolved a real `CHANGELOG.md` conflict blocking PR #174 (develop → main promotion). GitHub's server-side merge does not honor `.gitattributes`' `merge=union` driver — only a local `git merge` does — so the conflict never surfaced until probed directly. Merged `origin/main` into `develop` (`9b4a0cf`), kept develop's `[Unreleased]` ordering, dropped the redundant duplicate entry pulled in from `main`.
+
+**Added**
+- `docs/DEBT.md`: D50 (`merge=union` doesn't apply server-side on GitHub) and D51 (`develop` branch protection still requires linear history, unlike `main` post-ADR-0003). Both report-only.
+
+### [2026-09-08] — chore(protection) — branch protection now enforces Content gates on main + develop
+
+**Documented, not made by this session** — the user applied this directly on GitHub per their own D46-era note ("I'll add verify-links to required_status_checks.contexts myself once Content gates is green on develop"). This entry records the resulting state for the record; no `gh api` protection call was made by the agent in this session.
+
+**Current state (verified via `gh api repos/.../branches/{branch}/protection`, 2026-09-08):**
+- `main`: `required_status_checks.contexts = ["Content gates", "Lint, typecheck, build", "Repo guards"]`, `strict: false`, `enforce_admins.enabled: true`, `required_linear_history.enabled: false`.
+- `develop`: same three contexts, `strict: false`, `enforce_admins.enabled: false`, `required_linear_history.enabled: true`.
+- `nestjs-concepts:main`: still no protection (404 on the protection endpoint) — this submodule repo has no CI workflows at all, so there is nothing to require.
+
+**Operational meaning**
+- Before this change, `corpus-web:main` and `corpus-web:develop` both had `required_status_checks.contexts = []` — a red check never blocked the merge button, and D13's own closed row documents that "every squash-merge to `main` for three weeks has been `--admin` to bypass it."
+- With `Content gates` now required on both branches, a red Content gates check (as D46 was for weeks) will block the merge button outright. `--admin` still exists as an override for a repo admin, but it is no longer the routine path — it is now an explicit escape hatch each time, not the default merge shape.
+- `main`'s `enforce_admins: true` means even a repo admin cannot bypass required checks on `main` without first disabling branch protection. `develop`'s `enforce_admins: false` leaves that door open there.
+
+**Scope of what CI actually runs on each branch (`.github/workflows/ci.yml` triggers: `push: branches: [main]` + `pull_request`, no branch filter on the PR trigger)**
+- `develop` has **no non-PR trigger** — CI only runs there via a PR merging into it. The new required-checks enforcement covers the PR path completely for `develop`; there is no direct-push code path on `develop` for these checks to miss, because CI simply never runs on a raw push to `develop`.
+- `main` **does** trigger on direct `push`, in addition to PR. So both the PR path and a hypothetical direct push to `main` re-run the required checks. (GitHub's branch-protection model also blocks a push to a protected branch if the pushed commit has no matching passing check run for a required context, independent of whether that push happened via PR — this session did not separately probe that block with a live push attempt.)
+- `content-watch.yml` (the only other parent-repo workflow) triggers on `schedule` + `workflow_dispatch` only — unrelated to branch protection, not part of this change.
+
 ### [2026-09-08] — fix/heatmap-github-style-6mo — round 9: restore round-7 6-level ladder on an 18-week window
 
 **Changed (user-directed; reverted the round-8 ladder collapse)**
