@@ -4,14 +4,15 @@ import { buildHeatmapWeeks, heatLevel, type HeatmapLayout } from '@/lib/activity
 import { t, type Messages } from '@/lib/i18n';
 
 /**
- * Streak + 3-month activity heatmap, mounted inside a collapsible
+ * Streak + ~4-month activity heatmap (18 weeks ≈ 4.15 months),
+ * mounted inside a collapsible
  * disclosure (see activity-heatmap-disclosure.tsx). Read from
  * `ProgressStore.activity` only. Never reads `completed` or `seen` — v0
  * progress data has no timestamps to backfill from, and inventing a date
  * for historical activity is not acceptable. An empty `activity` map
  * renders an empty grid: every cell is 0, never a placeholder number.
  *
- * Layout: a GitHub-contribution-shaped 7-row × 12-week grid with month
+ * Layout: a GitHub-contribution-shaped 7-row × 18-week grid with month
  * labels across the top (anchored at the first week of each calendar
  * month in the window) and weekday labels down the left (Mon..Sun).
  * Inter-month gutters separate the week columns at every month boundary
@@ -46,7 +47,7 @@ export function ActivityHeatmap({
 }
 
 /**
- * Renders the 3-month grid: month-label row, weekday-label column, and
+ * Renders the 18-week grid: month-label row, weekday-label column, and
  * the cells themselves. The grid is a CSS `display: grid` with explicit
  * row + column tracks so the weekday labels sit in their own column and
  * the cells align to the 7-row rhythm without per-cell positional math.
@@ -198,19 +199,25 @@ function HeatmapCellBtn({
 }
 
 /**
- * "Less [swatches] More" legend below the grid, all 3 levels shown in
- * both themes — the 3-level ladder clears WCAG contrast in both themes
- * at the 12-week cell size (see activity-heatmap.css for measured
- * numbers), so no theme-specific swatch hiding is needed.
+ * "Less [swatches] More" legend below the grid, all 6 levels shown in
+ * both themes — the 6-level ladder (round 7, restored in round 9 on top
+ * of an 18-week window) is wired to the same six DOM levels in both
+ * themes, so no theme-specific swatch hiding is needed. Whether the
+ * rendered colours are all distinguishable enough to justify 6 visible
+ * steps is a contrast-measurement question, not a "does the DOM have
+ * 6 levels" question; see activity-heatmap.css for measured numbers.
  * Keyboard-focusable so a screen reader can announce each level; the
  * `aria-hidden` swatches are decorative — the label + value carry the
  * meaning.
  */
 function HeatmapLegend({ messages }: { messages: Messages }) {
-  const levels: Array<{ level: 0 | 1 | 2; labelKey: string }> = [
+  const levels: Array<{ level: 0 | 1 | 2 | 3 | 4 | 5; labelKey: string }> = [
     { level: 0, labelKey: 'article.legendNone' },
     { level: 1, labelKey: 'article.legendLow' },
-    { level: 2, labelKey: 'article.legendHigh' },
+    { level: 2, labelKey: 'article.legendMidLow' },
+    { level: 3, labelKey: 'article.legendMid' },
+    { level: 4, labelKey: 'article.legendHigh' },
+    { level: 5, labelKey: 'article.legendMax' },
   ];
   return (
     <div className="av-heatmap-legend" aria-label={t(messages, 'article.activityLegendLabel')}>

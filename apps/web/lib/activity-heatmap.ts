@@ -1,7 +1,7 @@
 /**
  * Pure date/grid logic over `ProgressStore.activity`. No localStorage
  * access, no React — this module receives an `activity` map and produces
- * derived values (current streak, max streak, a 12-week heatmap grid +
+ * derived values (current streak, max streak, an 18-week heatmap grid +
  * the metadata the React layer needs to render weekday/month labels and
  * inter-month gutters without recomputing dates).
  *
@@ -131,15 +131,19 @@ const MONTH_LABELS = [
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ] as const;
 
-/** Number of week columns in the grid. Dropped from 24 to 12 in round 8 —
- * at 12 columns the fluid cell width is ~19px in a 276px sidebar, large
- * enough for a 3-level ladder to read clearly without needing the
- * opacity-compression tricks the 24-week/6-level version required to
- * (partially) clear WCAG contrast. Geometry, not palette, is the fix. */
+/** Number of week columns in the grid. Bumped from 12 to 18 on top of
+ * round 8 — paired with the round-7 6-level opacity ladder the user
+ * asked to restore. At 18 columns the fluid cell width is ~13px in a
+ * 276px sidebar (vs. ~19px at 12, ~8.7px at 24), so this trades some
+ * legibility for a longer time axis and finer intensity steps. The
+ * round-7 contrast verdict (3 of 5 pairs fail dark, 4 of 5 fail light)
+ * is acknowledged and accepted by the user — see the heatLevel()
+ * docstring and the activity-heatmap.css level comment for the
+ * measured numbers. */
 const WINDOW_WEEKS = 18;
 
 /**
- * 12-week heatmap grid + the metadata needed to render weekday labels,
+ * 18-week heatmap grid + the metadata needed to render weekday labels,
  * month labels, and inter-month gutters.
  *
  * Shape: an array of week columns, each an array of 7 day cells (Mon..Sun),
@@ -226,27 +230,47 @@ export function buildHeatmapWeeks(
 }
 
 /**
- * Buckets a raw count into a 0-2 visual intensity level for the CSS to
- * key off. Three levels (was six, round 7) — round 8 drops the window
- * from 24 weeks to 12, which makes each cell render at ~19px in a 276px
- * sidebar (vs. ~8.7px at 24 weeks). At that size a 3-level ladder reads
- * clearly and clears WCAG contrast in both themes without opacity-
- * compression tricks; the six-level ladder existed only to compensate
- * for cells too small to carry more visual weight than a colour swatch,
- * and that need goes away once the geometry changes.
+ * Buckets a raw count into a 0-5 visual intensity level for the CSS to
+ * key off. Six levels — level 0 (empty) plus five non-empty intensity
+ * steps, matching the six-step opacity ladder (0%/15%/35%/55%/80%/100%
+ * of `--color-signal` over the theme background, see
+ * activity-heatmap.css).
  *
- * Boundaries against the same measured distribution used for the round-7
- * six-level cuts (re-measured 2026-09-07 against 257 articles with H2s):
+ * Boundaries against the real distribution of events-per-end-to-end-
+ * article-read across the four mounted corpora (re-measured 2026-09-07
+ * against 257 articles with H2s):
  *
- *   min: 2 events, p25: 8, p50: 9, p75: 14, p90: 14, max: 22
+ *   min: 2, p25: 8, p50: 9, p75: 14, p90: 14, max: 22
  *
- *   0 — empty day (no progress mutations that day)
- *   1 — 1-8 events (below the p50 mark — a partial read, or a below-
- *       median day)
- *   2 — 9+ events (p50 and above — a typical end-to-end read or better)
+ * Each "event" is one progress mutation — either a `markSeen(uid, anchor)`
+ * firing as a section heading crosses the 20% reading line, or the
+ * `markComplete(uid)` firing when the last part is seen. Cuts picked to
+ * keep the four non-empty levels visually distinguishable in real-world
+ * reading sessions (a typical end-to-end article read lands at level 4;
+ * glances at level 1-2; long or multi-article days at level 5):
+ *
+ *   0  — empty day (no progress mutations that day)
+ *   1  — 1-2 events (a single heading crossed, or two quick glances)
+ *   2  — 3-5 events (partial read of a short article, or a long scroll
+ *        through a few sections of a long one)
+ *   3  — 6-8 events (just under a typical end-to-end read — p25 of the
+ *        corpus distribution)
+ *   4  — 9-13 events (typical end-to-end read of a short-to-medium
+ *        article, up to just under p90 of the corpus distribution)
+ *   5  — 14+ events (long article read or a multi-article day — p90+
+ *        of the corpus distribution)
+ *
+ * Note: the round-7 measurement showed the 6-level opacity ladder
+ * clears only 2 of 5 adjacent pairs in dark and 1 of 5 in light against
+ * the real `--color-signal` / `--color-muted` / `--color-surface`
+ * values in this codebase. The 18-week window paired with this ladder
+ * is the user's explicit choice and is not auto-tuned here.
  */
-export function heatLevel(count: number): 0 | 1 | 2 {
+export function heatLevel(count: number): 0 | 1 | 2 | 3 | 4 | 5 {
   if (count <= 0) return 0;
-  if (count <= 8) return 1;
-  return 2;
+  if (count <= 2) return 1;
+  if (count <= 5) return 2;
+  if (count <= 8) return 3;
+  if (count <= 13) return 4;
+  return 5;
 }

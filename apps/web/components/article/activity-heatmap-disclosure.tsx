@@ -14,7 +14,7 @@ import { ActivityHeatmap } from './activity-heatmap';
  * is the toggle button.
  *
  * Expanded: the same line with the chevron flipped 180°, then a
- * divider, then the 12-week grid (month labels, weekday labels, cells,
+ * divider, then the 18-week grid (month labels, weekday labels, cells,
  * legend) rendered by <ActivityHeatmap>.
  *
  * Open/closed state persists in the existing ProgressStore localStorage

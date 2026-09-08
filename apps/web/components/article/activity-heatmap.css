@@ -1,4 +1,5 @@
-/* Streak + 3-month activity heatmap, mounted inside a collapsible
+/* Streak + ~4-month activity heatmap (18 weeks ≈ 4.15 months),
+   mounted inside a collapsible
    disclosure (see activity-heatmap-disclosure.tsx). Sidebar-scoped
    chrome — tokens from @corpus/ui only, no raw hex. Reads
    ProgressStore.activity exclusively; an empty activity map renders
@@ -7,9 +8,9 @@
 
    Layout: GitHub-contribution-graph shaped. Month labels run across the
    top of the grid (anchored at the first week of each calendar month in
-   the 12-week window). Weekday labels run down the left (Mon..Sun).
+   the 18-week window). Weekday labels run down the left (Mon..Sun).
    A thin left-margin gutter on the first week-column of every month
-   makes month boundaries visually distinct. The legend (Less [3
+   makes month boundaries visually distinct. The legend (Less [6
    swatches] More) sits below the grid, right-aligned.
 
    On hover or keyboard-focus, each cell reveals a styled tooltip
@@ -361,43 +362,64 @@
 }
 
 /* === Intensity levels ===================================================
-   3-level ladder in BOTH themes (was: 6-level opacity ladder in round 7,
-   which only cleared 3/5 adjacent pairs in dark and 1/5 in light — the
-   L1-L4 band compressed into a narrow luminance range at any opacity
-   split fine enough to carve 6 steps). Round 8 drops the window from 24
-   weeks to 12, which more than doubles the cell edge (~8.7px → ~19px in
-   a 276px sidebar) — large enough that 3 levels read clearly without
-   needing opacity compression to manufacture extra visual steps. Fewer,
-   more separated levels is the fix; geometry made it possible.
+   6-level opacity-based ladder in BOTH themes (was: 3-level luminance
+   ladder in round 8, paired with a 12-week window). Round 9 reverts to
+   the round-7 ladder and bumps the window to 18 weeks, per user
+   directive — restoring the finer intensity steps on a slightly
+   longer time axis. Cell edge at 18 weeks is ~13px in a 276px sidebar
+   (vs. ~19px at 12 weeks, ~8.7px at 24 weeks); the user has accepted
+   this trade-off, so geometry is not auto-reverted to 12 weeks here.
 
-     L0 = var(--color-graphite)                                  -- empty
-     L1 = color-mix(in srgb, var(--color-signal) 60%, var(--color-surface))
-     L2 = var(--color-signal)                                    -- full
+     L0        = var(--color-muted)          -- empty
+     L1..L5    = var(--color-signal) at 15% / 35% / 55% / 80% / 100%
+                 opacity OVER var(--color-surface) (the sidebar's actual
+                 background, confirmed via CDP: dark #151d26, light #fff)
 
-   MEASURED (2026-09-08, WCAG relative-luminance contrast against the
-   real --color-signal / --color-graphite / --color-surface token
-   values in both themes):
+   Implemented with color-mix() rather than literal alpha compositing
+   since these are solid swatches painted directly on --color-surface
+   (no stacking-context layering to preserve) — color-mix(in srgb, X Y%,
+   Z) against the OPAQUE surface colour is bit-identical to rgba(X, Y%)
+   painted over that same solid background, and keeps the ladder as CSS
+   custom properties instead of hard-coded hex per level.
 
-     Dark:  L0-L1 = 2.616 PASS | L1-L2 = 2.154 PASS
-     Light: L0-L1 = 1.656 PASS | L1-L2 = 2.013 PASS
+   MEASURED (2026-09-08 against the real --color-signal / --color-muted
+   / --color-surface token values in both themes, WCAG relative-
+   luminance contrast):
 
-   Both adjacent pairs clear the 1.6:1 floor in both themes — the
-   contrast problem from round 7 is resolved by geometry, not palette
-   tuning. */
+     Dark   L0-L1: 3.722 PASS | L1-L2: 1.588 FAIL | L2-L3: 1.582 FAIL
+            L3-L4: 1.677 PASS | L4-L5: 1.432 FAIL
+     Light  L0-L1: 4.706 PASS | L1-L2: 1.315 FAIL | L2-L3: 1.361 FAIL
+            L3-L4: 1.515 FAIL | L4-L5: 1.429 FAIL
+
+   Neither theme clears 1.6:1 on every adjacent pair with the opacity
+   method against this codebase's actual --color-signal / --color-muted
+   / --color-surface values — same numbers as round 7 because the
+   ladder and the surface are unchanged, only the window width moved.
+   The user has accepted this trade-off (18-week time axis + 6 intensity
+   steps > 12-week time axis + 3 intensity steps); not auto-tuned here. */
 
 .av-heatmap-cell[data-level='0'] {
-  background: var(--color-graphite);
+  background: var(--color-muted);
 }
 .av-heatmap-cell[data-level='1'] {
-  background: color-mix(in srgb, var(--color-signal) 60%, var(--color-surface));
+  background: color-mix(in srgb, var(--color-signal) 15%, var(--color-surface));
 }
 .av-heatmap-cell[data-level='2'] {
+  background: color-mix(in srgb, var(--color-signal) 35%, var(--color-surface));
+}
+.av-heatmap-cell[data-level='3'] {
+  background: color-mix(in srgb, var(--color-signal) 55%, var(--color-surface));
+}
+.av-heatmap-cell[data-level='4'] {
+  background: color-mix(in srgb, var(--color-signal) 80%, var(--color-surface));
+}
+.av-heatmap-cell[data-level='5'] {
   background: var(--color-signal);
 }
 
 /* === Legend (below the grid, horizontal, right-aligned) =================
    Matches the MiniMax reference layout: horizontal row below the cell
-   grid, aligned to the right edge. "Less" label, 3 swatches, "More" label. */
+   grid, aligned to the right edge. "Less" label, 6 swatches, "More" label. */
 
 .av-heatmap-legend {
   display: flex;
@@ -440,12 +462,13 @@
   border-color: transparent;
 }
 
-/* Both themes render 3 distinct swatches — the ladder collapsed from
-   six opacity levels (round 7) to three because 12-week cells (~19px)
-   are large enough to carry the contrast without a finer opacity split.
-   Both adjacent pairs clear 1.6:1 in both themes (see the measured
-   numbers in the comment above the data-level rules); no theme-specific
-   swatch hiding is needed. */
+/* Both themes render 6 distinct swatches — round 9 restores the
+   round-7 6-level opacity ladder (the round-8 comment about
+   "3 swatches" referred to the 3-level ladder, since collapsed). The
+   6-level ladder does not clear 1.6:1 on every adjacent pair in
+   either theme (see the measured numbers in the comment above the
+   data-level rules); no theme-specific swatch hiding is needed
+   because the DOM has the same six levels in both themes. */
 
 /* Suppress the legend swatch's own tooltip — the swatches carry
    aria-label for AT but should not show the badge tooltip. */

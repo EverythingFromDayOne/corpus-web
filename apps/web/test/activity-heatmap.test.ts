@@ -132,11 +132,11 @@ test('computeMaxStreak: unsorted insertion order does not affect the result', ()
 
 // ----- buildHeatmapWeeks --------------------------------------------------
 
-test('buildHeatmapWeeks: empty activity produces a 12-week grid with all-zero cells, no placeholder numbers', () => {
+test('buildHeatmapWeeks: empty activity produces an 18-week grid with all-zero cells, no placeholder numbers', () => {
   const layout = buildHeatmapWeeks({}, TODAY);
-  assert.equal(layout.weeks.length, 12, 'grid must have exactly 12 week columns (round 8: dropped from 24)');
+  assert.equal(layout.weeks.length, 18, 'grid must have exactly 18 week columns (round 9: 18-week / 6-level)');
   const allCells = layout.weeks.flat();
-  assert.ok(allCells.length > 75, 'a 12-week grid must have 84 day cells (incl. padding)');
+  assert.ok(allCells.length > 110, 'an 18-week grid must have 126 day cells (incl. padding)');
   for (const cell of allCells) {
     if (cell === null) continue; // padding cell (before the window or after today)
     assert.equal(cell.count, 0, `cell ${cell.date} must be 0 when activity is empty`);
@@ -172,16 +172,16 @@ test('buildHeatmapWeeks: the last real cell is "today", not some future padding 
   assert.equal(last!.date, TODAY);
 });
 
-test('buildHeatmapWeeks: window is exactly 12 week columns ending on today\'s week', () => {
-  // TODAY = 2026-09-06 (a Sunday). 12 weeks back lands the window start
-  // in mid-June 2026.
+test('buildHeatmapWeeks: window is exactly 18 week columns ending on today\'s week', () => {
+  // TODAY = 2026-09-06 (a Sunday). 18 weeks back lands the window start
+  // in early May 2026.
   const layout = buildHeatmapWeeks({}, TODAY);
   const flat = layout.weeks.flat().filter((c): c is { date: string; count: number } => c !== null);
   const first = flat[0]!;
   const firstMonth = Number(first.date.slice(5, 7));
   assert.ok(
-    firstMonth >= 5 && firstMonth <= 6,
-    `expected the window to start in May/Jun 2026, got ${first.date}`,
+    firstMonth >= 4 && firstMonth <= 6,
+    `expected the window to start in Apr/May/Jun 2026, got ${first.date}`,
   );
 });
 
@@ -191,14 +191,14 @@ test('buildHeatmapWeeks: weekdayLabels is Mon..Sun in order', () => {
 });
 
 test('buildHeatmapWeeks: monthLabels lists one entry per calendar month in the window', () => {
-  // TODAY = 2026-09-06 → 12-week window covers mid-Jun 2026 through Sep
-  // 2026 = 4 months. Each label must be a valid 3-letter month
+  // TODAY = 2026-09-06 → 18-week window covers early May 2026 through Sep
+  // 2026 = 5 months. Each label must be a valid 3-letter month
   // abbreviation and the week indices must be strictly increasing.
   const layout = buildHeatmapWeeks({}, TODAY);
   const validLabels = new Set([
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
   ]);
-  assert.ok(layout.monthLabels.length >= 3, `expected ≥3 month labels, got ${layout.monthLabels.length}`);
+  assert.ok(layout.monthLabels.length >= 4, `expected ≥4 month labels, got ${layout.monthLabels.length}`);
   for (const ml of layout.monthLabels) {
     assert.ok(validLabels.has(ml.label), `month label must be a 3-letter abbreviation, got "${ml.label}"`);
     assert.ok(
@@ -232,14 +232,14 @@ test('buildHeatmapWeeks: monthBreaks has no entries that are not monthLabels', (
   }
 });
 
-test('buildHeatmapWeeks: window is exactly 12 weeks (round 8: dropped from 24 so cells render large enough for a 3-level ladder)', () => {
+test('buildHeatmapWeeks: window is exactly 18 weeks (round 9: bumped from 12 to 18 to match the restored 6-level ladder)', () => {
   const layout = buildHeatmapWeeks({}, TODAY);
-  assert.equal(layout.weeks.length, 12, `expected exactly 12 weeks, got ${layout.weeks.length}`);
+  assert.equal(layout.weeks.length, 18, `expected exactly 18 weeks, got ${layout.weeks.length}`);
 });
 
-test('buildHeatmapWeeks: 12-week window is shorter than the round-7 24-week window (regression on the prior window size)', () => {
-  const layout12 = buildHeatmapWeeks({}, TODAY);
-  assert.ok(layout12.weeks.length <= 16, `12-week window must be ≤16 weeks, got ${layout12.weeks.length}`);
+test('buildHeatmapWeeks: 18-week window is longer than the round-8 12-week window (regression on the prior window size)', () => {
+  const layout18 = buildHeatmapWeeks({}, TODAY);
+  assert.ok(layout18.weeks.length >= 16, `18-week window must be ≥16 weeks, got ${layout18.weeks.length}`);
 });
 
 // ----- heatLevel ---------------------------------------------------------
@@ -248,28 +248,41 @@ test('heatLevel: 0 maps to level 0 (empty day)', () => {
   assert.equal(heatLevel(0), 0);
 });
 
-test('heatLevel: 1-8 map to level 1 (below the p50 mark of the corpus distribution)', () => {
+test('heatLevel: 1-2 map to level 1 (a single heading crossed, or two quick glances)', () => {
   assert.equal(heatLevel(1), 1);
-  assert.equal(heatLevel(5), 1);
-  assert.equal(heatLevel(8), 1);
+  assert.equal(heatLevel(2), 1);
 });
 
-test('heatLevel: 9+ maps to level 2 (p50 and above — a typical end-to-end read or better)', () => {
-  assert.equal(heatLevel(9), 2);
-  assert.equal(heatLevel(14), 2);
-  assert.equal(heatLevel(22), 2);
-  assert.equal(heatLevel(100), 2);
+test('heatLevel: 3-5 map to level 2 (partial read of a short article)', () => {
+  assert.equal(heatLevel(3), 2);
+  assert.equal(heatLevel(5), 2);
 });
 
-test('heatLevel: the two non-empty levels carry information across the real corpus distribution', () => {
+test('heatLevel: 6-8 map to level 3 (just under a typical end-to-end read, p25 of the corpus distribution)', () => {
+  assert.equal(heatLevel(6), 3);
+  assert.equal(heatLevel(8), 3);
+});
+
+test('heatLevel: 9-13 map to level 4 (typical end-to-end read, p50 to just under p90)', () => {
+  assert.equal(heatLevel(9), 4);
+  assert.equal(heatLevel(13), 4);
+});
+
+test('heatLevel: 14+ map to level 5 (long article read or a multi-article day, p90+)', () => {
+  assert.equal(heatLevel(14), 5);
+  assert.equal(heatLevel(22), 5);
+  assert.equal(heatLevel(100), 5);
+});
+
+test('heatLevel: the five non-empty levels carry information across the real corpus distribution', () => {
   // Re-validate against the measured distribution: min=2, p25=8, p50=9,
-  // p75=14, p90=14, max=22. Round 8 collapses the six-level opacity
-  // ladder (round 7) down to three levels — geometry (12-week cells at
-  // ~19px instead of 24-week cells at ~8.7px) carries the visual weight
-  // six opacity steps used to compensate for.
-  const distribution: Array<[number, 0 | 1 | 2]> = [
-    [2, 1], [8, 1], [9, 2], [14, 2], [22, 2], // real distribution examples
-    [1, 1], [3, 1], [5, 1], [6, 1], [10, 2], [13, 2], // boundary smoke tests
+  // p75=14, p90=14, max=22. Round 9 restores the round-7 6-level
+  // opacity ladder (0/1-2/3-5/6-8/9-13/14+) on top of an 18-week
+  // window — same ladder as round 7 because the ladder depends on the
+  // event-count distribution, not the window width.
+  const distribution: Array<[number, 0 | 1 | 2 | 3 | 4 | 5]> = [
+    [2, 1], [8, 3], [9, 4], [14, 5], [22, 5], // real distribution examples
+    [1, 1], [3, 2], [5, 2], [6, 3], [10, 4], [13, 4], [15, 5], // boundary smoke tests
   ];
   for (const [count, expected] of distribution) {
     assert.equal(heatLevel(count), expected, `heatLevel(${count}) expected ${expected}`);
