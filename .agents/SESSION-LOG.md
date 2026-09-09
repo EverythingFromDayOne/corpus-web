@@ -9204,3 +9204,33 @@ Post-merge, PR #174 flipped to `mergeable_state: "clean"` after all 6 checks (in
 - The `TypeORM 1.1.x` rule-file drift noted on D52 will require a future `.mdc` edit, which means AGENTS.md regen will be required per the bundled-edit convention.
 
 ---
+
+## Session 193 — D48 fix landed: ◌ placeholder on all 45 broken inline links — 2026-09-09
+
+**Submodule-side (`nestjs-concepts`)**
+
+- **D48 fix landed** in submodule `nestjs-concepts` via PR #6 (`chore/d48-apply-unresolved-marker` → HEAD `ee6f1e7`, rebased on top of PR #5's CI workflow at `3f7db29`). 19 source files modified, 43 insertions / 43 deletions.
+- **Transform applied:** every broken inline link `[text](../missing.md)` → `◌ _text_`. The `◌` glyph (U+25CC) is visible in rendered HTML; the `_text_` becomes italic; the `[]()` syntax drops so no `<a href>` renders — link is non-clickable but authored intent stays visible. **Reversible:** contributor removes `◌ ` and wraps back in `[]()` when the target article lands.
+- **Convention extension:** the `◌` marker was already used in RelatedList rendering for unresolved frontmatter `related:` refs (CHANGELOG.md; `.av-related-unresolved` class). This fix extends the same convention to inline body-prose links.
+- **Verification:** `pnpm check:links` exits 0 (was 45 broken). `pnpm verify:forbid-unknown-values` unaffected (frontmatter-only). Submodule PR #6 CI green (verify SUCCESS, 16s).
+- **Closed supersedes PR #5:** `nestjs-concepts#5` was the CI-workflow-only PR (closed with comment "Superseded by #6"). PR #6's history contains the CI workflow commit + the ◌ fix, so a single merge ships both.
+- **Classification (29 distinct / 45 occurrences):** 13 distinct (a) targets match roadmap §4 article slugs (25 occurrences), 8 distinct (a-adj) recipe targets match roadmap §5 sketch phrases (10 occurrences), 0 (b) typos, 8 distinct (c) recipe targets that don't match any sketch (10 occurrences). Per user decision the (a)/(a-adj)/(b)/(c) classification does **not** gate the fix — the asymmetry is "◌ is reversible and costs nothing if the category was wrong; dropping a link destroys authored intent," so the cheap reversible action got taken everywhere. **Full classification table preserved in PR #6's body** for Wave 3/4 planning.
+
+**Parent-side (`corpus-web`)**
+
+- **D48 row text rewritten** in `docs/DEBT.md`. New text anchors on 45 (29 distinct, 19 articles), notes the original "21+1=22" was filing-time narrative (hand-counted at PR #173, commit `29ab870`, undercounted inline article-target occurrences by 4), documents the ◌ fix landed in submodule PR #6, and links to that PR's body for the full (a)/(a-adj)/(c) classification.
+- **Gitlink bump queued** as parent PR against `develop` — points submodule at `ee6f1e7` (PR #6 HEAD). Will need rebase if user merges submodule PR #6 between now and merge-time (post-merge submodule HEAD will be `ee6f1e7` itself if squash, or a new merge commit if `--no-ff`).
+
+**Open PRs (neither merged)**
+
+- `EverythingFromDayOne/nestjs-concepts` **#6** — fix(content): apply ◌ placeholder to all 45 broken inline links (D48) — **verify SUCCESS, MERGEABLE, CLEAN**.
+- `EverythingFromDayOne/corpus-web` **PR #178** (session 192 carryover) — 6/6 PASS, MERGEABLE, CLEAN.
+- (Pending) `EverythingFromDayOne/corpus-web` gitlink bump PR — to be opened after this commit lands submodule gitlink at `ee6f1e7`.
+
+**Standing-report items (carry forward)**
+
+- Neither submodule PR #6 nor the parent gitlink bump PR is merged — both held for user review per the "submodule PR first, then gitlink bump. Do not merge." directive.
+- D48 row text anchors on 45 (was 22). The "21+1=22" narrative is now a documented miscount, not a separate truth.
+- 19 source files touched in the submodule — no `apps/web/` or parent-repo content edits beyond DEBT.md / SESSION-LOG / CHANGELOG.
+- `pnpm agents:check` not relevant (no `.mdc` changes; AGENTS.md regen not required).
+- Working tree clean before commit, will be clean after commit. No running processes.
