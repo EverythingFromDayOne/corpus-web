@@ -42,6 +42,23 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 **Note**
 - The original premise of this work was wrong: live `context_file_max_chars` is 75000, not 32000; AGENTS.md was never truncating. The real defect was structural, not a boot-time truncation: four hard constraints sat inside path-scoped rule bodies and were only loaded when the agent was already editing those globs.
 
+### [2026-09-09] — chore(debt) — D48 fix lands: ◌ placeholder on all 45 broken inline links
+
+**Fixed**
+- **D48 fix in submodule `nestjs-concepts`** via submodule-side PR #6 (`chore/d48-apply-unresolved-marker` → submodule HEAD `ee6f1e7`, rebased on top of PR #5's CI workflow at `3f7db29`). 19 source files modified, 43 insertions / 43 deletions. Every broken inline link transformed from `[text](../missing.md)` to `◌ _text_` — the `◌` glyph (U+25CC) stays visible in rendered HTML, the `_text_` becomes italic, the `[]()` syntax drops so no `<a href>` renders (non-clickable but authored intent stays visible). **Reversible:** contributor removes `◌ ` and wraps the text back in `[]()` when the target article lands. **Convention extension:** RelatedList rendering already used the same `◌` glyph for unresolved frontmatter `related:` refs (`.av-related-unresolved` class); this fix extends the convention to inline body-prose links.
+
+**Changed**
+- `docs/DEBT.md` D48 row text rewritten. New text anchors on **45 broken inline links across 29 distinct missing targets across 19 published `content/nestjs` articles** — settles the original "21+1=22" filing-time narrative (hand-counted at PR #173, commit `29ab870`, undercounted actual inline article-target occurrences by 4). Documents the ◌ fix landing in submodule PR #6 and links to that PR's body for the full (a)/(a-adj)/(c) classification. The "45" and the "21+1=22" are the **same set** described from two angles (reader-facing 404 / gate-facing CI FAIL), not disjoint.
+
+**Verification**
+- `pnpm check:links` against `content/nestjs` — exits 0, 0 broken (was 45).
+- Submodule PR #6 verify CI — **SUCCESS** in 16s on run `34345705336`.
+- `pnpm verify:forbid-unknown-values` — unaffected (frontmatter-only).
+
+**Note**
+- Submodule PR #5 (CI workflow only) was closed with a supersession comment pointing to PR #6, which contains the CI workflow commit + the ◌ fix in one history. One merge ships both.
+- Per session 193 user decision: the (a)/(a-adj)/(b)/(c) classification does not gate this fix — the asymmetry is "◌ is reversible and costs nothing if the category was wrong; dropping a link destroys authored intent," so the cheap reversible action got taken everywhere. **Full classification table preserved in PR #6's body** for Wave 3/4 planning.
+
 ### [2026-09-08] — chore(debt) — merge `origin/main` into `develop`; file D50/D51
 
 **Fixed**

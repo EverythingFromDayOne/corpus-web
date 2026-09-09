@@ -9171,3 +9171,66 @@ Post-merge, PR #174 flipped to `mergeable_state: "clean"` after all 6 checks (in
 - `hermes verify` recipe still has `start: pnpm dev` on `:3000` — the api start is never exercised by the recipe. D53. Manual runtime probe stays required.
 
 ---
+
+## Session 192 — D49/D51/D52/D53 — submodule CI + verify-recipe gap + linear-history close — 2026-09-09
+
+**Branch:** `chore/d49-d51-d53` off `develop`
+
+**Scope (per user):** "Two small debt rows plus a status fix, one pass."
+- **D49:** `nestjs-concepts` has no CI. Add `.github/workflows/verify.yml` mirroring the `nextjs`/`angular` patterns, then a gitlink bump in `corpus-web`. PRs against `develop` / submodule `main`. Do not merge.
+- **D51 status fix:** `required_linear_history` is now `false` on `develop` (verified via `gh api ... --jq .required_linear_history.enabled` → `false`). Mark D51 closed in `docs/DEBT.md`; record the REST sub-resource 404 quirk (had to be done in the UI).
+- **D52 status fix:** "PR TBD against develop" → "PR #177 (squash `810c4f7`, merged)". Also recorded the `TypeORM 1.1.x` rule-file drift as a forward note.
+- **D53:** Extend the verify recipe to cover the api runtime. Add `scripts/verify-api-runtime.mjs` + `pnpm verify:api-runtime`, plus `docs/verify-recipe.md` documenting the before/after delta. The `hermes verify` CLI is single-port by design (see `agent/verify/recipes.py:26-47`); the script is the project-side fix without an upstream CLI change.
+
+**Done:**
+
+- **D53 (closed):** `scripts/verify-api-runtime.mjs` — 8 phases (preflight → build → postgres-up → migration-roundtrip → api-start → /healthz/live → /healthz/ready → teardown), exit 0 on full green, phase output greppable. Live-verified end to end: 8/8 PASS in ~17s. Probes `pg_isready` via `docker exec corpus-api-db` (libpq is not a baseline macOS dev dep; the container has it). `pnpm verify:api-runtime` wired into root `package.json`. `docs/verify-recipe.md` records the full before/after delta: `hermes verify` 9/9 PASS covering `apps/web` on `:3000`; `pnpm verify:api-runtime` 8/8 PASS covering `apps/api` on `:3001` with Postgres up; neither alone is sufficient; both together = full coverage.
+- **D51 (closed):** `gh api repos/EverythingFromDayOne/corpus-web/branches/develop/protection --jq .required_linear_history.enabled` → `false`. `docs/DEBT.md` D51 row updated with resolution + REST-404 quirk note.
+- **D52 (status fix):** `docs/DEBT.md` D52 row updated: PR TBD → PR #177 (squash `810c4f7`); corrected `postgres:16.6` → `postgres:16.4-alpine` (the actual compose pin); flagged the `TypeORM 1.1.x` rule-file drift as a forward note (held back from this commit per session 191's "no other file changes" rule).
+- **D49 (closed):** `.github/workflows/verify.yml` to be added in `nestjs-concepts` (PR against `main`) and a gitlink bump PR in `corpus-web`. Mirrors `nextjs`/`angular` patterns: `pnpm install` + `pnpm check:links` + `pnpm verify:forbid-unknown-values`. No `pnpm verify` exists in nestjs-concepts — closest equivalent is the two real checks it owns.
+
+**No `.mdc` touched; AGENTS.md regen not required** — `pnpm agents:check` is unaffected by this commit (only `docs/`, `scripts/`, `package.json` changed).
+
+**Verification:**
+- `node --check scripts/verify-api-runtime.mjs` — exit 0 (syntax clean).
+- `pnpm verify:api-runtime` — 8/8 PASS, exit 0 (preflight 0.5s, build 4.1s, postgres-up 0.9s, migration-roundtrip 8.5s, api-start 1.5s, /healthz/live 0.6s, /healthz/ready 0.0s, teardown 0.5s, total ~17s).
+- `hermes verify --json` (BEFORE state, captured for the delta) — 9/9 PASS, readiness `http://127.0.0.1:3000/` 200, api coverage NONE.
+- `docs/DEBT.md` — Highest ID still D53, all four rows updated, 56 total rows.
+
+**Standing-report items:**
+
+- D49 gitlink-bump PR in `corpus-web` is the second PR needed (after the submodule-side `nestjs-concepts` PR merges). Both PRs against `develop` / submodule `main`. Do not merge.
+- `hermes verify` and `pnpm verify:api-runtime` are both local/agent-runnable only; CI integration is D19 territory.
+- The `TypeORM 1.1.x` rule-file drift noted on D52 will require a future `.mdc` edit, which means AGENTS.md regen will be required per the bundled-edit convention.
+
+---
+
+## Session 193 — D48 fix landed: ◌ placeholder on all 45 broken inline links — 2026-09-09
+
+**Submodule-side (`nestjs-concepts`)**
+
+- **D48 fix landed** in submodule `nestjs-concepts` via PR #6 (`chore/d48-apply-unresolved-marker` → HEAD `ee6f1e7`, rebased on top of PR #5's CI workflow at `3f7db29`). 19 source files modified, 43 insertions / 43 deletions.
+- **Transform applied:** every broken inline link `[text](../missing.md)` → `◌ _text_`. The `◌` glyph (U+25CC) is visible in rendered HTML; the `_text_` becomes italic; the `[]()` syntax drops so no `<a href>` renders — link is non-clickable but authored intent stays visible. **Reversible:** contributor removes `◌ ` and wraps back in `[]()` when the target article lands.
+- **Convention extension:** the `◌` marker was already used in RelatedList rendering for unresolved frontmatter `related:` refs (CHANGELOG.md; `.av-related-unresolved` class). This fix extends the same convention to inline body-prose links.
+- **Verification:** `pnpm check:links` exits 0 (was 45 broken). `pnpm verify:forbid-unknown-values` unaffected (frontmatter-only). Submodule PR #6 CI green (verify SUCCESS, 16s).
+- **Closed supersedes PR #5:** `nestjs-concepts#5` was the CI-workflow-only PR (closed with comment "Superseded by #6"). PR #6's history contains the CI workflow commit + the ◌ fix, so a single merge ships both.
+- **Classification (29 distinct / 45 occurrences):** 13 distinct (a) targets match roadmap §4 article slugs (25 occurrences), 8 distinct (a-adj) recipe targets match roadmap §5 sketch phrases (10 occurrences), 0 (b) typos, 8 distinct (c) recipe targets that don't match any sketch (10 occurrences). Per user decision the (a)/(a-adj)/(b)/(c) classification does **not** gate the fix — the asymmetry is "◌ is reversible and costs nothing if the category was wrong; dropping a link destroys authored intent," so the cheap reversible action got taken everywhere. **Full classification table preserved in PR #6's body** for Wave 3/4 planning.
+
+**Parent-side (`corpus-web`)**
+
+- **D48 row text rewritten** in `docs/DEBT.md`. New text anchors on 45 (29 distinct, 19 articles), notes the original "21+1=22" was filing-time narrative (hand-counted at PR #173, commit `29ab870`, undercounted inline article-target occurrences by 4), documents the ◌ fix landed in submodule PR #6, and links to that PR's body for the full (a)/(a-adj)/(c) classification.
+- **Gitlink bump queued** as parent PR against `develop` — points submodule at `ee6f1e7` (PR #6 HEAD). Will need rebase if user merges submodule PR #6 between now and merge-time (post-merge submodule HEAD will be `ee6f1e7` itself if squash, or a new merge commit if `--no-ff`).
+
+**Open PRs (neither merged)**
+
+- `EverythingFromDayOne/nestjs-concepts` **#6** — fix(content): apply ◌ placeholder to all 45 broken inline links (D48) — **verify SUCCESS, MERGEABLE, CLEAN**.
+- `EverythingFromDayOne/corpus-web` **PR #178** (session 192 carryover) — 6/6 PASS, MERGEABLE, CLEAN.
+- (Pending) `EverythingFromDayOne/corpus-web` gitlink bump PR — to be opened after this commit lands submodule gitlink at `ee6f1e7`.
+
+**Standing-report items (carry forward)**
+
+- Neither submodule PR #6 nor the parent gitlink bump PR is merged — both held for user review per the "submodule PR first, then gitlink bump. Do not merge." directive.
+- D48 row text anchors on 45 (was 22). The "21+1=22" narrative is now a documented miscount, not a separate truth.
+- 19 source files touched in the submodule — no `apps/web/` or parent-repo content edits beyond DEBT.md / SESSION-LOG / CHANGELOG.
+- `pnpm agents:check` not relevant (no `.mdc` changes; AGENTS.md regen not required).
+- Working tree clean before commit, will be clean after commit. No running processes.
