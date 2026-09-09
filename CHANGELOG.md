@@ -5,6 +5,31 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-09] — feat(api) — scaffold NestJS + TypeORM + Postgres API (D26 first half; new ID D52)
+
+**Added**
+- `apps/api/`: NestJS 11 + TypeORM + Postgres 16 app replacing the prior 15-line `apps/api/src/main.ts` that 404'd every request. Out of scope per the prompt: auth, user model, progress endpoints, deployment. `pnpm --filter @corpus/api {typecheck,lint,build,start,migration:run,migration:revert}` all wired and green.
+- `apps/api/src/config/`: Zod-validated boot-time env (`POSTGRES_*` component form OR `DATABASE_URL`). Missing/malformed values throw a labelled error before `NestFactory.create()` runs — verified exit code 1 with a `.env` containing only `PORT` and `LOG_LEVEL`.
+- `apps/api/src/db/`: TypeORM `DataSource` is the single source for both the Nest bootstrap (`TypeOrmModule.forRootAsync({ useFactory: buildDataSourceOptions })`) and the `migration:run` / `migration:revert` CLI scripts. `synchronize: false` in every environment; one trivial entity + one initial migration proving the round trip (`pnpm --filter @corpus/api migration:run` then `:revert` then `:run` — verified at `psql` level).
+- `apps/api/src/health/`: liveness (`GET /healthz/live` — process up, no DB touch) and readiness (`GET /healthz/ready` — DB reachable via Terminus `TypeOrmHealthIndicator`). Verified: liveness stays 200 when the DB container is stopped; readiness goes 503 with `{ status: 'down', database: { status: 'down' } }`; both return to 200 when the container restarts. `synchronize: false` enforced in `data-source.ts`.
+- `apps/api/src/main.ts`: Nest bootstrap + Swagger setup at `/api` (mounted under a stable prefix for the future `packages/api-client` generator; no operation endpoints ship yet).
+- `docker-compose.yml` at repo root: single `db` service, Postgres 16 pinned (`postgres:16.6`), named volume `corpus_api_pgdata` (`down` keeps state, `down -v` is a deliberate reset), `pg_isready` healthcheck, credentials + host port from `.env`, no secrets in the compose file.
+- `.env.example`: `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` / `POSTGRES_HOST` / `POSTGRES_HOST_PORT` (host-side port, separate from the in-container `POSTGRES_PORT`), `PORT`, `LOG_LEVEL`, `NODE_ENV`. `.env` is gitignored; `.env.example` is committed.
+
+**Changed**
+- `apps/api/package.json`: added `@nestjs/config@^4`, `@nestjs/typeorm@^11`, `@nestjs/terminus@^11`, `@nestjs/swagger@^11`, `typeorm@^0.3`, `pg@^8`, `zod@^4` (runtime); `tsx` is the project's standard TS runner so no new dev dep. List and reasons below.
+- `apps/api/eslint.config.mjs`: untouched — the new files lint clean against the existing config.
+- `apps/api/tsconfig.json`: `noEmit: false` and `rootDir: src` already there; verified.
+
+**Documented**
+- `docs/DEBT.md`: D26 row's "Blocks" / "Opened" unchanged. Added a new ID `D52` recording the scaffold closure; the original D26 (accounts and progress sync) stays open because the scaffold does not implement user accounts, sign-in, or progress persistence — it only wires the substrate (DB, env, migrations, health, Swagger) that the Phase-2 work will land on top of. **Disclosed**: the task prompt tagged this work "(D26)" but D26 in the debt register is the Phase-2 accounts-and-progress feature, not the scaffold itself. Treating them as one ID would erase the still-open feature work.
+- `progress.md`: added Phase-2 row 0 — backend substrate (D26/D52). Status 🟢 "scaffold shipped; awaiting accounts and progress-sync work in subsequent sessions."
+
+**Verification**
+- `pnpm typecheck` 5/5 PASS; `pnpm lint` 5/5 PASS; `pnpm build` 3/3 PASS; `pnpm agents:check` ✓; `pnpm verify:frontmatter` ✓; `pnpm verify:links` ✓; `pnpm verify:catalog` ✓.
+- Live: `docker compose up -d db` → `(healthy)`; `pnpm --filter @corpus/api migration:run` → 1 migration applied; `:revert` → 0 applied; `:run` → 1 applied; `node apps/api/dist/main.js` → listens on `:3001`; `curl /healthz/live` → 200 (process up, no DB touch); `curl /healthz/ready` → 200 `database: up`; `docker stop corpus-api-db` → `/healthz/ready` → 503 `database: down`, `/healthz/live` stays 200; `docker start corpus-api-db` → both green again.
+- Bad env: a `.env` with only `PORT` + `LOG_LEVEL` causes the process to exit code 1 with a labelled "no database connection provided" error before opening a socket.
+
 ### [2026-09-09] — docs(agents) — AGENTS.md: render path-scoped rules as headers-only; four hard constraints moved to always-loaded
 
 **Changed**

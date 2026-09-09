@@ -1,26 +1,7 @@
-.DS_Store
-node_modules/
-dist/
-.next/
-.turbo/
-out/
-.source/
-coverage/
-*.tsbuildinfo
-.eslintcache
 .env
 .env.*
 !.env.example
-*.log
-catalog.json
-.pnpm-store/
-# Pagefind index is build output emitted by `pnpm --filter @corpus/web
-# build` (postbuild hook). Recreate locally with `pnpm search:index`
-# after a build — never check the generated chunks into git.
-apps/web/public/pagefind/
-apps/web/public/pagefind.js
-# Do NOT ignore content/. Submodules are gitlinks tracked by this repo;
-# a content/ ignore would be inert and would read as protection while
-# providing none. See scripts/verify-submodules.mjs.
-# Hermes is a tool for managing environment variables in a project.
-.hermes/
+
+# Scaffold (D26) build output. Once apps/api has a real CI build, this
+# can move to a Turborepo output entry instead of `.gitignore`.
+apps/api/dist/
