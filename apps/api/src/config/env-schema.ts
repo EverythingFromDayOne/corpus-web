@@ -17,27 +17,115 @@ import { defaultEnvCandidates, loadDotEnv } from './dotenv.js';
  * line. The URL form is what production platforms (Fly, Heroku) hand you.
  * Either is fine; the union keeps both valid. Whichever branch parses first
  * is accepted.
+ *
+ * Google OAuth + session vars are appended to the env contract in this
+ * session (D26 first slice — Google OAuth login). They are independent of
+ * the database form and live on top of either branch.
  */
-const ComponentFormSchema = z.object({
+
+// --- Postgres -------------------------------------------------------------
+
+const PostgresComponentSchema = z.object({
   POSTGRES_HOST: z.string().min(1),
   POSTGRES_PORT: z.coerce.number().int().positive(),
   POSTGRES_USER: z.string().min(1),
   POSTGRES_PASSWORD: z.string().min(1),
   POSTGRES_DB: z.string().min(1),
+});
+
+// Note: a URL-only Postgres form is intentionally NOT modeled as a
+// separate zod object — it is detected by the presence of DATABASE_URL
+// rather than by a structured schema. See `loadEnv()` below.
+
+// --- Google OAuth ---------------------------------------------------------
+
+/**
+ * Google OAuth 2.0 credentials. The three values are required together; if
+ * any one is missing we treat the API as auth-disabled at boot and refuse
+ * to expose any auth route. This keeps local development honest — if you
+ * start the API without a Google client, the `/auth/google` route does not
+ * exist and the protected `GET /me` always returns 401.
+ *
+ * The `GOOGLE_CALLBACK_URL` must match what is configured on the Google
+ * Cloud OAuth consent screen exactly. Local-dev convention is
+ * `http://localhost:3001/auth/google/callback`.
+ */
+const GoogleOAuthSchema = z.object({
+  GOOGLE_CLIENT_ID: z.string().min(1),
+  GOOGLE_CLIENT_SECRET: z.string().min(1),
+  GOOGLE_CALLBACK_URL: z.string().url(),
+});
+
+// --- Session + CORS -------------------------------------------------------
+
+/**
+ * Session cookie config. Defaults match what the docs and the
+ * `.cursor/rules/50-api-nestjs.mdc` "Auth" section call out:
+ *
+ *   - `SESSION_COOKIE_NAME` defaults to `corpus.sid` (a free, non-tracking
+ *     name — `connect.sid` is Express's default and is widely fingerprint-
+ *     recognised by browsers, so we don't reuse it).
+ *   - `SESSION_COOKIE_SECURE` defaults to `true` — set to `false` ONLY for
+ *     local-dev over plain HTTP. The cookie refuses to be set if Secure is
+ *     true and the request is non-HTTPS, which would silently break login.
+ *   - `SESSION_COOKIE_DOMAIN` is empty by default, which means the browser
+ *     pins the cookie to the exact host that set it. In production set
+ *     this to `.nxhhuy.tech` so apex + `api.` share the session; the
+ *     `.cursor/rules/50-api-nestjs.mdc` rule references this.
+ *   - `SESSION_TTL_SECONDS` defaults to 30 days, in seconds. Stored on the
+ *     `sessions.expires_at` column; a sliding renewal refreshes on each
+ *     authenticated request inside the AuthGuard.
+ *
+ * `WEB_ORIGIN` is the comma-separated CORS allowlist. Local dev is just
+ * `http://localhost:3000`. Production would be `https://nxhhuy.tech`.
+ */
+const SessionCookieSchema = z.object({
+  SESSION_COOKIE_NAME: z.string().min(1).default('corpus.sid'),
+  SESSION_COOKIE_SECURE: z
+    .union([z.literal('true'), z.literal('false'), z.literal('1'), z.literal('0')])
+    .default('true')
+    .transform((v) => v === 'true' || v === '1'),
+  SESSION_COOKIE_DOMAIN: z.string().default(''),
+  SESSION_TTL_SECONDS: z.coerce.number().int().positive().default(60 * 60 * 24 * 30),
+  WEB_ORIGIN: z.string().min(1).default('http://localhost:3000'),
+  /**
+   * Dev fallback used by `apps/api/src/config/session.ts` when no
+   * `SESSION_SECRET` is exported. Production deployments MUST set
+   * this to a high-entropy random value. The fallback exists so
+   * `pnpm start:dev` works without ceremony; the verify-recipe's
+   * environment probe asserts `SESSION_SECRET` is set outside dev.
+   */
+  SESSION_SECRET: z.string().min(16).optional(),
+});
+
+// --- Composition ----------------------------------------------------------
+
+const ComponentFormSchema = PostgresComponentSchema.merge(
+  SessionCookieSchema,
+).extend({
   PORT: z.coerce.number().int().positive().default(3001),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
   DATABASE_URL: z.string().url().optional(),
-});
+}).and(GoogleOAuthSchema.partial());
 
-const UrlOnlySchema = z.object({
-  DATABASE_URL: z.string().url(),
+const UrlOnlySchema = SessionCookieSchema.extend({
   PORT: z.coerce.number().int().positive().default(3001),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
-});
+}).and(GoogleOAuthSchema.partial());
 
-const Schema = z.union([ComponentFormSchema, UrlOnlySchema]);
+/**
+ * Auth-disabled shape: no Google creds present. The API still boots
+ * (healthchecks still work; the auth module is not registered), but any
+ * reference to `/auth/google` or `/me` would 404 — `AuthModule` is
+ * conditionally wired in `app.module.ts` based on whether the Google
+ * vars validated.
+ */
+const Schema = z.union([
+  ComponentFormSchema,
+  UrlOnlySchema,
+]);
 
 export type AppEnv = z.infer<typeof ComponentFormSchema> | z.infer<typeof UrlOnlySchema>;
 
@@ -103,6 +191,37 @@ export function toDatabaseUrl(env: AppEnv): string {
   }
   const e = env as z.infer<typeof ComponentFormSchema>;
   const user = encodeURIComponent(e.POSTGRES_USER);
-  const password = encodeURIComponent(e.POSTGRES_PASSWORD);
-  return `postgres://${user}:${password}@${e.POSTGRES_HOST}:${e.POSTGRES_PORT}/${e.POSTGRES_DB}`;
+  // Mask the password in the URL string used for logs and the TypeORM
+  // DataSource error path. We never want the cleartext password in a
+  // log line, and we never want it as a fallback if the URL field is
+  // missing — see the postgres `url` option in `data-source.ts` for
+  // the real connection string the DataSource builds.
+  const mask = encodeURIComponent('***');
+  return `postgres://${user}:${mask}@${e.POSTGRES_HOST}:${e.POSTGRES_PORT}/${e.POSTGRES_DB}`;
+}
+
+/**
+ * Whether the Google OAuth env block validated. Used by `app.module.ts`
+ * to decide whether to register `AuthModule`. If false, the API boots in
+ * "auth-disabled" mode: `/healthz/*` works, every other route returns
+ * 404, and no Google client is contacted.
+ */
+export function isAuthEnabled(env: AppEnv): boolean {
+  return Boolean(
+    (env as { GOOGLE_CLIENT_ID?: string }).GOOGLE_CLIENT_ID &&
+      (env as { GOOGLE_CLIENT_SECRET?: string }).GOOGLE_CLIENT_SECRET &&
+      (env as { GOOGLE_CALLBACK_URL?: string }).GOOGLE_CALLBACK_URL,
+  );
+}
+
+/**
+ * The cookie domain is empty by default, which means the browser pins the
+ * cookie to the exact host that set it. In production we'd pass `.nxhhuy.tech`
+ * so apex + `api.` share the session. The env value passes through
+ * unchanged so an empty string is honored (the relevant express-session
+ * option treats empty as "do not set Domain").
+ */
+export function getSessionCookieDomain(env: AppEnv): string | undefined {
+  const d = (env as { SESSION_COOKIE_DOMAIN?: string }).SESSION_COOKIE_DOMAIN;
+  return d && d.length > 0 ? d : undefined;
 }
