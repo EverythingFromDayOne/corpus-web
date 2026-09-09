@@ -364,6 +364,10 @@ prompts/                  session prompts, committed
 - **NEVER use scroll listeners for the TOC rail.** `IntersectionObserver`.
 - **NEVER hardcode a user-visible string.** All routes live under `/[locale]/`; strings go
   through the message catalogue even while `en` is the only shipped locale.
+- **NEVER pass a class instance across the client boundary.** On a prerendered route this
+  is a hard build failure, not silent degradation.
+- **NEVER ship Sandpack in a default page load.** Sandpack must be lazy-loaded behind an
+  explicit "Open interactive editor" click.
 
 ## Frontend invariants (React)
 
@@ -387,6 +391,8 @@ prompts/                  session prompts, committed
 
 ## API
 
+- **NEVER let the API sit in the read path for an article body.** Postgres holds state,
+  not content. If the API were down, would reading break? If yes, it is in the wrong service.
 - **NEVER set `synchronize: true` on TypeORM.** Migrations only.
 - **NEVER return an entity from a controller.** DTOs only.
 - **NEVER hard-delete a `lessons` row.** Archive it. `lesson_progress` points at it and
@@ -470,153 +476,20 @@ About page is an oversight to be helpfully filled.
 - Changing hosting, DNS, or the cookie domain
 - Changing the Turborepo task graph or CI gate configuration
 - Doing more than the current session prompt specifies
+- Adding a new locale (`vi` or otherwise) — message files or translated content
 
 ---
 
 ## Path-scoped rules
 
-Load the rule whose globs match the files you are editing.
+Load the rule whose globs match the files you are editing. The full body lives in
+`.cursor/rules/`; this section points at it.
 
 ### `30-content-pipeline.mdc` — Content sync, frontmatter adapters, catalog, sidecars. Applies to content and pipeline code.
 
 **Applies to:** `content/**`, `curation/**`, `scripts/**`, `packages/content-schema/**`
 
-# Content pipeline
-
-## Direction of flow — one way only
-
-```
-4 mounted corpus repos (canonical)  [+1 planned: dsa · 3 demo apps: not corpora]
-  -> git submodule, pinned to tag
-    -> scripts/sync-content.mjs
-      -> packages/content-schema adapters (normalise, do NOT rewrite)
-        -> scripts/build-catalog.mjs -> catalog.json
-          -> apps/web routes + sidebar   (render)
-          -> POST api/catalog/sync       (FK targets for progress)
-```
-
-Nothing flows back. There is no path by which this repo modifies a corpus repo.
-
-## Frontmatter
-
-The four mounted repos have compatible-but-not-identical frontmatter. Do NOT unify them by
-rewriting the corpora. Unify with per-repo **adapters** in `packages/content-schema`
-that normalise into one internal `Article` shape.
-
-All four share a documented schema, so the specs are informed guesses rather than
-hypotheses — but still guesses. Session 2 runs them against the real files.
-
-Normalised shape:
-
-```ts
-type Article = {
-  id: string;          // `${repo}/${article_id}` — globally unique, stable forever
-  repo: RepoId;
-  kind: 'concept' | 'recipe';
-  folder: string;
-  title: string;
-  description: string; // the dek — REQUIRED, doubles as meta description
-  wave: number | null;
-  difficulty: 'foundational' | 'intermediate' | 'advanced' | null;
-  baseline: { framework: string; version: string };
-  authoringStage: string; // the author's own workflow label — NOT a publication gate
-  related: ArticleRef[];
-  sourcePath: string;  // drives the "Edit on GitHub" link
-  contentHash: string; // sha256 of body — drives the DB upsert
-};
-```
-
-When a corpus changes its frontmatter, **one adapter changes** — never 120+ files.
-
-`article_id` / `recipe_id` is always the filename slug, never a sequence number.
-
-## Publication gate — adaptation, not `status`
-
-**An article that adapts is publishable.** Adaptation already enforces the real gates: a
-title exists (frontmatter or body H1), a description exists, frontmatter validates against
-the corpus's adapter. There is no second, separate publication gate on top of that.
-
-The corpus's own `status` frontmatter key (`draft`, `review`, `needs-upgrade`, or an object
-shape like `{ drafted, reviewed }`) is carried through as `Article.authoringStage` — a
-string, typed only enough to be comparable. It is the author's own workflow bookmark
-("have I looked at this"), not a quality or completeness signal, and it **must never gate
-rendering or link resolution.** Measured 2026-08-18: all 181 adapting articles across all
-four corpora normalised to a `status` value, and `complete`/`published`/`final` appears in
-none of them — the old draft/complete collapse was hiding 100% of the corpus.
-
-`NEXT_PUBLIC_SHOW_DRAFTS` still exists, but it no longer gates whether an article renders.
-It controls only whether the UI **surfaces** `authoringStage` (e.g. a "needs upgrade" badge)
-once that UI exists. A path may reference any article that adapted — `verify-catalog` only
-fails on a path item pointing at a **missing** article, never a "draft" one.
-
-## Cross-repo links
-
-The corpus repos WARN on cross-repo links because they cannot resolve standalone.
-Here they CAN resolve, so here a ref that points at **nothing** is a **hard failure**.
-`verify-links` in this repo is strictly stronger than the per-repo gate.
-
-**Fail once on the root cause, never on its symptoms.** "Unresolved" was one bucket and
-had to become four, because a ref that does not become a link has four causes and only one
-of them is this gate's to report. `LinkReport` (`packages/content-schema/src/catalog.ts`)
-classifies every `article`-resolution ref into exactly one of:
-
-| Bucket | The target | Severity |
-|---|---|---|
-| `edges` | adapts | live link |
-| `excludedTargets` | is a real file, already listed in `catalog.failures` | **WARN** |
-| `draftTargets` | vestigial — always empty, no draft gate | kept for schema stability only |
-| `unresolvedTargets` | exists in no corpus at all | **FATAL** for `verify-links`. `build-catalog` writes the artifact with them recorded |
-
-An excluded target is not a second defect. It is the adaptation failure that
-`verify-frontmatter` and `catalog.failures` already report once, by path and reason, seen
-from the far end of a link — and inbound refs cluster, so failing on it restates a handful
-of root causes dozens of times and buries the breakage that has no other report.
-
-`draftTargets` is kept in the `Catalog`/`LinkReport` schema so a consumer reading the key
-does not break, but it is always `[]`: a ref that resolves to an adapting article is an
-`edges` entry, full stop. There is no intermediate "adapted but not shown" state anymore —
-that was `status`-based draft gating, and it was hiding 100% of the corpus (see above).
-
-An unresolved target has no article and no excluded file. `verify-links` fails
-on it — that gate is still stricter than the per-repo one. `build-catalog`
-records the same list in `catalog.unresolvedTargets` and still writes: forward
-references to planned work must not block adapting articles from being reported
-on, and a catalog that does not exist makes every downstream diff a lie. The
-renderer must not emit these as links.
-
-**Two further exceptions, both warn.** A ref to a PLANNED corpus (`dsa`, no remote yet)
-points at work that exists but is unpublished — failing over it would push authors toward
-deleting correct cross-references. A ref to a DEMO app (`auth`, `authz`, `websec`) points at
-a runnable application rather than an article, which is legitimate. They land in
-`LinkReport.plannedTargets` and `demoTargets` respectively.
-
-An excluded target is matched by `repo` + **filename slug**, not by a uid — `CatalogFailure`
-carries none, because adaptation is what produces one. That is sound only because the id is
-always the filename slug (above), and it is used solely to downgrade a fatal to a warning,
-never to give an unadapted file an identity in the artifact.
-
-## content_hash
-
-The pivot for catalog sync. Unchanged hash means no-op. A changed hash flags affected
-`lesson_progress` rows for **optional** invalidation — never automatic. A typo fix must
-not wipe a reader's completion streak.
-
-## Sidecars vs overrides
-
-The rule: **if it is a claim, it lives in the corpus. If it is a rendering, it lives here.**
-
-1. **Sidecars — committed to the corpus repo**, next to the article:
-   `js-patterns-react.quiz.yaml`, `js-patterns-react.deck.yaml`.
-   Quizzes and flashcards are content and stay under the corpus's verified-claims
-   discipline and its own CI.
-2. **Overrides — `curation/overrides/*.yaml` in this repo**:
-   a map of `article_id -> [{ afterHeading, component, props }]`.
-   This is how a rich interactive widget lands in an article without touching it.
-
-## Submodule promotion
-
-Corpus repo tags a release -> `repository_dispatch` fires at this repo -> Action bumps the
-submodule pointer, runs all gates, opens a PR. **Never auto-merges.**
+**Full rule:** `.cursor/rules/30-content-pipeline.mdc` (read on demand).
 
 ---
 
@@ -624,75 +497,7 @@ submodule pointer, runs all gates, opens a PR. **Never auto-merges.**
 
 **Applies to:** `apps/web/**`, `packages/ui/**`, `packages/mdx-components/**`
 
-# apps/web — Next.js 16.3
-
-## Caching strategy (Cache Components ON)
-
-| Surface | Strategy |
-|---|---|
-| Article body | `'use cache'` + `cacheLife('max')`, keyed on `contentHash` |
-| Sidebar tree | `'use cache'`, module level |
-| Search index | static asset, not a server route |
-| Progress ticks (TOC rail) | Suspense boundary, uncached, per-user |
-| Quiz results / SRS due count | Suspense, uncached |
-
-`'use cache: private'` provides **zero server-side caching** — it is per-session request
-memoization only. Do not expect it to reduce API load.
-
-**Degradation contract:** an API outage degrades the site to a read-only corpus, never to
-a blank page. The article shell must prerender independently of `api.nxhhuy.tech`.
-
-**Verification:** inspect `.next/server/app/<route>.html` after `next build`. Do not use
-`curl` or view-source — the response is streamed and both under-report. Note also that
-`next dev` under-reports severity: some prerender failures present as HTTP 200 in dev and
-are fatal at build.
-
-## Server / client boundaries
-
-- RSC by default. `'use client'` only at interaction leaves, never on a layout or page.
-- Never pass a class instance across the client boundary — on a prerendered route this is
-  a hard build failure, not silent degradation.
-- Sync IO inside a `'use cache'` scope is legal and freezes at entry creation. Do not
-  read env or clock inside one and expect freshness.
-
-## Styling
-
-- Tailwind v4 only. Tokens declared in `@theme` blocks in `packages/ui`.
-- No inline styles. No raw hex. No arbitrary values that bypass a token.
-- Dark is the default theme and gets the design attention.
-- Theme and sidebar-collapse state live in cookies, not `localStorage`, so SSR renders
-  the correct state without a flash.
-
-## MDX
-
-- Every MDX component is registered in `packages/mdx-components` and exported through one
-  map. Never define a component inline in a route file.
-- Code blocks are highlighted at build time by Shiki via `rehype-pretty-code`. No
-  client-side highlighter ships.
-- Playground tiers: **Tier 1** is a Web Worker eval with a `console` shim and a hard
-  timeout — this is the default and covers every plain-JS snippet. **Tier 2** is Sandpack,
-  lazy-loaded behind an explicit "Open interactive editor" click, used only where JSX must
-  actually render. Sandpack must never be in a default page load.
-
-## Layout
-
-- TOC rail uses `IntersectionObserver`. Never scroll listeners.
-- Mobile layout is Phase 1 work, not deferred polish. Sidebar-first layouts degrade badly
-  when mobile is an afterthought.
-
-## i18n
-
-- All routes live under `/[locale]/`. `en` is the only shipped locale.
-- Every user-visible string goes through the message catalogue from day one, including
-  while there is one locale. Retrofitting locale into a live URL structure is genuinely
-  painful; this is cheap insurance.
-- `vi` is a future phase. Do not add `vi` message files or translated content without an
-  approved scope change.
-
-## API access
-
-`packages/api-client` is generated from the Nest OpenAPI document in CI. Never hand-write
-a fetch call to the API. `apps/web/app/api/` is a BFF for session cookie proxying only.
+**Full rule:** `.cursor/rules/40-web-nextjs.mdc` (read on demand).
 
 ---
 
@@ -700,73 +505,7 @@ a fetch call to the API. `apps/web/app/api/` is a BFF for session cookie proxyin
 
 **Applies to:** `apps/api/**`
 
-# apps/api — NestJS 11
-
-## What this service is for
-
-State, not content. Postgres never sits in the read path for an article body.
-
-Module inventory:
-
-| Module | Owns |
-|---|---|
-| `auth` | registration, login, sessions, refresh rotation, OAuth |
-| `users` | profile, preferences (theme, sidebar, locale) |
-| `catalog` | ingests `catalog.json`; owns `lessons`, `lesson_sections`, `paths` |
-| `progress` | lesson + section completion, streaks |
-| `quiz` | question bank, recorded attempts |
-| `srs` | flashcard scheduling (FSRS), due queues |
-| `notes` | highlights, bookmarks, per-article notes |
-| `analytics` | event ingest -> BullMQ -> aggregates |
-| `admin` | catalog inspection, attempt review |
-
-The test for any new endpoint: **if the API were down, would reading break?** If yes, it
-is in the wrong service.
-
-## Structure
-
-- One module per domain, `src/modules/<domain>/`.
-- Controller -> Service -> Repository. Controllers contain no business logic.
-- Named exports. Co-located `*.spec.ts`.
-
-## Validation
-
-- Every request body has a DTO with `class-validator` decorators.
-- `ValidationPipe` with `whitelist: true`, `transform: true`.
-- **Since `@nestjs/common` 9.3.2, `ValidationPipe` seeds `forbidUnknownValues: false`**
-  as an overridable default — `new ValidationPipe({ forbidUnknownValues: true })` restores
-  class-validator (`true` since 0.14.0, unconditional since 0.14.2).
-
-## Persistence
-
-- TypeORM migrations only. `synchronize: true` is forbidden in every environment.
-- Never return an entity from a controller — map to a DTO.
-- `lessons` rows are archived, never deleted. Add a `lesson_aliases` row on every rename;
-  that table also feeds the Next `redirects()` config so old URLs keep working.
-
-## Auth
-
-- Nest is the identity provider. Session cookie: `httpOnly`, `Secure`, `SameSite=Lax`,
-  `Domain=.nxhhuy.tech`.
-- Short-lived access token + rotating refresh token. Refresh reuse detection revokes the
-  whole family.
-- The client uses single-flight refresh, implemented per the `react-concepts`
-  `refresh-storm` recipe.
-- `@nestjs/throttler` + Redis on login, register, and refresh.
-
-## Quiz scoring is local-only
-
-Scoring is `mode: 'local'` only (roadmap §7.4). The answer key ships in the client
-bundle by design; scores are advisory. There is no `'server'` mode and no key-hiding
-path. Do not add a serialization test that asserts the key is absent from the client —
-that was the dropped server-scoring design. The `quiz` module records attempts; it
-does not score them.
-
-## OpenAPI
-
-`@nestjs/swagger` decorators are mandatory on every endpoint and DTO.
-`packages/api-client` is generated from the emitted document in CI. An undecorated
-endpoint is an invisible endpoint.
+**Full rule:** `.cursor/rules/50-api-nestjs.mdc` (read on demand).
 
 ---
 
@@ -776,27 +515,8 @@ Task-triggered procedures in `.claude/skills/`. Rules above are always-on
 constraints; skills are how-to, loaded when the task matches. Read the full
 `SKILL.md` before acting on the matching task.
 
-- **`corpus-adapter`** — How to write and correct per-corpus frontmatter adapters in packages/content-schema. Use when a frontmatter validation error appears, when auditing a corpus against its adapter spec, when adding a corpus, or when normalising a new frontmatter field. Explains why adapters throw instead of defaulting, and why three sibling repos have no adapter at all.
-  → `.claude/skills/corpus-adapter/SKILL.md`
-
-- **`corpus-commit`** — Commit and push procedure for corpus-web. Use before any git commit or push, and whenever a session is being closed. Covers the four mandatory documentation updates that gate every commit, the gate suite that must pass, branch naming, and the Conventional Commits format including the invented-decisions block.
-  → `.claude/skills/corpus-commit/SKILL.md`
-
-- **`corpus-content-boundary`** — Rules for anything touching content/, the seven submoduled corpus repos. Use when a gate fails on a corpus file, when adding quiz or flashcard sidecars, when injecting an interactive component into an article, when bumping a submodule to a new tag, or whenever a task would be solved by editing a file under content/. Explains why editing the corpus from this repo is never the fix.
-  → `.claude/skills/corpus-content-boundary/SKILL.md`
-
-- **`corpus-mdx-component`** — How to build interactive components for the article reading experience — quizzes, flashcard decks, runnable code playgrounds, stepped simulators, and code blocks. Use when adding or editing anything in packages/mdx-components or packages/ui, or when a task asks for an interactive explainer inside an article. Covers the two playground tiers, component registration, and the design token discipline.
-  → `.claude/skills/corpus-mdx-component/SKILL.md`
-
-- **`corpus-nest-module`** — Conventions for apps/api, the NestJS 11 service. Use when adding or editing a module, controller, service, DTO, guard, entity, or TypeORM migration, and when deciding whether a piece of functionality belongs in the API at all. Covers local-only quiz scoring, the forbidUnknownValues seeded default, and why lessons rows are archived rather than deleted.
-  → `.claude/skills/corpus-nest-module/SKILL.md`
-
-- **`corpus-next-caching`** — Caching, rendering and verification rules for Next.js 16.3 with Cache Components enabled. Use when adding or editing any route, page, layout, loading boundary, Suspense boundary, server component, or data fetch in apps/web, and when verifying prerender output. Covers 'use cache', cacheLife, the client boundary, and why curl and next dev both under-report failures.
-  → `.claude/skills/corpus-next-caching/SKILL.md`
-
-- **`corpus-promote-content`** — Procedure for bumping a content submodule to a newer corpus tag. Use whenever content needs updating from one of the seven corpus repos, when a corpus cuts a new release, or when a repository_dispatch promotion PR needs handling. Covers tag pinning, catalog diff review, and the cosmetic-versus-substantive content_hash decision that the user must make.
-  → `.claude/skills/corpus-promote-content/SKILL.md`
-
-- **`corpus-session`** — Opening and closing a work session in corpus-web from a committed prompt file. Use at the start of any session invoked as "follow prompts/session-N.md", and when closing a session. Covers the mandatory read order, scope restatement, the invented-decisions disclosure requirement, and authoring the next session prompt.
-  → `.claude/skills/corpus-session/SKILL.md`
+There are **8** skills. The Cursor-readable index is in
+`60-skills.mdc` (always-applied). For AGENTS.md readers without skill
+support, list the directory: `ls .claude/skills/` and read the matching SKILL.md
+on demand. Do not duplicate skill bodies into this file.
 <!-- END GENERATED -->

@@ -147,7 +147,8 @@ function renderAgents(rules, skills) {
   lines.push(
     '## Path-scoped rules',
     '',
-    'Load the rule whose globs match the files you are editing.',
+    'Load the rule whose globs match the files you are editing. The full body lives in',
+    '`.cursor/rules/`; this section points at it.',
     '',
   );
 
@@ -157,7 +158,7 @@ function renderAgents(rules, skills) {
       '',
       `**Applies to:** ${rule.globs.map((g) => `\`${g}\``).join(', ') || '(unscoped)'}`,
       '',
-      rule.body,
+      `**Full rule:** \`.cursor/rules/${rule.filename}\` (read on demand).`,
       '',
       '---',
       '',
@@ -172,10 +173,12 @@ function renderAgents(rules, skills) {
       'constraints; skills are how-to, loaded when the task matches. Read the full',
       '`SKILL.md` before acting on the matching task.',
       '',
+      `There are **${skills.length}** skills. The Cursor-readable index is in`,
+      `\`${GENERATED_RULE}\` (always-applied). For AGENTS.md readers without skill`,
+      'support, list the directory: `ls .claude/skills/` and read the matching SKILL.md',
+      'on demand. Do not duplicate skill bodies into this file.',
+      '',
     );
-    for (const s of skills) {
-      lines.push(`- **\`${s.name}\`** — ${s.description}`, `  → \`.claude/skills/${s.dir}/SKILL.md\``, '');
-    }
   }
 
   return lines.join('\n').trimEnd() + '\n';
