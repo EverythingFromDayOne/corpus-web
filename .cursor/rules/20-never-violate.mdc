@@ -42,6 +42,10 @@ alwaysApply: true
 - **NEVER use scroll listeners for the TOC rail.** `IntersectionObserver`.
 - **NEVER hardcode a user-visible string.** All routes live under `/[locale]/`; strings go
   through the message catalogue even while `en` is the only shipped locale.
+- **NEVER pass a class instance across the client boundary.** On a prerendered route this
+  is a hard build failure, not silent degradation.
+- **NEVER ship Sandpack in a default page load.** Sandpack must be lazy-loaded behind an
+  explicit "Open interactive editor" click.
 
 ## Frontend invariants (React)
 
@@ -65,6 +69,8 @@ alwaysApply: true
 
 ## API
 
+- **NEVER let the API sit in the read path for an article body.** Postgres holds state,
+  not content. If the API were down, would reading break? If yes, it is in the wrong service.
 - **NEVER set `synchronize: true` on TypeORM.** Migrations only.
 - **NEVER return an entity from a controller.** DTOs only.
 - **NEVER hard-delete a `lessons` row.** Archive it. `lesson_progress` points at it and
@@ -148,3 +154,4 @@ About page is an oversight to be helpfully filled.
 - Changing hosting, DNS, or the cookie domain
 - Changing the Turborepo task graph or CI gate configuration
 - Doing more than the current session prompt specifies
+- Adding a new locale (`vi` or otherwise) — message files or translated content
