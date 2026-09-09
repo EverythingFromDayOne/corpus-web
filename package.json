@@ -23,7 +23,8 @@
     "verify:catalog": "tsx scripts/verify-catalog.mjs",
     "verify:prerender": "node scripts/verify-prerender.mjs",
     "verify:a11y": "node scripts/verify-a11y.mjs",
-    "verify:lighthouse": "node scripts/verify-lighthouse.mjs"
+    "verify:lighthouse": "node scripts/verify-lighthouse.mjs",
+    "verify:api-runtime": "node scripts/verify-api-runtime.mjs"
   },
   "dependencies": {
     "gray-matter": "4.0.3",

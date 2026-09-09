@@ -9171,3 +9171,36 @@ Post-merge, PR #174 flipped to `mergeable_state: "clean"` after all 6 checks (in
 - `hermes verify` recipe still has `start: pnpm dev` on `:3000` — the api start is never exercised by the recipe. D53. Manual runtime probe stays required.
 
 ---
+
+## Session 192 — D49/D51/D52/D53 — submodule CI + verify-recipe gap + linear-history close — 2026-09-09
+
+**Branch:** `chore/d49-d51-d53` off `develop`
+
+**Scope (per user):** "Two small debt rows plus a status fix, one pass."
+- **D49:** `nestjs-concepts` has no CI. Add `.github/workflows/verify.yml` mirroring the `nextjs`/`angular` patterns, then a gitlink bump in `corpus-web`. PRs against `develop` / submodule `main`. Do not merge.
+- **D51 status fix:** `required_linear_history` is now `false` on `develop` (verified via `gh api ... --jq .required_linear_history.enabled` → `false`). Mark D51 closed in `docs/DEBT.md`; record the REST sub-resource 404 quirk (had to be done in the UI).
+- **D52 status fix:** "PR TBD against develop" → "PR #177 (squash `810c4f7`, merged)". Also recorded the `TypeORM 1.1.x` rule-file drift as a forward note.
+- **D53:** Extend the verify recipe to cover the api runtime. Add `scripts/verify-api-runtime.mjs` + `pnpm verify:api-runtime`, plus `docs/verify-recipe.md` documenting the before/after delta. The `hermes verify` CLI is single-port by design (see `agent/verify/recipes.py:26-47`); the script is the project-side fix without an upstream CLI change.
+
+**Done:**
+
+- **D53 (closed):** `scripts/verify-api-runtime.mjs` — 8 phases (preflight → build → postgres-up → migration-roundtrip → api-start → /healthz/live → /healthz/ready → teardown), exit 0 on full green, phase output greppable. Live-verified end to end: 8/8 PASS in ~17s. Probes `pg_isready` via `docker exec corpus-api-db` (libpq is not a baseline macOS dev dep; the container has it). `pnpm verify:api-runtime` wired into root `package.json`. `docs/verify-recipe.md` records the full before/after delta: `hermes verify` 9/9 PASS covering `apps/web` on `:3000`; `pnpm verify:api-runtime` 8/8 PASS covering `apps/api` on `:3001` with Postgres up; neither alone is sufficient; both together = full coverage.
+- **D51 (closed):** `gh api repos/EverythingFromDayOne/corpus-web/branches/develop/protection --jq .required_linear_history.enabled` → `false`. `docs/DEBT.md` D51 row updated with resolution + REST-404 quirk note.
+- **D52 (status fix):** `docs/DEBT.md` D52 row updated: PR TBD → PR #177 (squash `810c4f7`); corrected `postgres:16.6` → `postgres:16.4-alpine` (the actual compose pin); flagged the `TypeORM 1.1.x` rule-file drift as a forward note (held back from this commit per session 191's "no other file changes" rule).
+- **D49 (closed):** `.github/workflows/verify.yml` to be added in `nestjs-concepts` (PR against `main`) and a gitlink bump PR in `corpus-web`. Mirrors `nextjs`/`angular` patterns: `pnpm install` + `pnpm check:links` + `pnpm verify:forbid-unknown-values`. No `pnpm verify` exists in nestjs-concepts — closest equivalent is the two real checks it owns.
+
+**No `.mdc` touched; AGENTS.md regen not required** — `pnpm agents:check` is unaffected by this commit (only `docs/`, `scripts/`, `package.json` changed).
+
+**Verification:**
+- `node --check scripts/verify-api-runtime.mjs` — exit 0 (syntax clean).
+- `pnpm verify:api-runtime` — 8/8 PASS, exit 0 (preflight 0.5s, build 4.1s, postgres-up 0.9s, migration-roundtrip 8.5s, api-start 1.5s, /healthz/live 0.6s, /healthz/ready 0.0s, teardown 0.5s, total ~17s).
+- `hermes verify --json` (BEFORE state, captured for the delta) — 9/9 PASS, readiness `http://127.0.0.1:3000/` 200, api coverage NONE.
+- `docs/DEBT.md` — Highest ID still D53, all four rows updated, 56 total rows.
+
+**Standing-report items:**
+
+- D49 gitlink-bump PR in `corpus-web` is the second PR needed (after the submodule-side `nestjs-concepts` PR merges). Both PRs against `develop` / submodule `main`. Do not merge.
+- `hermes verify` and `pnpm verify:api-runtime` are both local/agent-runnable only; CI integration is D19 territory.
+- The `TypeORM 1.1.x` rule-file drift noted on D52 will require a future `.mdc` edit, which means AGENTS.md regen will be required per the bundled-edit convention.
+
+---
