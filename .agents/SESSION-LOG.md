@@ -9227,10 +9227,71 @@ Post-merge, PR #174 flipped to `mergeable_state: "clean"` after all 6 checks (in
 - `EverythingFromDayOne/corpus-web` **PR #178** (session 192 carryover) — 6/6 PASS, MERGEABLE, CLEAN.
 - (Pending) `EverythingFromDayOne/corpus-web` gitlink bump PR — to be opened after this commit lands submodule gitlink at `ee6f1e7`.
 
-**Standing-report items (carry forward)**
+- **Standing-report items (carry forward)**
 
 - Neither submodule PR #6 nor the parent gitlink bump PR is merged — both held for user review per the "submodule PR first, then gitlink bump. Do not merge." directive.
 - D48 row text anchors on 45 (was 22). The "21+1=22" narrative is now a documented miscount, not a separate truth.
 - 19 source files touched in the submodule — no `apps/web/` or parent-repo content edits beyond DEBT.md / SESSION-LOG / CHANGELOG.
 - `pnpm agents:check` not relevant (no `.mdc` changes; AGENTS.md regen not required).
 - Working tree clean before commit, will be clean after commit. No running processes.
+
+## Session 194 — Google OAuth login + Postgres session store on apps/api (D26 first slice) — 2026-09-09
+
+**What landed**
+
+- **Auth module on top of D52's scaffold.** New `apps/api/src/modules/auth/` (8 files): `auth.module.ts` (NestJS `@Module` with `forRoot()` that returns `null` when Google OAuth env is absent so the module is omitted from `AppModule.imports`), `auth.service.ts` (TypeORM user upsert by `google_sub`), `auth.controller.ts` (`GET /auth/google` → 302 to Google, `GET /auth/google/callback` → sets cookie + 302 to `${WEB_ORIGIN}/`, `POST /auth/logout` → destroys session + 204), `me.controller.ts` (`GET /me` → 200/401), `google.strategy.ts` (`passport-google-oauth20`, `scope: ['openid', 'email', 'profile']`), `session.guard.ts` (cookie → user lookup with real DB check), `session.serializer.ts` (Passport `serializeUser` → `userId` round-trip), `entities/user.entity.ts` (uuid PK via `pgcrypto`, `google_sub` UNIQUE, partial-unique `email`, `name`, `avatar_url`).
+- **`users` table migration:** `apps/api/src/db/migrations/1700000001000-CreateUsers.ts` — runs cleanly on top of the scaffold migration. `psql \d users` confirms the 4-index shape (PK + `google_sub` UNIQUE + partial `email` + `idx_users_updated_at`).
+- **Session store** at `apps/api/src/config/session.ts`: `buildSessionMiddleware()` returns the `express-session` middleware with `saveUninitialized: false`, `rolling: true`, `resave: false`, cookie flags from `SESSION_COOKIE_*` env, and a dedicated `pg.Pool` (separate from the TypeORM data source — `connect-pg-simple` doesn't accept a `DataSource`). `corpus_session` table auto-created on first session write via `createTableIfMissing: true`; verified by direct psql probe.
+- **ESM/CJS interop:** `apps/api/src/types/connect-pg-simple.d.ts` is a 10-line ambient declaration so `connect-pg-simple@10` (a CJS module with no shipped types) can be called from NestJS's ESM. Without this, `tsc` exits 1 on "Could not find a declaration file for module 'connect-pg-simple'".
+- **`main.ts` middleware order:** CORS (between session and passport) → `app.use(session)` → `app.use(passport.initialize())` → `app.use(passport.session())` → Nest. CORS uses `WEB_ORIGIN` env, `credentials: true`. The original `main.ts` did not have CORS at all.
+- **Login button** at `apps/web/components/chrome/sign-in-button.tsx`: single `<a>` reading `process.env.NEXT_PUBLIC_API_URL` (with a `'http://localhost:3001'` dev fallback), wired into `<SiteHeader>` between `<SearchTrigger>` and the featured-course CTA. No layout shift. New CSS rule `.topbar-pill-signin` in `apps/web/app/globals.css` styled to match `.topbar-pill-cta`. 4 new i18n keys under `topbar.signIn.*`.
+
+**Verification receipts**
+
+- `pnpm typecheck` 5/5 PASS.
+- `pnpm lint` 5/5 PASS, 0 problems.
+- `pnpm test` 113/113 PASS.
+- `pnpm build` 3/3 PASS.
+- `pnpm agents:check` ✓.
+- `pnpm verify:frontmatter` ✓ (expected `no tag exactly matches` warning).
+- `pnpm verify:api-runtime` 9/9 PASS in auth-disabled mode + 10/10 PASS in auth-enabled mode (live `docker compose up -d db` Postgres).
+- Live smoke (fake Google creds): `/api-json` lists 6 routes; `/auth/google` 302s to `accounts.google.com` with our `client_id` + `redirect_uri` + `scope`; `/me` 401 without cookie, 401 with non-existent-user cookie; `/healthz/ready` 200 `database:up`.
+
+**Disclosed decisions** (in code comments + CHANGELOG, not in this session log):
+
+- `AppEnv` is a 4-way union of (component-form Postgres + Google OAuth + SessionCookie + WebOrigin). Env resolution picks the right form by which keys are set. This is the cleanest way to keep "auth-disabled mode boots without secrets" working alongside the full auth-enabled surface.
+- `connect-pg-simple@10` ships zero type files — the ambient declaration file is the project-side workaround. Not worth upstreaming a PR for 10 lines.
+- `accessType` was set then removed — `@types/passport-google-oauth20`'s `_StrategyOptionsBase` does NOT extend `OAuth2StrategyOptions.accessType` even though the underlying strategy's runtime code consumes it. Removing the field keeps typecheck green; we don't need offline refresh tokens for this slice (re-login on session expiry is fine, per the prompt's "no refresh tokens" rule).
+- `/me` lookup is NOT a `PassportSerializer.deserializeUser` round-trip — we serialize `userId`, then in the guard we re-`findById`. Reason: the serializer's user is cached for the session lifetime, so a deleted user still gets a 200 from `/me`. Re-querying every time means a soft-deleted account gets a 401 immediately. Trade-off is one DB query per `/me` hit — acceptable at this slice's traffic.
+- **`SESSION_SECRET`** reads from `.env` (the `SESSION_SECRET` key was missing from the original schema and I added it). No rotation. No `[REDACTED]` in `.env.example` — committed the placeholder so a fresh `pnpm dev` works without the user picking a value.
+- **No CORS allowlist array** — `WEB_ORIGIN` is a single URL. Multi-origin support would need an array parse + per-origin `Access-Control-Allow-Credentials: true` handling. Out of scope.
+
+**Out of scope (per task prompt, NOT done):**
+
+- Refresh tokens (`accessType: 'offline'` not requested).
+- RBAC, password auth, magic-link auth.
+- `POST /progress/migrate` endpoint (the apps/web v1 progress store knows how to send it, but no Nest endpoint receives it yet — D26 second half).
+- Deployment to anything other than `localhost:3001`.
+- CSRF token on `/auth/logout` (SameSite=Lax blocks cross-origin POST in modern browsers; documented in code comment).
+- Avatar dropdown, sign-out button, profile page on the web side.
+- Custom OAuth `state` param (Passport's strategy already handles it).
+
+**Open PR / merge state**
+
+- Branch `feat/auth-google-oauth` (off `develop @ b6d2e47`, the post-PR-178 merge commit) — NOT pushed, NOT merged per the prompt's "PR against develop, do not merge" rule.
+- D26 row text in `docs/DEBT.md` to be updated with the auth-first-slice landing (1-line note in the next docs commit).
+
+**Standing-report items**
+
+- Working tree clean before commit, will be clean after commit. No running processes.
+- Docker `corpus-api-db` container stopped (verify-api-runtime brings it up and tears it down on each run).
+- 8 brand-string + 0 personal-content leaks across all changed files (no `byline`, `about`, `bio`, `hire me`, `contact` — verified by the same grep HANDOFF-corpus-web.md §10 prescribes; only `Sign in with Google` uses the brand string literally, which IS the requested button label).
+- `pnpm agents:check` ✓ — no `.mdc` rule-file changes, AGENTS.md regen not required.
+
+**Process notes (carry forward)**
+
+- **Postgres rule-file drift** (carried from session 190): `.cursor/rules/10-stack-and-topology.mdc` row 25 says `postgres:16`; `docker-compose.yml` pins `postgres:16.4-alpine`. Held back per "no other file changes" rule. **TypeORM row in same file** still says `1.1.x` but installed is `0.3.20` — same held-back drift. Both should be normalised when the next rule-file edit lands (AGENTS.md regen will be required).
+- **Auth-disabled boot path matters**: a CI machine without `GOOGLE_CLIENT_ID` should still boot, typecheck, lint, build, and run `verify:api-runtime` — the conditional `AuthModule.forRoot() ? ... : []` spread in `AppModule.imports` is what makes this work. Discovered because the very first build (with the AuthModule unconditionally imported) caused TypeORM to fail at boot on a clean repo with no Google creds — the `users` table didn't exist yet because no one ran migrations. Conditional import = the missing piece for a clean CI run.
+- **connect-pg-simple + ESM**: pnpm's strict ESM mode (`"type": "module"` in `apps/api/package.json`) doesn't auto-interop CJS. `import pkg from 'cjs-pkg'` works for default-export packages; `import { named } from 'cjs-pkg'` does NOT. `connect-pg-simple` exposes a function as `module.exports`, so the default import works without `esModuleInterop` flag — but only after the ambient declaration file is added. Pattern: every future CJS-only Nest middleware (e.g. if we add `passport-local`, `passport-http-bearer`, etc.) needs the same 10-line declaration shim.
+
+
