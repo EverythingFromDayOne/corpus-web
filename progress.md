@@ -66,6 +66,10 @@ now in scope and adapting. Re-measured 2026-08-30 in session
 ---
 
 ## Phase 2 — Backend & identity (⚪ queued)
+
+| # | Item | Status | Notes |
+|---|---|---|---|
+| 0 | **Backend substrate** (D26/D52) | 🟢 | Session 190 (`feat/api-scaffold`, PR TBD against develop). NestJS 11 + TypeORM 0.3 + Postgres 16 (pinned `postgres:16.6`) + Zod boot-time env validation + `synchronize: false` + one trivial `ScaffoldHealthcheck` entity with one initial migration proving the round trip + liveness/readiness split (`/healthz/live` no DB touch; `/healthz/ready` via Terminus `TypeOrmHealthIndicator`) + Swagger at `/api` + `docker-compose.yml` (named volume, `pg_isready` healthcheck, env-driven creds/host-port) + `.env.example` at the repo root. D52 records the scaffold closure; D26 (accounts and progress sync) remains open — Phase-2 feature work lands on top of this substrate |
 ## Phase 3 — Retention loop (⚪ queued)
 ## Phase 4 — Depth (⚪ queued)
 ## Phase 5 — Conditional (⚪ queued)

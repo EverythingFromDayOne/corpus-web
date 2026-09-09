@@ -9088,3 +9088,86 @@ Post-merge, PR #174 flipped to `mergeable_state: "clean"` after all 6 checks (in
 - `.gitignore` is dirty on `develop` (added `.ua/` to ignore the UA plugin's working dir). Left unstaged and out of this PR per user direction — user decides keep or discard separately.
 
 ---
+
+## Session 190 — apps/api Nest + TypeORM + Postgres scaffold — 2026-09-09
+
+**Branch:** `feat/api-scaffold` (cut off `develop`); PR TBD against develop. Not merged.
+
+**Invented decisions** (called out per the task prompt's "list what you had to invent because the rules didn't cover it" — these shaped the substrate and constrain the progress module later):
+
+1. **One TypeORM source, not two.** `apps/api/src/db/data-source.ts` exposes `buildDataSourceOptions(): Promise<DataSourceOptions>` (factory) and `buildDataSource(): Promise<DataSource>` (instance, used by migration CLI). The Nest `TypeOrmModule.forRootAsync({ useFactory: () => buildDataSourceOptions() })` consumes the factory; `migration:run` / `:revert` wrap `buildDataSource().initialize().runMigrations()` / `.undoLastMigration()`. Two entry points in one source. The TypeORM CLI (`typeorm-ts-node-esm`) was rejected because it transitively requires `ts-node`, which is not in this repo (the project's standard for executing TS is `tsx`).
+
+2. **`.env` discovery includes the repo root.** The migration CLI runs with cwd = `apps/api`; the Nest bootstrap can run from anywhere. The `.env` lives at the repo root. `defaultEnvCandidates()` returns `[cwd/.env, cwd/../.env, cwd/apps/api/.env]` so both paths find the same file. `@nestjs/config` is told the same paths via `envFilePath`. Neither is a fallback for missing env: the Zod `loadEnv()` throws on any malformed value regardless.
+
+3. **Postgres 16, not 18.** The repo's `50-api-nestjs.mdc` rule table names Postgres 18 as the project's intended version. The task prompt explicitly asked for "Postgres 16, pinned tag." The prompt wins; the rule file is the "do-not-guess facts" list for code I author, but the prompt is the user's explicit call for this work. Filing a follow-up to align them in a separate session.
+
+4. **`migration:generate` is hand-write, not auto.** `typeorm-ts-node-esm` requires `ts-node`; programmatic generators of TypeORM migrations don't have stable public APIs in 0.3.x; entity diffs at scaffold time are trivial enough that a hand-written `MigrationInterface` class is more honest than wiring a generator with no entities yet. The script exits with an instruction message rather than silently doing the wrong thing.
+
+5. **No `ValidationPipe` registered yet.** The rule file (`50-api-nestjs.mdc`) requires `ValidationPipe` with `whitelist` + `transform` once the first DTO lands. There are no DTOs (no request bodies yet — only `GET` health endpoints). Registering the pipe would import `class-validator` + `class-transformer` purely for zero-usage, violating "deps ship with their consumer." Both packages will land with the first DTO in the next session.
+
+6. **`TerminusModule` registered inside `HealthController`.** The health controller imports `TerminusModule` rather than relying on app-level injection. This lets the future Phase-2 modules consume the same `HealthCheckService` without re-providing it; if `HealthController` later moves to a `HealthModule`, that module can re-import Terminus.
+
+7. **Two env vars not in the rule file.** `LOG_LEVEL` (defaulted to `info`; reserved for a future Pino/Pino-Nest install — declared here so the future logger reads from the same env-validation layer) and `POSTGRES_HOST_PORT` (host-side port separate from the in-container `POSTGRES_PORT` so compose can map a non-default host port without renaming the in-container variable). Both pass Zod; both are documented in `.env.example`.
+
+8. **`.gitignore` extended for the new build output only.** `apps/api/dist/` ignored; nothing else touched (no `.DS_Store`, no `.codegraph`, no `.env*` rule changes — `.env` was already ignored and `.env.example` already whitelisted).
+
+9. **`npm` deps added** (with reasons per task prompt): `@nestjs/config@^4` (env loading + ConfigModule integration), `@nestjs/typeorm@^11` (Nest-style TypeORM module), `@nestjs/terminus@^11` (health indicators), `@nestjs/swagger@^11` (OpenAPI/Swagger UI), `typeorm@^0.3` (ORM), `pg@^8` (Postgres driver), `zod@^4` (boot-time env validation; project already uses Zod elsewhere). No `class-validator` / `class-transformer` yet (see (5)). No `dotenv` — Node's native `process.loadEnvFile()` covers it.
+
+10. **`D26` vs `D52`.** Task prompt tagged this "(D26)". DEBT.md D26 is the Phase-2 accounts-and-progress FEATURE — not the scaffold. Scaffold closure gets a new ID `D52`. Treating them as one would silently close the still-open feature work.
+
+**Verification:**
+- `pnpm typecheck` 5/5 PASS; `pnpm lint` 5/5 PASS; `pnpm build` 3/3 PASS; `pnpm agents:check` ✓; `pnpm verify:{frontmatter,links,catalog}` ✓.
+- Live: `docker compose up -d db` → `(healthy)` (pg_isready); `pnpm --filter @corpus/api migration:run` → 1 migration applied; `:revert` → 0 applied; `:run` → 1 applied; `node apps/api/dist/main.js` → listens on `:3001`; `curl /healthz/live` → 200 (no DB touch); `curl /healthz/ready` → 200 with `database: up`; `docker stop corpus-api-db` → `/healthz/live` stays 200, `/healthz/ready` becomes 503 with `database: down`; `docker start corpus-api-db` → both green again.
+- Bad env: a `.env` with only `PORT` + `LOG_LEVEL` causes the process to exit code 1 with a labelled "no database connection provided" error before opening a socket.
+
+**Files:**
+- `apps/api/src/main.ts` (replaced 15-line stub)
+- `apps/api/src/app.module.ts` (replaced empty `@Module({})`)
+- `apps/api/src/config/env-schema.ts` (NEW), `env-config.ts` (NEW), `dotenv.ts` (NEW)
+- `apps/api/src/db/data-source.ts` (NEW), `entities/scaffold-healthcheck.entity.ts` (NEW), `migrations/1700000000000-ScaffoldHealthcheck.ts` (NEW), `migrate-run.ts` (NEW), `migrate-revert.ts` (NEW)
+- `apps/api/src/health/health.controller.ts` (NEW)
+- `apps/api/package.json` (deps + scripts), `apps/api/tsconfig.json` (verified, untouched)
+- `docker-compose.yml` (NEW at repo root)
+- `.env.example` (NEW), `.gitignore` (added `apps/api/dist/` line)
+- `docs/DEBT.md` (added D52 row), `.agents/summary.md` (Phase 2 / apps/api line updated), `.agents/SESSION-LOG.md` (this entry), `CHANGELOG.md` ([Unreleased] entry), `progress.md` (Phase-2 row 0).
+
+**Known issues / next steps:**
+- `pnpm start` is the production launch (`node dist/main.js`); no PM2/systemd recipe ships with the scaffold.
+- No CORS policy set yet — the API will not be reached cross-origin by anything other than the eventual `packages/api-client` (out of scope per prompt; user-call when the client lands).
+- No rate limiting or request logging yet — both are app-wide decisions that belong in a future module, not the scaffold.
+
+## Session 191 — verification-recipe gap + Postgres rule alignment — 2026-09-09
+
+**Branch:** `feat/api-scaffold` (unchanged from session 190)
+
+**Why:** Three discrete follow-ups from session 190's verification receipt:
+
+1. The `hermes verify --save --json` run last turn recorded `readiness: null` because the saved manifest's `start` recipe is `pnpm dev` on port 3000 (the web app). The api runtime on `:3001` is therefore never exercised by the saved verify recipe — it must be probed manually each session. Logging as D53.
+2. Session 190's handoff claimed `.cursor/rules/50-api-nestjs.mdc` held a `PostgreSQL | 18 | Neon` row. **That attribution was wrong.** The row lives in `10-stack-and-topology.mdc` line 25, not the api ruleset. The session-190 HANDOFF file and session-190 entry in SESSION-LOG both reproduce the wrong attribution. `50-api-nestjs.mdc` has no Postgres version row at all. This entry corrects the record.
+3. Aligning the rule to the actual compose pin: the rule now says `PostgreSQL | 16 | local Postgres 16 in Docker Compose (docker-compose.yml pins a specific tag, not :latest); no Neon, no hosted DB`. The compose file's pin is `postgres:16.4-alpine` (Alpine variant; not the bare `postgres:16.6` cited in session 190's handoff — minor-version drift between handoff and reality, unrelated to this rule fix).
+
+**Invented decisions:**
+
+- The minor-version mismatch (rule says nothing about minor; compose pins `16.4-alpine`; session-190 handoff claimed `16.6`) was left untouched. The rule's only obligation is "16, not 18, not Neon"; the minor is an implementation detail of the compose file, not the rule. Patching the rule to mention `16.4` would over-fit.
+- A second real mismatch surfaced during this audit that is **out of scope per user** ("No other file changes"): `10-stack-and-topology.mdc` line 24 says `TypeORM | 1.1.x` but `apps/api/package.json` actually installs `typeorm@0.3.20`. The rule file is wrong about TypeORM's major. Not fixing now; surfaced in the standing report below.
+- `AGENTS.md` was regenerated via `pnpm agents:build` after the rule-file edit (per the agent-doc portability rule in `00-session-protocol.mdc`). `pnpm agents:check` ✓.
+
+**Files changed this session:**
+
+- `.cursor/rules/10-stack-and-topology.mdc` — row 25: `PostgreSQL | 18 | Neon` → `PostgreSQL | 16 | local Postgres 16 in Docker Compose…`. Single-line, scope-limited.
+- `AGENTS.md` — regenerated by `pnpm agents:build`; reflects the row-25 change.
+- `docs/DEBT.md` — D53 row added (verify-recipe gap; api start not exercised).
+- `.agents/SESSION-LOG.md` — this entry appended (Session 190 entry was already present; no close needed).
+
+**Verification:**
+- `pnpm agents:build` exit 0 (`wrote AGENTS.md`).
+- `pnpm agents:check` exit 0 (all 3 generated docs ✓).
+- `git status` clean apart from pre-existing untracked noise (`.codegraph/`, `.pnpm-store/`, `apps/api/node_modules/`, etc., none from this session).
+
+**Known issues / standing-report items (NOT fixed per "No other file changes"):**
+
+- TypeORM major mismatch: rule says `1.1.x`, package installs `0.3.20`. The scaffold only needs `0.3.x` features (`buildDataSourceOptions`, programmatic migrations); `1.1.x` would be a separate decision. Open question for next session.
+- Session-190 handoff file at `~/.hermes/handoffs/HANDOFF-corpus-web-session-190.md` still claims the version row lives in `50-api-nestjs.mdc`. The handoff file is chat-side (outside the repo) and is **not** auto-regenerated; it's stale. Next session that reads it should know the row is actually in `10-stack-and-topology.mdc`. The in-repo session log (this entry) supersedes the handoff file on this point.
+- `hermes verify` recipe still has `start: pnpm dev` on `:3000` — the api start is never exercised by the recipe. D53. Manual runtime probe stays required.
+
+---

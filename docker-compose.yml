@@ -1,0 +1,33 @@
+services:
+  db:
+    # Pin a minor tag, not :latest — see `corpus-nest-module` skill for the
+    # "never float a dependency" rule. Bumping the major version is a
+    # user-call.
+    image: postgres:16.4-alpine
+    container_name: corpus-api-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      # Host port is configurable so two engineers do not collide on 5432.
+      # `port` form passes through Docker's host-IP dispatcher.
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      # Named volume — survives `down`. `down -v` is a deliberate reset.
+      - corpus_api_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      # `pg_isready -U` exits 0 when the daemon accepts connections.
+      # `started` is not `accepting connections`; a TCP probe alone is not
+      # enough because Postgres rejects logins during crash recovery.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  corpus_api_pg_data:
+    driver: local
+    name: corpus_api_pg_data
