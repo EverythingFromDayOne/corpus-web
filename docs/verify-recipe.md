@@ -10,7 +10,7 @@ CI without having to mentally model which app is on which port.
 | Probe                       | Command                              | What it proves                                                                 | What it does NOT prove                                                                  |
 | --------------------------- | ------------------------------------ | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
 | `hermes verify` (root)      | `hermes verify`                      | `apps/web` builds, typechecks, lints, tests, and starts on `:3000`             | The api starts, connects to Postgres, runs migrations, or that any `/healthz` returns 200 |
-| `pnpm verify:api-runtime`   | `pnpm verify:api-runtime`            | `apps/api` builds, Postgres comes up, migrations run → revert → run, API starts on `:3001`, `/healthz/live` returns 200, `/healthz/ready` returns 200 with `database:up` | That `apps/web` is healthy — pair with `hermes verify` for that                          |
+| `pnpm verify:api-runtime`   | `pnpm verify:api-runtime`            | `apps/api` builds, Postgres comes up, migrations run → revert → run, API starts on `:3001`, `/healthz/live` returns 200, `/healthz/ready` returns 200 with `database:up`, auth-route shape (302→google or 404 fallback), `corpus_session` table exists when auth is enabled | That `apps/web` is healthy — pair with `hermes verify` for that                          |
 
 ## Why two probes instead of one
 
