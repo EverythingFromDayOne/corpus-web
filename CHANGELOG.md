@@ -119,6 +119,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `docs/verify-recipe.md` (probe table extended).
 - `prompts/auth-nestjs-setup.md` (NEW, the user-supplied task prompt).
 
+### [2026-09-14] — docs(agents) — logout-verb drift fix, archive-not-delete consolidation, D54 stack-table drift closed
+
+**Fixed**
+- `.claude/skills/oauth-passport-google/SKILL.md` + `apps/api/src/modules/auth/auth.controller.ts`: logout method table/docs corrected `POST` → `GET` to match code (`@Get('logout')`). Landed on PR #179.
+- `.claude/skills/corpus-nest-module/SKILL.md` + `.claude/skills/typeorm-migrations/SKILL.md`: archive-not-delete rule consolidated to `.cursor/rules/50-api-nestjs.mdc` Persistence section as single source; both skills reference by ID instead of restating. Landed on PR #179.
+- `.cursor/rules/10-stack-and-topology.mdc`: TypeORM row corrected `1.1.x` → `0.3.20`, PostgreSQL row corrected `16` → `16.4-alpine`, matching installed/pinned reality. Closes D54. `AGENTS.md` regenerated. PR #180.
 
 ### [2026-09-09] — feat(api) — scaffold NestJS + TypeORM + Postgres API (D26 first half; new ID D52)
 

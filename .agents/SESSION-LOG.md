@@ -9205,6 +9205,28 @@ Post-merge, PR #174 flipped to `mergeable_state: "clean"` after all 6 checks (in
 
 ---
 
+## Session 195 (continued) — Echo/Lead skills audit Round 2: logout-verb fix, archive-not-delete consolidation, D54 closed — 2026-09-14
+
+**Context:** Slack thread `1789325502.514999`, Echo↔Lead↔Huy audit-and-patch cycle on `.claude/skills/` + `.cursor/rules/50-api-nestjs.mdc` NestJS coverage.
+
+**Process error caught mid-session, self-corrected — recording so it isn't repeated:** Round 1's verdict ("Phase 2 already complete, 5 NestJS skills + 114-line rule exist") was based on reading the *working tree* of `feat/auth-google-oauth` — the branch the session happened to be sitting on — not on `origin/develop`. Verified against `origin/develop` directly: `git ls-tree origin/develop .claude/skills/` shows only 8 `corpus-*` skills (none of the 5 NestJS ones); `git show origin/develop:.cursor/rules/50-api-nestjs.mdc` is the 47-line stub, not the 114-line version. The 5 skills + expanded rule exist only in commit `7600865` on `feat/auth-google-oauth`, confirmed part of PR #179's bundle (`gh pr view 179 --json commits`, 4 commits including `7600865`). **Lesson: a skill/rule-coverage audit must start with `git ls-tree <baseline>` against the actual PR target branch, not the working tree of whatever branch the session inherited.** Corrected plan: PR 1 lands as a new commit on `feat/auth-google-oauth` (amending PR #179, since that's where the rule/skills already live); PR 2 (unrelated drift fix) lands off `develop` as normal, since `10-stack-and-topology.mdc` already exists there.
+
+**PR #179 amended (commit `f417ac5` on `feat/auth-google-oauth`, pushed):**
+- `.claude/skills/oauth-passport-google/SKILL.md`: table row + CSRF paragraph corrected `POST /auth/logout` → `GET /auth/logout`. Code was always `@Get('logout')` (`auth.controller.ts:102`); the skill table had drifted, not the code.
+- `apps/api/src/modules/auth/auth.controller.ts`: file-level route doc + handler doc corrected to match (`GET`, `303 See Other`, replacing stale `POST` / `204 No Content` comments).
+- `.claude/skills/corpus-nest-module/SKILL.md` + `.claude/skills/typeorm-migrations/SKILL.md`: archive-not-delete rule was restated in full in 3 places (2 skills + the rule file itself). Consolidated per "skills are how-to, rules are boundaries — never restate a rule inside a skill; reference by ID" — both skills now point at `.cursor/rules/50-api-nestjs.mdc` Persistence section (verified that section exists at line 73 and covers exactly this) instead of re-stating the `lessons`/`quiz_attempts`/`card_reviews` list.
+- Verified: `pnpm --filter @corpus/api typecheck` exit 0.
+
+**PR #180 opened (`feat/stack-and-topology-drift-d54` → `develop`, commit `f847036`):**
+- Closes **D54**: `.cursor/rules/10-stack-and-topology.mdc` row 24 `TypeORM | 1.1.x` → `TypeORM | 0.3.20` (verified `apps/api/package.json`); row 25 `PostgreSQL | 16` → `PostgreSQL | 16.4-alpine` (verified `docker-compose.yml`). This drift was explicitly flagged as held-back in D52's own row ("should be normalised when the next rule-file edit lands") — this closes that follow-up.
+- `pnpm agents:build` re-run: `AGENTS.md` regenerated with the same 2-row change; `CLAUDE.md` / `60-skills.mdc` unchanged (no skill content moved).
+- `docs/DEBT.md`: D54 row opened and closed in the same PR (docs-only drift fix, no feature gap). Highest ID issued now D54.
+- Verified: `pnpm --filter @corpus/api typecheck` + `pnpm --filter @corpus/web typecheck` both exit 0.
+
+**Neither PR auto-merged** — both open for review per standing directive.
+
+**Invented decisions disclosed:** none beyond what Echo/Huy already signed off on (Issue 3 = consolidate-to-rule option (a); Issue 2 = separate commit; cadence = 2 PRs — all confirmed by Huy `go` + Echo verification before execution).
+
 ## Session 193 — D48 fix landed: ◌ placeholder on all 45 broken inline links — 2026-09-09
 
 **Submodule-side (`nestjs-concepts`)**
