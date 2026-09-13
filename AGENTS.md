@@ -263,8 +263,8 @@ Read `package.json` before asserting any version. If a version here disagrees wi
 | NestJS | 11.1.x | Matches `nestjs-concepts` baseline |
 | Node | **22 LTS** on web, **24 LTS** on api | deliberate divergence, per corpus baselines |
 | Express | 5 | per `nestjs-concepts` |
-| TypeORM | 1.1.x | Prisma is `nestjs-concepts` Phase 2 — do not fork that decision here |
-| PostgreSQL | 16 | local Postgres 16 in Docker Compose (`docker-compose.yml` pins a specific tag, not `:latest`); no Neon, no hosted DB |
+| TypeORM | 0.3.20 | verified in `apps/api/package.json`; `1.1.x` was aspirational/stale — Prisma is `nestjs-concepts` Phase 2, do not fork that decision here |
+| PostgreSQL | 16.4-alpine | pinned tag per `docker-compose.yml` (not `:latest`); no Neon, no hosted DB |
 | pnpm | 10.33.0 | workspaces |
 | Turborepo | latest | task graph + remote cache |
 
