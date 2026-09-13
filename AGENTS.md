@@ -501,7 +501,7 @@ Load the rule whose globs match the files you are editing. The full body lives i
 
 ---
 
-### `50-api-nestjs.mdc` — NestJS 11 conventions — modules, DTOs, TypeORM, auth, OpenAPI.
+### `50-api-nestjs.mdc` — NestJS 11.1.x conventions — modules, DTOs, TypeORM 0.3, Postgres 16, session auth, OpenAPI.
 
 **Applies to:** `apps/api/**`
 
@@ -515,7 +515,7 @@ Task-triggered procedures in `.claude/skills/`. Rules above are always-on
 constraints; skills are how-to, loaded when the task matches. Read the full
 `SKILL.md` before acting on the matching task.
 
-There are **8** skills. The Cursor-readable index is in
+There are **13** skills. The Cursor-readable index is in
 `60-skills.mdc` (always-applied). For AGENTS.md readers without skill
 support, list the directory: `ls .claude/skills/` and read the matching SKILL.md
 on demand. Do not duplicate skill bodies into this file.
