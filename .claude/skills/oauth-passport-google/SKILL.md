@@ -17,7 +17,7 @@ comments explain every non-obvious decision.
 |---|---|---|
 | `GET /auth/google` | public | 302 → `accounts.google.com`, Passport short-circuits, no handler body needed |
 | `GET /auth/google/callback` | public | Google's redirect target. Success: 302 → `${WEB_ORIGIN}/`. Failure: 302 → `${WEB_ORIGIN}/?auth=error&reason=...` — **never JSON at a browser** |
-| `POST /auth/logout` | cookie | `req.logout()` → `req.session.destroy()` → clear cookie → 303 redirect |
+| `GET /auth/logout` | cookie | `req.logout()` → `req.session.destroy()` → clear cookie → 303 redirect. Implemented as GET for CSRF-ergonomics (browser link works; SameSite=Lax blocks the cross-origin top-level POST anyway). If a future task needs POST, the contract to change is this row + the `@Get('logout')` decorator + the Next.js caller — not just the table. |
 | `GET /me` | cookie | 200 with public-safe fields only, or 401 |
 
 ## Redirect-URI rule
@@ -69,7 +69,7 @@ without re-opening that trade-off explicitly.
 ## Explicitly out of scope (per the task that built this slice, PR #179)
 
 Refresh-token rotation (no `accessType: 'offline'`), RBAC, password/magic-link auth,
-CSRF token on `/auth/logout` (SameSite=Lax already blocks the cross-origin POST in
-modern browsers), custom OAuth `state` param (Passport's strategy already handles it),
+CSRF token on `/auth/logout` (route is `GET` per the contract table above — SameSite=Lax
+already blocks the cross-origin top-level navigation that would matter if it were POST), custom OAuth `state` param (Passport's strategy already handles it),
 avatar dropdown / sign-out button / profile page on the web side. Don't add any of these
 as a "small addition" to an unrelated task — they are separate, unscoped stories.

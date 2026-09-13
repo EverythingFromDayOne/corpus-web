@@ -49,9 +49,10 @@ extension that provides `gen_random_uuid()` is enabled once, in the scaffold mig
 ## Archive, never hard-delete
 
 `lessons` rows (and by the same reasoning `quiz_attempts`, `card_reviews`) are archived,
-never hard-deleted — see `.cursor/rules/50-api-nestjs.mdc` Persistence section. A
-migration that adds a hard `DELETE` or a `DROP TABLE` against one of these tables is a
-rule violation, not a style question — stop and ask before writing it.
+never hard-deleted. **Rule boundary lives in `.cursor/rules/50-api-nestjs.mdc` Persistence
+section** — apply it here. A migration that adds a hard `DELETE` or a `DROP TABLE`
+against one of these tables is a rule violation, not a style question — stop and ask
+before writing it.
 
 ## Verifying a migration landed correctly
 

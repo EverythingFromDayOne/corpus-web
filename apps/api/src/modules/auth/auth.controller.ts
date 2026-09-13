@@ -18,9 +18,15 @@ import { loadEnv } from '../../config/env-schema.js';
  *                                On failure, we 302 with `?auth=error`
  *                                — never JSON at a browser.
  *
- *   POST /auth/logout          — destroys the session row in
+ *   GET  /auth/logout          — destroys the session row in
  *                                `corpus_session` and clears the cookie.
- *                                Authenticated-only.
+ *                                Authenticated-only. GET (not POST) because
+ *                                SameSite=Lax already blocks the cross-origin
+ *                                POST that CSRF would defend against, and a
+ *                                plain link from the Next.js shell "log out"
+ *                                control works without a hidden form. See
+ *                                `.claude/skills/oauth-passport-google/SKILL.md`
+ *                                §The contract for the canonical row.
  *
  * The success/failure redirect targets are computed from `WEB_ORIGIN`
  * env. They are always a same-origin path on the web app — never an
@@ -87,9 +93,11 @@ export class AuthController {
    *  2. `req.session.destroy()` to remove the `corpus_session` row.
    *  3. Clear the cookie client-side.
    *
-   * Returns 204 No Content with the cleared `Set-Cookie` header —
-   * JSON would be wrong at a browser; the caller is the Next.js app
-   * on a same-origin POST that then reloads the page.
+   * Returns 303 See Other with the cleared `Set-Cookie` header and a
+   * Location header pointing at `${WEB_ORIGIN}/`. The caller is the
+   * Next.js app on a same-origin GET link; the 303 keeps GET-after-GET
+   * semantics clean (browsers don't replay the destructive action on
+   * refresh).
    */
   @Get('logout')
   @ApiOperation({ summary: 'Destroy the current session' })
