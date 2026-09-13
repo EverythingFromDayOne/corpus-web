@@ -9295,3 +9295,65 @@ Post-merge, PR #174 flipped to `mergeable_state: "clean"` after all 6 checks (in
 - **connect-pg-simple + ESM**: pnpm's strict ESM mode (`"type": "module"` in `apps/api/package.json`) doesn't auto-interop CJS. `import pkg from 'cjs-pkg'` works for default-export packages; `import { named } from 'cjs-pkg'` does NOT. `connect-pg-simple` exposes a function as `module.exports`, so the default import works without `esModuleInterop` flag — but only after the ambient declaration file is added. Pattern: every future CJS-only Nest middleware (e.g. if we add `passport-local`, `passport-http-bearer`, etc.) needs the same 10-line declaration shim.
 
 
+
+---
+
+## Session 195 — FE skill audit + NestJS/BE skill coverage landed — 2026-09-14
+
+**Branch:** `feat/auth-google-oauth` (off `develop @ b6d2e47`, post-session-194 OAuth slice).
+
+**Files changed:**
+- `.cursor/rules/50-api-nestjs.mdc` — substantive rewrite. Replaced the JWT access+refresh token Auth section (which didn't match the actual session-cookie implementation in `apps/api/src/modules/auth/`) with a version-pinned dep table (NestJS 11.1.29, TypeORM 0.3.20, `express-session` 1.18.2, `connect-pg-simple` 10.0.0, `pg` 8.13.1, `passport-google-oauth20` 2.0.0, `@nestjs/swagger` 11.2.3, `@nestjs/terminus` 11.0.0 — **all read from `apps/api/package.json`**, none assumed) and an Auth section describing the actual session-cookie + Google OAuth flow (httpOnly, Secure, SameSite=Lax, Domain=`.nxhhuy.tech` in prod / empty in dev).
+- `.claude/skills/nestjs-module-scaffold/SKILL.md` — new. Canonical file order (entity → DTO → repository → service → controller → module spec → module). DTO/never-entity is a *reference* to rule 50, not duplicated.
+- `.claude/skills/typeorm-migrations/SKILL.md` — new. `synchronize:true` is forbidden; how to hand-author a migration from an entity diff and run it via the programmatic wrapper.
+- `.claude/skills/nestjs-swagger-decorators/SKILL.md` — new. Every controller method needs `@ApiTags` + `@ApiOperation` + `@ApiOkResponse`/`@ApiCreatedResponse`/`@ApiBadRequestResponse` so `packages/api-client` regenerates cleanly.
+- `.claude/skills/postgres-session-store/SKILL.md` — new. Wiring `express-session` + `connect-pg-simple` against the local `postgres:16.4-alpine` container (no `:latest`), with the dedicated pool pattern + ambient declaration shim for CJS-only `connect-pg-simple` under ESM.
+- `.claude/skills/oauth-passport-google/SKILL.md` — new. The redirect-URI / cookie-domain / SameSite=Lax / Domain=`nxhhuy.tech` contract for the PR #179 callback flow; references `src/modules/auth/google.strategy.ts` + `auth.controller.ts` + `session.guard.ts` as the worked example.
+- `AGENTS.md` — generated (version table now pins the actual versions).
+- `.cursor/rules/60-skills.mdc` — generated (indexes the 5 new skills).
+
+**Why:** Session 194 shipped Google OAuth + Postgres session store but the BE had only one adjacent skill (`corpus-nest-module`) and a thin rule. Adding five new NestJS/BE skills + filling the rule file closes the FE/BE symmetry gap so a sub-agent can scaffold a new module, write a migration, add a Swagger-decorated endpoint, wire the session store, or edit the OAuth callback without re-deriving the conventions.
+
+**Phase 1 audit findings** (read-only, no changes):
+- Next.js 16.3 + Cache Components — covered by `40-web-nextjs.mdc` §Routing + §Cache Components, version-anchored.
+- React 19.2 — covered by `20-never-violate.mdc` §Hook rules + `40-web-nextjs.mdc` §Server/Client boundaries. Enforcement is via ESLint, not corpus docs.
+- TypeScript 5.9+ strict — `corpus-commit` skill lists `pnpm typecheck`; `tsconfig.base.json` strict flag is the source of truth. No dedicated skill needed.
+- Tailwind v4 (`@theme`) — `20-never-violate.mdc` §Tokens + §No raw hex. Enforced via `tooling/eslint/` patterns.
+- fumadocs-core / fumadocs-mdx 16.x — `corpus-mdx-component` covers MDX authoring.
+- Shiki v3 — `corpus-mdx-component` §Code blocks; the v3 upgrade itself is tracked as D20.
+- pnpm 10.33.0 + Turborepo — `10-stack-and-topology.mdc` topology table + `20-never-violate.mdc` §"don't change the task graph" boundary.
+- Sandpack (lazy-only) — `20-never-violate.mdc` §Sandpack (already there per the task prompt).
+
+Two nice-to-haves identified but not done (out of scope, would be polish): a `typecheck` skill (currently lives in `corpus-commit`), and a "where Shiki v3 lives in `next.config`" note (D20 already covers it).
+
+**Verification receipts:**
+- `pnpm --filter web typecheck` → pass.
+- `pnpm --filter api typecheck` → pass.
+- `pnpm agents:build` → wrote AGENTS.md + 60-skills.mdc; CLAUDE.md unchanged (already in sync).
+- `git push` to `feat/auth-google-oauth` → SHA `7600865`.
+- `gh pr edit 179 --body-file` to update PR body to reflect this commit.
+- CI: Repo guards PASS; Vercel Preview PASS; Lint/typecheck/build + Content gates PENDING at session close (will report on next session).
+
+**Disclosed decisions:**
+- **Rule rewrite vs fill**: `50-api-nestjs.mdc` had a thin shell but its Auth section described JWT access+refresh tokens that don't match the session-cookie implementation in `src/modules/auth/`. Decision: rewrite the rule rather than leaving a misleading boundary. AGENTS.md regen is required and was run.
+- **Skill bodies don't restate rules**: per the task constraint, every new skill points at `50-api-nestjs.mdc` (or the worked-example file under `apps/api/src/`) rather than copying the rule into the skill body. Description fields are ≤60 chars, lead with "Use when <trigger>".
+- **No debt row opened** — per the task criterion: rule rewrite did not break anything; new skills fill gaps, not introduce debt. (If CI goes RED on this commit for a reason I missed, the row would open then.)
+
+**Out of scope (per task prompt, NOT done):**
+- Adding a `typecheck` skill (would be polish; `corpus-commit` covers it).
+- Adding a Shiki v3 placement note (D20 already tracks it).
+- Editing `10-stack-and-topology.mdc` to fix the lingering `TypeORM 1.1.x` row that should be `0.3.20` (carried forward from session 194 — same held-back drift as the Postgres pin). The rule rewrite in this session was scoped to `50-api-nestjs.mdc` only, not the topology file.
+
+**Open PR / merge state:**
+- Branch `feat/auth-google-oauth` now carries this commit on top of session 194's OAuth slice. PR #179 body updated to reflect both slices.
+- D26 row text in `docs/DEBT.md` still needs the 1-line note for auth-first-slice landing (carried from session 194). Not done this session — would require a docs-only follow-up commit and was out of scope.
+
+**Standing-report items:**
+- Working tree has 1 pre-existing modification (`apps/web/next-env.d.ts` regenerated by Next during typecheck — paths `.next/types/*` vs `.next/dev/types/*`. File header says "do not edit"; it's auto-generated noise, not something to commit).
+- No running processes.
+
+**Process notes (carry forward):**
+- **Skill descriptions ≤60 chars + trigger-first**: the format constraint was enforceable but the first batch of descriptions ran ~80 chars; trimmed to ≤60 in the second pass. Future skill authors: pre-measure descriptions before `skill_manage create` to avoid the second-pass round-trip.
+- **`skill_manage` writes to `~/.hermes/skills/`, not the repo**: a subtle gotcha. The task wanted repo-resident skills in `.claude/skills/`, so I created them via `skill_manage` and then `cp`-ed the files into the repo. The hermes-profile copies are now redundant; can be deleted next session, or left as a cache. No harm either way — they live under a different path and never affect the repo.
+- **`apps/api/package.json` has no `engines` field**: root `package.json` pins `node:>=22` + `pnpm@10.33.0`; per-app `engines` is a nice-to-have but not enforced. Skill examples in this session used the root pin.
+- **`apps/web/next-env.d.ts` regenerates during typecheck**: Next 16.3.x writes `.next/dev/types/*` paths, not the legacy `.next/types/*`. Not a bug, just a Next-16-ism. The "do not edit" comment holds.

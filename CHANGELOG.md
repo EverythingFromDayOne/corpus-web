@@ -5,6 +5,27 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-14] — docs(agents) — FE skill audit + NestJS/BE skill coverage landed
+
+**Added (skills)**
+- `.claude/skills/nestjs-module-scaffold/SKILL.md` — canonical file order for a new `apps/api` module (entity → DTO → repository → service → controller → module spec → module); references `.cursor/rules/50-api-nestjs.mdc` for the DTO/never-entity boundary rather than restating it.
+- `.claude/skills/typeorm-migrations/SKILL.md` — `synchronize:true` is forbidden; hand-author a migration from an entity diff and run it via the programmatic wrapper.
+- `.claude/skills/nestjs-swagger-decorators/SKILL.md` — every controller method needs the right `@ApiTags` + `@ApiOperation` + `@Api*Response` decorators so `packages/api-client` regenerates cleanly.
+- `.claude/skills/postgres-session-store/SKILL.md` — wiring `express-session` + `connect-pg-simple` against the local `postgres:16.4-alpine` container (no `:latest`); dedicated pool pattern + ambient declaration shim for CJS-only `connect-pg-simple` under ESM.
+- `.claude/skills/oauth-passport-google/SKILL.md` — the redirect-URI / cookie-domain / `SameSite=Lax` / `Domain=.nxhhuy.tech` contract for the PR #179 callback flow.
+
+**Changed (rules)**
+- `.cursor/rules/50-api-nestjs.mdc` — substantive rewrite. Auth section now describes the actual session-cookie + Google OAuth flow (was a stale JWT access+refresh-token sketch). Version-pinned dep table added (NestJS 11.1.29, TypeORM 0.3.20, `express-session` 1.18.2, `connect-pg-simple` 10.0.0, `pg` 8.13.1, `passport-google-oauth20` 2.0.0, `@nestjs/swagger` 11.2.3, `@nestjs/terminus` 11.0.0 — all read from `apps/api/package.json`).
+
+**Generated (do not hand-edit)**
+- `AGENTS.md` — version table now cites the actual dep pins.
+- `.cursor/rules/60-skills.mdc` — indexes the 5 new skills.
+
+**Notes**
+- Phase 1 audit found FE coverage adequate; two polish nice-to-haves identified (a `typecheck` skill; a "Shiki v3 placement" note) but deferred — not blocking.
+- No debt row opened (per task criterion: rule rewrite did not break anything; new skills fill gaps, not introduce debt).
+- The carried-from-session-194 TypeORM row drift (`1.1.x` vs installed `0.3.20` in `10-stack-and-topology.mdc`) is still held back — out of scope for this commit.
+
 ### [2026-09-09] — feat/api-auth-google — Google OAuth login + Postgres session store (D26 first slice)
 
 **Added**
