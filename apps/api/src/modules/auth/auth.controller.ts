@@ -53,11 +53,28 @@ export class AuthController {
   }
 
   /**
-   * Google redirects back here. Passport verifies the response,
-   * calls `GoogleStrategy.validate`, and on success attaches the
-   * `User` to `req.user`. The session middleware (registered in
-   * `app.module.ts`) then persists `req.session.passport.user = user.id`
-   * because of `SessionSerializer.serializeUser`.
+   * Google redirects back here. Passport verifies the response and
+   * calls `GoogleStrategy.validate`. On success Passport attaches
+   * the `User` to `req.user` AND, when `passport.authenticate` is
+   * called WITHOUT a callback, would call `req.logIn(user)` itself
+   * (which triggers `serializeUser` → `req.session.passport.user`
+   * → express-session write to `corpus_session`).
+   *
+   * `@nestjs/passport`'s `AuthGuard` calls `passport.authenticate`
+   * WITH a callback, though — see `node_modules/@nestjs/passport/
+   * dist/auth.guard.js` line 44. Passport's `authenticate.js`
+   * `strategy.success` (line 220) then short-circuits via
+   * `callback(null, user, info)` and never invokes `req.logIn`. The
+   * docstring on `authenticate.js` line 54 spells this out:
+   * "Note that if a callback is supplied, it becomes the
+   * application's responsibility to log-in the user, establish a
+   * session, and otherwise perform the desired operations."
+   *
+   * Without an explicit `req.login()` call here the session is never
+   * mutated and `connect-pg-simple` writes nothing — symptom: zero
+   * rows in `corpus_session` after a successful OAuth round-trip
+   * even though `req.user` is populated and the user row was
+   * upserted (D26, root-caused 2026-09-14).
    *
    * We redirect the browser to `${WEB_ORIGIN}/` on success,
    * `${WEB_ORIGIN}/?auth=error` on failure.
@@ -80,9 +97,25 @@ export class AuthController {
       return;
     }
 
+    // Explicit `req.login()` — see the class-level docstring above.
+    // Triggers `SessionSerializer.serializeUser` (writes the user
+    // UUID to `req.session.passport.user`), which mutates the
+    // session and causes `express-session` to persist the row via
+    // `connect-pg-simple` on response flush. `req.login` is
+    // monkey-patched onto `IncomingMessage` by Passport's
+    // `authenticate` middleware (see `passport/lib/middleware/
+    // authenticate.js:95`), so it does not exist on `express`'s
+    // `Request` type — hence the cast.
+    await new Promise<void>((resolve, reject) => {
+      (req as unknown as { login: (u: unknown, cb: (err: Error | null) => void) => void }).login(
+        req.user,
+        (err) => (err ? reject(err) : resolve()),
+      );
+    });
+
     // Successful login. The session row in `corpus_session` was
-    // already written by `express-session` + `connect-pg-simple` via
-    // Passport's `req.login` flow.
+    // written by `express-session` + `connect-pg-simple` as a
+    // direct consequence of the `req.login()` call above.
     this.logger.log(`google login ok for user.id=${(req.user as { id?: string }).id ?? '(unknown)'}`);
     res.redirect(302, `${webOrigin}/`);
   }

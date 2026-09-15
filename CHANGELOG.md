@@ -5,6 +5,23 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-15] — fix(api-auth-google) — D26 OAuth session-not-persisting: explicit `req.login()` in googleCallback
+
+**Fixed**
+- `apps/api/src/modules/auth/auth.controller.ts::googleCallback` — root cause of zero rows in `corpus_session` after a successful OAuth round-trip: `@nestjs/passport`'s `AuthGuard` calls `passport.authenticate(type, options, callback)` with a 3rd-arg callback, and in `passport/lib/middleware/authenticate.js` `strategy.success` short-circuits via `callback(null, user, info)` instead of calling `req.logIn(...)` — the call that triggers `SessionSerializer.serializeUser` and the `connect-pg-simple` store write. Added an explicit `await new Promise(... req.login(req.user, cb))` block right after the `!req.user` guard, mirroring the existing `req.logout?.(() => resolve())` pattern in `logout()`. Replaced the controller-method docstring with a precise trace of WHY the explicit call is needed (source paths cited: `node_modules/@nestjs/passport/dist/auth.guard.js:44`, `passport/lib/middleware/authenticate.js:220`, `passport/lib/http/request.js:24`).
+- Replaced the misleading inline comment that claimed `express-session + connect-pg-simple` had already written the row via Passport's `req.login` flow — that comment was wrong, which is why the bug shipped.
+
+**Verified**
+- `pnpm --filter @corpus/api typecheck` clean
+- `pnpm --filter @corpus/api lint` clean (0 problems)
+- `pnpm --filter @corpus/api build` clean
+- `pnpm verify:api-runtime` 10/10 PASS (auth-enabled mode)
+- One-shot end-to-end probe at `/tmp/d26-probe.mjs` (deleted) booted the real Nest app + the real `connect-pg-simple` store + the real `SessionSerializer`, drove the exact `googleCallback` controller method with a stub `req.user`, and confirmed `SELECT count(*) FROM corpus_session` went 2 → 3 with the new row's payload containing the `passport.user` slot. Reproduced on a second run (5 → 6 rows). The probe is NOT committed — a real integration test under `apps/api/test/` is a separate ticket for a future session.
+
+**Notes**
+- No changes to `.env`, `session.ts`, `session.serializer.ts`, `google.strategy.ts`, `auth.module.ts`, or `session.guard.ts`. Verified by reading each: all were correct; the bug was always the missing `req.login()` call in the controller.
+- D26 stays OPEN — it covers the whole Phase 2 accounts-and-progress feature, of which login is only the first slice. The login slice is now functionally complete; closing D26 requires the remaining slices (profile page, progress migration, refresh tokens, RBAC, `/auth/logout` CSRF) per session 194's explicit out-of-scope note.
+
 ### [2026-09-14] — docs(agents) — FE skill audit + NestJS/BE skill coverage landed
 
 **Added (skills)**
