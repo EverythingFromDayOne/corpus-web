@@ -9430,3 +9430,24 @@ Two nice-to-haves identified but not done (out of scope, would be polish): a `ty
 **Known issues / next steps:** None blocking. The five retest items are tracked in the session-197 docs-flip handoff.
 
 ---
+## Session 197 (2026-09-15/16) — PR #179 merge + docs flip
+
+PR #179 (sessions 194+195+196: auth scaffold, doc/skill audit, D26 OAuth session-persistence fix) reviewed by Lead — verbal APPROVE only (`gh pr review --approve` blocked at GraphQL layer: authenticated token `huycong2798` is also the PR author). `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`, branch protection requires 0 approvals, CI 6/6 green. Huy squash-merged manually: commit `aed04ee` on `develop`, 2026-09-15T14:16:30Z, `feat/auth-google-oauth` branch deleted.
+
+**Echo re-reported the exact D26 symptom** (cookie not set, 0 rows in `corpus_session`) after the fix had already landed at `2ae7811`. Lead's context-recovery reads (`.agents/summary.md`, `.agents/SESSION-LOG.md`, `CHANGELOG.md`, `roadmap.md`, `progress.md`, `docs/DEBT.md`) did not resolve the contradiction within that turn — root cause never re-diagnosed live in this session; presumed Echo was testing a stale branch/commit pre-fix, but this was not directly confirmed against Echo before the thread moved on to the merge decision. **Flag for next session: if this symptom recurs post-merge on `develop` (not `feat/auth-google-oauth`), it needs a fresh live trace — do not assume the `2ae7811` fix as closed based on this entry alone.**
+
+Echo separately ran an OAuth retest (5 UI/integration findings) which Lead verified against the actual repo state (not just Echo's write-up):
+1. Sign-in button `apiUrl ?? ''` fallback — real gap, `disabled` check broken when `NEXT_PUBLIC_API_URL` unset. A local uncommitted workaround (hardcoded `http://localhost:3001` fallback) was discovered mid-session and discarded by Huy (`git checkout` — confirmed back to committed `2ae7811` state) rather than shipped.
+2. `NEXT_PUBLIC_API_URL` build-time inlining — real prod-readiness gap, architecture-level (BFF/rewrites vs per-env Vercel var). **Open decision, not resolved this session** — see Decisions section below.
+3. `MeController` has no route prefix (`/me` not `/auth/me`) — this was a **documented design choice** from session 194, not a bug. Zero callers exist yet so a rename is cheap whenever convenient, but it is not "broken."
+4. Sign-in button doesn't swap to an avatar post-login — real gap, zero callers of `/me` anywhere in `apps/web/**` yet, correctly scoped as a follow-up (needs a consumer + avatar component).
+5. Missing `target="_blank"` + `rel` on the external Google OAuth link — 1-line, no-risk. Deliberately pulled OUT of PR #179 (already CI-green, don't re-trigger the gate for a 3-line fix) into its own follow-up PR.
+
+None of findings 1-5 block the #179 merge — all touch files the merged commit range didn't modify (session fix is API-side only).
+
+**This session's actual scope**: docs flip only — `docs/DEBT.md` D26 row and `progress.md` updated to reflect the merge landing on `develop` (see diffs same commit). `.agents/summary.md` header updated in place per living-doc convention. Item #5 (`target="_blank"`) delegated to `coding-fe` as a separate PR — not landed in this session.
+
+**PR #180 note**: flagged by Echo as open since 2026-09-13 with no review (D54, TypeORM/Postgres drift doc) — not actioned this session, just surfaced.
+
+---
+
