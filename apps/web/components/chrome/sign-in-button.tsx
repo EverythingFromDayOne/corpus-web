@@ -34,7 +34,8 @@ export function SignInButton({ messages }: { messages: Messages }) {
       className={disabled ? 'topbar-signin topbar-signin--disabled' : 'topbar-signin'}
       aria-label={t(messages, 'topbar.signInAriaLabel')}
       aria-disabled={disabled ? 'true' : undefined}
-      rel="noopener"
+      target="_blank"
+      rel="noopener noreferrer"
     >
       {t(messages, 'topbar.signIn')}
     </a>

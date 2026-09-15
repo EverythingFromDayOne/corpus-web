@@ -5,6 +5,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-16] — fix(web) — open OAuth sign-in link in new tab
+
+**Fixed**
+- `apps/web/components/chrome/sign-in-button.tsx` — external Google OAuth `<a>` was missing `target="_blank"` + `rel="noopener noreferrer"`. The previous `rel="noopener"` alone was incomplete; clicking Sign In navigated the current tab away from whatever article the reader was on. Replaced with the standard pair so the OAuth round-trip opens in a collapsed new tab.
+
+**Notes**
+- One-line scope: a single file, two attribute changes. Pulled out of PR #179 per Lead's advice to avoid re-triggering a green CI gate for a UX tweak. Disposition: this is the only zero-risk polish item from Echo's OAuth retest; the remaining four items (build-time-inlined `NEXT_PUBLIC_API_URL`, the disabled-state fallback, `/me` vs `/auth/me`, the post-login avatar swap) stay parked as separate follow-ups requiring an architecture call (issue 1+2) or new component work (issues 3+4).
+
 ### [2026-09-15] — fix(api-auth-google) — D26 OAuth session-not-persisting: explicit `req.login()` in googleCallback
 
 **Fixed**
