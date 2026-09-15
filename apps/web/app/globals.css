@@ -796,6 +796,50 @@ body:has(.av-view) .av-header-tog {
   outline: 0;
 }
 
+/* --- Topbar sign-in (D26 first slice) ---
+   Plain anchor styled to read as a low-emphasis link, not a primary CTA.
+   We don't reuse the pill-cta treatment because that pill is reserved
+   for the featured-course path. Sign-in is a utility, not a marketing
+   surface. Hover/focus swap to the same accent as the nav links so
+   the topbar feels coherent. */
+.topbar-signin {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--color-body);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--color-graphite) 60%, transparent);
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+
+.topbar-signin:hover,
+.topbar-signin:focus-visible {
+  color: var(--color-display);
+  border-color: var(--color-muted);
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  outline: 0;
+}
+
+.topbar-signin:active {
+  border-color: var(--marketing-accent-bloom);
+}
+
+.topbar-signin--disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+
 /* Mobile: collapse to icon-only text, like the search trigger and theme
    toggle (PR #108 follow-up). Keeps the topbar compact at iPhone widths.
 

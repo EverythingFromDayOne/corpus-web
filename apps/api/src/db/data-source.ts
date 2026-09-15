@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm';
 import type { DataSourceOptions } from 'typeorm';
 import { loadEnv, toDatabaseUrl } from '../config/env-schema.js';
 import { ScaffoldHealthcheck } from './entities/scaffold-healthcheck.entity.js';
+import { User } from '../modules/auth/entities/user.entity.js';
 
 /**
  * One `DataSourceOptions` factory used by both the TypeORM CLI workflow
@@ -15,6 +16,12 @@ import { ScaffoldHealthcheck } from './entities/scaffold-healthcheck.entity.js';
  * During dev / CLI, source migrations live alongside sources; in a built
  * process they live under `dist/`. The glob picks the right one based on
  * `NODE_ENV`. Built Nest does not load `.ts`; CLI does not rely on `dist/`.
+ *
+ * Entities registered here are the source of truth for TypeORM. Modules
+ * that need a repository (`AuthModule` for `User`) declare them again via
+ * `TypeOrmModule.forFeature([User])` — TypeORM's contract is "global
+ * registration in DataSource, per-module re-declaration to get a
+ * Repository injected".
  */
 async function buildOptions(): Promise<DataSourceOptions> {
   const env = await loadEnv();
@@ -24,7 +31,7 @@ async function buildOptions(): Promise<DataSourceOptions> {
   return {
     type: 'postgres',
     url: toDatabaseUrl(env),
-    entities: [ScaffoldHealthcheck],
+    entities: [ScaffoldHealthcheck, User],
     migrations: [migrationsGlob],
     // synchronize is **forbidden** in every environment per
     // `.cursor/rules/20-never-violate.mdc`. Migrations only.
@@ -45,4 +52,4 @@ export async function buildDataSource(): Promise<DataSource> {
 // CLI / programmatic callers `await buildDataSource()`. Nest's
 // `TypeOrmModule.forRootAsync({ useFactory: () => buildDataSourceOptions() })`
 // calls `buildDataSourceOptions()` and Nest awaits the returned promise for us.
-export { ScaffoldHealthcheck };
+export { ScaffoldHealthcheck, User };

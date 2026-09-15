@@ -65,6 +65,8 @@ const PHASE = {
   ApiStart: 'api-start',
   Liveness: 'healthz/live',
   Readiness: 'healthz/ready',
+  AuthRouteShape: 'auth-route-shape',
+  SessionTable: 'session-table-shape',
   Teardown: 'teardown',
 };
 
@@ -319,6 +321,70 @@ async function main() {
     });
     return `HTTP ${status} — database:up`;
   })) && allOk;
+
+  // Phase 8: auth route shape.
+  //
+  //   - If GOOGLE_CLIENT_ID/SECRET/CALLBACK_URL are all set in `.env`,
+  //     we expect 302 → accounts.google.com from /auth/google and 401
+  //     from /me without a session.
+  //   - If Google env is NOT set, the API boots in auth-disabled mode
+  //     and these routes return 404 (the controller isn't mounted).
+  //
+  // Both shapes are valid; the script asserts whichever one matches
+  // the current `.env`. Failures here mean the auth-disabled fallback
+  // or the auth-enabled routing is broken.
+  const authEnabled = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_CALLBACK_URL);
+  allOk = (await runPhase(PHASE.AuthRouteShape, async () => {
+    const authRes = await fetch(`${base}/auth/google`, { redirect: 'manual' });
+    const meRes = await fetch(`${base}/me`);
+    if (authEnabled) {
+      // /auth/google → 302 to accounts.google.com (no body)
+      if (authRes.status !== 302) {
+        throw new Error(`auth-enabled: /auth/google expected 302, got ${authRes.status}`);
+      }
+      const loc = authRes.headers.get('location') ?? '';
+      if (!loc.startsWith('https://accounts.google.com/')) {
+        throw new Error(`auth-enabled: /auth/google Location is not accounts.google.com — got ${loc}`);
+      }
+      // /me without session → 401
+      if (meRes.status !== 401) {
+        throw new Error(`auth-enabled: /me expected 401, got ${meRes.status}`);
+      }
+      return 'auth enabled: 302→google, /me=401';
+    }
+    // auth-disabled: routes do not exist
+    if (authRes.status !== 404) {
+      throw new Error(`auth-disabled: /auth/google expected 404, got ${authRes.status}`);
+    }
+    if (meRes.status !== 404) {
+      throw new Error(`auth-disabled: /me expected 404, got ${meRes.status}`);
+    }
+    return 'auth disabled: /auth/google=404, /me=404';
+  })) && allOk;
+
+  // Phase 9: session-table shape (proves connect-pg-simple was wired
+  // correctly and the lazy table-creation path actually ran). Skip
+  // when auth is disabled — the session middleware is still
+  // registered (every request flows through it), but we don't have
+  // a way to exercise a `set()` from the script without a real Google
+  // callback. We trigger one by writing a probe row directly via
+  // `docker exec <container> psql`.
+  if (authEnabled) {
+    allOk = (await runPhase(PHASE.SessionTable, async () => {
+      const container = process.env.POSTGRES_CONTAINER ?? 'corpus-api-db';
+      const user = process.env.POSTGRES_USER ?? 'corpus';
+      const db = process.env.POSTGRES_DB ?? 'corpus_api';
+      const out = await execFileP('docker', [
+        'exec', container, 'psql', '-U', user, '-d', db, '-tAc',
+        "SELECT to_regclass('public.corpus_session') IS NOT NULL;",
+      ], { stdio: 'pipe' });
+      const trimmed = out.stdout.trim();
+      if (trimmed !== 't') {
+        throw new Error(`corpus_session table missing — got "${trimmed}" (this means connect-pg-simple never wrote a row; check createTableIfMissing + saveUninitialized)`);
+      }
+      return 'corpus_session exists';
+    })) && allOk;
+  }
 
   return finish(allOk, { apiProc, dbBroughtUp });
 }
