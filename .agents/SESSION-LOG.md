@@ -9380,3 +9380,31 @@ Two nice-to-haves identified but not done (out of scope, would be polish): a `ty
 
 ---
 
+
+## Session 198 — OAuth sign-in button: open link in new tab — 2026-09-16
+
+**Branch:** `fix/sign-in-target-blank` (off `develop @ aed04ee`, post-PR-179 merge).
+
+**Files changed:**
+- `apps/web/components/chrome/sign-in-button.tsx` — replaced `rel="noopener"` on the external `<a>` (L37) with `target="_blank"` + `rel="noopener noreferrer"`. The Google OAuth destination is `https://accounts.google.com/o/oauth2/...` (or via the API's `/auth/google` 302), so the OAuth round-trip must open in a new tab to avoid hijacking the current article view.
+
+**Why:** Echo's OAuth retest flagged this as the only zero-risk polish item remaining after PR #179's session-persistence fix (the `corpus_session` row was being written correctly; the only UX defect left was that clicking Sign In navigated the current tab away from whatever article the reader was on). The fix was deliberately scoped to this 2-line change and pushed out of PR #179 per Lead's advice: bundling a UI tweak into an already-reviewed, CI-green PR re-triggers the gate for zero benefit when a 2-minute follow-up PR does the same job cleanly. Dispatched to `coding-fe` by Lead; picked up here.
+
+**Invented decisions:**
+- Kept `rel="noopener noreferrer"` (not just `noopener`) on the anchor. `noreferrer` adds the referrer suppression on top of the tabnabbing protection from `noopener`. Strictly speaking, modern Chromium ≥88 + Firefox ≥79 + Safari ≥12.1 imply `noopener` from `target="_blank"` regardless of `rel`, so the `noopener` keyword is redundant on those versions — but writing the explicit pair costs nothing and is the conservative default that survives a downgrade or older browser.
+- Did not add `aria-describedby` or change the existing `aria-label` / `aria-disabled` shape. The button's existing label `topbar.signIn` (`"Sign in"`) is the action the link performs; the OAuth destination is the means. From the user's perspective, clicking it pops a new tab to "Sign in via Google" — the existing label is accurate and adding a description would be redundant.
+
+**Out of scope (not done, parked for separate sessions per Lead's prior disposition):**
+- Issue 1+2 from Echo's retest: `NEXT_PUBLIC_API_URL` is build-time-inlined; the sign-in button's `disabled` check (`href === '/auth/google'`) returns true when the env is unset, leaving the button stuck in disabled style. Architecture decision pending — Next.js `rewrites` proxy vs per-env Vercel var. Touches the BFF boundary rule, stop-and-ask per `.cursor/rules/20-never-violate.mdc`.
+- Issue 3: `GET /me` vs `GET /auth/me` (`MeController` has `@Controller()` not `@Controller('auth')`). Documented design choice in session 194 SESSION-LOG, not a defect. Style call.
+- Issue 4: web shell never asks the API whether the user is authenticated; sign-in button doesn't swap to an avatar after login. Real gap, no callers yet — needs `/auth/me` consumer + avatar component. Clean follow-up PR.
+
+**Verification receipts:**
+- `pnpm --filter @corpus/web typecheck` clean.
+- `pnpm --filter @corpus/web lint` clean.
+- `pnpm agents:check` clean.
+- Working tree contains exactly the one file change; no stray `next-env.d.ts` carry-along (the working-tree discard Huy mentioned landed cleanly).
+
+**Known issues / next steps:** None blocking. The five retest items are tracked in the session-197 docs-flip handoff.
+
+---
