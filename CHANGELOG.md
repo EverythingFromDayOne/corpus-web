@@ -5,6 +5,29 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-16] — docs(adr) — ADR-0004: NEXT_PUBLIC_API_URL per-env var, D55 opened
+
+**Decided**
+
+- Huy chose Option B (per-Vercel-environment `NEXT_PUBLIC_API_URL`) over a same-origin
+  Next.js rewrites proxy for reaching the Nest API from `apps/web` — recorded in
+  `docs/adr/0004-api-url-per-env-var.md`. Reasoning: matches PR #179's already-locked
+  CORS/cookie-domain contract; avoids re-deriving it through a proxy hop; acceptable
+  build-time-bake tradeoff on the single fixed-VPS deploy target.
+- Opened `docs/DEBT.md` **D55** — implementation not yet scoped/assigned (per-env Vercel
+  var + `apps/web/lib/config.ts` centralization + hardcoded-URL audit).
+
+### [2026-09-16] — merge — PR #182, #181, #180 merged; #181/#180 rebased post-#182
+
+**Merged**
+
+- PR #182 (`fix/sign-in-target-blank`) → `develop`, commit `aa0235d`.
+- PR #181 (`docs/d26-merge-landed-flip`, D26 docs flip) → `develop`, commit `8bd04e9`
+  — rebased onto post-#182 `develop` (clean rebase, no conflicts) and re-pushed before
+  merge to clear a stale-diff `mergeStateStatus`.
+- PR #180 (D54 TypeORM/Postgres drift doc) → `develop`, commit `cf1a33a` — same
+  rebase-and-repush treatment as #181.
+
 ### [2026-09-16] — fix(web) — open OAuth sign-in link in new tab
 
 **Fixed**

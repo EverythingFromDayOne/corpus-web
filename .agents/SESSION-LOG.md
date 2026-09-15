@@ -9451,3 +9451,54 @@ None of findings 1-5 block the #179 merge — all touch files the merged commit 
 
 ---
 
+
+## Session 199 (2026-09-16) — PR #182/#181/#180 merged; #181/#180 conflict-rebased; ADR-0004 + D55 opened
+
+**Branch:** `develop` (direct edits, no PR — doc-only ADR/DEBT/CHANGELOG update)
+
+Huy merged PR #182 himself, then reported "conflict issue on #181 and #180, fix them all
+for me." Root cause: both #181 (`docs/d26-merge-landed-flip`) and #180
+(`feat/stack-and-topology-drift-d54`) were opened before #182 landed and touched
+overlapping doc regions (`docs/DEBT.md`, `progress.md` for #181;
+`.cursor/rules/10-stack-and-topology.mdc` + generated `AGENTS.md` for #180) that #182's
+merge shifted underneath them.
+
+**Fix (both PRs, same pattern):**
+1. `git fetch origin && git checkout <branch> && git rebase origin/develop` — both
+   rebases completed with **zero manual conflict resolution** (git's 3-way merge
+   resolved them automatically; the "conflict" GitHub reported was a stale
+   `mergeStateStatus` computed before the rebase, not a real line-level conflict).
+2. Verified no leftover `<<<<<<<`/`=======`/`>>>>>>>` markers in any changed file.
+3. Re-ran `pnpm agents:check` on both branches (clean) — #180 specifically touches the
+   `.mdc` → `AGENTS.md` generated pair, so this was the one real risk of a *silent*
+   drift, not just a git conflict.
+4. `git push origin <branch> --force-with-lease` on both.
+5. Polled `gh pr checks` / `gh pr view --json mergeable,mergeStateStatus` until both
+   read `MERGEABLE` / `CLEAN` with full CI green (#181 6/6, #180 6/6 once Vercel
+   finished).
+
+**Merged:** PR #182 → `aa0235d` (Huy, direct), PR #181 → `8bd04e9`, PR #180 → `cf1a33a`.
+All three now on `develop`.
+
+**Separately, Huy closed the 4th open item** (NEXT_PUBLIC_API_URL architecture decision,
+parked since session 197's OAuth retest): **Option B — per-Vercel-environment env var**,
+not a same-origin rewrites proxy. Recorded as `docs/adr/0004-api-url-per-env-var.md`
+(accepted). Implementation is unscoped — opened `docs/DEBT.md` **D55** (highest ID
+D54 → D55) capturing the concrete follow-up: per-env Vercel var, new
+`apps/web/lib/config.ts` centralizing export, hardcoded-URL audit. Not assigned to a
+profile yet; not urgent (sign-in works today via the existing dev fallback).
+
+**No code changes this session** — doc-only (ADR + DEBT + CHANGELOG + this entry),
+committed directly to `develop` per the doc-flip convention (matches session 197's
+precedent; branch protection on `develop` requires 0 approvals and these are pure docs).
+
+**Verification:** `pnpm agents:check` clean (run twice, once per rebased branch before
+push). `gh pr view` confirmed `MERGEABLE`/`CLEAN` + 6/6 CI on both #181 and #180 before
+reporting them ready; did not merge either — Huy merged all three via the Slack
+follow-up message that triggered this session.
+
+**Files:** `docs/adr/0004-api-url-per-env-var.md` (NEW), `docs/DEBT.md` (D55 row +
+highest-ID bump), `CHANGELOG.md` (two `[Unreleased]` entries), `progress.md` (this
+line), `.agents/SESSION-LOG.md` (this entry).
+
+---
