@@ -69,7 +69,7 @@ now in scope and adapting. Re-measured 2026-08-30 in session
 
 | # | Item | Status | Notes |
 |---|---|---|---|
-| 0 | **Backend substrate** (D26/D52) | 🟢 | Session 190 (`feat/api-scaffold`, PR TBD against develop). NestJS 11 + TypeORM 0.3 + Postgres 16 (pinned `postgres:16.6`) + Zod boot-time env validation + `synchronize: false` + one trivial `ScaffoldHealthcheck` entity with one initial migration proving the round trip + liveness/readiness split (`/healthz/live` no DB touch; `/healthz/ready` via Terminus `TypeOrmHealthIndicator`) + Swagger at `/api` + `docker-compose.yml` (named volume, `pg_isready` healthcheck, env-driven creds/host-port) + `.env.example` at the repo root. D52 records the scaffold closure; D26 (accounts and progress sync) remains open — Phase-2 feature work lands on top of this substrate |
+| 0 | **Backend substrate** (D26/D52) | ✅ | D52 closed by PR #177. D26 first slice (login) **landed + MERGED 2026-09-15** via PR #179 (squash `aed04ee` onto `develop`): sessions 194 (auth scaffold) → 195 (doc/skill audit) → 196 (`req.login()` fix). `pnpm verify:api-runtime` 10/10 PASS auth-enabled mode; all 6/6 PR #179 CI green. Login slice closed; second slice (progress migrate, profile page, refresh tokens, RBAC, `/auth/logout` CSRF) remains open as the rest of D26 |
 ## Phase 3 — Retention loop (⚪ queued)
 ## Phase 4 — Depth (⚪ queued)
 ## Phase 5 — Conditional (⚪ queued)

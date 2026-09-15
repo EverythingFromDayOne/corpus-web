@@ -12,6 +12,19 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 **Notes**
 - One-line scope: a single file, two attribute changes. Pulled out of PR #179 per Lead's advice to avoid re-triggering a green CI gate for a UX tweak. Disposition: this is the only zero-risk polish item from Echo's OAuth retest; the remaining four items (build-time-inlined `NEXT_PUBLIC_API_URL`, the disabled-state fallback, `/me` vs `/auth/me`, the post-login avatar swap) stay parked as separate follow-ups requiring an architecture call (issue 1+2) or new component work (issues 3+4).
+### [2026-09-16] — merge(develop) — PR #179 squash-merged; docs flip
+
+**Merged**
+- PR #179 squash-merged to `develop` — commit `aed04ee`, 2026-09-15T14:16:30Z. Carries sessions 194 (auth scaffold), 195 (doc/skill audit), 196 (D26 OAuth session-persistence fix). `feat/auth-google-oauth` branch deleted.
+
+**Docs**
+- `docs/DEBT.md` — D26 row updated to reflect the login slice landed on `develop`; row stays OPEN overall (remaining slices: progress migration, profile page, refresh tokens, RBAC, `/auth/logout` CSRF).
+- `progress.md` — flipped to reflect the merge.
+- `.agents/summary.md` header updated in place.
+
+**Follow-ups opened (not landed this session)**
+- Sign-in button missing `target="_blank"` + `rel` on the external Google OAuth link — delegated to `coding-fe` as a separate PR.
+- `NEXT_PUBLIC_API_URL` build-time inlining — architecture decision pending (Next.js rewrites proxy vs per-env Vercel var), see `.agents/SESSION-LOG.md` session 197.
 
 ### [2026-09-15] — fix(api-auth-google) — D26 OAuth session-not-persisting: explicit `req.login()` in googleCallback
 
