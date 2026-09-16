@@ -2,8 +2,10 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -41,17 +43,45 @@ import {
  * button, for the same remount-survival reason: the listener has to
  * outlive every `<SignInButton>` instance across the locale tree, and
  * the provider is the one thing that does.
+ *
+ * D26 sub-slice A.3 (Echo's live click-through of PR #184 caught this):
+ * on a successful `oauth-success` postMessage, this provider used to
+ * call ONLY `setProcessing(false)` — it had no way to reach into the
+ * `<SignInButton>` instance that actually opened the popup and clear
+ * ITS local `pollTimerRef` / `closeWatcherRef` / `popupRef`. The button
+ * visually updated to "Sign in" (looked correct), but its 7 s `/me`
+ * poll kept running indefinitely in the background — before the D26
+ * A.3 `main.ts` Passport fix, `/me` always 401'd, so the poll's own
+ * `if (res.ok) revert()` success path never fired either, meaning the
+ * poll genuinely ran forever until unmount or a full reload. Fix: the
+ * button registers its own `revert` callback with the provider via
+ * `registerRevert` on mount and unregisters on unmount; the provider
+ * calls that registered callback (which owns and clears ALL of the
+ * button's local refs) instead of just flipping `processing`. Falls
+ * back to `setProcessing(false)` directly if no button happens to be
+ * registered (there is currently exactly one `<SignInButton>` mount
+ * site — in `site-header.tsx` — so this is a defensive fallback, not
+ * an expected path).
  */
 
 type SignInContextValue = {
   processing: boolean;
   setProcessing: (next: boolean) => void;
+  registerRevert: (fn: (() => void) | null) => void;
 };
 
 const SignInContext = createContext<SignInContextValue | null>(null);
 
 export function SignInProvider({ children }: { children: ReactNode }) {
   const [processing, setProcessing] = useState(false);
+  // Holds the currently-mounted `<SignInButton>`'s `revert` callback, so
+  // a postMessage success can clean up that button's local timers/popup
+  // ref, not just flip the display flag. See A.3 docstring above.
+  const revertRef = useRef<(() => void) | null>(null);
+
+  const registerRevert = useCallback((fn: (() => void) | null) => {
+    revertRef.current = fn;
+  }, []);
 
   useEffect(() => {
     /**
@@ -80,7 +110,15 @@ export function SignInProvider({ children }: { children: ReactNode }) {
       // of the session. The provider's own cleanup effect also removes it
       // on unmount as a safety net.
       window.removeEventListener('message', handler);
-      setProcessing(false);
+      // A.3 fix: prefer the registered button's full `revert()` (clears
+      // its poll/close-watcher/popup refs too) over a bare
+      // `setProcessing(false)`, which only fixed the visible label and
+      // left the button's background poll running.
+      if (revertRef.current) {
+        revertRef.current();
+      } else {
+        setProcessing(false);
+      }
     }
     window.addEventListener('message', handler);
     return () => {
@@ -89,7 +127,7 @@ export function SignInProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <SignInContext.Provider value={{ processing, setProcessing }}>
+    <SignInContext.Provider value={{ processing, setProcessing, registerRevert }}>
       {children}
     </SignInContext.Provider>
   );

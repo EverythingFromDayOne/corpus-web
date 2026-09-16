@@ -5,6 +5,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-17] — fix(api,web) — D26 sign-in: /me always-401 (missing Passport init) + safety-poll leak after login (sub-slice A.3, Echo live click-through)
+
+**Fixed** — 2 bugs Echo found by actually clicking through the A.2 Vercel preview with a real Google account (not just code review), same `feat/d26-signin-popup-ux` branch / PR #184:
+1. **`GET /me` returned 401 unconditionally, regardless of cookie validity.** `apps/api/src/main.ts` never called `app.use(passport.initialize())` / `app.use(passport.session())` — `PassportModule.register({ session: true })` only wires DI providers, it never touches the running Express instance. `SessionAuthGuard` (used directly by `/me`, no `AuthGuard('google')` in front of it) checks `req.isAuthenticated?.()`, a method Passport only monkey-patches onto `req` as a side effect of `passport.authenticate()` running — which never happens on `/me`'s route. The two OAuth routes worked only by that same accidental side effect. Fixed by adding both `app.use()` calls to `main.ts`, right after `sessionMiddleware`, before CORS/routes register. No new dependency — `passport` was already a direct `apps/api` dependency.
+2. **7s safety-net poll never stopped after a successful `postMessage` login.** `SignInContext`'s postMessage handler only called `setProcessing(false)` on success — it had no reference to the `<SignInButton>` instance's local `pollTimerRef`/`closeWatcherRef`/`popupRef`, so the poll (and close watcher) kept running in the background even once the button visually reverted. Before bug 1's fix, `/me` always 401'd, so the poll's own `if (res.ok) revert()` success path could never fire either — it ran forever until unmount/reload. Fixed by having the button register its `revert` callback with the provider on mount (`registerRevert`, `apps/web/components/chrome/sign-in-context.tsx`) and unregister on unmount; the provider now calls that registered callback on postMessage success instead of a bare `setProcessing(false)`.
+
+All 9 local gates green (typecheck web+api, lint web+api, build 222 pages/26929 words unchanged, test 113/113, agents:check, verify:submodules/frontmatter/links/catalog — pre-existing content-side warnings only). Manual empirical click-through of these 2 fixes specifically not yet run by Lead — Echo's live click-through is the only empirical evidence so far.
+
 ### [2026-09-17] — fix(web) — D26 sign-in popup UX: correct root cause for state-reset + close popup-cookie race (sub-slice A.2, Echo review)
 
 **Fixed** — 2 bugs found by Echo's independent review of sub-slice A.1, same `feat/d26-signin-popup-ux` branch / PR #184:

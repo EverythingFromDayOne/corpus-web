@@ -9652,3 +9652,42 @@ Before touching anything, Lead independently verified Echo's claim rather than t
 **Files (3 code + docs):** `apps/web/components/chrome/nav-links.tsx` (raw `<a>` → `next/link` for route links), `apps/web/components/chrome/site-header.tsx` (logo + pill CTA `<a>` → `next/link`; skip-link stays `<a>`), `apps/web/components/chrome/sign-in-button.tsx` (post-close-debounce effect rewritten to fire an immediate `/me` check; top-of-file docstring extended with Bug 1 A.2-fix and Bug 5 sections), `docs/DEBT.md` (D26 appended, D56 new), `CHANGELOG.md` (new `[Unreleased]` entry), `progress.md`, this entry.
 
 **PR:** same `feat/d26-signin-popup-ux` branch, PR #184 stays open (per Huy's original "ONE PR" directive — A.1 and A.2 are both follow-up commits on the same unmerged PR, not new PRs). Next action: commit + push, then relay to Huy + CC Echo with a verification table, flagging the still-open manual-click-through gap plainly per Echo's "surfacing plainly" directive.
+
+## Session 202 (continued) — D26 sub-slice A.3: Echo's live click-through catches 2 more bugs (2026-09-17)
+
+**Trigger:** Echo posted to the PR #184 Slack thread reporting they actually clicked through the A.2 Vercel preview with a real Google account (not just diff review this time) and hit 2 new bugs, both traced to source, not just symptom-described.
+
+**Bug 6 — `GET /me` always 401, regardless of cookie validity.**
+Echo's trace: `apps/api/src/main.ts` never calls `app.use(passport.initialize())` / `app.use(passport.session())` — only `app.use(sessionMiddleware)`. `SessionAuthGuard` checks `req.isAuthenticated?.()`, which Passport only monkey-patches onto `req` as a side effect of `passport.authenticate()` running inside its own middleware. The two `AuthGuard('google')` routes (`/auth/google`, `/auth/google/callback`) happen to work because that side effect fires on them. `/me` uses `SessionAuthGuard` directly with no `AuthGuard('google')` in front — the patch never happens, `req.isAuthenticated` is always `undefined`, `SessionAuthGuard` always throws 401.
+
+Lead independently verified before fixing (not just trusting the report): read `auth.module.ts` and confirmed `PassportModule.register({ session: true })` only registers Nest DI providers (the `AuthGuard` mixin classes, the `PassportSerializer` binding) — it has no code path that calls `app.use()` on the actual Express/http adapter. Read `session.guard.ts` and confirmed the `req.isAuthenticated?.()` optional-chaining check (the `?.` itself is suspicious — someone anticipated the method might not exist and shipped it anyway). Read `me.controller.ts` and confirmed `@UseGuards(SessionAuthGuard)` with no `AuthGuard('google')` present. Confirmed `passport` 0.7.0 is already a direct `apps/api` dependency — no new dep needed.
+
+**Fix:** `apps/api/src/main.ts` — added `app.use(passport.initialize())` and `app.use(passport.session())` right after `app.use(sessionMiddleware)`, before `app.enableCors()` and route registration (Passport session support requires `req.session` to already exist, so it must come after the session middleware; it must come before CORS/routes so every route sees a hydrated `req.user`/`req.isAuthenticated`).
+
+**Bug 7 — 7s safety-net poll never stops after a successful `postMessage` login.**
+Echo's trace: `pollTimerRef`, `closeWatcherRef`, and `popupRef` all live inside `<SignInButton>`; `revert()` (the only function that clears them) also lives there. The `postMessage` success handler lives in `SignInContext` (a different component, mounted once at the layout level) and only calls `setProcessing(false)` — it has no reference to the button instance's timers. Login succeeds, the button's label visually reverts to "Sign in" (because `processing` flips false via Context), but the `/me` poll and close-watcher interval both keep running silently in the background until unmount or a full page reload.
+
+Prior to Bug 6's fix this was worse than Echo's description suggests: since `/me` always 401'd, the poll's own internal `if (res.ok) revert()` success path could never fire on its own either — meaning the poll had no way to ever stop itself even by design, only the (also-broken) external Context signal could have stopped it, and that signal wasn't wired through.
+
+**Fix:** `apps/web/components/chrome/sign-in-context.tsx` — added a `registerRevert(fn: () => void) => () => void` method to the context value; stores the fn in a ref, returns an unregister closure. The postMessage handler now calls the registered revert callback (if any) instead of a bare `setProcessing(false)`. `apps/web/components/chrome/sign-in-button.tsx` — added a `useEffect` that calls `registerRevert(revert)` on mount and invokes the returned cleanup on unmount, so the provider always holds a live reference to whichever button instance is currently in-flight (only one `<SignInButton>` exists in the topbar at a time, so no fan-out ambiguity).
+
+**Verification (Lead, code-level only — no live OAuth click-through performed):**
+- `pnpm --filter web typecheck` ✓ 0 errors
+- `pnpm --filter api typecheck` ✓ 0 errors
+- `pnpm --filter web lint` ✓ 0 problems
+- `pnpm --filter api lint` ✓ 0 problems
+- `pnpm --filter web build` ✓ 222 pages / 26929 words, unchanged from baseline
+- `pnpm test` ✓ 113/113 pass, 0 fail
+- `pnpm agents:check` ✓
+- `pnpm verify:submodules` ✓
+- `pnpm verify:frontmatter` ✓
+- `pnpm verify:links` ✓ (pre-existing D48 warnings only)
+- `pnpm verify:catalog` ✓
+
+All 9 gates green, same as A.2. **Explicit gap, surfaced plainly (not buried):** neither Lead nor anyone else has clicked through bugs 6+7 specifically against a live Google account post-fix — Echo's own live click-through is the empirical trigger for this sub-slice, but the *fix* itself has only been verified at the code/gate level so far, same posture as A.1/A.2.
+
+**Docs updated in the same commit:** `docs/DEBT.md` (D26 row extended with Sub-slice A.3 section), `progress.md` (Session 202 continued entry), `CHANGELOG.md` (new `[Unreleased]` entry inserted above A.2), this SESSION-LOG entry.
+
+**Files changed (3 code + 4 docs):** `apps/api/src/main.ts`, `apps/web/components/chrome/sign-in-context.tsx`, `apps/web/components/chrome/sign-in-button.tsx`, `docs/DEBT.md`, `progress.md`, `CHANGELOG.md`, `.agents/SESSION-LOG.md` (this entry).
+
+**Next:** commit + push to `feat/d26-signin-popup-ux` + PR #184 comment (A.3 sub-slice explanation) + relay to Huy/Echo per reporting-protocol rule 3a.

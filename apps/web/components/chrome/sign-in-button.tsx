@@ -12,6 +12,9 @@ import { apiUrl } from '@/lib/config';
  * preview click-through).
  * D26 sub-slice A.2 — 2 further fixes from Echo's independent review
  * of A.1 (see below, marked "Bug 1 (A.2 fix)" and "Bug 5").
+ * D26 sub-slice A.3 — 2 more fixes from Echo's LIVE click-through of
+ * the A.2 diff on Vercel preview (see "Bug 6" below and the docstring
+ * in `sign-in-context.tsx` for the postMessage-side half of the fix).
  *
  * The 4 bugs fixed in A.1 were all found by clicking through the Vercel
  * preview of PR #184 with a real Google account. The fixes are surgical —
@@ -77,6 +80,38 @@ import { apiUrl } from '@/lib/config';
  *      revert if that immediate check comes back 401 or errors. See
  *      the effect below for the full race explanation.
  *
+ *   6. /me always 401 regardless of cookie validity (A.3 fix — Echo
+ *      caught this via a LIVE click-through, not just code review).
+ *      `apps/api/src/main.ts` never called `app.use(passport.initialize())`
+ *      / `app.use(passport.session())` — `PassportModule.register({...})`
+ *      only wires DI providers, it does not touch the actual Express
+ *      instance. `SessionAuthGuard` (used by `GET /me`) checks
+ *      `req.isAuthenticated?.()`, a method Passport monkey-patches onto
+ *      `req` only as a side effect of `passport.authenticate()` running.
+ *      The two `AuthGuard('google')` OAuth routes worked "by accident"
+ *      because that side effect happened to run on them; `/me` uses
+ *      `SessionAuthGuard` directly with no `AuthGuard('google')` in
+ *      front of it, so the patch never applied and `/me` 401'd even
+ *      with a fully valid session cookie. Fix: `main.ts` now calls
+ *      `app.use(passport.initialize())` and `app.use(passport.session())`
+ *      right after `sessionMiddleware`, before CORS/routes register.
+ *
+ *   7. Poll never stops after a successful postMessage login (A.3 fix —
+ *      Echo caught this). `SignInContext`'s postMessage handler only
+ *      called `setProcessing(false)` on success — it had no reference
+ *      to the `<SignInButton>` instance's local `pollTimerRef` /
+ *      `closeWatcherRef` / `popupRef`, so the button's 7 s `/me` poll
+ *      (and close watcher) kept running in the background even after
+ *      the button visually showed "Sign in" again. Before the Bug 6
+ *      fix above, `/me` always 401'd, so the poll's own
+ *      `if (res.ok) revert()` success path could never fire either —
+ *      the poll ran forever until unmount or a full reload. Fix: the
+ *      button now registers its `revert` callback with the provider
+ *      (`registerRevert`, see `sign-in-context.tsx`); the provider
+ *      calls that callback on postMessage success instead of just
+ *      flipping `processing`, so the button's own timers/popup ref get
+ *      cleared too.
+ *
  * Out of scope (per `prompts/session-d26-signin-popup-ux-a1.md`):
  * avatar/sign-out/profile (slice B), POST /progress/migrate (slice C),
  * refresh tokens, RBAC, /auth/logout CSRF, /me rename, NEXT_PUBLIC_API_URL
@@ -97,7 +132,7 @@ const POPUP_WIDTH = 520;
 const POPUP_HEIGHT = 600;
 
 export function SignInButton({ messages }: Props) {
-  const { processing, setProcessing } = useSignIn();
+  const { processing, setProcessing, registerRevert } = useSignIn();
   // D55 canonical surface: apiUrl falls back to '' when
   // NEXT_PUBLIC_API_URL is unset, which makes authPath literally
   // '/auth/google' — the envDisabled guard below relies on that exact
@@ -165,6 +200,18 @@ export function SignInButton({ messages }: Props) {
     // debounce effect below list `revert` as a dependency and satisfy
     // `react-hooks/exhaustive-deps` without an eslint-disable.
   }, [setProcessing]);
+
+  // A.3 fix (Echo caught this): register this button's `revert` with the
+  // provider so a postMessage success (handled in `sign-in-context.tsx`)
+  // can clear THIS button's poll timer / close watcher / popup ref, not
+  // just flip the shared `processing` flag. Unregister on unmount so a
+  // stale callback into an unmounted component never gets called.
+  useEffect(() => {
+    registerRevert(revert);
+    return () => {
+      registerRevert(null);
+    };
+  }, [registerRevert, revert]);
 
   /**
    * Wire up the popup lifecycle:
