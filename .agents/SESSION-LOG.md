@@ -9502,3 +9502,35 @@ highest-ID bump), `CHANGELOG.md` (two `[Unreleased]` entries), `progress.md` (th
 line), `.agents/SESSION-LOG.md` (this entry).
 
 ---
+
+## Session 200 — D55 implementation: centralize NEXT_PUBLIC_API_URL via apps/web/lib/config.ts — 2026-09-16
+
+**Branch:** `docs/adr-0004-api-url-d55` (= PR #183, no new branch/PR).
+**ADR:** ADR-0004 (accepted) — per-Vercel-env `NEXT_PUBLIC_API_URL`, not a same-origin rewrites proxy.
+**Dispatch:** Lead's `prompts/session-d55-api-url-config.md` @ `d9428b1`.
+
+**Code (1 new module, 1 caller updated):**
+- `apps/web/lib/config.ts` — `export const apiUrl = process.env['NEXT_PUBLIC_API_URL'] ?? '';`. Style matches `apps/web/lib/site.ts`: single named const, module-scoped doc comment capturing the build-time-inlining contract, the ADR-0004 reference, the per-Vercel-env-var contract, and the rationale for the `?? ''` fallback (keeps the sign-in-button disabled-state guard meaningful on a dev machine with an unset var).
+- `apps/web/components/chrome/sign-in-button.tsx` — `import { apiUrl } from '@/lib/config';`; removed the local `const apiUrl = process.env[…] ?? ''` line and dropped `apiUrl` from the `useMemo` dep array (now stable across renders — same value per build). Block comment updated to point at the new module + ADR-0004. The `href === '/auth/google'` disabled-state guard remains intact and is now the canonical way an unset env surfaces, per the D55 row text.
+
+**Audit (per ADR-0004's "no hardcoded backend origin" requirement):**
+- `grep -rn "api\.nxhhuy\.tech" apps/web packages/api-client --include="*.ts" --include="*.tsx"` → **zero matches**. The four `nxhhuy.tech` hits in `apps/web` are all the **site apex** (frontend), not the API backend:
+  - `apps/web/app/layout.tsx:29` — `metadataBase: new URL('https://nxhhuy.tech')` (correct: canonical site apex)
+  - `apps/web/components/chrome/search-dialog.tsx:465,486` — `new URL(..., 'https://nxhhuy.tech')` for resolving search-result paths (correct: site apex)
+  - `apps/web/lib/site.ts:1` — `export const SITE_ORIGIN = 'https://nxhhuy.tech'` (correct: site apex)
+  - `apps/web/components/article/post-header.tsx:8` — comment text only
+- `packages/api-client` — package skeleton only (`packages/api-client/{package.json,README.md}`, no `src/` directory). Nothing to audit; no source to migrate.
+- `grep -rn "NEXT_PUBLIC_API_URL" apps/web --include="*.ts" --include="*.tsx"` → **one caller** (`sign-in-button.tsx`), now routed through the new module. Comment references to the env var name also live only in that file.
+
+**Out of repo (infra action, not this PR's scope):**
+- Per ADR-0004, `NEXT_PUBLIC_API_URL` needs to be set per Vercel scope (Production / Preview / Development) in the Vercel dashboard. Suggested values: Production `https://api.nxhhuy.tech` (or whatever the deployed API origin is), Preview the Vercel-assigned preview API origin, Development `http://localhost:3001`. Recorded in the CHANGELOG `[Unreleased]` entry as a follow-up so it's not silently lost.
+
+**D55 status:** implementation shipped. Row stays OPEN in `docs/DEBT.md` until the Vercel-dashboard env vars are configured (infra action outside repo scope); the implementation-side half is done.
+
+**Files (2):**
+- `apps/web/lib/config.ts` (NEW)
+- `apps/web/components/chrome/sign-in-button.tsx` (1-line import added, 1-line local replaced, 1-line useMemo dep array change, block-comment update)
+
+**Gates:** `pnpm typecheck` 5/5, `pnpm --filter @corpus/web lint` 0, `pnpm --filter @corpus/web build` clean (222 pages / 26929 words — same as session 198 baseline, confirms my edit doesn't shift the artifact), `pnpm agents:check` clean (3/3 generated files in sync — `AGENTS.md`/`CLAUDE.md`/`60-skills.mdc` unchanged, since this commit adds no new skill), `verify:submodules` 4/4 pinned (the pre-existing `nestjs` "tags not fetched" warning is the D37 substrate issue, non-fatal), `verify:frontmatter` 196/196, `verify:links` 445 edges, `verify:catalog` 196/445/2.
+
+**PR:** lands on `docs/adr-0004-api-url-d55` (= PR #183); no new PR opened per the dispatch contract.
