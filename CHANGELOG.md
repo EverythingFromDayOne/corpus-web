@@ -5,6 +5,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-17] — fix(web) — D26 sign-in popup UX: correct root cause for state-reset + close popup-cookie race (sub-slice A.2, Echo review)
+
+**Fixed** — 2 bugs found by Echo's independent review of sub-slice A.1, same `feat/d26-signin-popup-ux` branch / PR #184:
+1. **State-reset root cause was misdiagnosed in A.1.** Hoisting `processing` to `SignInContext` didn't fix Huy's original repro, because the nav links (`apps/web/components/chrome/nav-links.tsx`) and the logo/pill-CTA (`apps/web/components/chrome/site-header.tsx`) were plain `<a href>` tags — a real full-document browser navigation, which unmounts and remounts the entire React tree including `SignInProvider`. Context survives client-side route transitions only, never a hard reload. Fixed by converting both to `next/link` (already used elsewhere in the repo; zero new dependency), which keeps App Router navigation client-side so the Provider's state genuinely persists. Other raw `<a href>` sites in the app (article breadcrumbs/page-nav, courses breadcrumbs) are out of scope for this fix — tracked as new debt row **D56**.
+2. **Post-close-debounce race.** The API writes the session cookie and redirects the popup to the callback route before that route's own `useEffect` (which posts the `oauth-success` message) has loaded/hydrated — a real ~100–400ms window. Closing the popup inside that window meant the parent never got a success signal even though login had already succeeded server-side, and the old 5s debounce was *shorter* than the 7s safety-net poll, so the poll never got a chance to catch the miss either. Fixed by firing one immediate `/me` check the moment the popup-close is observed, only falling through to the debounce-based revert on a 401 or network error.
+
+**New debt row:** `docs/DEBT.md` **D56** — raw `<a href>` still used outside the topbar/nav chrome (article breadcrumbs/page-nav, courses breadcrumbs); no known live bug today, consistency/perf debt only.
+
 ### [2026-09-16] — fix(web) — D26 sign-in popup UX bugfixes: nav-state loss, poll-only success signal, dead debounce, 60s footgun (sub-slice A.1)
 
 **Fixed** — 4 bugs Huy found clicking through PR #184's Vercel preview with a real Google account, all on the same `feat/d26-signin-popup-ux` branch:

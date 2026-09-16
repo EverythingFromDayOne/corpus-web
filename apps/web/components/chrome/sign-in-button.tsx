@@ -8,7 +8,10 @@ import { apiUrl } from '@/lib/config';
 
 /**
  * D26 sub-slice A — sign-in popup UX (PR #184, original).
- * D26 sub-slice A.1 — follow-up bugfix pass (this file's current state).
+ * D26 sub-slice A.1 — follow-up bugfix pass (4 bugs from Huy's Vercel
+ * preview click-through).
+ * D26 sub-slice A.2 — 2 further fixes from Echo's independent review
+ * of A.1 (see below, marked "Bug 1 (A.2 fix)" and "Bug 5").
  *
  * The 4 bugs fixed in A.1 were all found by clicking through the Vercel
  * preview of PR #184 with a real Google account. The fixes are surgical —
@@ -23,6 +26,20 @@ import { apiUrl } from '@/lib/config';
  *      `SignInContext` (see `./sign-in-context.tsx`). The Provider lives
  *      in `app/[locale]/layout.tsx`, mounted once per locale tree, so it
  *      survives the SiteHeader remounts.
+ *
+ *      Bug 1 (A.2 fix — Echo caught this): the A.1 Context hoist alone
+ *      did NOT fix Huy's repro. `<SiteHeader>`'s nav links
+ *      (`nav-links.tsx`) and logo/pill-CTA were plain `<a href>` tags,
+ *      not `next/link` — a real full-document browser navigation, which
+ *      unmounts and remounts the ENTIRE React tree including
+ *      `SignInProvider`. Context state cannot survive a hard reload any
+ *      more than local `useState` could. Fix: `nav-links.tsx` and the
+ *      logo/pill-CTA in `site-header.tsx` now use `next/link`, which
+ *      keeps the navigation client-side and inside the same React tree,
+ *      so `SignInProvider` (and its `processing` flag) genuinely
+ *      survives the route change. (Other raw `<a href>` sites in the
+ *      app — article breadcrumbs/page-nav — are out of scope for this
+ *      fix; tracked separately, see docs/DEBT.md.)
  *
  *   2. Polling antipattern. The 2 s poll was the ONLY success signal,
  *      so the parent always waited up to 2 s after the popup wrote the
@@ -45,6 +62,20 @@ import { apiUrl } from '@/lib/config';
  *      removed entirely. Slow OAuth or slow user should not flash the
  *      button back to "Sign in" while the popup is still legitimately
  *      open.
+ *
+ *   5. Post-close-debounce race (A.2 fix — Echo caught this). The
+ *      server writes the session cookie and 302s the popup to the
+ *      callback route BEFORE that route's own `useEffect` (which posts
+ *      `oauth-success`) has a chance to run — a real ~100–400 ms gap.
+ *      Closing the popup inside that gap meant no success message ever
+ *      arrived, yet login had already succeeded. Worse, the old
+ *      `POST_CLOSE_DEBOUNCE_MS` (5 s) was SHORTER than
+ *      `POLL_INTERVAL_MS` (7 s), so the safety-net poll never got a
+ *      chance to run before the debounce force-reverted the button.
+ *      Fix: fire one immediate `/me` check the moment the popup is
+ *      observed closed; only fall through to the 5 s debounce-based
+ *      revert if that immediate check comes back 401 or errors. See
+ *      the effect below for the full race explanation.
  *
  * Out of scope (per `prompts/session-d26-signin-popup-ux-a1.md`):
  * avatar/sign-out/profile (slice B), POST /progress/migrate (slice C),
@@ -210,24 +241,60 @@ export function SignInButton({ messages }: Props) {
   }
 
   /**
-   * Post-close-debounce revert watcher (Bug 2.2 fallback). When the
-   * popup has been observed closed AND `POST_CLOSE_DEBOUNCE_MS` has
-   * elapsed without an `oauth-success` message from the callback page,
-   * treat the close as user-cancelled.
+   * Post-close-debounce revert watcher (Bug 2.2 fallback, refined for
+   * Echo's 2026-09-16 review of A.1).
    *
-   * `revert()` itself sets `setPopupClosed(false)` and
-   * `setProcessing(false)` — either of which causes this effect to
-   * re-evaluate and no-op. So the message-driven primary revert
-   * (Bug 2) naturally cancels any in-flight debounce timer via the
-   * `clearCloseTimer()` call inside `revert()`.
+   * Original bug: this effect scheduled a single `setTimeout` that
+   * called `revert()` unconditionally after `POST_CLOSE_DEBOUNCE_MS`,
+   * regardless of whether the sign-in had actually succeeded. That's
+   * a real race: `auth.controller.ts`'s `req.login()` writes the
+   * session cookie server-side and THEN 302s the popup to
+   * `/auth/google/callback`, whose own `useEffect` (the thing that
+   * posts `oauth-success` to this window) only runs after that page
+   * has loaded and hydrated — a ~100–400 ms window. If the user
+   * closes the popup inside that window, no `oauth-success` message
+   * ever arrives, yet the login already succeeded. The old code would
+   * then just revert() after 5s and report "Sign in" even though
+   * `corpus_session` has a live row — and the 5s debounce was SHORTER
+   * than the 7s safety-net poll interval, so the poll structurally
+   * never got a chance to catch it either.
+   *
+   * Fix: the moment the popup is observed closed, fire one immediate
+   * `/me` check — far faster than waiting for the next poll tick.
+   * Only fall through to the debounce-based revert() if that
+   * immediate check comes back 401 (the popup really was closed
+   * before login completed) or errors.
    */
   useEffect(() => {
     if (!popupClosed) return;
     if (!processing) return;
-    closeTimerRef.current = window.setTimeout(() => {
-      revert();
-    }, POST_CLOSE_DEBOUNCE_MS);
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch(`${apiUrl}/me`, {
+          credentials: 'include',
+          headers: { Accept: 'application/json' },
+        });
+        if (cancelled) return;
+        if (res.ok) {
+          revert();
+          return;
+        }
+      } catch {
+        if (cancelled) return;
+        // Network error on the immediate check: fall through to the
+        // debounce path below rather than giving up here.
+      }
+      if (cancelled) return;
+      closeTimerRef.current = window.setTimeout(() => {
+        revert();
+      }, POST_CLOSE_DEBOUNCE_MS);
+    })();
+
     return () => {
+      cancelled = true;
       clearCloseTimer();
     };
   }, [popupClosed, processing, revert]);

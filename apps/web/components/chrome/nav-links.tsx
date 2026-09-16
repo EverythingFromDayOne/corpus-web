@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { t, type Messages } from '@/lib/i18n';
 import { blogPath, coursesPath, homePath } from '@/lib/routes';
@@ -26,14 +27,14 @@ export function NavLinks({ locale, messages }: { locale: Locale; messages: Messa
       {links.map((link) => {
         const current = link.match(pathname);
         return (
-          <a
+          <Link
             key={link.href}
             href={link.href}
             aria-current={current ? 'page' : undefined}
             className={`no-underline ${current ? 'text-signal' : 'text-muted hover:text-display'}`}
           >
             {link.label}
-          </a>
+          </Link>
         );
       })}
     </nav>
