@@ -9451,3 +9451,88 @@ None of findings 1-5 block the #179 merge — all touch files the merged commit 
 
 ---
 
+
+## Session 199 (2026-09-16) — PR #182/#181/#180 merged; #181/#180 conflict-rebased; ADR-0004 + D55 opened
+
+**Branch:** `develop` (direct edits, no PR — doc-only ADR/DEBT/CHANGELOG update)
+
+Huy merged PR #182 himself, then reported "conflict issue on #181 and #180, fix them all
+for me." Root cause: both #181 (`docs/d26-merge-landed-flip`) and #180
+(`feat/stack-and-topology-drift-d54`) were opened before #182 landed and touched
+overlapping doc regions (`docs/DEBT.md`, `progress.md` for #181;
+`.cursor/rules/10-stack-and-topology.mdc` + generated `AGENTS.md` for #180) that #182's
+merge shifted underneath them.
+
+**Fix (both PRs, same pattern):**
+1. `git fetch origin && git checkout <branch> && git rebase origin/develop` — both
+   rebases completed with **zero manual conflict resolution** (git's 3-way merge
+   resolved them automatically; the "conflict" GitHub reported was a stale
+   `mergeStateStatus` computed before the rebase, not a real line-level conflict).
+2. Verified no leftover `<<<<<<<`/`=======`/`>>>>>>>` markers in any changed file.
+3. Re-ran `pnpm agents:check` on both branches (clean) — #180 specifically touches the
+   `.mdc` → `AGENTS.md` generated pair, so this was the one real risk of a *silent*
+   drift, not just a git conflict.
+4. `git push origin <branch> --force-with-lease` on both.
+5. Polled `gh pr checks` / `gh pr view --json mergeable,mergeStateStatus` until both
+   read `MERGEABLE` / `CLEAN` with full CI green (#181 6/6, #180 6/6 once Vercel
+   finished).
+
+**Merged:** PR #182 → `aa0235d` (Huy, direct), PR #181 → `8bd04e9`, PR #180 → `cf1a33a`.
+All three now on `develop`.
+
+**Separately, Huy closed the 4th open item** (NEXT_PUBLIC_API_URL architecture decision,
+parked since session 197's OAuth retest): **Option B — per-Vercel-environment env var**,
+not a same-origin rewrites proxy. Recorded as `docs/adr/0004-api-url-per-env-var.md`
+(accepted). Implementation is unscoped — opened `docs/DEBT.md` **D55** (highest ID
+D54 → D55) capturing the concrete follow-up: per-env Vercel var, new
+`apps/web/lib/config.ts` centralizing export, hardcoded-URL audit. Not assigned to a
+profile yet; not urgent (sign-in works today via the existing dev fallback).
+
+**No code changes this session** — doc-only (ADR + DEBT + CHANGELOG + this entry),
+committed directly to `develop` per the doc-flip convention (matches session 197's
+precedent; branch protection on `develop` requires 0 approvals and these are pure docs).
+
+**Verification:** `pnpm agents:check` clean (run twice, once per rebased branch before
+push). `gh pr view` confirmed `MERGEABLE`/`CLEAN` + 6/6 CI on both #181 and #180 before
+reporting them ready; did not merge either — Huy merged all three via the Slack
+follow-up message that triggered this session.
+
+**Files:** `docs/adr/0004-api-url-per-env-var.md` (NEW), `docs/DEBT.md` (D55 row +
+highest-ID bump), `CHANGELOG.md` (two `[Unreleased]` entries), `progress.md` (this
+line), `.agents/SESSION-LOG.md` (this entry).
+
+---
+
+## Session 200 — D55 implementation: centralize NEXT_PUBLIC_API_URL via apps/web/lib/config.ts — 2026-09-16
+
+**Branch:** `docs/adr-0004-api-url-d55` (= PR #183, no new branch/PR).
+**ADR:** ADR-0004 (accepted) — per-Vercel-env `NEXT_PUBLIC_API_URL`, not a same-origin rewrites proxy.
+**Dispatch:** Lead's `prompts/session-d55-api-url-config.md` @ `d9428b1`.
+
+**Code (1 new module, 1 caller updated):**
+- `apps/web/lib/config.ts` — `export const apiUrl = process.env['NEXT_PUBLIC_API_URL'] ?? '';`. Style matches `apps/web/lib/site.ts`: single named const, module-scoped doc comment capturing the build-time-inlining contract, the ADR-0004 reference, the per-Vercel-env-var contract, and the rationale for the `?? ''` fallback (keeps the sign-in-button disabled-state guard meaningful on a dev machine with an unset var).
+- `apps/web/components/chrome/sign-in-button.tsx` — `import { apiUrl } from '@/lib/config';`; removed the local `const apiUrl = process.env[…] ?? ''` line and dropped `apiUrl` from the `useMemo` dep array (now stable across renders — same value per build). Block comment updated to point at the new module + ADR-0004. The `href === '/auth/google'` disabled-state guard remains intact and is now the canonical way an unset env surfaces, per the D55 row text.
+
+**Audit (per ADR-0004's "no hardcoded backend origin" requirement):**
+- `grep -rn "api\.nxhhuy\.tech" apps/web packages/api-client --include="*.ts" --include="*.tsx"` → **zero matches**. The four `nxhhuy.tech` hits in `apps/web` are all the **site apex** (frontend), not the API backend:
+  - `apps/web/app/layout.tsx:29` — `metadataBase: new URL('https://nxhhuy.tech')` (correct: canonical site apex)
+  - `apps/web/components/chrome/search-dialog.tsx:465,486` — `new URL(..., 'https://nxhhuy.tech')` for resolving search-result paths (correct: site apex)
+  - `apps/web/lib/site.ts:1` — `export const SITE_ORIGIN = 'https://nxhhuy.tech'` (correct: site apex)
+  - `apps/web/components/article/post-header.tsx:8` — comment text only
+- `packages/api-client` — package skeleton only (`packages/api-client/{package.json,README.md}`, no `src/` directory). Nothing to audit; no source to migrate.
+- `grep -rn "NEXT_PUBLIC_API_URL" apps/web --include="*.ts" --include="*.tsx"` → **one caller** (`sign-in-button.tsx`), now routed through the new module. Comment references to the env var name also live only in that file.
+
+**Out of repo (infra action, not this PR's scope):**
+- Per ADR-0004, `NEXT_PUBLIC_API_URL` needs to be set per Vercel scope (Production / Preview / Development) in the Vercel dashboard. Suggested values: Production `https://api.nxhhuy.tech` (or whatever the deployed API origin is), Preview the Vercel-assigned preview API origin, Development `http://localhost:3001`. Recorded in the CHANGELOG `[Unreleased]` entry as a follow-up so it's not silently lost.
+
+**D55 status:** implementation shipped. Row stays OPEN in `docs/DEBT.md` until the Vercel-dashboard env vars are configured (infra action outside repo scope); the implementation-side half is done.
+
+**Files (2):**
+- `apps/web/lib/config.ts` (NEW)
+- `apps/web/components/chrome/sign-in-button.tsx` (1-line import added, 1-line local replaced, 1-line useMemo dep array change, block-comment update)
+
+**Gates:** `pnpm typecheck` 5/5, `pnpm --filter @corpus/web lint` 0, `pnpm --filter @corpus/web build` clean (222 pages / 26929 words — same as session 198 baseline, confirms my edit doesn't shift the artifact), `pnpm agents:check` clean (3/3 generated files in sync — `AGENTS.md`/`CLAUDE.md`/`60-skills.mdc` unchanged, since this commit adds no new skill), `verify:submodules` 4/4 pinned (the pre-existing `nestjs` "tags not fetched" warning is the D37 substrate issue, non-fatal), `verify:frontmatter` 196/196, `verify:links` 445 edges, `verify:catalog` 196/445/2.
+
+**PR:** lands on `docs/adr-0004-api-url-d55` (= PR #183); no new PR opened per the dispatch contract.
+
+**Fix commit `3937749` — repair `progress.md` Session 199/200 entry (post-self-review):** During my own hand-off verification, I caught that my original commit `2ce18b6` had severed Lead's Session 199 line into "header only" + my Session 200 + an orphaned "Huy merged..." paragraph below. Root cause: my Python `text.replace(anchor, anchor + new_block, 1)` matched the LEADING portion of Lead's single-line Session 199 entry (a 200-char heading fragment), inserted my Session 200 right after that anchor, and left the rest of Lead's line ("Huy merged PR #182...progress.md (this line).") dangling below as a stray paragraph. `SESSION-LOG.md` and `CHANGELOG.md` were unaffected (SESSION-LOG uses `cat >>` append at the file tail; CHANGELOG was inserted at the unambiguous marker `## [Unreleased]\n\n`); only `progress.md` was corrupted because its session lines are long single-paragraph entries, and anchoring on a leading fragment of one of them is the failure mode `.cursor/rules/00-session-protocol.mdc` warns against. Fix: in a second commit on the same branch (`3937749`), restored Session 199 as a single coherent paragraph followed by a blank line and Session 200 — net diff +2/-2 on `progress.md` only, no other files touched. PR #183 picked up the fix head automatically (no force-push, branch protection clean). Re-ran `pnpm agents:check` (clean — no rule change). **Lesson learned (going into the corpus-web-context skill):** when appending to `progress.md`, anchor on the SHORTEST unique trailing fragment (a session heading, the terminal `**Files:**` line of the previous session, or the final `---` separator) rather than a leading mid-paragraph fragment — OR read the file, locate the literal end, and `write_file(...)` the whole thing with appended content. A Python `text.replace(long_anchor, anchor + new, 1)` will silently split a long line into two fragments whenever `new` ends with `\n`, because the replace does not respect line boundaries — only exact-string boundaries. Documenting here so the next session doesn't repeat the bug. **No new debt ID** (the failure was self-caught within the same hand-off window, before the broken state hit `develop`).

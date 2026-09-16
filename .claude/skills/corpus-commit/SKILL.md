@@ -75,3 +75,14 @@ Push to the working branch and open a PR. **Never push directly to `main`.**
 PR title matches the commit summary. PR body links the SESSION-LOG entry.
 
 Content promotion PRs are **never auto-merged**.
+
+## `progress.md` append pitfall
+
+When appending a new session entry to `progress.md`, **never** use Python `text.replace(long_anchor, anchor + new, 1)` where `anchor` is a leading fragment of the previous session's heading or body. Session lines in `progress.md` are long single-paragraph entries (often 200+ chars on one line); a `replace` on a leading fragment will silently split the line into "heading-only" + new entry + orphaned body, because Python `str.replace` does not respect line boundaries — only exact-string boundaries.
+
+Safe patterns:
+- Anchor on the SHORTEST unique trailing fragment (the previous session's final `**Files:**` line, the terminal `---` separator, or the literal file end).
+- Or: read the whole file, locate the literal end via a sentinel, and `write_file` the whole thing with appended content (loses `patch` granularity but guarantees no line-splitting).
+- Or: use `cat >> FILE <<'EOF'` (terminal heredoc append) — works because it appends at EOF, not at a content anchor.
+
+Symptom of a bug: a session heading rendered as `**Session N — short heading only):**` followed by the new entry and an orphaned paragraph starting with the verb that was in the middle of the previous line ("Huy merged PR...", "Closure path...", etc.). Catch it before pushing — `git diff HEAD -- progress.md` after committing will reveal it.
