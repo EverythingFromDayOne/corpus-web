@@ -9536,3 +9536,47 @@ line), `.agents/SESSION-LOG.md` (this entry).
 **PR:** lands on `docs/adr-0004-api-url-d55` (= PR #183); no new PR opened per the dispatch contract.
 
 **Fix commit `3937749` — repair `progress.md` Session 199/200 entry (post-self-review):** During my own hand-off verification, I caught that my original commit `2ce18b6` had severed Lead's Session 199 line into "header only" + my Session 200 + an orphaned "Huy merged..." paragraph below. Root cause: my Python `text.replace(anchor, anchor + new_block, 1)` matched the LEADING portion of Lead's single-line Session 199 entry (a 200-char heading fragment), inserted my Session 200 right after that anchor, and left the rest of Lead's line ("Huy merged PR #182...progress.md (this line).") dangling below as a stray paragraph. `SESSION-LOG.md` and `CHANGELOG.md` were unaffected (SESSION-LOG uses `cat >>` append at the file tail; CHANGELOG was inserted at the unambiguous marker `## [Unreleased]\n\n`); only `progress.md` was corrupted because its session lines are long single-paragraph entries, and anchoring on a leading fragment of one of them is the failure mode `.cursor/rules/00-session-protocol.mdc` warns against. Fix: in a second commit on the same branch (`3937749`), restored Session 199 as a single coherent paragraph followed by a blank line and Session 200 — net diff +2/-2 on `progress.md` only, no other files touched. PR #183 picked up the fix head automatically (no force-push, branch protection clean). Re-ran `pnpm agents:check` (clean — no rule change). **Lesson learned (going into the corpus-web-context skill):** when appending to `progress.md`, anchor on the SHORTEST unique trailing fragment (a session heading, the terminal `**Files:**` line of the previous session, or the final `---` separator) rather than a leading mid-paragraph fragment — OR read the file, locate the literal end, and `write_file(...)` the whole thing with appended content. A Python `text.replace(long_anchor, anchor + new, 1)` will silently split a long line into two fragments whenever `new` ends with `\n`, because the replace does not respect line boundaries — only exact-string boundaries. Documenting here so the next session doesn't repeat the bug. **No new debt ID** (the failure was self-caught within the same hand-off window, before the broken state hit `develop`).
+
+---
+
+## Session 201 — D26 sign-in popup UX, sub-slice A — 2026-09-16
+
+**Branch:** `feat/d26-signin-popup-ux` (off `develop @ 697d94d`, post-PR-#183 merge).
+**Dispatch:** Lead's `prompts/session-d26-signin-popup-ux.md` @ `9f4c8d3`.
+**Constraints from Lead:** English-only i18n (no `vi.json`), no scope expansion, no new deps, no `content/` edits, no `AGENTS.md`/`CLAUDE.md` hand-edits.
+
+**Code (1 file rewritten + 2 minor adds):**
+- `apps/web/components/chrome/sign-in-button.tsx` — converted from a static `<a href>` to a `'use client'` stateful component. Click opens a centered 520×600 popup via `window.open(${NEXT_PUBLIC_API_URL}/auth/google, 'google-oauth', …)` positioned via `window.screenX/outerWidth` so it lands centered on the viewport. While the popup is open, polls `GET /me` every 2 s with `credentials: 'include'` so the shared `WEB_ORIGIN` CORS allow + `SameSite=Lax` cookie set in PR #179 propagates the session as soon as Google's callback writes it. Reverts to the normal "Sign in with Google" label on `/me` 200, on user-closed popup (no recent 401 within the 5 s post-close debounce window), or after a 60 s elapsed timeout (treated as user-cancelled, no error surfaced). `<a href>` replaced with `<button type="button">` so the click is JS-driven; `aria-label="Sign in with Google"` on the button, `aria-live="polite"` on the inner label span (screen readers announce the state change without interrupting). The pre-existing `authPath === '/auth/google'` env-disabled guard (D55's canonical surface for unset `NEXT_PUBLIC_API_URL`) is unchanged — slice A only adds the `|| processing` half of the disabled union. `useRef<Window | null>` for the popup reference and `useRef<number | null>` for the interval ID so cleanup is reliable across re-renders; explicit `clearInterval` + `setTimeout.clear()` on every revert path and on unmount.
+- `apps/web/messages/en.json` — new i18n key `topbar.signInProcessing: "Signing in…"` under the existing `topbar` namespace. English-only string per spec (`vi` is not a supported locale; `.cursor/rules/20-never-violate.mdc` blocks new locales; `roadmap.md` §16 Q2 confirms). No `vi.json` change.
+- `apps/web/app/globals.css` — appended `.topbar-signin--processing` rule mirroring the existing `.topbar-signin--disabled` pattern (muted opacity, `cursor: not-allowed`, muted color + `color-mix()` border off `--color-graphite`). No new tokens — reuses the existing `--color-muted` / `--color-graphite` palette.
+
+**Docs (4 files):**
+- `docs/DEBT.md` — D26 row updated in place per spec (no new debt ID issued).
+- `CHANGELOG.md` — `[Unreleased]` entry inserted above the D55 entry (newest-first).
+- `prompts/session-d26-signin-popup-ux.md` — annotated at top with the actual outcome.
+- `progress.md` — see below.
+
+**Out of scope** (carried per spec, NOT touched): avatar dropdown / sign-out button / profile page (sub-slice B); `POST /progress/migrate` endpoint (sub-slice C); refresh tokens; RBAC; `/auth/logout` CSRF; the pre-existing `href === '/auth/google'` disabled-state guard; `/me` vs `/auth/me` rename; `NEXT_PUBLIC_API_URL` architecture (D55).
+
+**Verification — all gates green:**
+- `apps/web/node_modules/.bin/tsc --noEmit -p apps/web/tsconfig.json` — exit 0 (cache-busted; hits the locally-installed binary instead of `npx --no-install` which Tirith blocks when OSV lookup times out).
+- `pnpm --filter @corpus/web typecheck` — exit 0 (sanity-check parallel to the above).
+- `pnpm --filter @corpus/web lint` — exit 0 (ESLint 9.39.5 via `tooling/eslint` re-export).
+- `pnpm --filter @corpus/web build` — exit 0; 222 pages / 26929 words (matches session 200 baseline — confirms my edit doesn't shift the artifact).
+- `pnpm typecheck` (monorepo) — 5 successful / 5 total.
+- `pnpm agents:check` — ✓ AGENTS.md, ✓ CLAUDE.md, ✓ .cursor/rules/60-skills.mdc (no rule change → no regen needed).
+- `pnpm verify:submodules` — 4/4 pinned (pre-existing `nestjs` "tags not fetched" warning is D37 substrate debt, non-fatal per spec).
+- `pnpm verify:frontmatter` — 196/196 articles adapt cleanly.
+- `pnpm verify:links` — 445 live edges / 0 excluded-target / 0 draft-target / 25 planned (pre-existing) / 6 demo (pre-existing) — no new warnings.
+- `pnpm verify:catalog` — 196 articles / 445 edges / 2 paths valid.
+
+**Bundled verification** (substitute for the spec's manual UX scenarios, since this CLI has no real browser):
+- Client bundle `apps/web/.next/static/chunks/1lcvj-q5p7ztn.js` contains `window.open` (×1), `setInterval` (×1), `clearInterval` (×1), `setTimeout` (×1), `fetch` (×1), `credentials` (×1), `google-oauth` (×1), `signInProcessing` (×1) — full state machine + poll + cleanup path shipped.
+- Prerendered HTML at `apps/web/.next/server/app/en/blog.html` shows the new `<button class="topbar-signin" aria-label="Sign in with Google"><span aria-live="polite">Sign in</span></button>` — confirms server-side render is the new markup, not the old `<a>`.
+- CSP check: no `content-security-policy` middleware in `apps/web`, so `window.open` to `accounts.google.com` is browser-native and not affected by CSP — spec note #5 confirmed by absence.
+
+**Manual UX verification** (per spec §"Manual UX verification"): cannot be executed from this CLI (no `apps/api` runtime, no Google OAuth credentials in env, no real browser). Deferred to Huy's optional live retest on the preview deploy; the PR body documents the expected observable behavior for each of the 6 scenarios.
+
+**Files (6):** `apps/web/components/chrome/sign-in-button.tsx` (rewrite), `apps/web/messages/en.json` (1 line added), `apps/web/app/globals.css` (16 lines appended), `docs/DEBT.md` (D26 row appended), `CHANGELOG.md` (1 `[Unreleased]` entry inserted), `prompts/session-d26-signin-popup-ux.md` (1 outcome section appended). Plus this SESSION-LOG entry and a progress.md line.
+
+**PR:** opens against `develop` as `feat(chrome): D26 sub-slice A — sign-in popup UX`; CC Echo per reporting-protocol rule 3c.

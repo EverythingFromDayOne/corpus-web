@@ -8,6 +8,41 @@
 
 ---
 
+## Outcome (session 201, 2026-09-16)
+
+Implemented per spec; PR pending against `develop`.
+
+**Files changed (5):**
+- `apps/web/components/chrome/sign-in-button.tsx` — converted from static `<a>` to `'use client'` stateful component: popup lifecycle (`window.open` 520×600 centered on viewport), 2 s `setInterval` polling of `GET /me` with `credentials: 'include'`, 5 s debounce window after popup close for recent 401s, 60 s elapsed → revert quietly. `<button type="button">` replaces `<a>`; `aria-label="Sign in with Google"`, `aria-disabled` on disabled, `aria-live="polite"` on label span.
+- `apps/web/messages/en.json` — added `topbar.signInProcessing: "Signing in…"` under existing `topbar` namespace (English-only; no `vi.json` change).
+- `apps/web/app/globals.css` — appended `.topbar-signin--processing` rule mirroring the existing `.topbar-signin--disabled` pattern (muted opacity, `cursor: not-allowed`, `color-muted` override on hover/focus); uses `color-mix()` off existing tokens (no new tokens).
+- `docs/DEBT.md` — D26 row updated in place per spec (no new debt ID issued).
+- `prompts/session-d26-signin-popup-ux.md` — this annotation.
+
+**Bundled verification** (because I cannot literally click through a browser in this CLI):
+- Client bundle `apps/web/.next/static/chunks/1lcvj-q5p7ztn.js` contains `window.open` (×1), `setInterval` (×1), `clearInterval` (×1), `setTimeout` (×1), `credentials` (×1), `google-oauth` (×1), `signInProcessing` (×1) — full state machine + poll + cleanup path shipped.
+- Prerendered HTML `<apps/web>/.next/server/app/en/blog.html` shows the new `<button class="topbar-signin" aria-label="Sign in with Google"><span aria-live="polite">Sign in</span></button>` — confirms server-side render is the new markup, not the old `<a>`.
+- CSP check: no `content-security-policy` middleware in `apps/web`, so `window.open` to `accounts.google.com` is browser-native and not affected (spec note #5 confirmed by absence).
+
+**Manual UX scenarios** (per spec §"Manual UX verification"): cannot be executed from this CLI (no `apps/api` runtime, no Google OAuth credentials in env, no real browser). Documented for Echo's review and Huy's optional live retest on the preview deploy — see PR body "Manual UX scenarios" section for what each scenario should show.
+
+**Gates (all PASS):**
+- `pnpm --filter @corpus/web typecheck` — exit 0 (cache-busted via direct `apps/web/node_modules/.bin/tsc --noEmit` invocation).
+- `pnpm --filter @corpus/web lint` — exit 0.
+- `pnpm --filter @corpus/web build` — exit 0 (222 pages / 26929 words, matches session 200 baseline).
+- `pnpm typecheck` (monorepo-wide) — 5 successful, 5 total.
+- `pnpm agents:check` — ✓ AGENTS.md, ✓ CLAUDE.md, ✓ .cursor/rules/60-skills.mdc (no rule change → no regen needed).
+- `pnpm verify:submodules` — 4/4 pinned (pre-existing `nestjs` "tags not fetched" is D37 substrate debt, non-fatal per spec).
+- `pnpm verify:frontmatter` — 196/196 articles adapt cleanly.
+- `pnpm verify:links` — 445 live edges, 0 excluded-target warnings, 0 draft-target warnings, 25 planned (pre-existing), 6 demo (pre-existing).
+- `pnpm verify:catalog` — 196 articles / 445 edges / 2 paths — valid.
+
+**Out of scope** (carried per spec, NOT touched): avatar dropdown / sign-out button / profile page (sub-slice B); `POST /progress/migrate` endpoint (sub-slice C); refresh tokens; RBAC; `/auth/logout` CSRF; the pre-existing `href === '/auth/google'` disabled-state guard; `/me` vs `/auth/me` rename; NEXT_PUBLIC_API_URL architecture (D55).
+
+**Deviations from spec:** none.
+
+---
+
 ## Scope (exact)
 
 Replace the current `<SignInButton>` (a plain anchor that opens Google OAuth in a new tab) with a stateful client component that:

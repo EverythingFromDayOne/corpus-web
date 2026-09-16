@@ -5,6 +5,24 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-16] — feat(web) — D26 sign-in popup UX (centered popup, polling /me, processing state)
+
+**Changed**
+- `apps/web/components/chrome/sign-in-button.tsx` — converted from static `<a href>` to `'use client'` stateful component. Click handler opens a centered 520×600 popup via `window.open(${NEXT_PUBLIC_API_URL}/auth/google, 'google-oauth', …)` (positions via `screenX`/`screenY` + `outerWidth`/`outerHeight` so it lands centered on the viewport). While the popup is open, polls `GET /me` every 2 s with `credentials: 'include'` so the shared `WEB_ORIGIN` CORS allow + `SameSite=Lax` cookie set in PR #179 propagates the session as soon as Google's callback writes it. Reverts to the normal "Sign in with Google" label on `/me` 200 (auth succeeded), on popup close without ever seeing 200, or after a 60 s elapsed timeout (treated as user-cancelled, no error surfaced). Switched `<a href={…} target="_blank">` to `<button type="button">` so the click is JS-driven; kept the `topbar-signin`/`topbar-signin--disabled` class names and added a new `topbar-signin--processing` modifier for the in-flight state. `aria-label="Sign in with Google"` on the button, `aria-live="polite"` on the inner label span (screen reader announces the state change without interrupting). The pre-existing `authPath === '/auth/google'` env-disabled guard (D55's canonical surface for unset `NEXT_PUBLIC_API_URL`) is unchanged — slice A only adds the `|| processing` half of the disabled union.
+
+**Added**
+- New i18n key `topbar.signInProcessing` ("Signing in…") in `apps/web/messages/en.json` under the existing `topbar` namespace. English-only string — `.cursor/rules/20-never-violate.mdc` blocks new locales; `roadmap.md` §16 Q2 confirms. No `vi.json` change.
+- `.topbar-signin--processing` CSS rule in `apps/web/app/globals.css` mirroring the existing `.topbar-signin--disabled` pattern (`opacity: 0.6`, `cursor: not-allowed`, muted color + `color-mix()` border from `--color-graphite`). No new color tokens; reuses the existing `--color-muted` / `--color-graphite` palette.
+
+**Out of scope (carried explicitly per spec — DO NOT land under this PR):**
+- Avatar dropdown / sign-out button / profile page (D26 sub-slice B).
+- `POST /progress/migrate` endpoint on `apps/api` (D26 sub-slice C).
+- Refresh tokens, RBAC, `/auth/logout` CSRF (D26 closer slice).
+- `/me` → `/auth/me` rename (Echo's earlier item 3, documented as out-of-scope).
+- `NEXT_PUBLIC_API_URL` build-time-inlining architecture (already shipped as ADR-0004 / D55).
+
+**Verification:** `pnpm --filter @corpus/web typecheck` PASS (cache-busted via direct `apps/web/node_modules/.bin/tsc --noEmit`), `pnpm --filter @corpus/web lint` PASS, `pnpm --filter @corpus/web build` PASS (222 pages / 26929 words — matches session 200 baseline), `pnpm typecheck` 5/5 monorepo-wide PASS, `pnpm agents:check` ✓ (no rule change → no regen), `pnpm verify:submodules` 4/4 pinned (pre-existing `nestjs` "tags not fetched" is D37, non-fatal), `pnpm verify:frontmatter` 196/196, `pnpm verify:links` 445 live edges / 0 new warnings, `pnpm verify:catalog` 196/445/2 valid. **Manual UX verification deferred to live preview deploy** (see PR body "Manual UX scenarios").
+
 ### [2026-09-16] — refactor(web) — centralize NEXT_PUBLIC_API_URL reads into apps/web/lib/config.ts (D55)
 
 **Added**
