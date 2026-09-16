@@ -9580,3 +9580,39 @@ line), `.agents/SESSION-LOG.md` (this entry).
 **Files (6):** `apps/web/components/chrome/sign-in-button.tsx` (rewrite), `apps/web/messages/en.json` (1 line added), `apps/web/app/globals.css` (16 lines appended), `docs/DEBT.md` (D26 row appended), `CHANGELOG.md` (1 `[Unreleased]` entry inserted), `prompts/session-d26-signin-popup-ux.md` (1 outcome section appended). Plus this SESSION-LOG entry and a progress.md line.
 
 **PR:** opens against `develop` as `feat(chrome): D26 sub-slice A — sign-in popup UX`; CC Echo per reporting-protocol rule 3c.
+
+## Session 202 — D26 sub-slice A.1: sign-in popup UX bugfixes (2026-09-16)
+
+**Trigger:** Huy clicked through PR #184's Vercel preview deploy with a real Google account and found 4 bugs Echo's earlier "manual UX not empirically run" flag predicted might exist. This is the first sub-slice where a human actually drove the 3 spec scenarios end to end.
+
+**Scope:** ONE PR on the same `feat/d26-signin-popup-ux` branch (PR #184 stays open, not superseded). Files: `sign-in-button.tsx`, `en.json` (no new key needed), NEW `sign-in-context.tsx`, NEW `apps/web/app/auth/google/callback/page.tsx`, `apps/web/app/[locale]/layout.tsx`, `apps/api/src/modules/auth/auth.controller.ts`.
+
+**Bugs fixed (see CHANGELOG entry for full detail):**
+1. State reset on navigation → hoisted to `SignInContext`, mounted at `[locale]/layout.tsx`.
+2/2.1. Poll-only success signal + missing callback route → new `postMessage`-based callback page; poll demoted to 7s safety net.
+2.2. Dead 401-debounce → anchor stamp on popup open→closed transition (`popupClosed` state), not every poll tick.
+4. 60s force-revert footgun → removed; postMessage drives success, popup-close+5s drives cancellation.
+
+**Architecture decisions made autonomously (no Huy escalation — no new dep, no locale/schema/DNS change):**
+- State hoist: React Context (not Zustand — no state-mgmt lib in the repo).
+- Callback route: flat `apps/web/app/auth/google/callback/page.tsx` (not a route group), matching D55's `apps/web/lib/config.ts` flat convention.
+
+**Dispatch mechanics:** Foreground `Bash` call to the coding-fe sub-agent hit the 300s tool timeout and was killed mid-run — no `session_id` was ever returned, so there was no background session to resume via `process_manage`. However the sub-agent HAD already written real code to disk before being killed (confirmed via file mtimes ~4 min before the timeout fired). Lead inspected the on-disk diff directly rather than re-dispatching, since a second full dispatch would have either duplicated the (mostly correct) work or fought a half-written tree.
+
+**Lead code review caught 3 defects in the sub-agent's unfinished-but-substantial diff, fixed inline before commit:**
+- Safety-net poll used `fetch('/me', …)` — relative path resolves against the Next.js origin, not the NestJS API. Silent 404 on every poll tick. Fixed via `@/lib/config`'s `apiUrl`.
+- `authPath` read `process.env.NEXT_PUBLIC_API_URL` directly, bypassing the D55-canonical `apiUrl` export and its documented empty-string fallback contract.
+- `aria-label` regressed from `topbar.signInAriaLabel` ("Sign in with Google") to `topbar.signIn` ("Sign in") — an a11y regression. Restored.
+- Also fixed a `react-hooks/exhaustive-deps` lint warning by wrapping `revert` in `useCallback` rather than suppressing it.
+
+**Verification — all 9 gates green:** `pnpm --filter web typecheck` 0, `pnpm --filter api typecheck` 0, `pnpm --filter web lint` 0, `pnpm --filter api lint` 0, `pnpm --filter web build` 0 (222 pages / 26929 words, unchanged baseline, new `/auth/google/callback` route confirmed in output), `pnpm --filter api build` 0, `pnpm agents:check` clean, `pnpm verify:submodules` 4/4 pinned (pre-existing D37 nestjs-tags warning, non-fatal), `pnpm verify:frontmatter`/`verify:links`/`verify:catalog` clean (pre-existing content-side warnings unrelated to this diff).
+
+**Manual UX verification:** CLOSED THE GAP flagged on sub-slice A. Huy's own click-through against the live Vercel preview IS the manual verification — the 4 bug reports are direct evidence a human drove centered-popup-open, processing-state-revert-on-200, and revert-on-close scenarios and found real defects the CLI-only substitute (bundle-content greps) could not have caught.
+
+**Out of scope (unchanged):** avatar dropdown / sign-out (sub-slice B), `POST /progress/migrate` (sub-slice C), refresh tokens, RBAC, `/auth/logout` CSRF, `/me` rename. No Vietnamese anywhere, no `vi.json` touch, no `content/` touch.
+
+**Docs:** `docs/DEBT.md` D26 row appended in place (no new debt ID — same convention as sub-slice A). `CHANGELOG.md` new `[Unreleased]` entry inserted above sub-slice A's. `progress.md` line appended. This SESSION-LOG entry.
+
+**Files (7 code/doc + this entry):** `apps/web/components/chrome/sign-in-button.tsx`, `apps/web/components/chrome/sign-in-context.tsx` (NEW), `apps/web/app/auth/google/callback/page.tsx` (NEW), `apps/web/app/[locale]/layout.tsx`, `apps/api/src/modules/auth/auth.controller.ts`, `docs/DEBT.md`, `CHANGELOG.md`, plus `progress.md` and this entry.
+
+**PR:** pushed as a follow-up commit on the same `feat/d26-signin-popup-ux` branch (PR #184 stays open — sub-slice A.1 lands under the same PR, not a new one, since it's a same-day bugfix on unmerged work). CC Echo per reporting-protocol rule 3c.

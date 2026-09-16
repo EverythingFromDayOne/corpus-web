@@ -5,6 +5,29 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-16] — fix(web) — D26 sign-in popup UX bugfixes: nav-state loss, poll-only success signal, dead debounce, 60s footgun (sub-slice A.1)
+
+**Fixed** — 4 bugs Huy found clicking through PR #184's Vercel preview with a real Google account, all on the same `feat/d26-signin-popup-ux` branch:
+1. **State reset on navigation.** `processing` was local `useState` inside `<SignInButton>`, which unmounts/remounts across route changes — clicking Sign in on `/home` then navigating to `/courses` mid-flow silently dropped the in-progress state. Fixed by hoisting `processing` into a new `SignInContext` (`apps/web/components/chrome/sign-in-context.tsx`, plain React Context — no new dependency), mounted once in `apps/web/app/[locale]/layout.tsx` so it survives `<SiteHeader>` remounts.
+2. **Polling-only success signal.** The 2 s `/me` poll was the *only* success signal — wasteful (every 401 tick was a wasted round-trip) and slow. New flat route `apps/web/app/auth/google/callback/page.tsx` posts `window.postMessage({ type: 'oauth-success' }, WEB_ORIGIN)` then `window.close()`; `apiUrl` (`@/lib/config`) is a runtime prerequisite so this route is a client component. `apps/api/src/modules/auth/auth.controller.ts`'s success redirect now targets `/auth/google/callback` instead of `/`. The `/me` poll interval widened 2s → 7s and demoted to a safety net (covers popup-blocked / postMessage-blocked edge cases) rather than the primary signal.
+2.1. **Missing callback route** (same fix as #2) — the popup had nowhere to land; registering the flat route above closes this.
+2.2. **401-debounce dead code.** `last401AtRef` was re-stamped on *every* 401 poll tick, so `elapsedSince401 >= 5000` could never be true (the ref kept resetting to "now"). Fixed by anchoring the stamp only on the popup's open→closed transition (new `popupClosed` state flip), not on every poll response.
+4. **60s force-revert footgun.** A blanket `setTimeout(revert, 60000)` reverted the button to "Sign in" even mid-flight on a slow OAuth round-trip (e.g. MFA prompt), giving a false "it failed" signal while the user was still completing login. Removed entirely — success is now driven by `postMessage`, cancellation by popup-close + 5 s debounce; no arbitrary ceiling.
+
+**Architecture decisions made autonomously** (no new dependency, no Huy escalation — both fit the "no new dep, no locale/schema/DNS change" bar):
+- State hoist via React Context, not Zustand/Jotai/Redux — none of those are in `package.json`, and Context is sufficient for a single boolean shared by 2 components.
+- Callback route is flat (`apps/web/app/auth/google/callback/page.tsx`), not a route group — matches the D55 `apps/web/lib/config.ts` convention of flat, discoverable paths.
+
+**Lead review caught 3 defects in the sub-agent's diff, fixed before commit:**
+- Safety-net poll read `fetch('/me', …)` — a **relative path**, resolving against the Next.js web origin (`localhost:3000` in dev) instead of the NestJS API (`localhost:3001`), which would 404 every poll and silently break the fallback. Fixed to `fetch(\`${apiUrl}/me\`, …)` using the existing `@/lib/config` import.
+- `authPath` read `process.env.NEXT_PUBLIC_API_URL` directly instead of through `@/lib/config`'s `apiUrl`, bypassing the D55-established fallback-to-`''` contract (`apps/web/lib/config.ts`'s canonical export). Reverted to import `apiUrl`.
+- `aria-label` regressed from the dedicated `topbar.signInAriaLabel` key ("Sign in with Google") to the visible-label key `topbar.signIn` ("Sign in") — an a11y regression (screen readers would announce a less descriptive label than before). Restored the `topbar.signInAriaLabel` reference.
+- `revert` wrapped in `useCallback` (empty dep array — closes only over refs/stable setters) to satisfy `react-hooks/exhaustive-deps` without a suppression comment.
+
+**Out of scope (unchanged from sub-slice A):** avatar dropdown / sign-out button / profile page (sub-slice B); `POST /progress/migrate` (sub-slice C); refresh tokens; RBAC; `/auth/logout` CSRF; `/me` → `/auth/me` rename. No Vietnamese, no `vi.json` touch, no `content/` touch.
+
+**Verification:** `pnpm --filter web typecheck` 0, `pnpm --filter api typecheck` 0, `pnpm --filter web lint` 0, `pnpm --filter api lint` 0, `pnpm --filter web build` 0 (222 pages / 26929 words — unchanged from session 200/201 baseline, new `/auth/google/callback` route present), `pnpm --filter api build` 0, `pnpm agents:check` clean, `pnpm verify:submodules` 4/4 pinned, `pnpm verify:frontmatter` clean, `pnpm verify:links`/`verify:catalog` clean (pre-existing content-side warnings only, unrelated). Manual browser click-through was performed by Huy directly on the PR #184 Vercel preview (the bug reports above ARE the manual verification evidence — this is the first sub-slice where a human actually drove the 3 scenarios end to end, closing the gap Echo flagged on sub-slice A).
+
 ### [2026-09-16] — feat(web) — D26 sign-in popup UX (centered popup, polling /me, processing state)
 
 **Changed**
