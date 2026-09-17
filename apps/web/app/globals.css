@@ -839,6 +839,22 @@ body:has(.av-view) .av-header-tog {
   pointer-events: none;
 }
 
+.topbar-signin--processing {
+  opacity: 0.6;
+  cursor: not-allowed;
+  color: var(--color-muted);
+  border-color: color-mix(in srgb, var(--color-graphite) 80%, transparent);
+}
+
+.topbar-signin--processing:hover,
+.topbar-signin--processing:focus-visible {
+  /* Processing state must not advertise hover affordance; the click path
+     does nothing until the popup round-trip resolves. */
+  color: var(--color-muted);
+  border-color: color-mix(in srgb, var(--color-graphite) 80%, transparent);
+  background: transparent;
+}
+
 
 /* Mobile: collapse to icon-only text, like the search trigger and theme
    toggle (PR #108 follow-up). Keeps the topbar compact at iPhone widths.

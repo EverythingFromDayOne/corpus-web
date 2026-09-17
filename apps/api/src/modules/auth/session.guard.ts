@@ -1,4 +1,5 @@
 import {
+  Inject,
   Injectable,
   UnauthorizedException,
   type CanActivate,
@@ -21,10 +22,22 @@ import { AuthService } from './auth.service.js';
  * hand it a `{ id }` stub (see `SessionSerializer`), so we re-fetch
  * the full user record here and attach it to `req.user` for the
  * controller to consume.
+ *
+ * `@Inject(AuthService)` is EXPLICIT here on purpose, not stylistic.
+ * `tsx`/esbuild (the `start:dev` runtime) never implements TypeScript's
+ * `emitDecoratorMetadata` — it has no type checker, so it cannot emit
+ * `design:paramtypes` for implicit constructor-type DI. `tsc` (the
+ * production build path) does. That split meant this guard was
+ * DI-broken (`this.authService` stayed `undefined` -> 500 on every
+ * `/me` call) under `pnpm start:dev`, invisible under `pnpm build`,
+ * and untested (no guard-level spec existed). Found 2026-09-17 via
+ * Huy's live click-through after the A.3 passport-init fix made this
+ * guard reachable for the first time. `@Inject()` sidesteps
+ * `design:paramtypes` entirely — safe under both runtimes.
  */
 @Injectable()
 export class SessionAuthGuard implements CanActivate {
-  constructor(private readonly authService: AuthService) {}
+  constructor(@Inject(AuthService) private readonly authService: AuthService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<Request>();

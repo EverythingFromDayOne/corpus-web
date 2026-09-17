@@ -11,6 +11,8 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "dev": "turbo run dev --filter=@corpus/web",
+    "dev:api": "turbo run dev --filter=@corpus/api",
+    "dev:all": "turbo run dev",
     "agents:build": "node scripts/build-agent-docs.mjs",
     "agents:check": "node scripts/build-agent-docs.mjs --check",
     "sync:content": "node scripts/sync-content.mjs",

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 import { ArticleHeaderToggle } from '@/components/article/article-shell';
 import { t, type Messages } from '@/lib/i18n';
 import { ThemeToggle } from './theme-toggle';
@@ -32,22 +33,22 @@ export function SiteHeader({
       </a>
       <div className="topbar-wrap">
         <ArticleHeaderToggle label={t(messages, 'article.collapseSidebar')} />
-        <a href={homePath(locale)} className="font-mono text-sm font-semibold tracking-meta shrink-0 no-underline">
+        <Link href={homePath(locale)} className="font-mono text-sm font-semibold tracking-meta shrink-0 no-underline">
           <span className="text-display">{t(messages, 'site.nameLead')}</span>
           <span className="text-signal">{t(messages, 'site.nameTail')}</span>
-        </a>
+        </Link>
         <NavLinks locale={locale} messages={messages} />
         <div className="topbar-tools">
           <SearchTrigger messages={messages} />
           <SignInButton messages={messages} />
           {featured ? (
-            <a
+            <Link
               href={coursePath(locale, featured.slug)}
               className="topbar-pill-cta"
               aria-label={t(messages, 'topbar.pillCtaAriaLabel', { title: featured.title })}
             >
               {t(messages, 'topbar.pillCta')}
-            </a>
+            </Link>
           ) : null}
           <ThemeToggle label={t(messages, 'nav.themeToggle')} />
         </div>

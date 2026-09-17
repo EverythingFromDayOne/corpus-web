@@ -9536,3 +9536,216 @@ line), `.agents/SESSION-LOG.md` (this entry).
 **PR:** lands on `docs/adr-0004-api-url-d55` (= PR #183); no new PR opened per the dispatch contract.
 
 **Fix commit `3937749` — repair `progress.md` Session 199/200 entry (post-self-review):** During my own hand-off verification, I caught that my original commit `2ce18b6` had severed Lead's Session 199 line into "header only" + my Session 200 + an orphaned "Huy merged..." paragraph below. Root cause: my Python `text.replace(anchor, anchor + new_block, 1)` matched the LEADING portion of Lead's single-line Session 199 entry (a 200-char heading fragment), inserted my Session 200 right after that anchor, and left the rest of Lead's line ("Huy merged PR #182...progress.md (this line).") dangling below as a stray paragraph. `SESSION-LOG.md` and `CHANGELOG.md` were unaffected (SESSION-LOG uses `cat >>` append at the file tail; CHANGELOG was inserted at the unambiguous marker `## [Unreleased]\n\n`); only `progress.md` was corrupted because its session lines are long single-paragraph entries, and anchoring on a leading fragment of one of them is the failure mode `.cursor/rules/00-session-protocol.mdc` warns against. Fix: in a second commit on the same branch (`3937749`), restored Session 199 as a single coherent paragraph followed by a blank line and Session 200 — net diff +2/-2 on `progress.md` only, no other files touched. PR #183 picked up the fix head automatically (no force-push, branch protection clean). Re-ran `pnpm agents:check` (clean — no rule change). **Lesson learned (going into the corpus-web-context skill):** when appending to `progress.md`, anchor on the SHORTEST unique trailing fragment (a session heading, the terminal `**Files:**` line of the previous session, or the final `---` separator) rather than a leading mid-paragraph fragment — OR read the file, locate the literal end, and `write_file(...)` the whole thing with appended content. A Python `text.replace(long_anchor, anchor + new, 1)` will silently split a long line into two fragments whenever `new` ends with `\n`, because the replace does not respect line boundaries — only exact-string boundaries. Documenting here so the next session doesn't repeat the bug. **No new debt ID** (the failure was self-caught within the same hand-off window, before the broken state hit `develop`).
+
+---
+
+## Session 201 — D26 sign-in popup UX, sub-slice A — 2026-09-16
+
+**Branch:** `feat/d26-signin-popup-ux` (off `develop @ 697d94d`, post-PR-#183 merge).
+**Dispatch:** Lead's `prompts/session-d26-signin-popup-ux.md` @ `9f4c8d3`.
+**Constraints from Lead:** English-only i18n (no `vi.json`), no scope expansion, no new deps, no `content/` edits, no `AGENTS.md`/`CLAUDE.md` hand-edits.
+
+**Code (1 file rewritten + 2 minor adds):**
+- `apps/web/components/chrome/sign-in-button.tsx` — converted from a static `<a href>` to a `'use client'` stateful component. Click opens a centered 520×600 popup via `window.open(${NEXT_PUBLIC_API_URL}/auth/google, 'google-oauth', …)` positioned via `window.screenX/outerWidth` so it lands centered on the viewport. While the popup is open, polls `GET /me` every 2 s with `credentials: 'include'` so the shared `WEB_ORIGIN` CORS allow + `SameSite=Lax` cookie set in PR #179 propagates the session as soon as Google's callback writes it. Reverts to the normal "Sign in with Google" label on `/me` 200, on user-closed popup (no recent 401 within the 5 s post-close debounce window), or after a 60 s elapsed timeout (treated as user-cancelled, no error surfaced). `<a href>` replaced with `<button type="button">` so the click is JS-driven; `aria-label="Sign in with Google"` on the button, `aria-live="polite"` on the inner label span (screen readers announce the state change without interrupting). The pre-existing `authPath === '/auth/google'` env-disabled guard (D55's canonical surface for unset `NEXT_PUBLIC_API_URL`) is unchanged — slice A only adds the `|| processing` half of the disabled union. `useRef<Window | null>` for the popup reference and `useRef<number | null>` for the interval ID so cleanup is reliable across re-renders; explicit `clearInterval` + `setTimeout.clear()` on every revert path and on unmount.
+- `apps/web/messages/en.json` — new i18n key `topbar.signInProcessing: "Signing in…"` under the existing `topbar` namespace. English-only string per spec (`vi` is not a supported locale; `.cursor/rules/20-never-violate.mdc` blocks new locales; `roadmap.md` §16 Q2 confirms). No `vi.json` change.
+- `apps/web/app/globals.css` — appended `.topbar-signin--processing` rule mirroring the existing `.topbar-signin--disabled` pattern (muted opacity, `cursor: not-allowed`, muted color + `color-mix()` border off `--color-graphite`). No new tokens — reuses the existing `--color-muted` / `--color-graphite` palette.
+
+**Docs (4 files):**
+- `docs/DEBT.md` — D26 row updated in place per spec (no new debt ID issued).
+- `CHANGELOG.md` — `[Unreleased]` entry inserted above the D55 entry (newest-first).
+- `prompts/session-d26-signin-popup-ux.md` — annotated at top with the actual outcome.
+- `progress.md` — see below.
+
+**Out of scope** (carried per spec, NOT touched): avatar dropdown / sign-out button / profile page (sub-slice B); `POST /progress/migrate` endpoint (sub-slice C); refresh tokens; RBAC; `/auth/logout` CSRF; the pre-existing `href === '/auth/google'` disabled-state guard; `/me` vs `/auth/me` rename; `NEXT_PUBLIC_API_URL` architecture (D55).
+
+**Verification — all gates green:**
+- `apps/web/node_modules/.bin/tsc --noEmit -p apps/web/tsconfig.json` — exit 0 (cache-busted; hits the locally-installed binary instead of `npx --no-install` which Tirith blocks when OSV lookup times out).
+- `pnpm --filter @corpus/web typecheck` — exit 0 (sanity-check parallel to the above).
+- `pnpm --filter @corpus/web lint` — exit 0 (ESLint 9.39.5 via `tooling/eslint` re-export).
+- `pnpm --filter @corpus/web build` — exit 0; 222 pages / 26929 words (matches session 200 baseline — confirms my edit doesn't shift the artifact).
+- `pnpm typecheck` (monorepo) — 5 successful / 5 total.
+- `pnpm agents:check` — ✓ AGENTS.md, ✓ CLAUDE.md, ✓ .cursor/rules/60-skills.mdc (no rule change → no regen needed).
+- `pnpm verify:submodules` — 4/4 pinned (pre-existing `nestjs` "tags not fetched" warning is D37 substrate debt, non-fatal per spec).
+- `pnpm verify:frontmatter` — 196/196 articles adapt cleanly.
+- `pnpm verify:links` — 445 live edges / 0 excluded-target / 0 draft-target / 25 planned (pre-existing) / 6 demo (pre-existing) — no new warnings.
+- `pnpm verify:catalog` — 196 articles / 445 edges / 2 paths valid.
+
+**Bundled verification** (substitute for the spec's manual UX scenarios, since this CLI has no real browser):
+- Client bundle `apps/web/.next/static/chunks/1lcvj-q5p7ztn.js` contains `window.open` (×1), `setInterval` (×1), `clearInterval` (×1), `setTimeout` (×1), `fetch` (×1), `credentials` (×1), `google-oauth` (×1), `signInProcessing` (×1) — full state machine + poll + cleanup path shipped.
+- Prerendered HTML at `apps/web/.next/server/app/en/blog.html` shows the new `<button class="topbar-signin" aria-label="Sign in with Google"><span aria-live="polite">Sign in</span></button>` — confirms server-side render is the new markup, not the old `<a>`.
+- CSP check: no `content-security-policy` middleware in `apps/web`, so `window.open` to `accounts.google.com` is browser-native and not affected by CSP — spec note #5 confirmed by absence.
+
+**Manual UX verification** (per spec §"Manual UX verification"): cannot be executed from this CLI (no `apps/api` runtime, no Google OAuth credentials in env, no real browser). Deferred to Huy's optional live retest on the preview deploy; the PR body documents the expected observable behavior for each of the 6 scenarios.
+
+**Files (6):** `apps/web/components/chrome/sign-in-button.tsx` (rewrite), `apps/web/messages/en.json` (1 line added), `apps/web/app/globals.css` (16 lines appended), `docs/DEBT.md` (D26 row appended), `CHANGELOG.md` (1 `[Unreleased]` entry inserted), `prompts/session-d26-signin-popup-ux.md` (1 outcome section appended). Plus this SESSION-LOG entry and a progress.md line.
+
+**PR:** opens against `develop` as `feat(chrome): D26 sub-slice A — sign-in popup UX`; CC Echo per reporting-protocol rule 3c.
+
+## Session 202 — D26 sub-slice A.1: sign-in popup UX bugfixes (2026-09-16)
+
+**Trigger:** Huy clicked through PR #184's Vercel preview deploy with a real Google account and found 4 bugs Echo's earlier "manual UX not empirically run" flag predicted might exist. This is the first sub-slice where a human actually drove the 3 spec scenarios end to end.
+
+**Scope:** ONE PR on the same `feat/d26-signin-popup-ux` branch (PR #184 stays open, not superseded). Files: `sign-in-button.tsx`, `en.json` (no new key needed), NEW `sign-in-context.tsx`, NEW `apps/web/app/auth/google/callback/page.tsx`, `apps/web/app/[locale]/layout.tsx`, `apps/api/src/modules/auth/auth.controller.ts`.
+
+**Bugs fixed (see CHANGELOG entry for full detail):**
+1. State reset on navigation → hoisted to `SignInContext`, mounted at `[locale]/layout.tsx`.
+2/2.1. Poll-only success signal + missing callback route → new `postMessage`-based callback page; poll demoted to 7s safety net.
+2.2. Dead 401-debounce → anchor stamp on popup open→closed transition (`popupClosed` state), not every poll tick.
+4. 60s force-revert footgun → removed; postMessage drives success, popup-close+5s drives cancellation.
+
+**Architecture decisions made autonomously (no Huy escalation — no new dep, no locale/schema/DNS change):**
+- State hoist: React Context (not Zustand — no state-mgmt lib in the repo).
+- Callback route: flat `apps/web/app/auth/google/callback/page.tsx` (not a route group), matching D55's `apps/web/lib/config.ts` flat convention.
+
+**Dispatch mechanics:** Foreground `Bash` call to the coding-fe sub-agent hit the 300s tool timeout and was killed mid-run — no `session_id` was ever returned, so there was no background session to resume via `process_manage`. However the sub-agent HAD already written real code to disk before being killed (confirmed via file mtimes ~4 min before the timeout fired). Lead inspected the on-disk diff directly rather than re-dispatching, since a second full dispatch would have either duplicated the (mostly correct) work or fought a half-written tree.
+
+**Lead code review caught 3 defects in the sub-agent's unfinished-but-substantial diff, fixed inline before commit:**
+- Safety-net poll used `fetch('/me', …)` — relative path resolves against the Next.js origin, not the NestJS API. Silent 404 on every poll tick. Fixed via `@/lib/config`'s `apiUrl`.
+- `authPath` read `process.env.NEXT_PUBLIC_API_URL` directly, bypassing the D55-canonical `apiUrl` export and its documented empty-string fallback contract.
+- `aria-label` regressed from `topbar.signInAriaLabel` ("Sign in with Google") to `topbar.signIn` ("Sign in") — an a11y regression. Restored.
+- Also fixed a `react-hooks/exhaustive-deps` lint warning by wrapping `revert` in `useCallback` rather than suppressing it.
+
+**Verification — all 9 gates green:** `pnpm --filter web typecheck` 0, `pnpm --filter api typecheck` 0, `pnpm --filter web lint` 0, `pnpm --filter api lint` 0, `pnpm --filter web build` 0 (222 pages / 26929 words, unchanged baseline, new `/auth/google/callback` route confirmed in output), `pnpm --filter api build` 0, `pnpm agents:check` clean, `pnpm verify:submodules` 4/4 pinned (pre-existing D37 nestjs-tags warning, non-fatal), `pnpm verify:frontmatter`/`verify:links`/`verify:catalog` clean (pre-existing content-side warnings unrelated to this diff).
+
+**Manual UX verification:** CLOSED THE GAP flagged on sub-slice A. Huy's own click-through against the live Vercel preview IS the manual verification — the 4 bug reports are direct evidence a human drove centered-popup-open, processing-state-revert-on-200, and revert-on-close scenarios and found real defects the CLI-only substitute (bundle-content greps) could not have caught.
+
+**Out of scope (unchanged):** avatar dropdown / sign-out (sub-slice B), `POST /progress/migrate` (sub-slice C), refresh tokens, RBAC, `/auth/logout` CSRF, `/me` rename. No Vietnamese anywhere, no `vi.json` touch, no `content/` touch.
+
+**Docs:** `docs/DEBT.md` D26 row appended in place (no new debt ID — same convention as sub-slice A). `CHANGELOG.md` new `[Unreleased]` entry inserted above sub-slice A's. `progress.md` line appended. This SESSION-LOG entry.
+
+**Files (7 code/doc + this entry):** `apps/web/components/chrome/sign-in-button.tsx`, `apps/web/components/chrome/sign-in-context.tsx` (NEW), `apps/web/app/auth/google/callback/page.tsx` (NEW), `apps/web/app/[locale]/layout.tsx`, `apps/api/src/modules/auth/auth.controller.ts`, `docs/DEBT.md`, `CHANGELOG.md`, plus `progress.md` and this entry.
+
+**PR:** pushed as a follow-up commit on the same `feat/d26-signin-popup-ux` branch (PR #184 stays open — sub-slice A.1 lands under the same PR, not a new one, since it's a same-day bugfix on unmerged work). CC Echo per reporting-protocol rule 3c.
+
+## Session 202 (continued) — D26 sub-slice A.2: Echo's independent review catches 2 bugs A.1 missed (2026-09-16/17)
+
+**Trigger:** Echo (Slack, `<@U0C1KJL9PC1>`) independently reviewed sub-slice A.1's diff (already committed/pushed/PR-commented) after Lead's end-of-session `hermes verify --json` relay, and reported 2 findings before Lead had moved on to a new task.
+
+**Issue 1 — state-reset root cause misdiagnosed.** Echo traced that `nav-links.tsx` / `site-header.tsx` use plain `<a href>`, not `next/link` — only the 3 `not-found.tsx` boilerplate files import `next/link` anywhere in the app. A raw `<a>` click is a real browser navigation (full document reload), which unmounts the *entire* React tree, `SignInProvider` included. A.1's Context hoist only helps client-side App Router transitions, which never happen through a plain `<a>`. So A.1 never actually fixed Huy's original bug — it fixed a different, adjacent failure mode that happened to look similar.
+
+Before touching anything, Lead independently verified Echo's claim rather than trusting it outright: read `nav-links.tsx` and `site-header.tsx` directly (confirmed plain `<a href={...}>` in both), grepped the whole `apps/web` tree for `next/link` usage (3 hits, all `not-found.tsx`, which render their own `<html>` — not part of the normal App Router shell), and searched SESSION-LOG.md / roadmap.md / DEBT.md / the `.cursor/rules/*.mdc` files for any documented rationale for the raw-`<a>` choice. Found none. Conclusion: this is an unexamined default from the original session-3 scaffold (PR #20/#21 catalog-driven listing work), not a deliberate architectural decision — so no Huy escalation was needed per the "invented decisions" bar (switching link component is not a new dependency, doesn't touch content, doesn't break a schema, isn't DNS/irreversible).
+
+**Fix:** converted `nav-links.tsx`'s route links and `site-header.tsx`'s logo + featured-course pill CTA to `next/link` (zero new dependency — already present in the repo). Left the skip-link (`href="#content"`, a same-page fragment anchor, not a route) as plain `<a>` since `next/link` has no meaning for same-page anchors. Explicitly did NOT touch the other raw-`<a>` sites discovered during the audit — `article-view.tsx` (breadcrumbs, page-nav, in-body reference links) and the courses page breadcrumbs — since none of them currently hold cross-navigation React state that a hard reload would break, and converting them is a much larger, more diffuse change spanning server-rendered catalog content. Opened **new debt row D56** in `docs/DEBT.md` to track that remaining surface rather than silently expanding this patch's scope or silently leaving it undocumented.
+
+**Issue 2 — post-close-debounce race, confirmed via direct code trace.** Echo's repro: throttle the popup's network, close it mid-load of the callback route, then check `corpus_session` has a row despite the button still showing "Sign in". Lead traced the actual mechanics in `auth.controller.ts` and `apps/web/app/auth/google/callback/page.tsx`: the API's success handler calls `req.login()` (writes the session cookie synchronously) and THEN issues the redirect — so the cookie is live on the wire before the callback page's own `useEffect` (the thing that posts `oauth-success` back to the opener) has even had a chance to mount, load its JS bundle, and hydrate. That's a real, reproducible ~100–400ms window. If the user closes the popup inside it, no success message ever fires — yet the login already succeeded. Compounding this: `POST_CLOSE_DEBOUNCE_MS` (5000ms, in `sign-in-button.tsx`) was *shorter* than `POLL_INTERVAL_MS` (7000ms) — so even the safety-net poll structurally could never win the race against the debounce-driven `revert()`. This wasn't a rare edge case; it was a guaranteed miss any time the close happened inside that window, because the debounce always fires first.
+
+**Fix:** rewrote the post-close-debounce `useEffect` in `sign-in-button.tsx` to fire one immediate `/me` check the instant `popupClosed` flips true, instead of unconditionally scheduling the 5s `revert()` timer. If that immediate check returns 200, `revert()` fires right away (session confirmed). Only if it returns 401 or the fetch errors does the code fall through to the original debounce-based `revert()` after `POST_CLOSE_DEBOUNCE_MS`. Used a `cancelled` flag inside the effect's async IIFE (not `AbortController`, to keep the diff minimal) so a fast unmount/re-render can't set state after cleanup.
+
+**Verification (all local, no live-server manual click-through — same limitation as A.1):**
+- `pnpm --filter web typecheck` / `pnpm --filter api typecheck` — both 0 errors
+- `pnpm --filter web lint` / `pnpm --filter api lint` — both 0 problems
+- `pnpm --filter web build` — 222 pages / 26929 words, unchanged from session 198/201/202-A.1 baseline (confirms the `next/link` swap and the debounce-effect rewrite don't shift the static artifact)
+- `pnpm test` — 113/113 pass, 0 fail (monorepo-wide, cached where unaffected)
+- `pnpm agents:check` — clean (`CLAUDE.md`, `.cursor/rules/60-skills.mdc`, `AGENTS.md` all pass; no rule/skill edit this session so nothing to regen)
+- `pnpm verify:submodules` — 4/4 pinned clean (pre-existing D37 nestjs "tags not fetched" warning, non-fatal, unrelated)
+- `pnpm verify:frontmatter` — 196 articles clean
+- `pnpm verify:links` — 445 live edges, 0 new warnings (pre-existing D48 planned/demo warnings only)
+- `pnpm verify:catalog` — 196 articles / 445 edges / 2 paths valid
+- `hermes verify --json` (full end-to-end recipe, run once at the very end of A.1 before Echo's review landed) — bootstrap/build/typecheck/test/lint all `ok: true`, plus a runtime readiness check (dev server boot + `http://127.0.0.1:3000/` → 200). This ran against the A.1 state (pre-A.2); A.2's individual gates above cover the delta.
+
+**Scope boundaries verified clean:** no `vi.json` touch (Path B preserved), no `content/` touch, no `AGENTS.md`/`CLAUDE.md` hand-edit, no new npm dependency, no `process.env` read outside `apps/web/lib/config.ts`.
+
+**Known gap, still open (carried forward, same as A.1):** manual empirical click-through against live Google OAuth has still not been run by Lead for either A.1 or A.2 — this CLI has no real browser. Echo's issue 2 repro (throttle popup network, close mid-load) and issue 1 repro (hard nav via nav-link click) are both described precisely enough to be run by a human on the Vercel preview; that's the natural next verification step before merge.
+
+**Docs:** `docs/DEBT.md` — D26 row appended in place with the A.2 sub-slice narrative (no new ID reused; D26 stays the feature-level row); new row **D56** opened (raw `<a href>` outside topbar/nav — consistency/perf debt, no known live bug). `CHANGELOG.md` — new `[Unreleased]` entry `### [2026-09-17] — fix(web) — D26 sign-in popup UX: correct root cause for state-reset + close popup-cookie race (sub-slice A.2, Echo review)` inserted above A.1's entry. `progress.md` — new bullet appended. This SESSION-LOG entry.
+
+**Files (3 code + docs):** `apps/web/components/chrome/nav-links.tsx` (raw `<a>` → `next/link` for route links), `apps/web/components/chrome/site-header.tsx` (logo + pill CTA `<a>` → `next/link`; skip-link stays `<a>`), `apps/web/components/chrome/sign-in-button.tsx` (post-close-debounce effect rewritten to fire an immediate `/me` check; top-of-file docstring extended with Bug 1 A.2-fix and Bug 5 sections), `docs/DEBT.md` (D26 appended, D56 new), `CHANGELOG.md` (new `[Unreleased]` entry), `progress.md`, this entry.
+
+**PR:** same `feat/d26-signin-popup-ux` branch, PR #184 stays open (per Huy's original "ONE PR" directive — A.1 and A.2 are both follow-up commits on the same unmerged PR, not new PRs). Next action: commit + push, then relay to Huy + CC Echo with a verification table, flagging the still-open manual-click-through gap plainly per Echo's "surfacing plainly" directive.
+
+## Session 202 (continued) — D26 sub-slice A.3: Echo's live click-through catches 2 more bugs (2026-09-17)
+
+**Trigger:** Echo posted to the PR #184 Slack thread reporting they actually clicked through the A.2 Vercel preview with a real Google account (not just diff review this time) and hit 2 new bugs, both traced to source, not just symptom-described.
+
+**Bug 6 — `GET /me` always 401, regardless of cookie validity.**
+Echo's trace: `apps/api/src/main.ts` never calls `app.use(passport.initialize())` / `app.use(passport.session())` — only `app.use(sessionMiddleware)`. `SessionAuthGuard` checks `req.isAuthenticated?.()`, which Passport only monkey-patches onto `req` as a side effect of `passport.authenticate()` running inside its own middleware. The two `AuthGuard('google')` routes (`/auth/google`, `/auth/google/callback`) happen to work because that side effect fires on them. `/me` uses `SessionAuthGuard` directly with no `AuthGuard('google')` in front — the patch never happens, `req.isAuthenticated` is always `undefined`, `SessionAuthGuard` always throws 401.
+
+Lead independently verified before fixing (not just trusting the report): read `auth.module.ts` and confirmed `PassportModule.register({ session: true })` only registers Nest DI providers (the `AuthGuard` mixin classes, the `PassportSerializer` binding) — it has no code path that calls `app.use()` on the actual Express/http adapter. Read `session.guard.ts` and confirmed the `req.isAuthenticated?.()` optional-chaining check (the `?.` itself is suspicious — someone anticipated the method might not exist and shipped it anyway). Read `me.controller.ts` and confirmed `@UseGuards(SessionAuthGuard)` with no `AuthGuard('google')` present. Confirmed `passport` 0.7.0 is already a direct `apps/api` dependency — no new dep needed.
+
+**Fix:** `apps/api/src/main.ts` — added `app.use(passport.initialize())` and `app.use(passport.session())` right after `app.use(sessionMiddleware)`, before `app.enableCors()` and route registration (Passport session support requires `req.session` to already exist, so it must come after the session middleware; it must come before CORS/routes so every route sees a hydrated `req.user`/`req.isAuthenticated`).
+
+**Bug 7 — 7s safety-net poll never stops after a successful `postMessage` login.**
+Echo's trace: `pollTimerRef`, `closeWatcherRef`, and `popupRef` all live inside `<SignInButton>`; `revert()` (the only function that clears them) also lives there. The `postMessage` success handler lives in `SignInContext` (a different component, mounted once at the layout level) and only calls `setProcessing(false)` — it has no reference to the button instance's timers. Login succeeds, the button's label visually reverts to "Sign in" (because `processing` flips false via Context), but the `/me` poll and close-watcher interval both keep running silently in the background until unmount or a full page reload.
+
+Prior to Bug 6's fix this was worse than Echo's description suggests: since `/me` always 401'd, the poll's own internal `if (res.ok) revert()` success path could never fire on its own either — meaning the poll had no way to ever stop itself even by design, only the (also-broken) external Context signal could have stopped it, and that signal wasn't wired through.
+
+**Fix:** `apps/web/components/chrome/sign-in-context.tsx` — added a `registerRevert(fn: () => void) => () => void` method to the context value; stores the fn in a ref, returns an unregister closure. The postMessage handler now calls the registered revert callback (if any) instead of a bare `setProcessing(false)`. `apps/web/components/chrome/sign-in-button.tsx` — added a `useEffect` that calls `registerRevert(revert)` on mount and invokes the returned cleanup on unmount, so the provider always holds a live reference to whichever button instance is currently in-flight (only one `<SignInButton>` exists in the topbar at a time, so no fan-out ambiguity).
+
+**Verification (Lead, code-level only — no live OAuth click-through performed):**
+- `pnpm --filter web typecheck` ✓ 0 errors
+- `pnpm --filter api typecheck` ✓ 0 errors
+- `pnpm --filter web lint` ✓ 0 problems
+- `pnpm --filter api lint` ✓ 0 problems
+- `pnpm --filter web build` ✓ 222 pages / 26929 words, unchanged from baseline
+- `pnpm test` ✓ 113/113 pass, 0 fail
+- `pnpm agents:check` ✓
+- `pnpm verify:submodules` ✓
+- `pnpm verify:frontmatter` ✓
+- `pnpm verify:links` ✓ (pre-existing D48 warnings only)
+- `pnpm verify:catalog` ✓
+
+All 9 gates green, same as A.2. **Explicit gap, surfaced plainly (not buried):** neither Lead nor anyone else has clicked through bugs 6+7 specifically against a live Google account post-fix — Echo's own live click-through is the empirical trigger for this sub-slice, but the *fix* itself has only been verified at the code/gate level so far, same posture as A.1/A.2.
+
+**Docs updated in the same commit:** `docs/DEBT.md` (D26 row extended with Sub-slice A.3 section), `progress.md` (Session 202 continued entry), `CHANGELOG.md` (new `[Unreleased]` entry inserted above A.2), this SESSION-LOG entry.
+
+**Files changed (3 code + 4 docs):** `apps/api/src/main.ts`, `apps/web/components/chrome/sign-in-context.tsx`, `apps/web/components/chrome/sign-in-button.tsx`, `docs/DEBT.md`, `progress.md`, `CHANGELOG.md`, `.agents/SESSION-LOG.md` (this entry).
+
+**Next:** commit + push to `feat/d26-signin-popup-ux` + PR #184 comment (A.3 sub-slice explanation) + relay to Huy/Echo per reporting-protocol rule 3a.
+
+**A.3 perf corollary check (post-Echo-signoff, 2026-09-17):** Echo raised a concern that `passport.session()` now calling `SessionSerializer.deserializeUser` on every request could add a per-request DB hit for anonymous traffic. Lead verified empirically against the live local API (Docker Postgres, `log_statement=all` temporarily enabled then reverted to `none`):
+- No cookie → 401, ~1-2ms, zero DB statements (only periodic `SELECT 1` health check).
+- Garbage/invalid-signature cookie → 401, ~1-2ms, zero DB statements (`express-session`'s `getcookie()` bails on HMAC failure before `store.get()`).
+- Validly-signed cookie, session-id not in store (expired/reaped) → 401, ~30ms, DOES hit Postgres (`SELECT sess FROM corpus_session WHERE sid = $1 AND expire >= ...`) — this is `express-session`'s own store lookup, pre-existing behavior, not introduced by the A.3 fix. `SessionSerializer.deserializeUser` itself is synchronous, zero DB work.
+Conclusion: no perf regression from A.3, not D57-worthy. Echo confirmed and signed off: "D26 A.3 stands verified — code gates, boot readiness, and now the perf corollary." DB logging config reverted cleanly (no residue). Next click-through remains Huy's call on Vercel preview.
+
+**D26 A.3 follow-up — real bug found, D57 opened (2026-09-17):** Immediately after the perf-corollary sign-off, Huy clicked through `start:dev` locally and hit a real `500` on `GET /me`: `Cannot read properties of undefined (reading 'findById')` at `session.guard.ts:38`, `this.authService` undefined. Lead reproduced live — killed the stale untracked dev server PID, restarted under a Hermes-tracked background session (so stdout/stack traces were actually capturable), manually inserted a valid `corpus_session` row + built a matching signed cookie via `cookie-signature`, re-fired the authenticated request against the fresh server: reproduced clean, 500, same stack.
+
+**Root cause (confirmed empirically via `Reflect.getMetadata`, not inferred from reading):** `tsx`/esbuild (`start:dev`'s loader) never implements TypeScript's `emitDecoratorMetadata` — no type checker in the transform pipeline, so `design:paramtypes` is never emitted for constructors using *implicit* type-based injection (`constructor(private readonly x: SomeService) {}`, no explicit `@Inject()` token). Direct probe: `Reflect.getMetadata('design:paramtypes', SessionAuthGuard)` → `undefined` under `start:dev`; same call against the `tsc`-compiled `dist/` output → `[AuthService]`, correct. Nest's DI container silently resolves to `undefined` instead of throwing a boot-time error, so this passed CI (only runs `tsc build` + tests, never `start:dev`) and `pnpm verify:api-runtime` (D53's own script starts `node dist/main.js`, the compiled path — never `start:dev`).
+
+Swept the whole `apps/api/src` tree for the same pattern (`grep constructor(` across all providers/guards/controllers) and found 2 more live instances: `LiveController`'s `LiveService` param and `ReadyController`'s `HealthCheckService`/`TypeOrmHealthIndicator` params (`apps/api/src/health/health.controller.ts`) — meaning **both `/healthz/live` and `/healthz/ready` were also silently 500ing under `start:dev`**, not just `/me`. Confirmed via the same restart-and-curl method. `AuthService`/`GoogleStrategy` were unaffected — both already use `@InjectRepository()` or explicit `useFactory`+`inject:[]` provider registration, neither dependent on `design:paramtypes`.
+
+Also confirmed `apps/api` has **zero** `.spec.ts`/`.test.ts` files anywhere — every "113/113 tests" figure cited across this whole D26 thread has always been `apps/web` only; the api runtime carries no automated regression coverage of any kind, dev-mode or compiled.
+
+**Fix:** all 3 constructors given explicit `@Inject(Token)` decorators (sidesteps `design:paramtypes` entirely, correct under both `tsx` and `tsc`), plus an explanatory doc-comment at each site citing the exact mechanism so a future implicit-DI constructor doesn't silently reintroduce this. Verified live: fresh `start:dev` restart, real signed cookie against a real DB row → `GET /me` 200 with actual user JSON (first time this endpoint has ever been observed working under dev mode); both health endpoints 200. Re-confirmed the garbage-cookie fast-path (from the perf-corollary check above) is unaffected by the `@Inject()` change — still ~1-2ms, zero DB. `pnpm typecheck`/`lint` (apps/api) both 0.
+
+**Opened D57** (highest ID D56 → D57): the class of bug itself is not fully closed — no lint/CI rule yet bans implicit constructor DI in `apps/api`, no test coverage exists to catch a recurrence, and `verify:api-runtime` still never exercises `start:dev`. All test artifacts cleaned up (fake session row deleted, Postgres `log_statement` reverted to `none`, background `docker logs -f` watcher killed, stray `meta-test*.mts` scratch files removed from `apps/api/`).
+
+**Files (2 code):** `apps/api/src/modules/auth/session.guard.ts`, `apps/api/src/health/health.controller.ts`.
+
+**Next:** commit + push to `feat/d26-signin-popup-ux` + PR #184 comment + relay to Huy/Echo.
+
+## Session 203 continued — D57 direction question: Echo's second-opinion (Claude) blast-radius correction
+
+Echo relayed a second opinion (Claude, independent review) on D57's remediation framing after Lead's first answer ("`@Inject()` is the correct long-term pattern, covers 100% of cases"). Two corrections raised:
+
+1. **"General DI-safety convention" framing was wrong.** Interface/type-alias-typed params fail identically under real `tsc` too, but they fail *loudly* — Nest throws "Cannot resolve dependencies" at boot. `@InjectRepository()` exists in `AuthService` because it's *mandatory* for repository tokens (no compile-time type to reflect), not because it's a defensive style precedent. D57's actual bug is different and narrower than framed: `tsx`/esbuild emits **zero** metadata for concrete-class constructor params specifically, and Nest silently resolves `undefined` instead of throwing. `@Inject()` fixed those 3 call sites correctly, but "covers 100% of cases" overstated its scope as a *general* safety net.
+
+2. **Real blast radius: method-parameter metadata, not just constructors.** `tsx`/esbuild's metadata gap also drops `design:paramtypes`/`design:type` on controller *method* parameters — which is exactly what Nest's `ValidationPipe` reads to resolve a `@Body() dto: SomeDto` parameter's metatype. If metatype resolves `undefined`, `ValidationPipe.toValidate()` treats it as "nothing to validate" and silently passes the raw request body through unvalidated (no `@IsInt()`, no whitelist stripping, no transform) — under `start:dev` only; `dist:tsc` is unaffected. `@Inject()` has no equivalent fix for this — it only supplies constructor tokens, nothing for method params or properties.
+
+**Empirically verified (not taken on Echo's/Claude's word alone):** Lead wrote an isolated throwaway controller + DTO (`@Post() create(@Body() dto: ScratchDto)`, `@IsString()`/`@IsInt()` fields) in `apps/api/src/`, ran it under `tsx`/esbuild via the same `Reflect.getMetadata` technique used for the original D57 finding. Confirmed: `design:paramtypes` on the method = `undefined`; per-property `design:type` = `undefined` for both DTO fields. Confirmed via `grep -rn "@Body()" apps/api/src` (0 hits) that `apps/api` has **zero** `@Body()`-decorated routes today, so this is not a live bug — it is a landmine for the next DTO-consuming endpoint (`progress`/`quiz`/`srs` modules per roadmap §10). Scratch files deleted after the check (`src/meta-test-dto.ts` / `.mts`), confirmed via `git status --short` clean before and after.
+
+**SWC claim corrected too:** SWC's `decoratorMetadata: true` does not do real type inference — it emits `typeof X === "undefined" ? Object : X` for constructor params, which works for concrete classes at runtime but degrades to `Object` for interfaces/generics, and carries a real TDZ risk on circular imports (relevant to TypeORM relation decorators, which are common in this codebase's future entity graph).
+
+**Additional zero-dependency option surfaced (Echo/Claude):** `tsc -w` + `node --watch dist/main.js` (orchestrated via Turbo) as `start:dev`'s implementation — exact dev/prod parity since it runs against the same compiled output CI and `verify:api-runtime` already exercise, at the cost of slower rebuild-on-save vs `tsx`. No new dependency, unlike the `@swc/core`/`@nestjs/cli --builder swc` path.
+
+**D57 debt row rewritten** (`docs/DEBT.md`) to document the confirmed broader gap: the constructor-DI fix (3 `@Inject()` sites, already merged into this branch) is correct and complete for what it fixes, but does not retire the underlying `start:dev` metadata gap for method/property-level metadata. Row now explicitly says: **must close before any `apps/api` route adds `@Body()` DTO validation** — a silent validation bypass would be a correctness/security regression, not just a crash on boot. Remediation options listed: lint/CI rule banning implicit constructor DI (narrower, already covers the constructor case); a loader decision (`tsc -w`+`node --watch dist` zero-dep vs `@nestjs/cli --builder swc` new-dep) to close the DTO gap before the first `@Body()` route ships; or a boot-time `ModulesContainer` invariant walk comparing `constructor.length` against resolved metadata length (would need a parallel check for method params to catch the DTO case, since it only mechanically catches the constructor case as specified).
+
+**Files:** `docs/DEBT.md` (D57 row extended, no new debt ID — same row, additional confirmed finding). No code changes this round — the constructor-DI fix from the prior round remains as committed (`26940df`). Scratch DTO test files created and deleted within this round, never committed.
+
+**Next:** relay to thread — concede the "general convention" overstatement, confirm the DTO blast radius is real and empirically verified (not hypothetical), keep `@Inject()` as correct for constructors, surface the `tsc -w`+`node --watch` zero-dep loader option as a genuine alternative to the SWC path, and flag the "must close before first `@Body()` route" urgency to Huy as a concrete blocker condition rather than open-ended Phase-2 triage.
+
+## Session 203 continued — dev script refactor: apps/api dev script + dev:api/dev:all (Echo's ask)
+
+Echo asked for a standalone BE-only dev command plus a combined "run everything" command — D26's sign-in feature now needs the api running locally, and dev had been 2 manual terminals. Verified current state first: root `dev` = `turbo run dev --filter=@corpus/web` (web-only), `apps/api` had `start:dev` but no `dev` script so turbo's generic `dev` task (`cache:false`, `persistent:true` in `turbo.json`) never recognized it as a target.
+
+**Changes:**
+- `apps/api/package.json`: added `"dev"` script, alias to the existing `"start:dev"` (`node --watch --import tsx/esm src/main.ts`) — kept `start:dev` too in case anything else references it.
+- `package.json`: added `"dev:api": "turbo run dev --filter=@corpus/api"` (mirrors the existing web-filter pattern) and `"dev:all": "turbo run dev"` (unfiltered, runs both apps under Turbo's persistent task graph). Left plain `dev` (web-only) unchanged — no reason to break existing muscle memory; repurposing it wasn't necessary now that `dev:all` exists as the explicit combined command.
+
+**Verified empirically, not just wired:** `turbo run dev --filter=@corpus/api --dry=json` confirmed turbo now recognizes `@corpus/api#dev` as a task with correct input hashing. Ran `pnpm dev:all` live in the background (`proc_d4c4e9125114`) — Turbo's per-package log prefixing (`@corpus/api:dev:` / `@corpus/web:dev:`) interleaved cleanly with zero mangling, confirming the persistent+cache:false combo handles concurrent dev servers fine without needing a `concurrently`-based fallback. The web leg hit `EADDRINUSE` on port 3000 in that test only because Huy's own manually-running dev server (PID 1622, started earlier in the session) already held that port — unrelated to the wiring itself; the api leg's task definition resolved correctly before the group-failure teardown. Test process exited cleanly on its own; confirmed no orphaned processes afterward (`ps aux` clean).
+
+All gates green: `pnpm typecheck` (5/5, cache-hit + fresh both pass), `pnpm lint` (5/5), `pnpm agents:check` (CLAUDE.md/rules/AGENTS.md all ✓, same pre-existing nestjs submodule tag warning as before, unrelated).
+
+**Files:** `apps/api/package.json` (+1 line), `package.json` (+2 lines). Committed `5d83f76`, pushed to `feat/d26-signin-popup-ux`. PR #184 `headRefOid` now `5d83f76`.
+
+**Next:** relay to thread confirming the 3 new/aliased commands, the empirical log-interleaving verification, and that `turbo`'s native persistent-task parallelism was sufficient (no new `concurrently` dependency needed).

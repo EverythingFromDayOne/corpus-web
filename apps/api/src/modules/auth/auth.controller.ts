@@ -116,8 +116,18 @@ export class AuthController {
     // Successful login. The session row in `corpus_session` was
     // written by `express-session` + `connect-pg-simple` as a
     // direct consequence of the `req.login()` call above.
+    //
+    // D26 sub-slice A.1 (Bug 2): the success target is now the flat
+    // `/auth/google/callback` route on the web origin (not `/`). That
+    // route (`apps/web/app/auth/google/callback/page.tsx`) postMessages
+    // the opener and closes itself, so the parent window can revert the
+    // sign-in button immediately rather than waiting on the next poll.
+    // Polling stays only as a slow (7 s) safety net in `sign-in-button.tsx`.
+    // No `[locale]` prefix — the API redirect target is a single fixed URL.
+    // The failure-path redirect above (`${webOrigin}/?auth=error&...`) is
+    // intentionally untouched per the `oauth-passport-google` skill.
     this.logger.log(`google login ok for user.id=${(req.user as { id?: string }).id ?? '(unknown)'}`);
-    res.redirect(302, `${webOrigin}/`);
+    res.redirect(302, `${webOrigin}/auth/google/callback`);
   }
 
   /**
