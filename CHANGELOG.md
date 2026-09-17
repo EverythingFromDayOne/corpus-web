@@ -5,6 +5,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-17] — docs — D57 blast radius corrected: method/DTO metadata gap, not just constructors (Echo/Claude second opinion)
+
+**Corrected framing, no code change.** Following the D57 constructor-DI fix (below), Echo relayed a second opinion (Claude) that Lead's initial framing overstated `@Inject()` as a general DI-safety convention ("covers 100% of cases") when the actual bug is narrower and the actual risk is broader:
+- **Narrower than framed:** interface/type-alias-typed constructor params fail *loudly* even under real `tsc` (Nest throws "Cannot resolve dependencies" at boot) — `@InjectRepository()` on `AuthService` exists because it's mandatory for repository tokens, not a defensive style precedent. `@Inject()` correctly fixes the 3 sites patched, but isn't a universal DI-safety net.
+- **Broader than framed:** `tsx`/esbuild's metadata gap also drops `design:paramtypes`/`design:type` on controller **method parameters**, which `ValidationPipe` reads to resolve a `@Body() dto: SomeDto` metatype. Empirically confirmed (isolated scratch controller+DTO, `Reflect.getMetadata` check, deleted after): metatype resolves `undefined` under `start:dev`, meaning `ValidationPipe.toValidate()` would silently skip all validation (no `@IsInt()`, no whitelist, no transform) — **not yet a live bug** (`apps/api` has zero `@Body()` routes today, confirmed via grep), but a landmine for the next DTO-consuming endpoint (`progress`/`quiz`/`srs`, roadmap §10). `@Inject()` has no equivalent fix for method/property metadata.
+
+**`docs/DEBT.md` D57 row extended** (same ID, no new row) with the confirmed finding, an explicit "must close before any `apps/api` route adds `@Body()` DTO validation" condition, and a corrected remediation option set: lint/CI rule (narrower — constructors only), a loader decision (`tsc -w`+`node --watch dist` — zero new deps, exact CI parity — vs `@nestjs/cli --builder swc` — new deps, still degrades for interfaces/generics, TDZ risk on circular TypeORM relation imports), or a boot-time `ModulesContainer` invariant check (would need to cover both constructor and method-parameter metadata to fully close the gap).
+
 ### [2026-09-17] — fix(api) — D26 A.3 follow-up: implicit constructor-type DI silently breaks under `start:dev` (D57)
 
 **Fixed** — 3 latent `apps/api` provider/guard/controller instances of implicit constructor-type dependency injection (`constructor(private readonly x: SomeService) {}`), all silently broken under `pnpm start:dev` (`tsx`/esbuild), working fine under `pnpm build` (`tsc`):
