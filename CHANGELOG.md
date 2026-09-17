@@ -5,6 +5,18 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-17] — fix(api) — D26 A.3 follow-up: implicit constructor-type DI silently breaks under `start:dev` (D57)
+
+**Fixed** — 3 latent `apps/api` provider/guard/controller instances of implicit constructor-type dependency injection (`constructor(private readonly x: SomeService) {}`), all silently broken under `pnpm start:dev` (`tsx`/esbuild), working fine under `pnpm build` (`tsc`):
+1. **`SessionAuthGuard`** (`apps/api/src/modules/auth/session.guard.ts`) — `this.authService` was `undefined`, causing `GET /me` to 500 with `Cannot read properties of undefined (reading 'findById')` for any valid authenticated session. Found by Huy's live click-through against `start:dev` post-A.3 (the passport-init fix made this guard reachable for the first time).
+2. **`LiveController`** and **`ReadyController`** (`apps/api/src/health/health.controller.ts`) — same root cause, found via a full-tree sweep after fix #1. Both `GET /healthz/live` and `GET /healthz/ready` were also silently 500ing under `start:dev`.
+
+**Root cause:** `tsx`/esbuild never implements TypeScript's `emitDecoratorMetadata` — no type checker in the transform, so no `design:paramtypes` array is emitted for implicit type-based constructor params. Confirmed empirically: `Reflect.getMetadata('design:paramtypes', SessionAuthGuard)` returns `undefined` under `start:dev`, `[AuthService]` under the `tsc`-compiled `dist/` output. Nest's DI container degrades to `undefined` silently instead of throwing at boot, so this passed CI (`tsc build` + tests only, never `start:dev`) and `pnpm verify:api-runtime` (D53's script starts `node dist/main.js`, never `start:dev`). `AuthService`/`GoogleStrategy` were unaffected (already use `@InjectRepository()` / explicit `useFactory`+`inject:[]`, neither dependent on `design:paramtypes`).
+
+**Fix:** all 3 constructors given explicit `@Inject(Token)` decorators — sidesteps `design:paramtypes` entirely, correct under both `tsx` and `tsc`. Explanatory doc-comment added at each site. Verified live: fresh `start:dev` restart, real signed session cookie against a real DB row → `GET /me` 200 with actual user JSON (first time ever observed working under dev mode); both health endpoints 200. `pnpm typecheck`/`lint` (apps/api) both 0.
+
+**New debt row:** `docs/DEBT.md` **D57** — `apps/api` has zero test files (CI's "113/113" is entirely `apps/web`), no lint/CI rule bans implicit constructor DI, and `verify:api-runtime` still never exercises `start:dev` — this class of bug remains structurally undetectable by any existing automated gate; only a live click-through against dev mode catches it.
+
 ### [2026-09-17] — fix(api,web) — D26 sign-in: /me always-401 (missing Passport init) + safety-poll leak after login (sub-slice A.3, Echo live click-through)
 
 **Fixed** — 2 bugs Echo found by actually clicking through the A.2 Vercel preview with a real Google account (not just code review), same `feat/d26-signin-popup-ux` branch / PR #184:

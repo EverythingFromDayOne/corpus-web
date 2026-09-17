@@ -1,4 +1,4 @@
-import { Controller, Get, Injectable, Module } from '@nestjs/common';
+import { Controller, Get, Inject, Injectable, Module } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import {
   HealthCheck,
@@ -27,6 +27,18 @@ import {
  *
  * Swagger: both endpoints are decorated `@ApiTags('health')` so the
  * generated client can find them.
+ *
+ * `@Inject(...)` is EXPLICIT on both controllers' constructors on purpose,
+ * not stylistic. `tsx`/esbuild (the `start:dev` runtime) never implements
+ * TypeScript's `emitDecoratorMetadata` — no type checker, so no
+ * `design:paramtypes` for implicit constructor-type DI. `tsc` (the
+ * production build path) does emit it. That split left both `LiveService`
+ * and `HealthCheckService`/`TypeOrmHealthIndicator` `undefined` at
+ * runtime under `pnpm start:dev` — both healthz endpoints 500'd — while
+ * `pnpm build` + no guard-level spec existed to catch it either. Found
+ * 2026-09-17 alongside the identical `SessionAuthGuard` bug (D26 A.3
+ * follow-up). `@Inject()` sidesteps `design:paramtypes` entirely — safe
+ * under both runtimes.
  */
 
 @Injectable()
@@ -39,7 +51,7 @@ class LiveService {
 @ApiTags('health')
 @Controller('healthz/live')
 class LiveController {
-  constructor(private readonly live: LiveService) {}
+  constructor(@Inject(LiveService) private readonly live: LiveService) {}
 
   @Get()
   check(): { status: 'ok'; uptimeSeconds: number } {
@@ -51,8 +63,8 @@ class LiveController {
 @Controller('healthz/ready')
 class ReadyController {
   constructor(
-    private readonly health: HealthCheckService,
-    private readonly db: TypeOrmHealthIndicator,
+    @Inject(HealthCheckService) private readonly health: HealthCheckService,
+    @Inject(TypeOrmHealthIndicator) private readonly db: TypeOrmHealthIndicator,
   ) {}
 
   @Get()
