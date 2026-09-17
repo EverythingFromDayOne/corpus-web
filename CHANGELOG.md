@@ -5,6 +5,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-17] — chore — combined FE+BE local dev commands (`dev:api`, `dev:all`)
+
+**Added** — D26's sign-in feature now requires the api running locally for testing; dev had been 2 manual terminals with no single-command option. `apps/api/package.json` gains a `"dev"` script (alias to the existing `"start:dev"`, kept for compatibility) so Turbo's generic `dev` task (`cache:false`/`persistent:true`) recognizes `@corpus/api` as a target. Root `package.json` gains `"dev:api"` (BE-only, `turbo run dev --filter=@corpus/api`) and `"dev:all"` (`turbo run dev`, unfiltered — both apps under Turbo's persistent task graph, single terminal, single Ctrl+C). Plain `dev` (web-only) unchanged. Verified live: Turbo's per-package log prefixing (`@corpus/api:dev:`/`@corpus/web:dev:`) interleaves cleanly with no `concurrently` dependency needed.
+
 ### [2026-09-17] — docs — D57 blast radius corrected: method/DTO metadata gap, not just constructors (Echo/Claude second opinion)
 
 **Corrected framing, no code change.** Following the D57 constructor-DI fix (below), Echo relayed a second opinion (Claude) that Lead's initial framing overstated `@Inject()` as a general DI-safety convention ("covers 100% of cases") when the actual bug is narrower and the actual risk is broader:

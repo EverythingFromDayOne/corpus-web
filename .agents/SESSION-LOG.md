@@ -9733,3 +9733,19 @@ Echo relayed a second opinion (Claude, independent review) on D57's remediation 
 **Files:** `docs/DEBT.md` (D57 row extended, no new debt ID — same row, additional confirmed finding). No code changes this round — the constructor-DI fix from the prior round remains as committed (`26940df`). Scratch DTO test files created and deleted within this round, never committed.
 
 **Next:** relay to thread — concede the "general convention" overstatement, confirm the DTO blast radius is real and empirically verified (not hypothetical), keep `@Inject()` as correct for constructors, surface the `tsc -w`+`node --watch` zero-dep loader option as a genuine alternative to the SWC path, and flag the "must close before first `@Body()` route" urgency to Huy as a concrete blocker condition rather than open-ended Phase-2 triage.
+
+## Session 203 continued — dev script refactor: apps/api dev script + dev:api/dev:all (Echo's ask)
+
+Echo asked for a standalone BE-only dev command plus a combined "run everything" command — D26's sign-in feature now needs the api running locally, and dev had been 2 manual terminals. Verified current state first: root `dev` = `turbo run dev --filter=@corpus/web` (web-only), `apps/api` had `start:dev` but no `dev` script so turbo's generic `dev` task (`cache:false`, `persistent:true` in `turbo.json`) never recognized it as a target.
+
+**Changes:**
+- `apps/api/package.json`: added `"dev"` script, alias to the existing `"start:dev"` (`node --watch --import tsx/esm src/main.ts`) — kept `start:dev` too in case anything else references it.
+- `package.json`: added `"dev:api": "turbo run dev --filter=@corpus/api"` (mirrors the existing web-filter pattern) and `"dev:all": "turbo run dev"` (unfiltered, runs both apps under Turbo's persistent task graph). Left plain `dev` (web-only) unchanged — no reason to break existing muscle memory; repurposing it wasn't necessary now that `dev:all` exists as the explicit combined command.
+
+**Verified empirically, not just wired:** `turbo run dev --filter=@corpus/api --dry=json` confirmed turbo now recognizes `@corpus/api#dev` as a task with correct input hashing. Ran `pnpm dev:all` live in the background (`proc_d4c4e9125114`) — Turbo's per-package log prefixing (`@corpus/api:dev:` / `@corpus/web:dev:`) interleaved cleanly with zero mangling, confirming the persistent+cache:false combo handles concurrent dev servers fine without needing a `concurrently`-based fallback. The web leg hit `EADDRINUSE` on port 3000 in that test only because Huy's own manually-running dev server (PID 1622, started earlier in the session) already held that port — unrelated to the wiring itself; the api leg's task definition resolved correctly before the group-failure teardown. Test process exited cleanly on its own; confirmed no orphaned processes afterward (`ps aux` clean).
+
+All gates green: `pnpm typecheck` (5/5, cache-hit + fresh both pass), `pnpm lint` (5/5), `pnpm agents:check` (CLAUDE.md/rules/AGENTS.md all ✓, same pre-existing nestjs submodule tag warning as before, unrelated).
+
+**Files:** `apps/api/package.json` (+1 line), `package.json` (+2 lines). Committed `5d83f76`, pushed to `feat/d26-signin-popup-ux`. PR #184 `headRefOid` now `5d83f76`.
+
+**Next:** relay to thread confirming the 3 new/aliased commands, the empirical log-interleaving verification, and that `turbo`'s native persistent-task parallelism was sufficient (no new `concurrently` dependency needed).
