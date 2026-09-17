@@ -125,14 +125,24 @@ type Props = {
   messages: Messages;
 };
 
-const POLL_INTERVAL_MS = 7_000;
 const POST_CLOSE_DEBOUNCE_MS = 5_000;
 const CLOSE_WATCH_INTERVAL_MS = 250;
 const POPUP_WIDTH = 520;
 const POPUP_HEIGHT = 600;
 
+// D26 slice B — the 7_000 ms safety-net /me `setInterval` previously
+// living in `openAuthPopup` was removed. The SignInProvider now owns
+// the authoritative `/me` fetch (one per locale-tree mount, plus on
+// `corpus:auth-changed` events), so the button no longer needs its own
+// background poll. The two remaining success paths are the
+// `oauth-success` postMessage (handled in `sign-in-context.tsx`, which
+// calls our registered `revert`) and the post-close effect's
+// `provider.refresh()` (which delegates the actual `/me` fetch to the
+// same provider).
+
 export function SignInButton({ messages }: Props) {
-  const { processing, setProcessing, registerRevert } = useSignIn();
+  const { processing, setProcessing, registerRevert, meState, refresh } =
+    useSignIn();
   // D55 canonical surface: apiUrl falls back to '' when
   // NEXT_PUBLIC_API_URL is unset, which makes authPath literally
   // '/auth/google' — the envDisabled guard below relies on that exact
@@ -146,7 +156,6 @@ export function SignInButton({ messages }: Props) {
   // they must not outlive the click that opened it, or the message-driven
   // revert path (Bug 2) would have no popup handle to close.
   const popupRef = useRef<Window | null>(null);
-  const pollTimerRef = useRef<number | null>(null);
   const closeTimerRef = useRef<number | null>(null);
   const closeWatcherRef = useRef<number | null>(null);
 
@@ -158,12 +167,6 @@ export function SignInButton({ messages }: Props) {
    */
   const [popupClosed, setPopupClosed] = useState(false);
 
-  function clearPoll() {
-    if (pollTimerRef.current !== null) {
-      window.clearInterval(pollTimerRef.current);
-      pollTimerRef.current = null;
-    }
-  }
   function clearCloseTimer() {
     if (closeTimerRef.current !== null) {
       window.clearTimeout(closeTimerRef.current);
@@ -180,11 +183,11 @@ export function SignInButton({ messages }: Props) {
   /**
    * Reset all local state to "idle" and tell the context the button is
    * no longer in flight. Called from the message-driven revert path
-   * (Bug 2 — primary), the post-close-debounce revert path (Bug 2.2
-   * fallback), and the slow-poll /me success path (legacy safety net).
+   * (Bug 2 — primary) and the post-close-debounce revert path (Bug 2.2
+   * fallback when `/me` confirmed the popup closed before login
+   * completed).
    */
   const revert = useCallback(() => {
-    clearPoll();
     clearCloseTimer();
     clearCloseWatcher();
     if (popupRef.current && !popupRef.current.closed) {
@@ -216,14 +219,20 @@ export function SignInButton({ messages }: Props) {
   /**
    * Wire up the popup lifecycle:
    *  - open the popup (or fall back to a tab if popups are blocked)
-   *  - start a 7 s poll against GET /me as a safety net
    *  - mount a 250 ms watcher that detects the popup's open→closed
-   *    transition and stamps `popupClosed` (Bug 2.2 fix)
-   *  - if no /me success signal arrives within the 5 s post-close
-   *    debounce, revert (close was the user's choice, treat as cancel)
+   *    transition and stamps `popupClosed` (Bug 2.2 fix). The post-close
+   *    effect below reacts to that flag.
+   *  - if no `oauth-success` postMessage and no `/me` confirmation of
+   *    a fresh session lands within the 5 s post-close debounce, revert
+   *    (close was the user's choice, treat as cancel)
    *
    * Bug 4 — no 60 s blanket force-revert. The popup is allowed to stay
    * open indefinitely as long as the user hasn't closed it.
+   *
+   * Slice B — the 7 s `/me` safety-net poll that used to live here is
+   * gone. The SignInProvider owns `/me`, and triggers `refresh()` on
+   * `corpus:auth-changed` events. The only async work this function
+   * does is open the window.
    */
   function openAuthPopup() {
     const left = Math.round(
@@ -248,10 +257,11 @@ export function SignInButton({ messages }: Props) {
     setProcessing(true);
 
     // Bug 2.2 — stamp the anchor ONLY on the close transition.
-    // We poll the popup's `.closed` flag at 250 ms (faster than the 7 s
-    // safety-net /me poll so the user-visible revert feels immediate).
-    // Until the transition happens we leave the state alone, so 401s on
-    // subsequent /me ticks cannot reset the debounce clock.
+    // We poll the popup's `.closed` flag at 250 ms (faster than the
+    // /me re-check on close so the user-visible revert feels
+    // immediate). Until the transition happens we leave the state
+    // alone, so 401s on subsequent /me ticks cannot reset the
+    // debounce clock.
     closeWatcherRef.current = window.setInterval(() => {
       if (popup.closed) {
         const watcher = closeWatcherRef.current;
@@ -261,25 +271,14 @@ export function SignInButton({ messages }: Props) {
       }
     }, CLOSE_WATCH_INTERVAL_MS);
 
-    // Bug 2 — slow (7 s) safety-net /me poll. The primary success signal
-    // is the postMessage from the callback page; this poll only matters
-    // if that message didn't fire (e.g. user manually navigates the
-    // popup to a non-callback URL after writing the cookie somehow).
-    pollTimerRef.current = window.setInterval(async () => {
-      try {
-        const res = await fetch(`${apiUrl}/me`, {
-          credentials: 'include',
-          headers: { Accept: 'application/json' },
-        });
-        if (res.ok) {
-          revert();
-        }
-        // 401s deliberately DO NOT stamp the close anchor anymore —
-        // Bug 2.2 fix. Only the actual popup close transition does.
-      } catch {
-        // Network error: keep polling, don't surface anything.
-      }
-    }, POLL_INTERVAL_MS);
+    // Slice B — the 7 s safety-net `/me` poll previously living here
+    // was removed: the `SignInProvider` (see `sign-in-context.tsx`)
+    // now owns the authoritative `/me` fetch and broadcasts
+    // `corpus:auth-changed` for siblings to react to, so the button
+    // no longer needs its own background interval. The two remaining
+    // success paths are the `oauth-success` postMessage (handled in
+    // `sign-in-context.tsx`, which calls our registered `revert`)
+    // and the post-close effect's one-shot `/me` re-check below.
   }
 
   function handleClick() {
@@ -289,7 +288,7 @@ export function SignInButton({ messages }: Props) {
 
   /**
    * Post-close-debounce revert watcher (Bug 2.2 fallback, refined for
-   * Echo's 2026-09-16 review of A.1).
+   * Echo's 2026-09-16 review of A.1, and again for D26 slice B).
    *
    * Original bug: this effect scheduled a single `setTimeout` that
    * called `revert()` unconditionally after `POST_CLOSE_DEBOUNCE_MS`,
@@ -306,54 +305,62 @@ export function SignInButton({ messages }: Props) {
    * than the 7s safety-net poll interval, so the poll structurally
    * never got a chance to catch it either.
    *
-   * Fix: the moment the popup is observed closed, fire one immediate
-   * `/me` check — far faster than waiting for the next poll tick.
-   * Only fall through to the debounce-based revert() if that
-   * immediate check comes back 401 (the popup really was closed
-   * before login completed) or errors.
+   * Slice B fix: the button no longer owns its own `/me` poll. The
+   * provider does. When the popup is observed closed, we call the
+   * provider's `refresh()` (which fetches `/me` and broadcasts an
+   * `auth-changed` event). When the response lands, `meState` flips
+   * one of two ways:
+   *  - `signed-in` — the `<AuthSurface>` re-renders, this button
+   *    unmounts, the unregister-on-unmount effect below runs and the
+   *    pending `refresh()` is harmless.
+   *  - `signed-out` — the popup was closed before login completed
+   *    (truly a cancel). Fall through to the 5 s debounce revert.
+   * No second fetch happens — the work was already done by `refresh`.
    */
   useEffect(() => {
     if (!popupClosed) return;
     if (!processing) return;
 
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const res = await fetch(`${apiUrl}/me`, {
-          credentials: 'include',
-          headers: { Accept: 'application/json' },
-        });
-        if (cancelled) return;
-        if (res.ok) {
-          revert();
-          return;
-        }
-      } catch {
-        if (cancelled) return;
-        // Network error on the immediate check: fall through to the
-        // debounce path below rather than giving up here.
-      }
-      if (cancelled) return;
-      closeTimerRef.current = window.setTimeout(() => {
-        revert();
-      }, POST_CLOSE_DEBOUNCE_MS);
-    })();
-
-    return () => {
-      cancelled = true;
-      clearCloseTimer();
-    };
-  }, [popupClosed, processing, revert]);
+    refresh();
+  }, [popupClosed, processing, refresh]);
 
   /**
-   * Cleanup on unmount: stop polling, close popup if open, clear timers.
+   * Once `refresh()` resolves (meState has flipped in response to the
+   * post-close event), either branch from the effect above has
+   * happened. This follow-up effect watches `meState`:
+   *  - `signed-in` → the `<AuthSurface>` swap to `<UserMenu>` has
+   *    unmounted us (or is about to); nothing to do here. The
+   *    unregister-on-unmount path also clears the revert callback so
+   *    the provider can't call into a stale closure.
+   *  - `signed-out` → real cancel, schedule the 5 s debounce revert.
+   *  - `loading` → the refresh is still in flight; wait for the next
+   *    render.
+   * Splitting across two effects is necessary because the async
+   * resolution of `refresh()` and the synchronous state flip are two
+   * different React reconciliation events.
+   */
+  useEffect(() => {
+    if (!popupClosed) return;
+    if (!processing) return;
+    if (meState === 'signed-in') return;
+
+    closeTimerRef.current = window.setTimeout(() => {
+      revert();
+    }, POST_CLOSE_DEBOUNCE_MS);
+
+    return () => {
+      clearCloseTimer();
+    };
+  }, [popupClosed, processing, meState, revert]);
+
+  /**
+   * Cleanup on unmount: close popup if open, clear timers.
    * (Bug 4 — no 60 s timeout to clear; the only `setTimeout` we own is
-   * the post-close debounce timer in the effect above.)
+   * the post-close debounce timer in the effect above. Slice B — no
+   * poll interval either; the SignInProvider owns `/me` now.)
    */
   useEffect(() => {
     return () => {
-      clearPoll();
       clearCloseTimer();
       clearCloseWatcher();
       if (popupRef.current && !popupRef.current.closed) {

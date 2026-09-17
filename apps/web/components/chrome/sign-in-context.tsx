@@ -62,15 +62,93 @@ import {
  * registered (there is currently exactly one `<SignInButton>` mount
  * site — in `site-header.tsx` — so this is a defensive fallback, not
  * an expected path).
+ *
+ * D26 sub-slice B — slice B hoists the user's identity into this same
+ * provider so the `<UserMenu>` (avatar + dropdown + sign-out) and the
+ * `<SignInButton>` swap inside one `<AuthSurface>` client component,
+ * keyed off a single source of truth that fetches `GET /me` once per
+ * locale-tree mount. The provider also publishes a
+ * `corpus:auth-changed` window event whenever `/me` is re-checked, so
+ * siblings outside the React tree (the popup callback page, future
+ * `POST /me/logout` events) can poke `refresh()` into running without
+ * having to know anything about React state.
  */
+
+export type MeState = 'loading' | 'signed-in' | 'signed-out';
+
+/**
+ * Mirrors `MeResponse` from `apps/api/src/modules/auth/me.controller.ts`.
+ * Re-declared here — `apps/web` does not depend on `apps/api` types
+ * (per `.cursor/rules/40-web-nextjs.mdc`), and the generated
+ * `@corpus/api-client` does not yet contain a `/me` operation (slice B
+ * scope does not include running the OpenAPI generator). The two stay
+ * structurally identical because both ends are owned in this repo.
+ */
+export interface MeResponse {
+  email: string | null;
+  name: string | null;
+  avatarUrl: string | null;
+  locale: string | null;
+}
+
+/**
+ * Window event broadcast whenever the provider completes a `/me`
+ * re-check. Listeners can read `event.detail.state` to know whether
+ * the result was `signed-in` or `signed-out`. Sibling components
+ * inside the React tree should NOT subscribe to this — they can call
+ * `useSignIn()` directly. The event is for non-React surfaces
+ * (the `/auth/google/callback` page, debugging tools).
+ */
+export interface AuthChangedDetail {
+  state: Exclude<MeState, 'loading'>;
+  me: MeResponse | null;
+}
+
+export const AUTH_CHANGED_EVENT = 'corpus:auth-changed';
 
 type SignInContextValue = {
   processing: boolean;
   setProcessing: (next: boolean) => void;
   registerRevert: (fn: (() => void) | null) => void;
+  /** Slice B — `signed-out` while `/me` is in-flight or 401; flips
+   *  to `signed-in` when `/me` returns 2xx with a real user JSON; a
+   *  null `me` always pairs with a non-`signed-in` state. */
+  meState: MeState;
+  me: MeResponse | null;
+  /** Slice B — re-run the `/me` fetch. Called by the postMessage
+   *  success path, by `signInContext.signOut()` callers, and by the
+   *  `corpus:auth-changed` event listener itself (so manual
+   *  `dispatchEvent` calls trigger a real refresh). */
+  refresh: () => void;
 };
 
 const SignInContext = createContext<SignInContextValue | null>(null);
+
+function getApiUrl(): string {
+  // Mirror `apps/web/lib/config.ts`'s `apiUrl` export shape without
+  // pulling that module's module-level evaluation into this provider's
+  // import graph (this provider is loaded on the server boundary via
+  // the locale layout, but `apiUrl` itself only matters on the client
+  // — the value is fine to read here because Next inlines public env
+  // vars at build time, so `process.env.NEXT_PUBLIC_API_URL ?? ''`
+  // evaluates to the same string). Direct read keeps this file's
+  // import surface narrow (used only by the slash-slash-me fetch).
+  return process.env.NEXT_PUBLIC_API_URL ?? '';
+}
+
+async function fetchMe(): Promise<MeResponse | null> {
+  try {
+    const res = await fetch(`${getApiUrl()}/me`, {
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as MeResponse;
+    return data;
+  } catch {
+    return null;
+  }
+}
 
 export function SignInProvider({ children }: { children: ReactNode }) {
   const [processing, setProcessing] = useState(false);
@@ -79,8 +157,45 @@ export function SignInProvider({ children }: { children: ReactNode }) {
   // ref, not just flip the display flag. See A.3 docstring above.
   const revertRef = useRef<(() => void) | null>(null);
 
+  // Slice B — `/me` state. Starts `loading`; flips to `signed-in` if
+  // the response is 2xx with a parseable body, `signed-out` otherwise.
+  // A second fetch (popup success, manual `signOut()`, defensive after
+  // error) is triggered by calling `refresh()`.
+  const [me, setMe] = useState<MeResponse | null>(null);
+  const [meState, setMeState] = useState<MeState>('loading');
+
   const registerRevert = useCallback((fn: (() => void) | null) => {
     revertRef.current = fn;
+  }, []);
+
+  /**
+   * Run one `/me` fetch and broadcast the result via a
+   * `corpus:auth-changed` window event. The function is stable
+   * (only sets state — no per-call closure over changing inputs).
+   */
+  const refresh = useCallback(() => {
+    let cancelled = false;
+    (async () => {
+      const next = await fetchMe();
+      if (cancelled) return;
+      const nextState: Exclude<MeState, 'loading'> =
+        next !== null ? 'signed-in' : 'signed-out';
+      setMe(next);
+      setMeState(nextState);
+      // Broadcast for non-React surfaces (callback page, devtools).
+      // Siblings inside the React tree will pick up the new state via
+      // `useSignIn()` re-render — no listener needed there.
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent<AuthChangedDetail>(AUTH_CHANGED_EVENT, {
+            detail: { state: nextState, me: next },
+          }),
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -98,6 +213,12 @@ export function SignInProvider({ children }: { children: ReactNode }) {
      * origin is by construction identical to ours. Hardcoding the
      * `WEB_ORIGIN` env import here would couple client code to a
      * server-only contract for no benefit.
+     *
+     * Slice B — on `oauth-success`, also call `refresh()` so the
+     * `meState` flips from `loading`/`signed-out` to `signed-in`
+     * without waiting for the next layout effect to re-run, and
+     * without making `<UserMenu>` poll. Keeps the "one fetch per
+     * locale-tree mount" promise from §1 of the slice B prompt.
      */
     function handler(event: MessageEvent) {
       if (event.origin !== window.location.origin) return;
@@ -119,15 +240,45 @@ export function SignInProvider({ children }: { children: ReactNode }) {
       } else {
         setProcessing(false);
       }
+      // Slice B — flip `/me` to `signed-in` (or refresh if it
+      // already was). The cookie has just been written by the
+      // server; a fresh fetch sees it.
+      refresh();
     }
     window.addEventListener('message', handler);
     return () => {
       window.removeEventListener('message', handler);
     };
-  }, []);
+  }, [refresh]);
+
+  // Slice B — one `/me` fetch per provider mount. The [locale]/layout
+  // wraps every locale subtree, so this fires exactly once per locale
+  // tree's lifetime — no per-component polling, no per-remount flicker.
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  // Slice B — `corpus:auth-changed` event subscriber. Lets external
+  // callers (e.g. a future `signOut()` Server Action, a shell command
+  // in devtools) trigger a real `/me` re-check just by dispatching
+  // the event, without importing this module. The provider fires
+  // the event itself after every `refresh()`, so this listener mostly
+  // exists so external dispatchers stay self-consistent.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onChanged = () => {
+      refresh();
+    };
+    window.addEventListener(AUTH_CHANGED_EVENT, onChanged);
+    return () => {
+      window.removeEventListener(AUTH_CHANGED_EVENT, onChanged);
+    };
+  }, [refresh]);
 
   return (
-    <SignInContext.Provider value={{ processing, setProcessing, registerRevert }}>
+    <SignInContext.Provider
+      value={{ processing, setProcessing, registerRevert, meState, me, refresh }}
+    >
       {children}
     </SignInContext.Provider>
   );

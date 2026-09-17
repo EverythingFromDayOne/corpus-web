@@ -856,6 +856,172 @@ body:has(.av-view) .av-header-tog {
 }
 
 
+/* D26 sub-slice B — signed-in user surface.
+
+   Replaces the `<SignInButton>` once `/me` returns 2xx. Native
+   `<details>` + `<summary>` so the dropdown is keyboard-accessible
+   for free (Enter / Space toggles, Esc handled in the user-menu
+   component itself) — no `role="menu"` keydown plumbing needed.
+
+   The button (`<summary>`) is a 28×28 circle holding either the
+   user's avatar image or an initial-letter fallback. The dropdown
+   panel lists name + email + a plain anchor to `/auth/sign-out`.
+
+   All colours reuse the same topbar token pool as
+   `.topbar-signin*` so the two surfaces feel like one chrome
+   element when the user transitions between them. */
+.user-menu {
+  /* `<details>`'s `display: list-item` marker is what shows the
+     default ⌄ arrow next to the summary; we want zero visible
+     decoration beyond the avatar. */
+  display: inline-flex;
+  position: relative;
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  color: var(--color-body);
+}
+
+.user-menu > summary {
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--color-graphite) 60%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 80%, transparent);
+  transition:
+    color 120ms ease,
+    border-color 120ms ease,
+    background-color 120ms ease;
+  /* Hide IE/Edge's classic `::-webkit-details-marker` (the triangle).
+     Both `list-style: none` above and this pseudo-element are needed
+     to drop the marker across Blink, Gecko, and WebKit. */
+  -webkit-appearance: none;
+  appearance: none;
+}
+.user-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.user-menu > summary:hover,
+.user-menu > summary:focus-visible {
+  border-color: var(--color-muted);
+  background: color-mix(in srgb, var(--color-surface) 100%, transparent);
+  outline: 0;
+}
+
+.user-menu[open] > summary {
+  border-color: var(--color-muted);
+  background: color-mix(in srgb, var(--color-surface) 100%, transparent);
+}
+
+.user-menu-trigger-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  object-fit: cover;
+  /* Belt-and-braces: even though providers always serve over HTTPS,
+     requests made from a `referrerpolicy="no-referrer"` image still
+     pass through any corporate MITM. `display: block` collapses the
+     inline baseline whitespace that `<img>` injects by default. */
+  display: block;
+}
+
+.user-menu-trigger-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0;
+  color: var(--color-display);
+  background: color-mix(in srgb, var(--color-muted) 30%, transparent);
+  user-select: none;
+}
+
+.user-menu-list {
+  /* Open downward, align to the right edge of the trigger so the
+     avatar never gets covered. The padding below the trigger is
+     small enough to keep a 2px gap visual and large enough to keep
+     the cursor travelling onto the panel without collapsing. */
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 14rem;
+  padding: 6px;
+  border: 1px solid color-mix(in srgb, var(--color-graphite) 70%, transparent);
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-graphite) 60%, transparent),
+    0 6px 18px color-mix(in srgb, var(--color-graphite) 30%, transparent);
+}
+
+.user-menu-list-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 10px 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-graphite) 70%, transparent);
+}
+
+.user-menu-list-name {
+  font-weight: 600;
+  color: var(--color-display);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-menu-list-email {
+  font-size: 11px;
+  color: var(--color-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-menu-list-signout {
+  display: block;
+  padding: 6px 10px;
+  border-radius: 4px;
+  color: var(--color-body);
+  text-decoration: none;
+  font-weight: 500;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.user-menu-list-signout:hover,
+.user-menu-list-signout:focus-visible {
+  background: color-mix(in srgb, var(--color-muted) 18%, transparent);
+  color: var(--color-display);
+  outline: 0;
+}
+
+@media (prefers-color-scheme: light) {
+  .user-menu > summary,
+  .user-menu-list {
+    box-shadow:
+      0 1px 0 color-mix(in srgb, var(--color-graphite) 30%, transparent),
+      0 6px 18px color-mix(in srgb, var(--color-graphite) 10%, transparent);
+  }
+}
+
+
 /* Mobile: collapse to icon-only text, like the search trigger and theme
    toggle (PR #108 follow-up). Keeps the topbar compact at iPhone widths.
 
