@@ -62,16 +62,29 @@ import {
  * registered (there is currently exactly one `<SignInButton>` mount
  * site — in `site-header.tsx` — so this is a defensive fallback, not
  * an expected path).
+ */
+
+/**
+ * D26 sub-slice B — `/me` fetch + signed-in state, hoisted to the
+ * `<SignInProvider>` so the `<UserMenu>` and `<SignInButton>` swap
+ * inside one `<AuthSurface>` client component, keyed off a single
+ * source of truth that fetches `GET /me` once per locale-tree mount.
  *
- * D26 sub-slice B — slice B hoists the user's identity into this same
- * provider so the `<UserMenu>` (avatar + dropdown + sign-out) and the
- * `<SignInButton>` swap inside one `<AuthSurface>` client component,
- * keyed off a single source of truth that fetches `GET /me` once per
- * locale-tree mount. The provider also publishes a
- * `corpus:auth-changed` window event whenever `/me` is re-checked, so
- * siblings outside the React tree (the popup callback page, future
- * `POST /me/logout` events) can poke `refresh()` into running without
- * having to know anything about React state.
+ * Re-fetch is triggered by `refresh()` callers in the React tree
+ * (the postMessage success path, `sign-in-button`'s post-close
+ * watcher) — there is no `corpus:auth-changed` window event bus.
+ *
+ * **History (D58 hotfix 2026-09-18):** slice B initially shipped a
+ * `corpus:auth-changed` `CustomEvent` that fired on every `refresh()`
+ * and a window listener that called `refresh()` on every event. With
+ * no external dispatcher in the codebase, that pair formed a
+ * deterministic self-trigger loop (refresh → dispatchEvent →
+ * listener → refresh → dispatchEvent …). Huy surfaced it on the
+ * Vercel preview as `/me` firing continuously. Both halves removed
+ * in this commit; `refresh()` is now pure React-side state. If an
+ * external dispatcher is needed later (e.g. a `signOut()` Server
+ * Action), it should call `refresh()` directly via an exposed
+ * `window.__signIn` escape hatch — not a self-reinforcing event.
  */
 
 export type MeState = 'loading' | 'signed-in' | 'signed-out';
@@ -91,21 +104,6 @@ export interface MeResponse {
   locale: string | null;
 }
 
-/**
- * Window event broadcast whenever the provider completes a `/me`
- * re-check. Listeners can read `event.detail.state` to know whether
- * the result was `signed-in` or `signed-out`. Sibling components
- * inside the React tree should NOT subscribe to this — they can call
- * `useSignIn()` directly. The event is for non-React surfaces
- * (the `/auth/google/callback` page, debugging tools).
- */
-export interface AuthChangedDetail {
-  state: Exclude<MeState, 'loading'>;
-  me: MeResponse | null;
-}
-
-export const AUTH_CHANGED_EVENT = 'corpus:auth-changed';
-
 type SignInContextValue = {
   processing: boolean;
   setProcessing: (next: boolean) => void;
@@ -116,9 +114,10 @@ type SignInContextValue = {
   meState: MeState;
   me: MeResponse | null;
   /** Slice B — re-run the `/me` fetch. Called by the postMessage
-   *  success path, by `signInContext.signOut()` callers, and by the
-   *  `corpus:auth-changed` event listener itself (so manual
-   *  `dispatchEvent` calls trigger a real refresh). */
+   *  success path and by `sign-in-button`'s post-close watcher.
+   *  Pure React-side state setter — no event dispatch, no pub-sub
+   *  bus. External surfaces that need to trigger a refresh must call
+   *  this directly. */
   refresh: () => void;
 };
 
@@ -169,9 +168,15 @@ export function SignInProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /**
-   * Run one `/me` fetch and broadcast the result via a
-   * `corpus:auth-changed` window event. The function is stable
+   * Run one `/me` fetch and store the result. The function is stable
    * (only sets state — no per-call closure over changing inputs).
+   *
+   * No `corpus:auth-changed` window event is dispatched here —
+   * previous slice-B code did, and combined with a window listener
+   * that called `refresh()` on each event, that pair was a
+   * deterministic self-trigger loop. Sibling components inside the
+   * React tree pick up the new state via the `meState`/`me` re-render;
+   * non-React callers must call `refresh()` directly.
    */
   const refresh = useCallback(() => {
     let cancelled = false;
@@ -182,16 +187,6 @@ export function SignInProvider({ children }: { children: ReactNode }) {
         next !== null ? 'signed-in' : 'signed-out';
       setMe(next);
       setMeState(nextState);
-      // Broadcast for non-React surfaces (callback page, devtools).
-      // Siblings inside the React tree will pick up the new state via
-      // `useSignIn()` re-render — no listener needed there.
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(
-          new CustomEvent<AuthChangedDetail>(AUTH_CHANGED_EVENT, {
-            detail: { state: nextState, me: next },
-          }),
-        );
-      }
     })();
     return () => {
       cancelled = true;
@@ -256,23 +251,6 @@ export function SignInProvider({ children }: { children: ReactNode }) {
   // tree's lifetime — no per-component polling, no per-remount flicker.
   useEffect(() => {
     refresh();
-  }, [refresh]);
-
-  // Slice B — `corpus:auth-changed` event subscriber. Lets external
-  // callers (e.g. a future `signOut()` Server Action, a shell command
-  // in devtools) trigger a real `/me` re-check just by dispatching
-  // the event, without importing this module. The provider fires
-  // the event itself after every `refresh()`, so this listener mostly
-  // exists so external dispatchers stay self-consistent.
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const onChanged = () => {
-      refresh();
-    };
-    window.addEventListener(AUTH_CHANGED_EVENT, onChanged);
-    return () => {
-      window.removeEventListener(AUTH_CHANGED_EVENT, onChanged);
-    };
   }, [refresh]);
 
   return (
