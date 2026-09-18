@@ -5,6 +5,31 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-18] — chore(deploy): Phase B NestJS API PM2 deployment setup (code-only, no VPS ops yet)
+
+**Context.** `/api` migrating from Fly.io (`api.nxhhuy.tech`) to self-hosted VPS Contabo @ `46.250.225.5` (Ubuntu 24, Docker pre-installed, Postgres as `corpus-api-db` already running); `/web` stays on Vercel. Phase B (this slice) = PM2 process manager + webhook auto-deploy. Phase C (4–6 weeks out) = Docker + GHCR + `docker compose up` — separate PR, roadmap at `/tmp/phase_b_c_roadmap.md`. This slice is **code-only** — zero VPS-side operations executed yet (PM2 install, webhook listener deploy, `.env.production` copy, `pm2 save` + startup script are all user-action items).
+
+**Files (3 changed, all on branch `feat/phase-b-pm2-deploy`, PR pending against `develop`):**
+
+1. **NEW `apps/api/ecosystem.config.cjs`** (`+118/-0`, gitignored — host-absolute `cwd: /home/huy/corpus-web/apps/api` makes it per-machine). PM2 ecosystem: `name: corpus-api`, `script: dist/main.js`, `instances: 1`, `autorestart: true`, `max_memory_restart: 512M`, `kill_timeout: 10000`, `wait_ready: true` (requires `process.send('ready')` handshake), `listen_timeout: 8000`, `merge_logs: true`, `time: true`, `env_file: '.env.production'` (gitignored), `env.NODE_ENV=production`, log files under `/home/huy/.pm2/logs/`. 50-line comment block at top documents each option + the reasoning (why 1 instance for now, why 512M rule-of-thumb, why wait_ready handshake, why host-absolute cwd forces per-machine files).
+
+2. **EDIT `apps/api/src/main.ts`** — three additions INSIDE `bootstrap()`, after `app` is constructed: (i) `app.enableShutdownHooks()` so NestJS wires SIGTERM/SIGINT → `onModuleDestroy`/`onApplicationShutdown` (the lifecycle-event hooks); (ii) explicit `SIGTERM`/`SIGINT` handler that logs `Received <signal>, draining...`, calls `app.close()` inside try/catch (drains the hook chain + closes HTTP server + flushes TypeORM pool via `OnApplicationShutdown` hooks), then `process.exit(0)`. Both paths are intentional: Nest's `enableShutdownHooks` runs the `onModuleDestroy` chain but **`app.close()` does NOT terminate the Node process** (per official NestJS docs) — without the explicit `process.exit(0)`, PM2's `kill_timeout: 10000` would escalate to SIGKILL, defeating graceful shutdown. `process.exit(0)` is wrapped in a `shuttingDown` flag so PM2's double-SIGINT during `pm2 reload` doesn't race. Nest guards double-close so no crash on overlapping calls; (iii) `process.send?.('ready')` immediately after `await app.listen()` resolves, so PM2's `wait_ready: true` unblocks and considers the process fully started.
+
+3. **EDIT `.gitignore`** — new "Phase B PM2 hosting" block (10 lines + 13-line comment block explaining the rules): `apps/api/ecosystem.config.cjs` (covered by existing `apps/api` rule plus explicitly listed for discoverability), `.env.production` and `apps/api/.env.production` (already covered by existing `.env.*` glob, listed explicitly for discoverability), `apps/api/.env.production.example`, `~/.pm2/` (PM2 dump + logdir). Comment block explicitly distinguishes "ecosystem file is per-machine, NEVER commit it" vs ".env.production is gitignored per existing convention".
+
+**Verification (all 9 local gates green):**
+- `pnpm --filter @corpus/api typecheck` ✓
+- `pnpm --filter @corpus/api lint` ✓
+- `pnpm --filter @corpus/api build` ✓ (compiled `dist/main.js` contains 16 hits of `enableShutdownHooks|process.send|SIGTERM|SIGINT`)
+- `pnpm typecheck` (full monorepo) ✓ 5/5
+- `pnpm build` (full monorepo) ✓ 5/5
+
+**Pre-existing bookkeeping drift note (NOT fixed in this slice):** D57/D58/D59 all carry "ROW CLOSED" markers but still sit in the Open section of `docs/DEBT.md` (they were closed 2026-09-18 in PR #185's follow-up). Moving them to the Closed section is a separate cleanup task, explicitly out of this PR's scope.
+
+**Not in this slice:** webhook listener (`webhook-listener.js` — VPS-side script the operator installs separately), `docker-compose.yml` edits (Phase C), `apps/web/**` (Vercel-managed, untouched), `.github/workflows/ci.yml` deploy job (Phase C, separate PR).
+
+**Followups tracked under new DEBT.md row D61** (id bumped D60→D61): (a) operator-side PM2 install + `.env.production` copy + `pm2 save` + startup script on VPS; (b) webhook listener install (HMAC-verified listener on `:9000`); (c) `apps/api` test-coverage gap from D57 (zero `.spec.ts`/`.test.ts` files in api runtime) makes this a manually-verified deploy — consider a `verify:api-runtime`-style smoke that hits the live URL post-deploy.
+
 ### [2026-09-18] — chore(rules,test,profiles) — PR #185 follow-up 4: D58 row closure bundle (rule + smoke + 3 cross-agent surfaces), commit `c55abe0`
 
 **Closed** DEBT.md row D58 by shipping the three post-mortem follow-ups Huy tracked inside that row: (a) was fixed at `047f545`, (b) and (c) ship in this single bundle.
