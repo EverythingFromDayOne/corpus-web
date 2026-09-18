@@ -6,7 +6,7 @@ import { ThemeToggle } from './theme-toggle';
 import { SearchTrigger } from './search-trigger';
 import { NavLinks } from './nav-links';
 import { NavProgressBar } from './nav-progress-bar';
-import { SignInButton } from './sign-in-button';
+import { AuthSurface } from './auth-surface';
 import { homePath, coursePath } from '@/lib/routes';
 import type { Locale } from '@/lib/locales';
 
@@ -40,7 +40,7 @@ export function SiteHeader({
         <NavLinks locale={locale} messages={messages} />
         <div className="topbar-tools">
           <SearchTrigger messages={messages} />
-          <SignInButton messages={messages} />
+          <AuthSurface messages={messages} />
           {featured ? (
             <Link
               href={coursePath(locale, featured.slug)}

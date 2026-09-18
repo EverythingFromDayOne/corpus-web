@@ -856,6 +856,220 @@ body:has(.av-view) .av-header-tog {
 }
 
 
+/* D26 sub-slice B — signed-in user surface.
+
+   Replaces the `<SignInButton>` once `/me` returns 2xx. Native
+   `<details>` + `<summary>` so the dropdown is keyboard-accessible
+   for free (Enter / Space toggles, Escape closes via a `keydown`
+   listener inside the React component) — no `role="menu"` keydown
+   plumbing needed. Outside-click close is implemented in the
+   component itself via a `mousedown` document listener, since
+   `<details>` does not provide that for free.
+
+   The button (`<summary>`) is a 28×28 circle holding either the
+   user's avatar image or an initial-letter fallback. The dropdown
+   panel lists name + email + a plain anchor to the live
+   `/auth/logout` endpoint.
+
+   All colours reuse the same topbar token pool as
+   `.topbar-signin*` so the two surfaces feel like one chrome
+   element when the user transitions between them. */
+.user-menu {
+  /* `<details>`'s `display: list-item` marker is what shows the
+     default ⌄ arrow next to the summary; we want zero visible
+     decoration beyond the avatar.
+
+     D59 Phase 3 (Huy-verified, 2026-09-18): the dropdown list is
+     `position: fixed` (see `--user-menu-top` / `--user-menu-right`
+     custom props driven by `useLayoutEffect` in `user-menu.tsx`),
+     so this wrapper no longer needs to be a positioning context.
+     `position: relative` is dead and removed. */
+  display: inline-flex;
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  color: var(--color-body);
+}
+
+.user-menu > summary {
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--color-graphite) 60%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 80%, transparent);
+  transition:
+    color 120ms ease,
+    border-color 120ms ease,
+    background-color 120ms ease;
+  /* Hide IE/Edge's classic `::-webkit-details-marker` (the triangle).
+     Both `list-style: none` above and this pseudo-element are needed
+     to drop the marker across Blink, Gecko, and WebKit. */
+  -webkit-appearance: none;
+  appearance: none;
+}
+.user-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.user-menu > summary:hover,
+.user-menu > summary:focus-visible {
+  border-color: var(--color-muted);
+  background: color-mix(in srgb, var(--color-surface) 100%, transparent);
+  outline: 0;
+}
+
+.user-menu[open] > summary {
+  border-color: var(--color-muted);
+  background: color-mix(in srgb, var(--color-surface) 100%, transparent);
+}
+
+.user-menu-trigger-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  object-fit: cover;
+  /* Belt-and-braces: even though providers always serve over HTTPS,
+     requests made from a `referrerpolicy="no-referrer"` image still
+     pass through any corporate MITM. `display: block` collapses the
+     inline baseline whitespace that `<img>` injects by default. */
+  display: block;
+}
+
+.user-menu-trigger-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0;
+  color: var(--color-display);
+  background: color-mix(in srgb, var(--color-muted) 30%, transparent);
+  user-select: none;
+}
+
+.user-menu-list {
+  /* Open downward, align to the right edge of the trigger so the
+     avatar never gets covered.
+
+     D59 (Huy-verified, 2026-09-18): the user dropdown panel was being
+     overlapped by page-body content with `isolation: isolate`
+     (e.g. `.ls-ambient-grid`, `.film-grain`, isolated prose blocks),
+     particularly on long-scroll article pages. Root cause:
+     `.topbar` has `backdrop-filter: blur(12px)`
+     (`globals.css:133`), which establishes its own stacking context
+     and lifts ALL its descendants — including an absolutely-
+     positioned panel — into a SEPARATE compositor layer from page
+     body. Body content with its own stacking context can paint
+     above the backdrop-filter layer in some Chrome/Safari
+     compositor paths even with lower z-index.
+
+     Fix log:
+       Phase 1 (`d013802`, superseded for this selector): tried
+         `will-change: transform` to promote the list out of the
+         topbar's compositor layer. Layer promotion is local to the
+         topbar stacking context, so it didn't escape the context
+         where body content with `isolation: isolate` was painting
+         above. Failed cross-browser.
+       Phase 3 (this commit): `position: fixed` lifts the list out
+         of the topbar's stacking context entirely, into the
+         viewport-level layer that body content can't paint above
+         without its own elevated compositor layer. `top` / `right`
+         come from `--user-menu-top` / `--user-menu-right` CSS
+         custom props, written by a `useLayoutEffect` in
+         `user-menu.tsx` that reads the trigger's
+         `getBoundingClientRect()` on mount + scroll + resize.
+
+     If Phase 3 still fails cross-browser (next escalation =
+     `createPortal` to `document.body`, separate slice), the
+     custom-prop plumbing stays — only the consumer of those props
+     changes. */
+  position: fixed;
+  /* `top` / `right` come from custom props written by a
+     `useLayoutEffect` in `user-menu.tsx` reading the trigger's
+     `getBoundingClientRect()` on mount + scroll + resize. Until
+     that effect runs, sit just below the trigger's natural anchor
+     (`100% + 4px` of the wrapper, right edge); first paint is
+     close-enough for the menu to land in the right screen region
+     before the useLayoutEffect's read-and-write pass flips it to
+     the exact pixel position. */
+  top: var(--user-menu-top, calc(100% + 4px));
+  right: var(--user-menu-right, 0);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 14rem;
+  padding: 6px;
+  border: 1px solid color-mix(in srgb, var(--color-graphite) 70%, transparent);
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-graphite) 60%, transparent),
+    0 6px 18px color-mix(in srgb, var(--color-graphite) 30%, transparent);
+}
+
+.user-menu-list-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 10px 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-graphite) 70%, transparent);
+}
+
+.user-menu-list-name {
+  font-weight: 600;
+  color: var(--color-display);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-menu-list-email {
+  font-size: 11px;
+  color: var(--color-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-menu-list-signout {
+  display: block;
+  padding: 6px 10px;
+  border-radius: 4px;
+  color: var(--color-body);
+  text-decoration: none;
+  font-weight: 500;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.user-menu-list-signout:hover,
+.user-menu-list-signout:focus-visible {
+  background: color-mix(in srgb, var(--color-muted) 18%, transparent);
+  color: var(--color-display);
+  outline: 0;
+}
+
+@media (prefers-color-scheme: light) {
+  .user-menu > summary,
+  .user-menu-list {
+    box-shadow:
+      0 1px 0 color-mix(in srgb, var(--color-graphite) 30%, transparent),
+      0 6px 18px color-mix(in srgb, var(--color-graphite) 10%, transparent);
+  }
+}
+
+
 /* Mobile: collapse to icon-only text, like the search trigger and theme
    toggle (PR #108 follow-up). Keeps the topbar compact at iPhone widths.
 

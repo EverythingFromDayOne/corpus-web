@@ -13,7 +13,12 @@
     "pillCtaAriaLabel": "Start the {title} course",
     "signIn": "Sign in",
     "signInAriaLabel": "Sign in with Google",
-    "signInProcessing": "Signing in…"
+    "signInProcessing": "Signing in…",
+    "signedInAriaLabel": "{name}'s account menu",
+    "signedInAriaLabelFallback": "Account menu",
+    "avatarFallbackAlt": "{name}'s avatar",
+    "userMenuSummary": "Signed in as {name}",
+    "signOutLabel": "Sign out"
   },
   "nav": {
     "home": "Home",

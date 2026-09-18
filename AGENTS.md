@@ -485,6 +485,14 @@ About page is an oversight to be helpfully filled.
 Load the rule whose globs match the files you are editing. The full body lives in
 `.cursor/rules/`; this section points at it.
 
+### `25-react-provider-event-bus.mdc` — Provider-event-bus no-self-trigger — React providers/contexts/hooks must not both dispatch AND listen to the same CustomEvent in a way that creates a self-re-trigger loop. Applies when authoring or refactoring any React provider, context, or hook that fires network requests or state updates on event.
+
+**Applies to:** `apps/web/components/chrome/**`, `apps/web/components/providers/**`
+
+**Full rule:** `.cursor/rules/25-react-provider-event-bus.mdc` (read on demand).
+
+---
+
 ### `30-content-pipeline.mdc` — Content sync, frontmatter adapters, catalog, sidecars. Applies to content and pipeline code.
 
 **Applies to:** `content/**`, `curation/**`, `scripts/**`, `packages/content-schema/**`
