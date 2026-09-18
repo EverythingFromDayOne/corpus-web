@@ -39,11 +39,68 @@ import { buildSessionMiddleware } from './config/session.js';
  *   - `AuthModule` is registered conditionally. If the Google OAuth env
  *     block is missing, `AuthModule.forRoot()` returns null and the API
  *     boots in "auth-disabled" mode.
+ *
+ *   --- Phase B PM2 hosting notes ------------------------------------------
+ *   - `app.enableShutdownHooks()` MUST be called BEFORE `app.listen()` —
+ *     it registers signal listeners and the SIGTERM/SIGINT handling
+ *     becomes active only after `listen()` resolves. Reference:
+ *     https://docs.nestjs.com/fundamentals/lifecycle-events.
+ *   - `process.send?.('ready')` after `app.listen()` resolves pairs with
+ *     PM2's `wait_ready: true` so PM2 considers the process `online` only
+ *     AFTER NestJS has finished `onApplicationBootstrap` and bound the
+ *     socket. Without it, PM2 marks `online` the instant the Node event
+ *     loop is alive — which is BEFORE `listen()` has bound the port,
+ *     causing the first post-restart request to hit ECONNREFUSED.
+ *   - The explicit SIGTERM/SIGINT handler below runs the NestJS shutdown
+ *     hooks (via `app.close()`), then `process.exit(0)`. `app.close()`
+ *     alone does NOT terminate the process (per NestJS docs — the event
+ *     loop keeps the socket alive). Without `process.exit(0)`, PM2
+ *     SIGKILLs after `kill_timeout: 10000` (in ecosystem.config.cjs).
+ *     Belt-and-braces: `enableShutdownHooks()` is the primary path
+ *     NestJS uses internally; the manual handler covers SIGTERM-direct
+ *     (in case `PM2_KILL_SIGNAL=SIGTERM` is ever set) AND ensures the
+ *     process actually exits instead of hanging.
  */
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, {
     bufferLogs: false,
   });
+
+  // --- Graceful shutdown wiring (Phase B) ----------------------------------
+  // Register BEFORE app.listen() per NestJS docs — `enableShutdownHooks()`
+  // sets up SIGTERM/SIGINT signal listeners, and once `listen()` resolves
+  // the hooks run in order: `onModuleDestroy()` → `beforeApplicationShutdown()`
+  // → `onApplicationShutdown()`. Idempotent across re-entries: `shuttingDown`
+  // guard makes the manual handler safe even if PM2 sends SIGINT twice.
+  let shuttingDown = false;
+  const handleShutdown = (signal: NodeJS.Signals): void => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    Logger.log(`Received ${signal}, draining...`, 'Bootstrap');
+    try {
+      app.close().catch((err: unknown) => {
+        Logger.error(
+          `app.close() rejected during ${signal} drain: ${String(err)}`,
+          'Bootstrap',
+        );
+      });
+    } catch {
+      // `app.close()` can throw synchronously if called before bootstrap
+      // completes; treat as already-closed and proceed to exit.
+    }
+    process.exit(0);
+  };
+  process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+  process.on('SIGINT', () => handleShutdown('SIGINT'));
+
+  // NestJS-managed shutdown hooks. Idempotent with the explicit handler
+  // above: NestJS's listeners run the same `onModuleDestroy` chain, and
+  // BOTH paths call `app.close()` — safe because NestJS guards
+  // double-close. The explicit handler's `process.exit(0)` is what
+  // actually terminates the process; NestJS's hooks don't exit on their
+  // own (per docs: "Calling app.close() doesn't terminate the Node
+  // process").
+  app.enableShutdownHooks();
 
   // Validate env a second time inside bootstrap so we can read the values
   // BEFORE assembling middleware. The first validation already happened
@@ -114,6 +171,14 @@ async function bootstrap(): Promise<void> {
 
   Logger.log(`api listening on :${port}, swagger at /api`, 'Bootstrap');
   Logger.log(`auth enabled: ${authEnabled}`, 'Bootstrap');
+
+  // PM2 wait_ready handshake. `process.send` is only defined when the
+  // process was forked by another Node process (which PM2 does); the
+  // optional-chaining means the call is a no-op when running `node
+  // dist/main.js` directly (local dev), avoiding a TypeError on the
+  // undefined `process.send`. Phase B: see ecosystem.config.cjs and the
+  // D61 row in docs/DEBT.md.
+  process.send?.('ready');
 }
 
 void bootstrap();

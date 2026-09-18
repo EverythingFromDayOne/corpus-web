@@ -32,3 +32,15 @@ apps/web/public/pagefind.js
 
 # Hermes
 .hermes
+
+# --- Phase B PM2 hosting (apps/api ecosystem + prod env) --------------------
+# Each deploy/ops machine gets its own copy — the ecosystem file embeds a
+# host-absolute `cwd: /home/huy/corpus-web/apps/api` that's meaningless on a
+# Mac dev machine and would drift. `.env.production` is gitignored for the
+# same reason as the root `.env` (secrets + host-specific DATABASE_URL).
+apps/api/ecosystem.config.cjs
+apps/api/.env.production
+.env.production
+# PM2 dump file and managed log directory. `~/.pm2/` is the convention across
+# PM2 + Keymetrics; logrotate (host-level, not in repo) handles rotation.
+~/.pm2/
