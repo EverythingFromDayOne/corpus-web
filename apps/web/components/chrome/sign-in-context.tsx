@@ -177,6 +177,12 @@ export function SignInProvider({ children }: { children: ReactNode }) {
    * deterministic self-trigger loop. Sibling components inside the
    * React tree pick up the new state via the `meState`/`me` re-render;
    * non-React callers must call `refresh()` directly.
+   *
+   * The `mountedRef` guard at the mount `useEffect` below relies on
+   * this function being callable more than once without side-effect
+   * amplification, but the guard itself prevents the second call from
+   * firing — only the *first* invocation per provider lifetime
+   * proceeds to the fetch. See that `useEffect` for the rationale.
    */
   const refresh = useCallback(() => {
     let cancelled = false;
@@ -249,7 +255,35 @@ export function SignInProvider({ children }: { children: ReactNode }) {
   // Slice B — one `/me` fetch per provider mount. The [locale]/layout
   // wraps every locale subtree, so this fires exactly once per locale
   // tree's lifetime — no per-component polling, no per-remount flicker.
+  //
+  // D58 Phase 2 (Huy-verified, 2026-09-18): under `reactStrictMode:
+  // true` (`apps/web/next.config.mjs:7`), the mount-time effect runs
+  // TWICE in dev (once at real mount, once at the StrictMode probe)
+  // before either commit lands. Naively this would fire `/me` twice
+  // back-to-back. The `mountedRef` guard below makes the second
+  // invocation a no-op.
+  //
+  // Important invariants for this guard (do NOT change without
+  // re-tracing the loop):
+  //
+  //   * `mountedRef` is set to `true` AFTER the early-return check,
+  //     never reset. Resetting in cleanup would re-arm the flag for
+  //     the second probe, defeating the guard.
+  //   * StrictMode dev invokes cleanup → mount → effect again; if a
+  //     later refactor adds an `AbortController.abort()`-style cleanup
+  //     for an in-flight fetch, the FIRST mount's `mountedRef.current
+  //     = true` persists across the cleanup, and the probe's `refresh()`
+  //     call is the one that's suppressed — exactly the desired shape.
+  //   * The `refresh()` callback is `useCallback(..., [])` so its
+  //     reference is stable; the effect's deps `[refresh]` therefore
+  //     never refires after the StrictMode double-invoke settles.
+  //   * This guard makes `/me` fire at most once per SignInProvider
+  //     lifetime in dev. In production (`reactStrictMode: false`),
+  //     the effect runs once and the guard is a no-op cost.
+  const mountedRef = useRef(false);
   useEffect(() => {
+    if (mountedRef.current) return;
+    mountedRef.current = true;
     refresh();
   }, [refresh]);
 
