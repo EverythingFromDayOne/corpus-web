@@ -9834,3 +9834,28 @@ Huy's relay-suggested addition (deps-array path — same loop shape via state-in
 - `~/.hermes/profiles/coding-fe/skills/autonomous-ai-agents/slack-status-reports/SKILL.md`, `coding-be/.../SKILL.md`, `content/.../SKILL.md` — single-terminal-tag rule section added.
 
 **No `content/` touch.** No `vi.json` touch. No new deps. No `apps/api/` touch.
+
+## Session 206 — PR #185 follow-up: D58 Phase 2 (`mountedRef`) + D59 (`will-change: transform`) landed, doc corrections closed (2026-09-18)
+
+**Trigger.** Huy's Vercel-preview re-click after `047f545` found two more bugs on the same `feat/d26-avatar-logout` branch: (1) `/me` still firing twice back-to-back on first hydration (root cause: `reactStrictMode: true` double-invokes mount-time `useEffect` in dev); (2) user-menu dropdown panel painted under `.ls-ambient-grid` (`isolation: isolate`) — body content with compositor-promoting property paints above the `.topbar`'s `backdrop-filter` layer. Two new debt rows opened: D58 Phase 2 (StrictMode) + D59 (backdrop-filter stacking context).
+
+**Coding-fe dispatch.** Single dispatch message (Lead → FE) carrying both bugs in one bundle, each with verified source-tree evidence: `next.config.mjs:7` for (1), `globals.css:127-130` + 1535 for (2). Lead's first dispatch on (2) cited `globals.css:199` as describing `.user-menu` — wrong (the comment is for `.nav-progress`); FE caught it via the project's "phantom-fix rule" (FE MEMORY), held the patch, and surfaced the inconsistency. Lead re-diagnosed to the compositor-layer root cause and re-dispatched. Both fixes shipped as two separate commits per FE's recommendation: `ac8ec24` for (1) (single TSX, `+34/-0`), `d013802` for (2) (single CSS, `+29/-1`). Doc-comment block on `d013802` documents root cause + layer-promotion rationale + cross-browser risk (Safari differs) + inline pre-documented fallback shape (`position: fixed` + `useLayoutEffect` `getBoundingClientRect()` in `user-menu.tsx`, ~6–10 LOC) for the case where Safari rejects the layer-promotion attempt.
+
+**PR #185 state at session close:** `state: OPEN`, `head: d013802`, `base: e89dbf0`, `mergeable: MERGEABLE`, `mms: CLEAN`, 5 of 6 checks SUCCESS (1 PENDING — non-blocking, expected for in-flight re-runs against the new SHA). All 9 local gates green per FE's push receipt.
+
+**D58 row closure — bug closed (both phases landed), two follow-ups remain in the same row:**
+- (a) Bug closed. Phases 1 (`047f545`) + 2 (`ac8ec24`).
+- (b) New never-violate rule `25-react-provider-event-bus.mdc` — Huy decided location (new file over fold into `20-never-violate.mdc`); rule text is Lead's draft with Huy's deps-array addition. **Pending Huy's final wording sign-off.** Will be authored by coding-fe on Lead dispatch once Huy approves.
+- (c) Playwright E2E smoke (`expect(network).toHaveBeenCalledWith(/\/me/, { count: 1 })` per mount) — separate slice, pending Huy go-ahead.
+
+**D59 row opened:** backdrop-filter compositor layer + `will-change: transform` layer promotion — cross-browser verification pending on Huy's Vercel preview. Triggers if the Vercel preview is Safari AND the `will-change: transform` attempt does not paint the panel above `.ls-ambient-grid`: escalate to `position: fixed` + `useLayoutEffect` fallback (TSX change in `user-menu.tsx`, ~6–10 LOC). FE has the fallback design noted in the comment block but did not author it.
+
+**Files modified by Lead this session:**
+- `docs/DEBT.md` — D58 row extended in-place with Phase 2 sub-entry (lines 30); new D59 row added between D58 and D57 (line 31); header bumped D58 → D59.
+- `CHANGELOG.md` — two new sections at top of `[Unreleased]`: D59 (`backdrop-filter` + `will-change: transform`, commit `d013802`) and D58 Phase 2 (`mountedRef` guard, commit `ac8ec24`). The pre-existing `047f545` section retained.
+- `.agents/SESSION-LOG.md` — this entry.
+- `progress.md` — Session 206 line appended.
+
+**No `content/` touch.** No `vi.json` touch. No new deps. No `apps/api/` touch.
+
+**Lead → Huy terminal (this session, Slack):** carrying CI receipt (`mergeable: MERGEABLE`, `mms: CLEAN`, 5/6 SUCCESS + 1 PENDING) + D58 Phase 2 + D59 receipt + Vercel click-through ask for (A) `/me` once-per-mount dev+prod + (B) panel sits above `ls-ambient-grid` + dropdown open/close + sign-out → real 303 still on verification list + D58 rule file sign-off (Lead's draft in the D58 row text).

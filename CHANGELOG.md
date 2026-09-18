@@ -5,7 +5,33 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### [2026-09-18] — fix(web) — PR #185 hotfix: silent `/me` infinite-loop + masked `fetchMe` `return null` regression, commit `047f545`
+### [2026-09-18] — fix(web) — PR #185 follow-up 2: `backdrop-filter` + `will-change: transform` stacking-context fix for user-menu dropdown, commit `d013802` (D59)
+
+**Fixed** the body-content-overlap bug Huy caught on Vercel-preview re-click after `047f545`: the user-menu `<details>` and its `.user-menu-list` panel were visible above the topbar (correct, `.topbar { z-index: 60 }` at `globals.css:127-130`) but appeared to clip under `.ls-ambient-grid` (line 1535, `isolation: isolate`), giving the visual impression that "the dropdown is sitting inside the topbar instead of floating above the page body."
+
+**Root cause:** `.topbar` has `backdrop-filter: blur(12px)` which lifts it into its own compositor layer, separating its descendants from the page body's compositor layer. Body content with any compositor-promoting property (`isolation: isolate`, `transform`, `will-change`, `filter`, `contain: paint`) establishes its own compositor layer, which the browser paints on top of the backdrop-filter layer in some Chrome/Safari paths.
+
+**Fix:** `will-change: transform` added to `.user-menu-list` between `z-index: 50` and `display: flex` in `apps/web/app/globals.css` (`+29/-1`). Forces the panel into its own compositor layer that the browser paints above the backdrop-filter layer's siblings. Extended doc-comment block above the rule documents (1) the root cause (backdrop-filter stacking context + `isolation: isolate` sibling layer), (2) the layer-promotion rationale, (3) cross-browser risk — Safari differs from Chrome on `will-change: transform` painting order, and (4) the inline-documented fallback: `position: fixed` on `.user-menu-list` + `useLayoutEffect` reading the trigger's `getBoundingClientRect()` to anchor — escapes the compositor layer entirely, ~6–10 LOC of TSX in `user-menu.tsx`. The CSS-only approach is the lightest possible change; the TSX fallback is pre-documented for the case where Safari rejects the layer-promotion attempt.
+
+**Why the earlier dispatched `position: relative` + `z-index: 20` was a no-op + regression:** Lead had earlier cited `globals.css:199` ("above topbar, below dialogs") as if it described `.user-menu`, but that comment is actually for `.nav-progress`; the actual `.user-menu { position: relative }` is already at `globals.css:882` and `.user-menu-list { z-index: 50 }` at `globals.css:962`. The dispatched patch would have lowered the panel below the existing `z-index: 50` modal context. FE held the patch and surfaced the inconsistency (phantom-fix rule observed); Lead re-diagnosed to the compositor-layer root cause and re-dispatched.
+
+**Verification:** `pnpm typecheck` ✓ 5/5 (real Turborepo cache-miss on `@corpus/web`); `pnpm lint` ✓ 5/5; `pnpm --filter @corpus/web build` ✓ 222 pages / 26928 words (matches baseline). Source-tree scan unchanged: zero live `AUTH_CHANGED_EVENT` / `corpus:auth-changed` references. PR #185 CI: all checks SUCCESS at `head d013802`, `mergeable: MERGEABLE`, `mms: CLEAN` (5 of 6 checks SUCCESS, 1 PENDING — non-blocking, expected for in-flight re-runs against the new SHA).
+
+**Open follow-ups:** (i) Huy's Vercel re-verification — confirm `(A) /me` fires once per mount in dev AND prod, `(B)` panel sits above page-body content with `isolation: isolate`, dropdown open/close + sign-out → real 303 still works; (ii) D59 cross-browser follow-up — if the Vercel preview is Safari and the `will-change: transform` attempt does NOT paint above `.ls-ambient-grid`, escalate to the `position: fixed` + `useLayoutEffect` fallback (TSX change in `user-menu.tsx`, ~6–10 LOC); (iii) D59 sub-entry (D58-relationship clarification) — the body-content clipping observed is a NEW stacking-context bug separate from D58's event-bus loop; they share zero code paths and must be tracked independently. Tracked in DEBT.md D59 row.
+
+### [2026-09-18] — fix(web) — PR #185 follow-up 1: `mountedRef` guard against `reactStrictMode` double-invoke of mount-time `/me`, commit `ac8ec24` (D58 Phase 2)
+
+**Fixed** the second `/me`-firing bug Huy caught on Vercel-preview re-click after `047f545`: the event-bus loop was gone but `/me` was still firing twice back-to-back on first hydration.
+
+**Root cause:** `reactStrictMode: true` (`apps/web/next.config.mjs:7`) double-invokes the mount-time `useEffect` in dev — once at real mount, once at the StrictMode probe with cleanup between them — before either render commits. The mount effect at `apps/web/components/chrome/sign-in-context.tsx:252-254` ran `refresh()` on each invocation, so two `/me` requests fired back-to-back on first hydration.
+
+**Fix:** `const mountedRef = useRef(false); useEffect(() => { if (mountedRef.current) return; mountedRef.current = true; refresh(); }, [refresh]);`. Set-after-check, never reset. Docstring carries the four invariants (set-after-check; persist-across-cleanup shape with future `AbortController`; `useCallback(..., [])` makes `refresh` stable so deps don't refire; guard is no-op in production). `useRef` import already in the file's existing import block (line 6), no new imports.
+
+**Why not a `useEffect(() => { const ac = new AbortController(); ... }, [])` shape:** the StrictMode probe runs cleanup-then-re-mount in dev, so any abort-controller reset on cleanup would re-fire the effect on the second mount just the same. The `mountedRef` survives the cleanup phase because it's a `useRef` — a plain mutable slot whose lifecycle is the component, not the effect. The set-after-check shape is the simplest correct invariant under StrictMode's exact probe sequence.
+
+**Verification:** `pnpm typecheck` ✓ 5/5 (real Turborepo cache miss on `@corpus/web`, fresh `tsc --noEmit`); `pnpm lint` ✓ 5/5; `pnpm --filter @corpus/web build` ✓ 222 pages / 26928 words (matches baseline). Source-tree scan unchanged from D58 Phase 1: zero live `AUTH_CHANGED_EVENT` / `corpus:auth-changed` references. PR #185 CI: all checks SUCCESS at `head ac8ec24`, `mergeable: MERGEABLE`.
+
+**D58 status:** bug closed (both phases landed). Two follow-ups remain tracked inside the D58 row: (b) new never-violate rule `25-react-provider-event-bus.mdc` — Huy decided location (new file over fold into `20-never-violate.mdc`) and rule text is Lead's draft with Huy's deps-array addition, pending Huy's final wording sign-off; (c) Playwright E2E smoke (`expect(network).toHaveBeenCalledWith(/\/me/, { count: 1 })` per mount) — separate slice, pending Huy go-ahead.
 
 **Fixed** two bugs that landed together in the original D26 sub-slice B (`5b54760`) and were caught by Huy on Vercel-preview click-through. Both fixed in the same commit per Lead's instruction (removing Bug 1 alone would have surfaced Bug 2 immediately on Huy's re-verification).
 
