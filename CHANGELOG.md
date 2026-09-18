@@ -5,6 +5,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-18] — fix(web) — PR #185 hotfix: silent `/me` infinite-loop + masked `fetchMe` `return null` regression, commit `047f545`
+
+**Fixed** two bugs that landed together in the original D26 sub-slice B (`5b54760`) and were caught by Huy on Vercel-preview click-through. Both fixed in the same commit per Lead's instruction (removing Bug 1 alone would have surfaced Bug 2 immediately on Huy's re-verification).
+
+1. **Bug 1 — self-triggering event bus (the `/me` loop Huy reported).** `apps/web/components/chrome/sign-in-context.tsx` had `window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT, ...))` inside `refresh()`, AND a `useEffect` listener at lines 269-278 was subscribed to that same event calling `refresh()` again. Provider mount → mount-time `useEffect` → `refresh()` → dispatch → listener catches own dispatch → `refresh()` again → dispatch again → infinite. Removed both halves: dispatch site deleted from `refresh()`; the self-firing listener deleted. The legitimate external postMessage listener for `oauth-success` (from `apps/web/app/auth/google/callback/page.tsx`) preserved.
+2. **Bug 2 — `fetchMe` returned `null` unconditionally.** `fetchMe()` at line 140 had a stray `return null;` *before* its `try { ... }` block, making the entire `try` block unreachable. Every call to `fetchMe()` returned `null` immediately, so `/me` always appeared as `signed-out` regardless of actual session state. Bug 2 was MASKED by Bug 1 — DevTools Network panel looked busy with `/me` traffic; every response parsed as null but no one noticed because the responses were flying. Removed: `fetch` now actually executes. (Also removed a stray `console.log('refresh function')` from `5b54760`.)
+
+**Verification:** `pnpm typecheck` ✓ 5/5 (real Turborepo cache miss on `@corpus/web`, fresh `tsc --noEmit`); `pnpm lint` ✓ 5/5; `pnpm --filter @corpus/web build` ✓ 222 pages / 26928 words (matches baseline — no SSR regression from event-bus removal). Source-tree scan: zero live `AUTH_CHANGED_EVENT` / `corpus:auth-changed` references in `apps/web/` or `packages/` — the 3 remaining mentions are docstring prose describing the removed event. All 6 PR #185 CI checks now SUCCESS at head `047f545`, `mergeable: MERGEABLE`, `mms: CLEAN`.
+
+**Post-mortem (tracked under D58):** three concrete review-checklist failures identified — (a) no reviewer instruction to trace event lifecycle across provider/listener boundaries; (b) no Playwright/E2E smoke that asserts `/me` fires *once per mount*; (c) the slice-B prompt let `/me` triggering fall in implementation-spec rather than contract-spec. New never-violate rule + E2E smoke addition both queued under D58 sub-entries, pending Huy sign-off on wording.
+
 ### [2026-09-18] — fix(web) — PR #185 review fix: sign-out URL + click-outside-to-close, commit `13fb600`
 
 **Fixed** two bugs found in Lead's review of PR #185 (`feat/d26-avatar-logout`), both dispatched to and implemented by coding-fe, both signed off by Huy:
