@@ -301,3 +301,11 @@ export function useSignIn() {
   if (!ctx) throw new Error('SignInProvider missing');
   return ctx;
 }
+
+// Exported for chrome-flow smoke testing — see
+// `apps/web/test/chrome/sign-in-once-per-mount.test.ts`. The export
+// is read-only by construction: callers can invoke `fetchMe()` but
+// cannot swap the implementation. Mount-time useEffect cycling and
+// StrictMode probes are exercised by manual Vercel click-through
+// (D58 row (b) on PR #185 follow-up 4), not by this harness.
+export { fetchMe };

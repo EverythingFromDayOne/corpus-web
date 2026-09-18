@@ -1,0 +1,61 @@
+---
+description: Provider-event-bus no-self-trigger — React providers/contexts/hooks must not both dispatch AND listen to the same CustomEvent in a way that creates a self-re-trigger loop. Applies when authoring or refactoring any React provider, context, or hook that fires network requests or state updates on event.
+globs: ["apps/web/components/chrome/**", "apps/web/components/providers/**"]
+alwaysApply: false
+---
+
+# Provider-event-bus no-self-trigger rule
+
+When a React provider, context, or hook both **dispatches** and **listens** to the
+same `CustomEvent` (or any pub-sub signal), either:
+
+  (a) a self-vs-external flag exists in `event.detail` AND the listener ignores
+      self-origin, OR
+  (b) the dispatch site is elsewhere — not inside the listener's effective
+      subscription closure.
+
+The choice MUST be explicit in the implementation. "Both happen to work" is a
+bug-shaped coincidence.
+
+Any effect whose deps include state that the same provider updates is suspect —
+verify the effect's re-fire path cannot re-enter its own state setter.
+
+## Smoke test
+
+Any provider that fires a network request on event MUST be tested with exactly
+one fetch per mount:
+
+```ts
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+// ... stub fetch, render provider, assert callCount === 1
+```
+
+## Worked counterexample — D58, 2026-09-18
+
+`apps/web/components/chrome/sign-in-context.tsx`'s `refresh()` dispatched a
+`corpus:auth-changed` CustomEvent after every `setMe/setMeState`. The provider
+also had a `useEffect` subscribed to that same event that called `refresh()`
+again. Provider mount → mount-time `useEffect` → `refresh()` → dispatch →
+listener catches own dispatch → `refresh()` → dispatch → infinite. The bug
+shipped to PR #185 because no smoke test asserted `/me` fires exactly once per
+mount. Fix shape: dispatch removed from inside `refresh()`; the self-firing
+listener removed; a `mountedRef` guard added at the mount-time effect to handle
+`reactStrictMode: true`'s double-invoke. See `sign-in-context.tsx` lines
+240-275 for the canonical pattern.
+
+## Worked counterexample — D58 Phase 2
+
+Even after the loop was removed, `/me` fired twice on first hydration under
+`reactStrictMode: true` because the mount-time effect ran twice in dev (probe
++ real mount) before either commit landed. The `mountedRef` pattern
+(set-after-check, never reset) is the canonical React-StrictMode-safe mount
+guard. See `sign-in-context.tsx` for the live implementation.
+
+## Cross-references
+
+- D58 (DEBT.md) — original discovery + fix
+- `apps/web/test/chrome/sign-in-once-per-mount.test.ts` — the smoke test this
+  rule mandates
+- `apps/web/components/chrome/sign-in-context.tsx` — canonical implementation
+  pattern
