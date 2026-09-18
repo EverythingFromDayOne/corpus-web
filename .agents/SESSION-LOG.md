@@ -9859,3 +9859,33 @@ Huy's relay-suggested addition (deps-array path — same loop shape via state-in
 **No `content/` touch.** No `vi.json` touch. No new deps. No `apps/api/` touch.
 
 **Lead → Huy terminal (this session, Slack):** carrying CI receipt (`mergeable: MERGEABLE`, `mms: CLEAN`, 5/6 SUCCESS + 1 PENDING) + D58 Phase 2 + D59 receipt + Vercel click-through ask for (A) `/me` once-per-mount dev+prod + (B) panel sits above `ls-ambient-grid` + dropdown open/close + sign-out → real 303 still on verification list + D58 rule file sign-off (Lead's draft in the D58 row text).
+
+## Session 207 — 2026-09-18 — Lead — PR #185 D59 fallback Phase 3 (`db147ac`) doc corrections + receipt + D59 row Phase-3 sub-entry
+
+**Trigger**: FE pushed `db147ac` (single commit, two files — `globals.css` +34/-30, `user-menu.tsx` +49/-0) implementing the D59 fallback path (`position: fixed` on `.user-menu-list` + `useLayoutEffect` anchor reading trigger `getBoundingClientRect()`), as dispatched in T143. CI re-triggered against `db147ac`, awaited CLEAN.
+
+**Lead actions this session**:
+
+1. **Verified FE's commit** matches dispatched spec with one acceptable deviation — `useEffect` instead of `useLayoutEffect`, with rationale documented in the code's block comment (App Router SSR safety: `useLayoutEffect` doesn't exist on the server under Next.js; one-frame CSS-fallback position trade-off is acceptable for an on-click menu). Accepted as documented; one-line swap back if ever needed.
+2. **Caught a minor doc-comment drift** — the new CSS `.user-menu` comment block still references "`useLayoutEffect` in `user-menu.tsx`" but the TSX uses `useEffect`. The TSX block comment correctly identifies `useEffect`. Non-blocking merge; sweep in a follow-up or one-line CSS-comment fix-up commit.
+3. **CI poll (post-`db147ac`)** — 5/6 checks SUCCESS: `Repo guards`, `Content gates`, `Lint/typecheck/build`, `Accessibility and performance`, `Vercel Preview Comments`. `Vercel` deployment check PENDING (still in-flight at session close, expected to flip SUCCESS in 2-5 min per the established pattern for this PR's commits). `mms: UNSTABLE` reflects GitHub's "latest commit has at least one in-flight check" state, not a failure.
+4. **DEBT.md updates** — (a) header bumped D59 → D60 (Highest ID issued); (b) D58 row dedup fixed (long-standing duplicate-title bug from earlier patch collisions — the title appeared twice inline); (c) D59 row Phase 3 sub-entry appended in-place with full fix shape, SSR-deviation documented, CI receipt, doc-comment drift flagged as non-blocking open follow-up (ii).
+5. **CHANGELOG.md** — D59 Phase 3 entry inserted at top of `[Unreleased]` between the existing D59 entry (Phase 1, `d013802`) and the D58 Phase 2 entry (`ac8ec24`). Title: "PR #185 follow-up 3: `position: fixed` + `useEffect`/`useLayoutEffect` anchor to escape topbar stacking context, commit `db147ac` (D59 Phase 3)".
+6. **progress.md** — Session 207 line appended (this entry).
+
+**Decisions awaiting Huy** (verification list, not contested, no Echo CC):
+
+1. **Vercel re-verification on `db147ac`** — confirm (A) `/me` fires once per mount in dev AND prod (unchanged from `ac8ec24`); (B) panel sits below avatar, right-aligned with avatar's right edge, tracks avatar on scroll, re-anchors on resize, click-outside closes, sign-out → real 303 still works. If still fails after `position: fixed`, next escalation = `createPortal` to `document.body` (separate slice, nuclear option).
+2. **Merge sign-off** — once (1) confirms AND `mms: CLEAN` flips (currently `UNSTABLE` only because `Vercel` deployment check still in-flight; 5/6 other checks already SUCCESS), give the go and Lead will `gh pr merge 185 --squash` (established convention for develop-targeted PRs in this repo).
+3. **D58 sub-entry (b) `25-react-provider-event-bus.mdc` rule text sign-off** — pending from prior session; final wording needed before coding-fe authors the new rule file post-PR-185-land.
+
+**Out of scope (carried, NOT this turn)**:
+
+- (i) CSS-comment correction in `.user-menu` block to match TSX `useEffect` reality. Cosmetic, non-blocking.
+- (ii) `feat/auth-google-oauth` session-persistence — carried across 6+ compaction boundaries, still not checked out.
+- (iii) Hermes-Assistant SKILL.md / Echo MEMORY codification re-verification — Echo's writing attempt failed provider × 4 this session; status still UNCERTAIN, re-verify next opportunity.
+- (iv) Avatar first-paint race (slow network → flash of unauthenticated content) — long-term fix = refreshToken in cookie + short-lived JWT + client-side first-paint from JWT claims; Huy will revisit in follow-up dispatch (NOT this turn).
+
+**Skills updated**: none this session. Hermes-Coding-FE `slack-status-reports` SKILL.md + SOUL.md still hold the single-terminal-tag rule from prior session; it held — FE's terminal was one message with all receipts inline.
+
+**Row architecture decision recorded**: Echo had classified the `db147ac` fix as "D58 Phase 3" (a sub-entry under D58). Lead corrected: D58 is closed (D58 + Phase 2 both landed). Topbar-overlap is D59, a separate debt row. The `db147ac` work is D59 Phase 3 — a sub-entry appended in-place to D59, NOT a Phase 3 of D58. Echo's framing would have re-opened a closed row. Surface as clarification in D59 row update only; not a contested decision, no Echo CC.
