@@ -9889,3 +9889,51 @@ Huy's relay-suggested addition (deps-array path — same loop shape via state-in
 **Skills updated**: none this session. Hermes-Coding-FE `slack-status-reports` SKILL.md + SOUL.md still hold the single-terminal-tag rule from prior session; it held — FE's terminal was one message with all receipts inline.
 
 **Row architecture decision recorded**: Echo had classified the `db147ac` fix as "D58 Phase 3" (a sub-entry under D58). Lead corrected: D58 is closed (D58 + Phase 2 both landed). Topbar-overlap is D59, a separate debt row. The `db147ac` work is D59 Phase 3 — a sub-entry appended in-place to D59, NOT a Phase 3 of D58. Echo's framing would have re-opened a closed row. Surface as clarification in D59 row update only; not a contested decision, no Echo CC.
+
+---
+
+## Session 208 — 2026-09-18 — Lead — PR #185 follow-up 4: D58 row closure bundle landed (`c55abe0`) + Lead-self-author docs + Lead governance question to Huy on test-script glob
+
+**Trigger**: Huy's prior-turn "continue ur work" + Echo's bundle-into-#185 dispatch = ship the 3 D58-row post-mortem follow-ups (rule file + E2E smoke + 1 cross-agent surface) in a single new commit on `feat/d26-avatar-logout` against `0ab0b81`. FE executed the dispatch (T197 → T198): shipped `c55abe0` with 4 in-repo files (`.cursor/rules/25-react-provider-event-bus.mdc`, `AGENTS.md` auto-regenerated, `apps/web/components/chrome/sign-in-context.tsx` re-export, `apps/web/test/chrome/sign-in-once-per-mount.test.ts`) + 3 out-of-tree `~/.hermes/profiles/{coding-fe,coding-be,content}/SOUL.md` patches. FE's terminal Slack surfaced one blocker per dispatch contract: the new test file is silently skipped by the current `apps/web/package.json` test-script glob (`test/*.test.ts`, bash shell-glob, NOT recursive) — total count drops 115 → 113, the missing 2 are exactly the new tests (which pass on explicit invocation).
+
+**Lead actions this session**:
+
+1. **Independently re-verified FE's receipts** (Lead never trusts prior-turn claims without re-verification): `gh pr view 185 --json` returns `state: OPEN`, `head: c55abe0`, `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`, 6/6 CI checks SUCCESS, 14 files `+1097/-79` — byte-exact match to FE's report. Commit `c55abe0` confirmed real on `feat/d26-avatar-logout` parent `0ab0b81` with the exact commit message FE described. New rule file confirmed at 61 lines with verbatim frontmatter. New test file confirmed at 65 lines with the `node:test`+`assert/strict` pattern (NOT Playwright `expect`). `sign-in-context.tsx` `export { fetchMe }` re-export confirmed at lines 295-297 with the explicit "added for testability" comment. Glob-scope issue confirmed by direct read of `apps/web/package.json` test script = `TZ=Asia/Ho_Chi_Minh node --import tsx --test test/*.test.ts` (non-recursive shell-glob). All 3 SOUL.md patches confirmed by `grep` for `event-bus` / `no-self-trigger` keywords; threat-pattern smoke clean on new paragraph (only hit at `coding-fe/SOUL.md:141` is pre-existing `## What you are NOT` text).
+
+2. **Lead-self-authored docs** (FE explicitly stayed out of these per dispatch protocol; FE was correct that Lead owns them):
+   - `docs/DEBT.md` — D58 row gets a `**D58 ROW CLOSED 2026-09-18**` banner at the start of the Item column pointing to `c55abe0` for sub-entries (b) and (c), plus the reclassification note for the MINOR clipping bug (now D59, fixed by `d013802` + `db147ac`). Historical narrative preserved verbatim below the banner; no information loss.
+   - `CHANGELOG.md` — new top-of-`[Unreleased]` entry "PR #185 follow-up 4: D58 row closure bundle (rule + smoke + 3 cross-agent surfaces), commit `c55abe0`" with full receipts (4 in-repo files + 3 SOUL.md + all 8 verifications + the glob-scope question mark for Huy).
+   - `.agents/SESSION-LOG.md` — this Session 208 entry, appended after Session 207 + the `---` separator.
+   - `progress.md` — Session 208 one-liner, appended after Session 207.
+
+3. **Glob-scope governance question to Huy** (the one outstanding blocker): the bundle ships correct in-repo content, but the new test file at `apps/web/test/chrome/sign-in-once-per-mount.test.ts` is silently skipped by the current `apps/web/package.json` test-script glob (`test/*.test.ts`, bash shell-glob, NOT recursive). Three options (Lead's recommendation = A):
+   - **(A)** Expand test script to `test/**/*.test.ts` (1-line change in `apps/web/package.json`, correct fix, touches CI gate — gated by `.cursor/rules/20-never-violate.mdc` line 155 "Changing the Turborepo task graph or CI gate configuration" → STOP-and-ask).
+   - **(B)** Move the new test file to `apps/web/test/` flat (avoids touching CI gate, deviates from Lead's "with new subdir" spec — `git mv` only, no other changes).
+   - **(C)** Leave as-is, accept that the new test does not run in CI (works for this PR, regresses silently if more subdir tests are added).
+   Per the Lead-governance witness-chain matrix (operational cadence that becomes one-way once commits land → Huy-direct verbatim required; bundle has already shipped, so any fix IS another one-way operational change), this is Huy's call, not Lead's. Surfaced in the CHANGELOG entry + the terminal Slack to Huy below.
+
+4. **Vercel re-click ask** for Huy — per bundle plan "single re-click on new bundled head", Vercel preview will need a fresh click-through on `c55abe0` to confirm: (A) `/me` fires once per mount dev+prod (unchanged from `ac8ec24`); (B) panel sits above page-body content with `isolation: isolate`, click-outside closes, sign-out → real 303 still works (unchanged from `db147ac`); (C) new test file's behavior — depends on Huy's glob-scope call above.
+
+5. **Merge sign-off ask** — once (3) lands AND (4) confirms AND `mms: CLEAN` stays, give the go and Lead will `gh pr merge 185 --squash` (established convention for develop-targeted PRs in this repo).
+
+**Verification receipts**: re-pull of PR #185 state (above, byte-exact match to FE's report); direct reads of `apps/web/package.json` (test-script glob confirmed), `apps/web/components/chrome/sign-in-context.tsx` (re-export confirmed), `apps/web/test/chrome/sign-in-once-per-mount.test.ts` (header-comment + 2 assertions confirmed), `.cursor/rules/25-react-provider-event-bus.mdc` (61 lines + verbatim frontmatter confirmed), `~/.hermes/profiles/{coding-fe,coding-be,content}/SOUL.md` (new paragraph present + threat-pattern clean on new addition). Did NOT re-run the 8 FE local verifications — they were fresh on `@corpus/web` against the same SHA, and Lead self-author only added docs files (DEBT.md / CHANGELOG.md / SESSION-LOG.md / progress.md) which don't require re-running web/app gates; docs are not exercised by typecheck/lint/build/test/agents:build in any case.
+
+**Decisions awaiting Huy** (this IS a contested-shape decision per Lead-governance witness-chain matrix):
+
+1. **Glob-scope call** — `(A) expand test script to test/**/*.test.ts` (Lead's recommendation, touches CI gate), `(B) move new test file to apps/web/test/ flat` (deviates from Lead's "with new subdir" spec), or `(C) leave as-is, accept that the new test does not run in CI`. Why it matters: bundle stays at `c55abe0` until this lands; if the merge proceeds without a decision, the new D58-prevention smoke never runs in CI and the regression class is uncaught. Urgency: high — blocks PR #185 merge sign-off.
+
+2. **Vercel re-verification on `c55abe0`** — (A) `/me` fires once per mount dev+prod, (B) panel positioning + click-outside + sign-out unchanged from `db147ac`, (C) bundle did not regress any existing 113-test suite. Why it matters: bundle added 4 files in-repo; CI green per `c55abe0` but bug-class regression not yet manually confirmed. Urgency: medium — bundle is contained and reversible; can run in parallel with (1).
+
+3. **Merge sign-off** — once (1) and (2) both clear AND `mms: CLEAN` stays, give the go and Lead will `gh pr merge 185 --squash`. Urgency: low — gated on (1) and (2).
+
+**Out of session scope (carried, NOT touched)**:
+
+- Lead MEMORY append (witness-chain authority split table) — char budget still full at 10,293/8,000 from prior session. Consolidation deferred; pattern is captured in this SESSION-LOG entry and in CHANGELOG instead. Per Lead MEMORY "skip MEMORY append this turn (char budget tight)" strategy.
+- Hermes-Assistant SKILL.md / Echo MEMORY codification re-verification — Echo's writing attempts continue to hit provider failures; status UNCERTAIN, re-verify next opportunity.
+- `feat/auth-google-oauth` session-persistence — carried across 7 compaction boundaries; formally superseded by PR #185, not withdrawn.
+- CSS-comment drift on D59 Phase 3 (the `.user-menu` block comment still says "driven by `useLayoutEffect` in `user-menu.tsx`" but TSX uses `useEffect`) — cosmetic, non-blocking.
+- D59 row Phase 1 description inaccuracy (D59 row conflates Lead's earlier `position: relative` + `z-index: 20` recommendation with FE's actual `will-change: transform` Phase-1 fix) — cosmetic, flagged by Echo T176.
+
+**Skills updated**: none this session. The single-terminal-tag rule (already injected in prior sessions) held again — FE's terminal was one structured bullet block with all receipts inline, no mid-turn narration, tag `<@U0BRDE7T6UX>` (Lead) only.
+
+**Row architecture decision recorded**: D58 row's three sub-entries (a)/(b)/(c) — author + Lead both framed this as "one row, three sub-entries" at the project governance level (per Session 205's framing decision). With (a) fixed at `047f545`, (b) shipped at `c55abe0`, (c) shipped at `c55abe0`, D58 is fully CLOSED. The MINOR clipping bug reclassified out of D58 to its own row (D59) at the same time. This row architecture decision is now stable: future similar bug-class follow-ups should use the same "one row, N sub-entries" pattern rather than opening N rows.
