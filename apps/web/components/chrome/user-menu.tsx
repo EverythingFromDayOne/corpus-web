@@ -15,16 +15,20 @@ import { useSignIn, type MeResponse } from './sign-in-context';
  * zero JavaScript beyond what the platform already provides for free.
  *
  * The dropdown lists the user's `name` and `email`, then a plain
- * `<a href>` to a future `/api/auth/sign-out` endpoint (slice C).
- * Slicing rationale (see `prompts/session-d26-avatar-logout-b.md` §5):
+ * `<a href>` to the existing `GET /auth/logout` endpoint in
+ * `apps/api/src/modules/auth/auth.controller.ts:145` — a live route
+ * (PR #179) that destroys the session, clears the cookie, and 303-
+ * redirects to the web origin's `/`. The spec at
+ * `prompts/session-d26-avatar-logout-b.md` §5 is explicit that this
+ * is the correct control and a plain `<a href>` is the contract:
  *  - the `<a>` is a real browser navigation, not a React handler, so
- *    the server can choose the response shape (currently a 302 to
- *    `/`, eventually a confirmation page). A `<button onClick>` would
- *    require a fetch + a manual reload and is fragile against the
- *    server having set `HttpOnly` (which it has, by design).
+ *    the server controls the response shape (303 redirect to `/`).
+ *    A `<button onClick>` would require a fetch + manual reload and
+ *    is fragile against the server having set `HttpOnly` (which it
+ *    has, by design).
  *  - the `<a href>` keeps the dropdown working even if JS fails to
- *    hydrate or the user has NoScript on. The button still works
- *    with JS, too — both paths land at the same URL.
+ *    hydrate or the user has NoScript on. Both paths land at the
+ *    same URL.
  *
  * Avatar element: a tiny circle. No new design primitives, no new
  * tokens — the CSS reuses the existing `--color-display` /
@@ -40,10 +44,12 @@ import { useSignIn, type MeResponse } from './sign-in-context';
  *  - `<details>/<summary>` natively manage focus + keyboard (Enter /
  *    Space), unlike a custom `role="menu"` pair that would need a
  *    custom `aria-expanded` + keydown handler to pass WCAG.
- *  - Close on outside click: handled by `<details>`'s native
- *    "click on a summary toggles, click outside does nothing" — and
- *    we close on `Escape` via a `keydown` listener for parity with
- *    the search dialog.
+ *  - Close on outside click: a `mousedown` document listener checks
+ *    whether the event target is inside the `<details>` ref; if not,
+ *    the menu closes. The platform does not provide this for free,
+ *    so it lives in a single `useEffect` next to the `Escape`
+ *    handler — both share the same ref so the test for "open?" is
+ *    one read, not two.
  *  - Avatar `<img>` has `alt={name}` when a name is present, and
  *    `alt` falls back to a generic locale string so screen-readers
  *    say "Huy's avatar" (or "User avatar" if no name).
@@ -64,29 +70,50 @@ export function UserMenu({ messages }: Props) {
   const { me } = useSignIn();
   const detailsRef = useRef<HTMLDetailsElement | null>(null);
 
-  // Esc closes the menu when it's open. The platform already supports
-  // toggle-by-click and open-by-Enter/Space on `<summary>` for free,
-  // so this effect is the only keyboard handler we need.
+  // Esc + click-outside close the menu when it's open. The platform
+  // already supports toggle-by-click and open-by-Enter/Space on
+  // `<summary>` for free, but `<details>` does NOT close on outside
+  // click by itself, so we listen for `mousedown` on the document
+  // and close if the target landed outside the `<details>` ref. Using
+  // `mousedown` (not `click`) matches the spec — a click that begins
+  // outside but ends on the trigger would otherwise leak focus into
+  // the menu before closing it. Both listeners share this effect so
+  // there's a single subscription / unsubscription pair per mount.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.key !== 'Escape') return;
       if (detailsRef.current?.open) detailsRef.current.open = false;
     }
+    function onPointerDown(event: MouseEvent) {
+      const root = detailsRef.current;
+      if (!root?.open) return;
+      const target = event.target;
+      if (target instanceof Node && root.contains(target)) return;
+      root.open = false;
+    }
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('mousedown', onPointerDown);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('mousedown', onPointerDown);
+    };
   }, []);
 
-  // Sign-out link. Slice C will turn this into `POST /auth/sign-out`
-  // (CSRF-protected) and `apps/api` will own it; until then this is a
-  // plain GET that drops the cookie server-side and 302s to the home
-  // page.
+  // Sign-out link. The endpoint is the live `GET /auth/logout` route
+  // in `apps/api/src/modules/auth/auth.controller.ts:145` — a 303
+  // redirect that destroys the session, clears the session cookie,
+  // and lands on `${WEB_ORIGIN}/`. The plain `<a href>` here triggers
+  // a real navigation, not a React handler, so the server controls
+  // the response shape and `HttpOnly` cookies are cleared correctly
+  // server-side.
+  //
   // NB: the api-url centralisation lives in `@/lib/config` (D55's
   // `apiUrl`). The fallback to '' mirrors the rest of the codebase's
   // handling of `NEXT_PUBLIC_API_URL`-unset environments. `apiUrl` is
   // module-scoped (inlined at build time per Next's `NEXT_PUBLIC_*`
-  // convention) so re-evaluating `${apiUrl}/auth/sign-out` every render
+  // convention) so re-evaluating `${apiUrl}/auth/logout` every render
   // is the same string each time — no memoisation needed.
-  const signOutHref = `${apiUrl}/auth/sign-out`;
+  const signOutHref = `${apiUrl}/auth/logout`;
 
   const name = me?.name ?? me?.email ?? '';
   const ariaLabel = name

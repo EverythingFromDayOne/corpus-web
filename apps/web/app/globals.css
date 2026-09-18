@@ -860,12 +860,16 @@ body:has(.av-view) .av-header-tog {
 
    Replaces the `<SignInButton>` once `/me` returns 2xx. Native
    `<details>` + `<summary>` so the dropdown is keyboard-accessible
-   for free (Enter / Space toggles, Esc handled in the user-menu
-   component itself) — no `role="menu"` keydown plumbing needed.
+   for free (Enter / Space toggles, Escape closes via a `keydown`
+   listener inside the React component) — no `role="menu"` keydown
+   plumbing needed. Outside-click close is implemented in the
+   component itself via a `mousedown` document listener, since
+   `<details>` does not provide that for free.
 
    The button (`<summary>`) is a 28×28 circle holding either the
    user's avatar image or an initial-letter fallback. The dropdown
-   panel lists name + email + a plain anchor to `/auth/sign-out`.
+   panel lists name + email + a plain anchor to the live
+   `/auth/logout` endpoint.
 
    All colours reuse the same topbar token pool as
    `.topbar-signin*` so the two surfaces feel like one chrome
