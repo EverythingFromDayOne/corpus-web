@@ -99,6 +99,54 @@ export function UserMenu({ messages }: Props) {
     };
   }, []);
 
+  // Anchor `.user-menu-list` to the trigger's bottom-right corner.
+  //
+  // D59 Phase 3 (Huy-verified, 2026-09-18): the list is `position:
+  // fixed` (`globals.css` `.user-menu-list`) to escape the topbar's
+  // `backdrop-filter: blur(12px)` compositor context where body
+  // content with `isolation: isolate` was painting above. `top` /
+  // `right` come from `--user-menu-top` / `--user-menu-right` CSS
+  // custom props written here from the trigger's
+  // `getBoundingClientRect()`.
+  //
+  // SSR note: `useLayoutEffect` (which Lead's spec called for) does
+  // not exist on the server; using `useEffect` here instead keeps
+  // SSR clean. The panel lands at the CSS fallback position on the
+  // first paint frame, then this effect's initial pass flips it to
+  // the correct pixel position before the user has time to click
+  // the avatar open — the cost is one frame of fallback render,
+  // not a hydration mismatch.
+  //
+  // Listeners: `scroll` (passive, capture phase — sub-tree scrolls
+  // won't fire `window` scroll by default for some elements but
+  // capture-phase listening catches them) and `resize`. Both
+  // re-anchor, so the panel tracks the trigger if the page scrolls
+  // or the viewport resizes while the menu is open.
+  const listRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const trigger = detailsRef.current;
+    const list = listRef.current;
+    if (!trigger || !list) return;
+    function anchor() {
+      const root = detailsRef.current;
+      const panel = listRef.current;
+      if (!root || !panel) return;
+      const rect = root.getBoundingClientRect();
+      panel.style.setProperty('--user-menu-top', `${rect.bottom + 8}px`);
+      panel.style.setProperty(
+        '--user-menu-right',
+        `${window.innerWidth - rect.right}px`,
+      );
+    }
+    anchor();
+    window.addEventListener('scroll', anchor, { passive: true, capture: true });
+    window.addEventListener('resize', anchor);
+    return () => {
+      window.removeEventListener('scroll', anchor, { capture: true } as EventListenerOptions);
+      window.removeEventListener('resize', anchor);
+    };
+  }, []);
+
   // Sign-out link. The endpoint is the live `GET /auth/logout` route
   // in `apps/api/src/modules/auth/auth.controller.ts:145` — a 303
   // redirect that destroys the session, clears the session cookie,
@@ -145,7 +193,7 @@ export function UserMenu({ messages }: Props) {
           </span>
         )}
       </summary>
-      <div role="menu" className="user-menu-list">
+      <div ref={listRef} role="menu" className="user-menu-list">
         {name ? (
           <div
             role="presentation"

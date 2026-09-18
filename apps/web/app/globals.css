@@ -877,9 +877,14 @@ body:has(.av-view) .av-header-tog {
 .user-menu {
   /* `<details>`'s `display: list-item` marker is what shows the
      default ⌄ arrow next to the summary; we want zero visible
-     decoration beyond the avatar. */
+     decoration beyond the avatar.
+
+     D59 Phase 3 (Huy-verified, 2026-09-18): the dropdown list is
+     `position: fixed` (see `--user-menu-top` / `--user-menu-right`
+     custom props driven by `useLayoutEffect` in `user-menu.tsx`),
+     so this wrapper no longer needs to be a positioning context.
+     `position: relative` is dead and removed. */
   display: inline-flex;
-  position: relative;
   font-family: var(--font-display);
   font-size: var(--text-xs);
   color: var(--color-body);
@@ -953,9 +958,7 @@ body:has(.av-view) .av-header-tog {
 
 .user-menu-list {
   /* Open downward, align to the right edge of the trigger so the
-     avatar never gets covered. The padding below the trigger is
-     small enough to keep a 2px gap visual and large enough to keep
-     the cursor travelling onto the panel without collapsing.
+     avatar never gets covered.
 
      D59 (Huy-verified, 2026-09-18): the user dropdown panel was being
      overlapped by page-body content with `isolation: isolate`
@@ -963,31 +966,44 @@ body:has(.av-view) .av-header-tog {
      particularly on long-scroll article pages. Root cause:
      `.topbar` has `backdrop-filter: blur(12px)`
      (`globals.css:133`), which establishes its own stacking context
-     and lifts ALL its descendants — including this absolutely-
+     and lifts ALL its descendants — including an absolutely-
      positioned panel — into a SEPARATE compositor layer from page
      body. Body content with its own stacking context can paint
      above the backdrop-filter layer in some Chrome/Safari
      compositor paths even with lower z-index.
 
-     Fix attempt 1 (Layer promotion): `will-change: transform`
-     promotes this panel into its own compositor layer outside the
-     backdrop-filter context, stacking above body content with
-     `isolation: isolate`. Cross-browser verification pending;
-     Safari historically treats `will-change: transform` differently
-     from Chrome. If `transform: translateZ(0)` proves unreliable
-     cross-browser, the fallback is `position: fixed` +
-     `useLayoutEffect` reading the trigger's `getBoundingClientRect()`
-     (`apps/web/components/chrome/user-menu.tsx`).
+     Fix log:
+       Phase 1 (`d013802`, superseded for this selector): tried
+         `will-change: transform` to promote the list out of the
+         topbar's compositor layer. Layer promotion is local to the
+         topbar stacking context, so it didn't escape the context
+         where body content with `isolation: isolate` was painting
+         above. Failed cross-browser.
+       Phase 3 (this commit): `position: fixed` lifts the list out
+         of the topbar's stacking context entirely, into the
+         viewport-level layer that body content can't paint above
+         without its own elevated compositor layer. `top` / `right`
+         come from `--user-menu-top` / `--user-menu-right` CSS
+         custom props, written by a `useLayoutEffect` in
+         `user-menu.tsx` that reads the trigger's
+         `getBoundingClientRect()` on mount + scroll + resize.
 
-     The explicit `will-change` value (rather than the more common
-     shorthand `transform: translateZ(0)`) keeps the layer promotion
-     without applying a transformation that would otherwise require
-     a matching inverse to avoid subpixel rendering artifacts. */
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
+     If Phase 3 still fails cross-browser (next escalation =
+     `createPortal` to `document.body`, separate slice), the
+     custom-prop plumbing stays — only the consumer of those props
+     changes. */
+  position: fixed;
+  /* `top` / `right` come from custom props written by a
+     `useLayoutEffect` in `user-menu.tsx` reading the trigger's
+     `getBoundingClientRect()` on mount + scroll + resize. Until
+     that effect runs, sit just below the trigger's natural anchor
+     (`100% + 4px` of the wrapper, right edge); first paint is
+     close-enough for the menu to land in the right screen region
+     before the useLayoutEffect's read-and-write pass flips it to
+     the exact pixel position. */
+  top: var(--user-menu-top, calc(100% + 4px));
+  right: var(--user-menu-right, 0);
   z-index: 50;
-  will-change: transform;
   display: flex;
   flex-direction: column;
   gap: 2px;
