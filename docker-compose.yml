@@ -13,7 +13,7 @@ services:
     ports:
       # Host port is configurable so two engineers do not collide on 5432.
       # `port` form passes through Docker's host-IP dispatcher.
-      - "${POSTGRES_HOST_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
       # Named volume — survives `down`. `down -v` is a deliberate reset.
       - corpus_api_pg_data:/var/lib/postgresql/data
