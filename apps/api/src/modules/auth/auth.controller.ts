@@ -2,7 +2,7 @@ import { Controller, Get, Logger, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
-import { loadEnv } from '../../config/env-schema.js';
+import { loadAppEnv } from '../../config/env-schema.js';
 
 /**
  * Auth routes — three endpoints:
@@ -83,7 +83,7 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   @ApiOperation({ summary: 'Google OAuth 2.0 callback' })
   async googleCallback(@Req() req: Request, @Res() res: Response): Promise<void> {
-    const env = await loadEnv();
+    const env = await loadAppEnv();
     const webOrigin = env.WEB_ORIGIN.split(',')[0]?.trim() ?? '';
 
     // Passport's `failureRedirect` is the canonical way to do this;
@@ -145,7 +145,7 @@ export class AuthController {
   @Get('logout')
   @ApiOperation({ summary: 'Destroy the current session' })
   async logout(@Req() req: Request, @Res() res: Response): Promise<void> {
-    const env = await loadEnv();
+    const env = await loadAppEnv();
     const webOrigin = env.WEB_ORIGIN.split(',')[0]?.trim() ?? '';
 
     await new Promise<void>((resolve) => req.logout?.(() => resolve()));

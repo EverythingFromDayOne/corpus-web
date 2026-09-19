@@ -4,7 +4,7 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import passport from 'passport';
 import { AppModule } from './app.module.js';
-import { isAuthEnabled, loadEnv } from './config/env-schema.js';
+import { isAuthEnabled, loadAppEnv } from './config/env-schema.js';
 import { buildSessionMiddleware } from './config/session.js';
 
 /**
@@ -105,7 +105,7 @@ async function bootstrap(): Promise<void> {
   // Validate env a second time inside bootstrap so we can read the values
   // BEFORE assembling middleware. The first validation already happened
   // inside `AppModule`'s `ConfigModule.validate`.
-  const env = await loadEnv();
+  const env = await loadAppEnv();
   const authEnabled = isAuthEnabled(env);
 
   // --- Trust proxy (D-7) ---------------------------------------------------

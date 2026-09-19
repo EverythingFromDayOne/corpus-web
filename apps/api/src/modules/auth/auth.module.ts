@@ -21,10 +21,12 @@ import { defaultEnvCandidates } from '../../config/dotenv.js';
 //
 // To make `GOOGLE_CLIENT_ID` visible at module-decorator time we use
 // Node 21.7+'s native `process.loadEnvFile()` (synchronous) for each
-// candidate path the rest of the app uses. This duplicates one line
-// of work — `loadDotEnv` will run again later in `main.ts` — but
-// `process.loadEnvFile` is idempotent (does not overwrite values
-// already in `process.env`, per Node docs).
+// candidate path the rest of the app uses. This is independent of
+// `loadAppEnv()` in `env-schema.ts` (which is async and runs later
+// from `main.ts` and per-request call sites); the two paths use the
+// same precedence rules, so the values converge. `loadEnvFile` is
+// idempotent (does not overwrite values already in `process.env`, per
+// Node docs).
 if (typeof (process as unknown as { loadEnvFile?: (p?: string) => void }).loadEnvFile === 'function') {
   for (const candidate of defaultEnvCandidates()) {
     if (existsSync(candidate)) {
@@ -37,9 +39,11 @@ if (typeof (process as unknown as { loadEnvFile?: (p?: string) => void }).loadEn
  * Inline Google-OAuth env reader. Re-uses the same shape as
  * `config/env-schema.ts` but reads process.env directly because
  * module `imports` is evaluated synchronously by Nest — there is no
- * `await` point we can sit at. The full `loadEnv()` in main.ts has
- * already run by the time this code executes, so a duplicate zod
- * parse here is safe: the values are the same.
+ * `await` point we can sit at. `loadAppEnv()` has already run by the
+ * time this code executes (it runs at bootstrap from `main.ts:108`,
+ * which precedes Nest module instantiation), so the dotenv-populate
+ * step is effectively already done and a duplicate zod parse here
+ * is safe: the values are the same.
  */
 const GoogleEnvInline = z.object({
   GOOGLE_CLIENT_ID: z.string().min(1),
@@ -84,7 +88,7 @@ export class AuthModule {
         // The strategy reads the three Google env vars at construction
         // time. `useFactory` here is the cleanest way to thread them
         // through — we could pass them via DI but the env-validated
-        // path through `loadEnv()` is the same shape every other
+        // path through `loadAppEnv()` is the same shape every other
         // consumer uses, so we keep one source of truth.
         {
           provide: GoogleStrategy,

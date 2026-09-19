@@ -2,7 +2,7 @@ import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
 import pkg from 'pg';
 import type { RequestHandler } from 'express';
-import { loadEnv } from './env-schema.js';
+import { loadAppEnv } from './env-schema.js';
 
 const { Pool } = pkg;
 
@@ -49,7 +49,7 @@ export async function buildSessionMiddleware(): Promise<RequestHandler> {
   // the time this is called; the worst case is the URL-only branch
   // doesn't have POSTGRES_HOST — we read each one via nullish
   // coalescing to the URL form if needed.
-  await loadEnv();
+  await loadAppEnv();
   const dbUrl = process.env['DATABASE_URL'];
 
   let pgConfig: { host: string; port: number; user: string; password: string; database: string };

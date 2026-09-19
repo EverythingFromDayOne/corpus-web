@@ -14,13 +14,19 @@
  *   and is being updated separately.
  *
  * Test isolation:
- * - `loadEnv()` reads from `source` (defaults to `process.env`) and calls
- *   `loadDotEnv()` on first invocation, which mutates `process.env` with a
- *   `skip-existing` policy. We pre-populate `process.env` with only our
- *   test values before each case so dotenv can't override, then restore
- *   the original `process.env` after. The `dotenvLoaded` module-level flag
- *   is irrelevant when we pass an explicit `source` to `loadEnv()` for
- *   the URL-only case.
+ * - `loadEnv()` is pure: it parses the `source` argument (default
+ *   `process.env`) and does NOT touch the file system or mutate
+ *   `process.env`. Callers that want dotenv-populate-then-parse use
+ *   `loadAppEnv()` instead, which is what `main.ts` and the runtime
+ *   call sites do. Tests call `loadEnv()` directly because the
+ *   regression guards we care about are about `loadEnv`'s parse
+ *   contract, not about dotenv.
+ * - We pre-populate `process.env` with only our test values before
+ *   each case via `withEnv()`. After D67, `loadEnv` does not pull
+ *   anything from disk, so the absence of a `.env` in CI is no longer
+ *   load-bearing — but the `withEnv()` helper still strips the
+ *   relevant prefixes to keep any future refactor that re-introduces
+ *   a dotenv path inside `loadEnv` honest.
  * - We do NOT delete real `.env` files — the test process has no `.env`
  *   in CI and locally none is present on the dev box. If a future CI
  *   environment ever introduces a `.env`, the `withEnv()` helper will
@@ -181,4 +187,88 @@ test('toDatabaseUrl component form encodes URL-special characters in password (e
       assert.strictEqual(decodeURIComponent(parsed.password), trickyPassword);
     },
   );
+});
+
+// Case 5 — D67 contract guard. After the loadEnv/loadDotEnv split,
+// `loadEnv` must be pure: it parses `process.env` only and never reads
+// from disk. The original bug class (process.loadEnvFile silently
+// populating a stripped DATABASE_URL from .env while component-form
+// POSTGRES_PASSWORD is set in process.env) cannot recur if `loadEnv`
+// never touches disk.
+//
+// Test shape:
+//   1. process.env has component-form POSTGRES_* values set, with NO
+//      DATABASE_URL.
+//   2. A `.env`-shaped in-memory fixture sits on disk at a path we can
+//      reach via process.loadEnvFile.
+//   3. We monkey-patch process.loadEnvFile to record calls; if `loadEnv`
+//      reads the file (a regression), we catch it via the call counter.
+//   4. We assert: component-form wins (toDatabaseUrl returns the URL
+//      derived from POSTGRES_*) AND loadEnvFile was called 0 times.
+//
+// The contract: callers that want dotenv-populate-then-parse use
+// `loadAppEnv()`, not `loadEnv`. This test is the regression guard for
+// `loadEnv`'s purity.
+test('loadEnv is pure: component form wins and disk is never read (D67 contract guard)', async () => {
+  const fakeDotenvPath = `/tmp/d67-purity-test-${process.pid}-${Date.now()}.env`;
+  // The fake .env on disk carries a DATABASE_URL that would override
+  // the component-form values IF loadEnv read the file (the pre-D67
+  // bug class). It also carries a different POSTGRES_PASSWORD, which
+  // loadEnvFile would NOT overwrite (it honors precedence on existing
+  // keys), but it documents the file contents for any reader tracing
+  // the test.
+  const fakeDotenvContents = [
+    '# synthetic .env — DO NOT load via loadEnv',
+    'DATABASE_URL=postgres://corpus:file-only-password@db.example.com:5432/corpus_api',
+    'POSTGRES_PASSWORD=file-only-password',
+    '',
+  ].join('\n');
+  await import('node:fs/promises').then((fs) => fs.writeFile(fakeDotenvPath, fakeDotenvContents));
+
+  // Monkey-patch process.loadEnvFile: if `loadEnv` reaches for the
+  // disk, we record it. After D67, this MUST stay at 0.
+  const originalLoadEnvFile = (process as unknown as { loadEnvFile?: (p?: string) => void }).loadEnvFile;
+  let loadEnvFileCalls = 0;
+  (process as unknown as { loadEnvFile?: (p?: string) => void }).loadEnvFile = (p?: string) => {
+    loadEnvFileCalls += 1;
+    // If something in `loadEnv` ever does start reading .env, surface
+    // the path in the assertion failure so the regression is debuggable.
+    throw new Error(`loadEnv must not read disk; process.loadEnvFile called with ${p}`);
+  };
+
+  try {
+    await withEnv(
+      {
+        ...SESSION_DEFAULTS,
+        POSTGRES_HOST: 'db.example.com',
+        POSTGRES_PORT: '5432',
+        POSTGRES_USER: 'corpus',
+        POSTGRES_PASSWORD: 'process-env-password',
+        POSTGRES_DB: 'corpus_api',
+        // Deliberately NO DATABASE_URL in process.env — the whole point.
+      },
+      async () => {
+        const env = await loadEnv();
+        const url = toDatabaseUrl(env);
+        // Component form wins: the password in the URL must come from
+        // process.env.POSTGRES_PASSWORD, not from the fake .env's
+        // DATABASE_URL line. If `loadEnv` had read the file (the
+        // pre-D67 bug), DATABASE_URL would have been populated from
+        // .env and toDatabaseUrl would short-circuit via the URL form.
+        const parsed = new URL(url);
+        assert.strictEqual(decodeURIComponent(parsed.password), 'process-env-password');
+        // Belt-and-braces: the URL must NOT contain the file's value.
+        assert.ok(!url.includes('file-only-password'), 'env-schema returned the file-only-password from .env');
+        // Purity assertion: loadEnv must not have touched disk.
+        assert.strictEqual(loadEnvFileCalls, 0, `loadEnv called process.loadEnvFile ${loadEnvFileCalls} time(s); it must not read disk`);
+      },
+    );
+  } finally {
+    if (originalLoadEnvFile === undefined) {
+      delete (process as unknown as { loadEnvFile?: (p?: string) => void }).loadEnvFile;
+    } else {
+      (process as unknown as { loadEnvFile?: (p?: string) => void }).loadEnvFile = originalLoadEnvFile;
+    }
+    await import('node:fs/promises').then((fs) => fs.unlink(fakeDotenvPath).catch(() => undefined));
+  }
 });
