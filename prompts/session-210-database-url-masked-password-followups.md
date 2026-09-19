@@ -87,9 +87,15 @@ Changes:
 
    **Note on the `.test.mjs` filename**: the smoke is `.mjs` (plain JS, not TS) so it doesn't need a TS runner. The vitest bootstrap PR (D1) handles the TS test files separately.
 
-   **Note on import path**: `toDatabaseUrl` is exported from `apps/api/src/config/env-schema.ts`. The smoke imports it via the compiled JS path — either compile `apps/api` first (`pnpm --filter @corpus/api build`, then import from `dist/config/env-schema.js`), or use `tsx`/`ts-node`-free approach. The simplest: import the TS source through `tsx`'s `--import` flag (the api already uses `tsx/esm` for `start:dev`), so the smoke's run command is `node --import tsx/esm --test apps/api/src/config/__tests__/env-schema.smoke.test.mjs` — `tsx` is already a `devDependencies` dep on `apps/api`, zero new packages.
+   **Note on import path**: `toDatabaseUrl` is exported from `apps/api/src/config/env-schema.ts`. The smoke imports it via the TS source through `tsx`'s `--import` flag. **However, `tsx` is NOT in `apps/api/package.json` `devDependencies` — it lives in the repo-root `package.json` (`"tsx": "4.23.12"`) and works in `apps/api` via pnpm workspace hoist.** `apps/api`'s `start:dev` script uses `node --watch --import tsx/esm src/main.ts` and that resolves via the hoist today. A `node --import tsx/esm --test apps/api/src/config/__tests__/env-schema.smoke.test.mjs` smoke would also resolve via the same hoist, but `--import` resolves at process start before any cwd walk and is brittle:
+   - On macOS / Linux dev machines: works because `tsx` is in the hoist.
+   - On the VPS where `apps/api/dist/main.js` is the compiled entry, the compiled code path is irrelevant for the smoke — the smoke runs against source via tsx anyway. But the VPS doesn't have a local `tsx` install in `apps/api/`, so the smoke must run from the repo root or with explicit `node --import tsx/esm` resolution.
+   - **Two safer alternatives** (use one, do NOT add `tsx` to `apps/api/devDependencies` in this PR — that's a hard-stop):
+     - **(a) Pure `node --test` without `tsx`**: compile `apps/api` first (`pnpm --filter @corpus/api build`), import from `apps/api/dist/config/env-schema.js`. Requires the build step in the smoke command but is zero-dep.
+     - **(b) Add `tsx` to `apps/api/devDependencies`** explicitly as a single-line `package.json` change: `"tsx": "4.23.12"` — same package, same version, just declared locally. Per the user's prompt this is OK ("don't block this fix on vitest bootstrap" implies local-dev-dep flexibility is allowed). But it's still a hard-stop trigger per BE's profile — needs explicit Huy go-ahead before opening the PR.
+     - **(c) Move the smoke into the repo-root `package.json`** as a new script `verify:api-env-schema-smoke` that runs `node --import tsx/esm --test scripts/api-env-schema-smoke.test.mjs`. Repo root already has `tsx`. This keeps `apps/api` clean.
 
-   **Wait — the `tsx` dep**: verify `tsx` is in `apps/api/package.json` devDependencies before relying on it. If it's only a transitive dep, add it explicitly (a 0-byte "add to devDependencies" change, not a "new dep" — same package is already in the tree).
+   Recommend (c). It honors the existing `tsx` location, doesn't add deps anywhere, and lands the smoke as a first-class verify command.
 
 Acceptance:
 - `pnpm --filter @corpus/api test:smoke` exits 0 with 3 assertions passing.
@@ -131,7 +137,11 @@ Docs:
 Branch: `test/apps-api-env-schema` (off `develop`, after D1 lands)
 Files: ONE test file only, per the user's "split per AGENTS.md" rule.
 
-`apps/api/src/config/__tests__/env-schema.spec.ts` (NEW) — three test cases per the user's spec:
+**Spec location is co-located with source per `.cursor/rules/50-api-nestjs.mdc:63`** ("Named exports. Co-located `*.spec.ts`."). The file lands at:
+
+- `apps/api/src/config/env-schema.spec.ts` (NEW) — sibling to `env-schema.ts`
+
+NOT under `__tests__/`. If you're reading an earlier draft of this prompt that said `__tests__/`, that was wrong; disregard. The earlier Lead reviewer's dispatch violated the rule, and BE caught it. Use the co-located path.
 
 1. **`toDatabaseUrl()` component form** — pass an `AppEnv` populated with `POSTGRES_*` fields (no `DATABASE_URL`); assert the returned URL contains the *real* `POSTGRES_PASSWORD` URL-encoded (not `***`), and matches the expected `postgres://<user>:<password>@<host>:<port>/<db>` shape exactly.
 2. **`toDatabaseUrl()` URL form** — pass an `AppEnv` with only `DATABASE_URL` set (the `UrlOnlySchema` path); assert the returned URL is the input `DATABASE_URL` unchanged (or with whatever normalization `toDatabaseUrl` performs on that branch — match what the code actually does, not what the doc comment claims).
