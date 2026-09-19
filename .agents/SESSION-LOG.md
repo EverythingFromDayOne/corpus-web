@@ -10190,3 +10190,69 @@ Huy's relay-suggested addition (deps-array path — same loop shape via state-in
 - Lead re-runs in-scope gates.
 - Lead routes to Huy for merge sign-off.
 
+
+## Session 216 — D68/D69/D70 config hardening (auto-pilot)
+
+**Branch**: `fix/d68-d69-d70-config-hardening` off `origin/develop @ 60b1547` (post-PR-#192 merge)
+**PR**: pending; will open as PR #193 once all gates green
+**Bookkeeping drift**: Lead's prior 3 unpushed commits (`a41a2f2`, `f96aca4`, `4feb8a6`) reconciled separately per Lead's message — BE's tree is independent, off `60b1547`.
+
+### Slice A — D68: APP_CONFIG DI provider
+
+`apps/api/src/config/app-config.provider.ts` (new). `APP_CONFIG` symbol + `appConfigProvider` (`FactoryProvider`). `useFactory: async () => await loadEnv()` resolves once per Nest application instance; Nest caches across every `@Inject(APP_CONFIG)` consumer. `auth.module.ts` registers the provider and re-exports the token. `auth.controller.ts` constructor gains `@Inject(APP_CONFIG) private readonly appConfig: AppEnv`; both `loadAppEnv()` call sites (lines 86, 148) switch to `this.appConfig.WEB_ORIGIN` / `this.appConfig.SESSION_COOKIE_NAME`. `loadAppEnv` import is removed. `@Inject(...)` is EXPLICIT — same `D26 A.3` rationale as `SessionAuthGuard` and the health controllers (tsx/esbuild dev-mode loader does not emit `design:paramtypes`).
+
+Test: `apps/api/test/config/app-config.test.ts` (new, 4 cases). Idempotency (N=100 factory invocations return `deepEqual` snapshots), `APP_CONFIG` is a unique `Symbol` (collision guard), `useFactory` returns `Promise<AppEnv>`, `provide` field equals `APP_CONFIG`. `loadEnv` needs valid env to succeed, so the test wraps each factory call in a `withValidEnv()` helper that sets component-form `process.env` and restores on `finally` — same `withEnv` pattern the env-schema test uses.
+
+### Slice B — D69: readiness schema check + startup migrations
+
+`apps/api/src/health/schema-health.indicator.ts` (new). `SchemaHealthIndicator` extends `@nestjs/terminus` `HealthIndicator`. `check()` runs `SELECT to_regclass('public.migrations') IS NOT NULL` AND `SELECT count(*)::text FROM migrations` in parallel. The count query has `.catch(() => [{ count: '0' }])` to absorb the half-built-schema race window (`to_regclass` says true, count query says `relation "migrations" does not exist`). Returns 503 `database: schema-missing` / `schema-empty` / 200 `database: schema { applied: N }`.
+
+`apps/api/src/db/migration-on-bootstrap.ts` (new). `MigrationOnBootstrap implements OnApplicationBootstrap`. `onApplicationBootstrap()` awaits `dataSource.runMigrations({ transaction: 'each' })`. Fires after `app.init()` resolves all module deps (so `DataSource` is injectable) but before `app.listen()` accepts traffic — NestJS-lifecycle-native placement, no `beforeListen` hack.
+
+`apps/api/src/db/database.module.ts` (new). One-liner `@Module({ providers: [MigrationOnBootstrap] })`. Wired from `app.module.ts` after `TypeOrmModule.forRootAsync`.
+
+`health.controller.ts` — `ReadyController` constructor gains `@Inject(SchemaHealthIndicator) private readonly schema`. `check()` runs `pingCheck` AND `schema.check` in parallel — different failure modes, different 503 reasons. `HealthModule.providers` and `HealthModuleProviders` re-exports include the indicator.
+
+Test: `apps/api/test/health/schema-health.test.ts` (new, 5 cases). Stubs `QueryRunner.query` to drive each branch. Catches a real assertion-shape bug: my first cut read `err.ca.database` but Terminus's `HealthCheckError.causes` is the actual field (not `ca`). Fixed.
+
+### Slice C — D70: CreateCorpusSession migration + flag off
+
+`apps/api/src/db/migrations/1700000002000-CreateCorpusSession.ts` (new). `CREATE TABLE IF NOT EXISTS "corpus_session" (sid varchar, sess json, expire timestamp(6))` + `ALTER TABLE ADD CONSTRAINT "corpus_session_pkey" PRIMARY KEY (sid)` + `CREATE INDEX IF NOT EXISTS "IDX_corpus_session_expire"`. `down()` drops the index then the table. DDL source: `connect-pg-simple@10.0.0/node_modules/connect-pg-simple/table.sql` (read with `cat` from the .pnpm-hoisted path). The package created the live VPS table via `createTableIfMissing: true` at first boot — package DDL is canonical by construction (any drift would have errored at boot, none observed). All three statements are `IF NOT EXISTS` so the migration is idempotent against the live table — VPS `migration:run` post-merge is a no-op for the table-create side, only logs the migration entry.
+
+`session.ts:104` — `createTableIfMissing: true` → `false`. Schema is now owned by the migration directory; the runtime does not mutate it.
+
+Test: `apps/api/test/db/create-corpus-session-migration.test.ts` (new, 4 cases). Stubs `QueryRunner.query` to track SQL. Asserts canonical DDL strings are issued, second-invocation idempotency, `down()` ordering (index before table), and migration `name` is the stable string TypeORM uses for bookkeeping.
+
+### Invented decisions flagged for Huy ratification
+
+1. **D68 APP_CONFIG shape** (per dispatch brief): chose `useFactory: async () => await loadEnv()` (full env snapshot, typed via zod schema inferred from `AppEnv`). The alternative was a typed subset containing only `WEB_ORIGIN` + `SESSION_COOKIE_NAME` (the two values `auth.controller.ts` actually reads). Rejected because the subset would force a refactor if/when a third consumer reads a different value, and the AppEnv shape is small enough to inject wholesale.
+
+2. **D69 where `runMigrations()` runs** (per dispatch brief): chose `OnApplicationBootstrap` lifecycle hook in a dedicated `MigrationOnBootstrap` service registered via `DatabaseModule`. The alternative was an inline `await dataSource.runMigrations()` in `main.ts` between `app.init()` and `app.listen()`. Rejected because NestJS lifecycle hooks are the canonical placement for "after DI resolves, before traffic" code, and registering the service means future migrations-aware consumers (e.g. a `/admin/migrations` controller) can inject the same `DataSource` with confidence the hook has fired.
+
+3. **D69 response shape** (per dispatch brief): chose to add a new `database: schema` field via `Terminus`'s standard `HealthIndicatorResult` shape (the indicator's `getStatus(key, isHealthy, data)` returns `{ [key]: { status, ...data } }`). The alternative was a separate top-level `migrations: <count>` field outside the `database` indicator. Rejected because Terminus's per-indicator shape is what `health.check([...])` aggregates, and adding a separate field would require restructuring the `health.check()` call signature.
+
+4. **D70 schema source** (per dispatch brief): chose `connect-pg-simple`'s `table.sql` (the package created the table; package DDL is canonical by construction). The alternative was a fresh `pg_dump --schema-only --table=corpus_session` against the VPS. Rejected because no live-DB drift has been observed (a drift would have errored at boot), and a fresh dev DB pg_dump is not authoritative for the VPS table. If future contributors find divergence, they need to add a SECOND migration to reconcile (the existing migration body remains the canonical baseline).
+
+### Verification
+
+- `pnpm --filter @corpus/api typecheck` ✓ 0 errors
+- `pnpm --filter @corpus/api lint` ✓ 0 problems
+- `pnpm --filter @corpus/api test` ✓ 18/18 PASS in 2887ms
+- `pnpm --filter @corpus/api build` ✓ `dist/` shape verified, zero `*.test.js` leakage, new files present:
+  - `dist/health/schema-health.indicator.js` 3930 B
+  - `dist/db/migration-on-bootstrap.js` 3541 B
+  - `dist/db/database.module.js` 1383 B
+  - `dist/db/migrations/1700000002000-CreateCorpusSession.js` 3219 B
+  - `dist/config/app-config.provider.js` (size TBD)
+- `pnpm agents:check` ✓
+- `pnpm verify:frontmatter` 196/196 ✓ (D37 standing submodule warning unchanged)
+- `pnpm verify:catalog` 196/445/2 valid ✓
+
+### Diff stat
+
+`git diff --stat` (excluding untracked):
+- 5 modified: `apps/api/src/app.module.ts`, `apps/api/src/config/session.ts`, `apps/api/src/health/health.controller.ts`, `apps/api/src/modules/auth/auth.controller.ts`, `apps/api/src/modules/auth/auth.module.ts`
+- 8 untracked: 4 runtime (app-config.provider.ts, database.module.ts, migration-on-bootstrap.ts, schema-health.indicator.ts), 1 migration (1700000002000-CreateCorpusSession.ts), 3 test files (app-config.test.ts, schema-health.test.ts, create-corpus-session-migration.test.ts)
+- 5 bookkeeping: DEBT.md, CHANGELOG.md, SESSION-LOG.md, progress.md, summary.md
+
+Auto-pilot mode per Huy's "review tomorrow" — clean receipt, ready for Lead verification and Huy review tomorrow.

@@ -101,7 +101,12 @@ export async function buildSessionMiddleware(): Promise<RequestHandler> {
     store: new PgStore({
       pool,
       tableName: 'corpus_session',
-      createTableIfMissing: true,
+      // Schema is owned by the migration directory (D70). The
+      // `1700000002000-CreateCorpusSession.ts` migration creates
+      // `corpus_session` with the canonical DDL and the
+      // startup-time `MigrationOnBootstrap` (D69) applies it. The
+      // runtime no longer mutates the schema.
+      createTableIfMissing: false,
       schemaName: 'public',
     }),
   });

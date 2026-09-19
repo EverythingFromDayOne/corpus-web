@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { validateEnv } from './config/env-config.js';
+import { DatabaseModule } from './db/database.module.js';
 import { buildDataSourceOptions } from './db/data-source.js';
 import HealthModule from './health/health.controller.js';
 import { AuthModule } from './modules/auth/auth.module.js';
@@ -42,6 +43,10 @@ import { AuthModule } from './modules/auth/auth.module.js';
       useFactory: () => buildDataSourceOptions(),
     }),
     HealthModule,
+    // DatabaseModule hosts MigrationOnBootstrap (D69) — fires
+    // `dataSource.runMigrations()` after `app.init()` resolves but
+    // before `app.listen()` accepts traffic.
+    DatabaseModule,
     // `AuthModule.forRoot()` returns `null` when the Google OAuth env
     // block is missing, in which case the module is not registered
     // and the API boots in auth-disabled mode. The conditional is at

@@ -7376,3 +7376,65 @@ Session 210 PR #187 (branch `fix/database-url-masked-password`, no separate book
 - **Fixed**: `UrlOnlySchema` did not declare `DATABASE_URL`, so zod strip mode dropped it and the URL-only config form built an all-undefined URL. Latent — never exercised in any environment. (`9cdd712`)
 - **Security**: Postgres host port now binds `127.0.0.1` instead of `0.0.0.0`. The previous binding published the database on the VPS public IP; UFW did not block it because Docker inserts DNAT rules ahead of the UFW chain. (`a764e10`)
 - **Added**: `toMaskedDatabaseUrl()` for log/error paths. Currently has no caller — wiring it is a follow-up, not part of this change.
+
+### [2026-09-19] — fix/d68-d69-d70-config-hardening — DI provider, readiness schema check, corpus_session migration
+
+Three coordinated slices on one branch. Each slice is a Phase B close-out item from Huy's 2026-09-19 directive; all three land together because they share the same NestJS lifecycle (DI registration + `OnApplicationBootstrap`) and the same verification gate (api-runtime tests).
+
+**Added (Slice A — D68)**
+
+- `apps/api/src/config/app-config.provider.ts` — new file. Exports `APP_CONFIG` symbol + `appConfigProvider` (`FactoryProvider`). `useFactory: async () => await loadEnv()` resolves once per Nest application instance; Nest caches the resolved value across every `@Inject(APP_CONFIG)` consumer in the same app, so consumers see one frozen `AppEnv` snapshot for the life of the process.
+- `apps/api/src/modules/auth/auth.module.ts` — registers `appConfigProvider` in `providers: []` and re-exports `APP_CONFIG` from `exports: []` so other modules (e.g. a future `MeController` consumer) can also inject.
+- `apps/api/src/modules/auth/auth.controller.ts` — constructor signature gains `@Inject(APP_CONFIG) private readonly appConfig: AppEnv`; `loadAppEnv` import is removed; both call sites (`googleCallback` and `logout`) switch from `await loadAppEnv()` to `this.appConfig.WEB_ORIGIN` / `this.appConfig.SESSION_COOKIE_NAME`. `@Inject(...)` is EXPLICIT (not implicit `design:paramtypes`) because `tsx`/esbuild (`pnpm start:dev`) does not emit decorator metadata — same `D26 A.3` finding that drove the explicit-inject pattern in `SessionAuthGuard` and the health controllers.
+- `apps/api/test/config/app-config.test.ts` — new file, 4 cases. Pins the contract that the factory is idempotent (N=100 invocations return `deepEqual` snapshots) and that the token is a unique `Symbol` (collision guard against accidental refactor to a string).
+
+**Added (Slice B — D69)**
+
+- `apps/api/src/health/schema-health.indicator.ts` — new file. `SchemaHealthIndicator` subclass of `@nestjs/terminus` `HealthIndicator`. `check(key)` runs two queries in parallel: `SELECT to_regclass($1) IS NOT NULL AS regclass` against `'public.migrations'` and `SELECT count(*)::text AS count FROM migrations` (with `.catch()` swallowing the `relation does not exist` race window so the indicator classifies a half-built schema as empty rather than 500ing). Returns 503 `database: schema-missing` when `to_regclass` returns false, 503 `database: schema-empty` when count is 0, 200 `database: schema` with `{ applied: N }` when both pass.
+- `apps/api/src/health/health.controller.ts` — `ReadyController` constructor gains `@Inject(SchemaHealthIndicator) private readonly schema: SchemaHealthIndicator`. `HealthModule.providers` and `HealthModuleProviders` re-export include the indicator. `check()` now runs `pingCheck` AND `schema.check` in parallel — different failure modes (DB down vs DB up-but-uninitialized), different 503 reasons, same wrapper.
+- `apps/api/src/db/migration-on-bootstrap.ts` — new file. `MigrationOnBootstrap` service implementing `OnApplicationBootstrap`. `onApplicationBootstrap()` awaits `dataSource.runMigrations({ transaction: 'each' })` and logs `applied <name>` per migration or `no migrations pending` when the table is already current. Fires after `app.init()` resolves all module deps but before `app.listen()` accepts traffic — NestJS lifecycle-hooks-native placement, no `beforeListen` hack.
+- `apps/api/src/db/database.module.ts` — new file. Tiny `@Module({ providers: [MigrationOnBootstrap] })` wrapper. Imported once from `AppModule`. The hook fires because NestJS instantiates the provider during `app.init()`.
+- `apps/api/src/app.module.ts` — imports `DatabaseModule` after `TypeOrmModule.forRootAsync`. `TypeOrmModule` is the global source of the `DataSource` token; `DatabaseModule` registers the lifecycle consumer that injects it.
+- `apps/api/test/health/schema-health.test.ts` — new file, 5 cases. Stubs `QueryRunner.query` to drive each branch (200 OK with `applied: N`, 503 schema-missing, 503 schema-empty, 503 schema-empty from race-window catch, Postgres `t`/`f` boolean shape).
+
+**Changed (Slice C — D70)**
+
+- `apps/api/src/config/session.ts:104` — `createTableIfMissing: true` → `createTableIfMissing: false`. The runtime no longer mutates the schema. Schema is owned by the migration directory. 6-line comment block cites the D70 row, the `MigrationOnBootstrap` startup run, and the canonical DDL source.
+- `apps/api/src/db/migrations/1700000002000-CreateCorpusSession.ts` — new file. `CREATE TABLE IF NOT EXISTS "corpus_session" (sid varchar NOT NULL, sess json NOT NULL, expire timestamp(6) NOT NULL)` + `ALTER TABLE ... ADD CONSTRAINT "corpus_session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE` + `CREATE INDEX IF NOT EXISTS "IDX_corpus_session_expire" ON "corpus_session" ("expire")`. `down()` drops the index then the table. DDL is `connect-pg-simple@10.0.0`'s `table.sql` template verbatim — the package created the live VPS table on first boot via the flag being turned off in this same PR, so the package's DDL is the canonical shape. All three statements use `IF NOT EXISTS` so the migration is idempotent against the live table (VPS `pnpm --filter @corpus/api migration:run` is a no-op for an already-initialized schema).
+- `apps/api/test/db/create-corpus-session-migration.test.ts` — new file, 4 cases. Stubs `QueryRunner.query` to track SQL; asserts the canonical DDL strings are issued, second-invocation idempotency, `down()` drops index-then-table, and the migration's `name` is the stable string TypeORM uses for bookkeeping.
+
+**Bookkeeping**
+
+- `docs/DEBT.md` — Highest ID bumped D67 → D70 (single hop on the second bump). Three Open rows added: D68 (DI migration narrative), D69 (readiness schema check + bootstrap migrations), D70 (corpus_session migration + flag off).
+- `.agents/SESSION-LOG.md` — Session 216 entry appended.
+- `progress.md` — Session 216 one-liner appended.
+- `.agents/summary.md` — lead-in rotated to Session 216.
+
+**Not in this PR** (deferred per Lead's dispatch brief):
+
+- D63 — `start:dev` CI gate (separate slice).
+- D64/D65 — coding-fe scope (React provider event-bus rule + Playwright `/me` count smoke).
+- D59 — Vercel re-verification (Huy's side, separate).
+- D68 still-open sub-item — the 3 boot-time `loadAppEnv()` call sites (`main.ts:108`, `session.ts:52`, `data-source.ts:27`) are NOT migrated to DI in this PR; they run once per process by construction (boot time, not per-request), so the wrapper's guard already handles them.
+
+**Hard-rule compliance** (per `.cursor/rules/20-never-violate.mdc`):
+
+- No `synchronize: true` (`data-source.ts:38` still `false`, unchanged).
+- No new npm dep. `MigrationOnBootstrap` uses NestJS lifecycle hooks already in `@nestjs/common`; `SchemaHealthIndicator` uses `@nestjs/terminus` (already a dep of `apps/api` for the existing `pingCheck`); `APP_CONFIG` uses `Provider` from `@nestjs/common` (already a dep).
+- No hand-edit of `packages/api-client/` — no `@ApiTags`/`@ApiOperation` decorators changed on `auth.controller.ts`. The `ReadyController` swagger surface gains one nested `database: schema` field, but Terminus owns the response shape; no client regen required.
+- No hard-delete of `lessons` rows (N/A, no D-series content touched).
+- No `'server'` quiz-scoring mode (N/A, no quiz code).
+- No `*.spec.ts` co-located — three new test files in `apps/api/test/` (config/, db/, health/) follow the established sibling-test convention.
+- API not in article-body read path (N/A, no `content/` submodule touched).
+- Canonical NestJS Express-access API used everywhere — no Express casts, no Express-only APIs. `SchemaHealthIndicator` uses `dataSource.query` (TypeORM, framework-agnostic). `MigrationOnBootstrap` uses NestJS lifecycle hooks (framework-native). `appConfigProvider` is a Nest `FactoryProvider`.
+- No `SameSite=None` (N/A, no cookie changes).
+- No `AGENTS.md` hand-edit — `pnpm agents:check` runs against existing `AGENTS.md` / `CLAUDE.md` / `60-skills.mdc` and passes.
+- D70 migration body source decision — package's `table.sql`, not a fresh `pg_dump --schema-only` against VPS. Documented in the migration docstring as an invented decision for Huy ratification.
+
+**Stop-and-ask triggers invoked (none hit)**:
+
+- New npm package: NO (zero new deps).
+- Public OpenAPI spec change beyond `auth.controller.ts:86,148`: NO (no Swagger decorator touched).
+- Live `corpus_session` schema change: the migration is `CREATE TABLE IF NOT EXISTS` + `CREATE INDEX IF NOT EXISTS`; both are no-ops against the live table. NOT a schema change in the destructive sense — no `ALTER TABLE` on a populated table. VPS apply is post-merge via `pnpm --filter @corpus/api migration:run`.
+- Route deprecation: NO.
+- Irreversible ops on VPS: NO (idempotent migration, no manual DDL).

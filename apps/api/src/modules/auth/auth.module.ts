@@ -3,6 +3,7 @@ import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { existsSync } from 'node:fs';
 import { z } from 'zod';
+import { APP_CONFIG, appConfigProvider } from '../../config/app-config.provider.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { User } from './entities/user.entity.js';
@@ -85,6 +86,7 @@ export class AuthModule {
         AuthService,
         SessionSerializer,
         SessionAuthGuard,
+        appConfigProvider,
         // The strategy reads the three Google env vars at construction
         // time. `useFactory` here is the cleanest way to thread them
         // through — we could pass them via DI but the env-validated
@@ -97,7 +99,7 @@ export class AuthModule {
           inject: [AuthService],
         },
       ],
-      exports: [AuthService],
+      exports: [AuthService, APP_CONFIG],
     };
   }
 }
