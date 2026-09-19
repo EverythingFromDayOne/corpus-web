@@ -60,7 +60,8 @@ is in the wrong service.
 
 - One module per domain, `src/modules/<domain>/`.
 - Controller -> Service -> Repository. Controllers contain no business logic.
-- Named exports. Co-located `*.spec.ts`.
+- Named exports.
+- Tests live in `apps/*/test/**/*.test.ts` (sibling `test/` dir, not co-located `src/`), run via `node --import tsx --test test/**/*.test.ts`; each `apps/*/tsconfig.test.json` includes both `src/**/*.ts` and `test/**/*.ts` with `noEmit: true` while `tsconfig.build.json` includes `src/**/*.ts` only, so `dist/` never ships test files.
 
 ## Validation
 
