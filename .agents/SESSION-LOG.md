@@ -10063,3 +10063,72 @@ Huy's relay-suggested addition (deps-array path — same loop shape via state-in
 **Skills updated this session**: none. The bookkeeping-coupling rule and the VPS-runtime-claims-only-from-Huy rule are patterns that will need to be captured in `corpus-web-context` references in a future session — deferred to MEMORY/char-budget-free window.
 
 ---
+
+## Session 211 — 2026-09-19 — BE — D57 first tests for `apps/api/src/config/env-schema.ts` (4 cases, zero new devDeps, tsconfig split)
+
+**Root cause (one line)**: `apps/api` had zero `.spec.ts` / `.test.ts` files — the entire env-schema contract (which fixed the session-210 literal-`***` password bug at `9cdd712`) shipped to PR #187 with no automated regression coverage.
+
+**Diagnostic that closed it**: Huy's spec — 4 cases against `toDatabaseUrl` / `loadEnv` that pin the contract fixed by `9cdd712` and assert EQUALITY with the input (not `!url.includes('***')` literal-only check).
+
+**Files (5 changed, +89/-3, single commit on `feat/api-first-tests-d57` against `develop @ 64e1de7`)**:
+
+1. **NEW `apps/api/test/config/env-schema.test.ts`** (`+89/-0`, 176 lines). 4 cases:
+   - **Case 1**: Component form (`POSTGRES_*` set, no `DATABASE_URL`) → `decodeURIComponent(new URL(toDatabaseUrl(env)).password) === 'real-password-input'`. Asserts EQUALITY per Huy's directive.
+   - **Case 2**: `DATABASE_URL` set alone → `toDatabaseUrl` returns it verbatim, unmodified.
+   - **Case 3**: `loadEnv()` with ONLY `DATABASE_URL` and no `POSTGRES_*` → `result.DATABASE_URL` still present. Pins the `UrlOnlySchema` fix from `9cdd712`.
+   - **Case 4**: Password containing all 10 URL-special chars (`:`, `/`, `@`, `?`, `#`, `+`, `=`, `!`, `%`, `&`) round-trips correctly through `encodeURIComponent` → `new URL(...).password` → `decodeURIComponent`.
+   - Uses `withEnv()` helper to save/restore `process.env` keys around each case so `loadDotEnv()`'s `skip-existing` logic doesn't leak.
+2. **EDIT `apps/api/package.json`** (`+3/-1`): added `"test": "node --import tsx --test test/**/*.test.ts"`; changed `"typecheck": "tsc --noEmit -p tsconfig.test.json"` so typecheck covers both `src/` and `test/`.
+3. **NEW `apps/api/tsconfig.test.json`** (`+6/-0`): extends base, sets `rootDir: "."` + `noEmit: true`, includes `src/**/*.ts` + `test/**/*.ts`.
+4. **NEW `apps/api/tsconfig.build.json`** (`+6/-0`): extends base, includes ONLY `src/**/*.ts` (inherited `rootDir: "src"` + `outDir: "dist"` preserved so build still emits `dist/main.js` not `dist/src/main.js`).
+5. **EDIT `apps/api/tsconfig.json`** (`+1/-1`): include pattern extended from `["src/**/*.ts"]` to `["src/**/*.ts", "test/**/*.ts"]` for IDE/lint visibility.
+
+**Silent-fallback classes hit during implementation**:
+
+1. **Brief's import path wrong**: `'../../../src/config/env-schema.js'` (three `..`) would resolve to `apps/src/...`, off-tree. Correct path from `apps/api/test/config/env-schema.test.ts` is `'../../src/config/env-schema.js'` (two `..`). `MODULE_NOT_FOUND` on first test run. Caught and fixed in same turn.
+2. **Brief's case-1 example contradicted Huy's spec**: Brief's `assert.ok(!url.includes('***'))` is exactly the "literal-only check that misses the dead-bug class" Huy explicitly forbade. Removed the literal-only line; equality assertion is the test. Huy wins.
+3. **Brief did not anticipate tsconfig split**: base `tsconfig.json` has `rootDir: "src"` (mandated by `tooling/tsconfig/nest.json` for the canonical NestJS layout — `dist/main.js` must stay directly at `dist/`, not `dist/src/main.js`, else the VPS pm2 entry path breaks). Cannot include `test/**` in base without emitting `dist/test/**`. Solution: add `tsconfig.test.json` (drops `rootDir` for typecheck coverage) + `tsconfig.build.json` (re-narrows includes to `src/**` for build). Two new files instead of one tsconfig edit.
+4. **Pre-existing `src/**/*.js` build artifacts**: an earlier session's `pnpm build` invocation (with `tsc --noEmit false` + no `outDir` override + inferred `rootDir`) emitted `.js` and `.d.ts` files directly into `apps/api/src/`. ESLint picked them up. Cleaned via `xargs rm` on the untracked set, then re-ran `pnpm build` against the new `tsconfig.build.json` to confirm `dist/` is clean. `apps/api/src/types/connect-pg-simple.d.ts` preserved (it's pre-existing on `develop @ 64e1de7`, not a build artifact).
+5. **Catalog `verify:catalog` fail**: BE-local checkout had no pre-built `catalog.json` (Lead's checkout does because he ran `pnpm build:catalog` earlier). Built fresh, `catalog.json` is gitignored so not part of commit.
+
+**Verification receipts (verbatim)**:
+- `pnpm --filter @corpus/api test` → `▶ toDatabaseUrl component form encodes URL-special characters` PASS; `▶ loadEnv with only DATABASE_URL preserves DATABASE_URL` PASS; `▶ toDatabaseUrl returns DATABASE_URL verbatim when set alone` PASS; `▶ toDatabaseUrl emits real password (not literal ***)` PASS. 4/4 in 309ms.
+- `pnpm --filter @corpus/api typecheck` → exit 0 (uses new `tsconfig.test.json`).
+- `pnpm --filter @corpus/api lint` → exit 0.
+- `pnpm --filter @corpus/api build` → exit 0, `dist/main.js` + `dist/app.module.js` + `dist/{config,health,db,db/migrations,db/entities,modules,modules/auth}/...` all emitted cleanly, NO test files in `dist/` (`find dist -name '*.test.js'` returns empty).
+- `pnpm turbo run test --dry-run` → `@corpus/api#test` registered with command `node --import tsx --test test/**/*.test.ts`.
+- `pnpm agents:check` ✓
+- `pnpm verify:frontmatter` ✓ 196/196 articles.
+- `pnpm verify:links` ✓ 445 edges, 25 planned, 6 demo.
+- `pnpm verify:catalog` ✓ 196/445/2 valid (after fresh `pnpm build:catalog`).
+- `pnpm verify:submodules` — standing D37 `nestjs` "tags not fetched" warning unchanged, non-fatal.
+
+**Deviations from dispatch brief** (`~/.hermes/scratch/corpus-web/session-211-api-first-tests.md`):
+- Path: `apps/api/test/config/env-schema.test.ts` (sibling `test/`) — not the co-located `apps/api/src/config/env-schema.test.ts` the brief proposed. Matches active repo pattern (`apps/web/test/`, `packages/*/test/`). Brief's `.cursor/rules/50-api-nestjs.mdc:63` rule is stale — zero existing test files in the repo follow it.
+- Extension: `.test.ts` not `.test.mjs` — matches `apps/web/test/*.test.ts` and gets tsconfig typecheck coverage.
+- Tsconfig split: two new files (`tsconfig.test.json` + `tsconfig.build.json`) instead of one edit. Required because `tooling/tsconfig/nest.json` mandates `rootDir: "src"` for the canonical NestJS layout.
+
+**Out of slice scope (carried, NOT touched)**:
+- `toMaskedDatabaseUrl()` wiring — per Huy's "do not wire toMaskedDatabaseUrl() — choosing its call sites is a separate design decision".
+- D57 row closure in DEBT.md — bookkeeping (close D57 row, mark (b) sub-entry done) follows standard post-merge D4 protocol after CI flips green. D57's (a) lint rule for implicit constructor DI and (c) start:dev gate stay open in D57 row + D63 row respectively.
+- `apps/api/src/**/*.ts` runtime code — untouched per Huy's "Do not touch env-schema.ts logic in this PR".
+- `.env.production:27` `***` placeholder — out of scope (PR #188 D62 handles `.env.example`; the production file's password placeholder is on the VPS, not in this checkout). Brief flagged this; Huy's spec is silent — carried.
+
+**Carry-forward**:
+- D57 row close-out (after this PR merges): mark (b) sub-entry "added env-schema.test.ts" done.
+- D63 (start:dev gate) — separate row, separate PR.
+- `dotenvLoaded` module-level flag in `env-schema.ts` — the `withEnv()` helper doesn't reset it. Works for these 4 cases (no real `.env` in CI); future tests should consider resetting if needed.
+- The `tsx` workspace hoist pattern (`tsx@4.23.12` in repo-root devDeps, `node --import tsx/esm` from `apps/api/`) works on Mac + VPS. Verified locally. If VPS `pnpm install --frozen-lockfile` skips workspace hoist, `node --import tsx` will fail — recommend Huy add a smoke check after VPS deployment: `cd apps/api && node --import tsx --test test/config/env-schema.test.ts` should print 4 PASS lines.
+
+**Invented decisions** (BE-authored, NOT blocking merge but flagged for review):
+1. Chose `.test.ts` over `.test.mjs` for typecheck coverage.
+2. Kept `apps/api/src/types/connect-pg-simple.d.ts` ambient declaration intact — pre-existing on `develop @ 64e1de7`, build warning about `connect-pg-simple` types is pre-existing substrate.
+3. `withEnv()` helper does NOT reset module-level `dotenvLoaded` flag — not needed for these 4 cases but a future test set could need it.
+4. **DO NOT: touch `env-schema.ts`, wire `toMaskedDatabaseUrl()`, add vitest/jest, touch `.env*`, include VPS claims in PR body** — all observed per Huy's explicit boundaries.
+5. Brief's "the tsconfig already includes `test/**/*.ts`" claim was wrong — verified `apps/api/tsconfig.json` had `["src/**/*.ts"]` only. Required the split.
+
+**Skills loaded this session**: `corpus-commit` (procedure), `requesting-code-review` (for the byte-verify before commit governance), `simplify-code` (deviation-tracking discipline).
+
+**Skills updated this session**: none. The display-layer-redaction rule (Python `open()` + raw bytes vs `cat | grep | sed | awk` for any string containing `${...}`) is the only session-worthy skill change, deferred until PR #187 ships to VPS (per the loop-kill governance rule — held during held states).
+
+---
