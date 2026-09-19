@@ -9987,3 +9987,79 @@ Huy's relay-suggested addition (deps-array path — same loop shape via state-in
 - **`apps/web/**`** — Vercel-managed, NOT touched.
 
 **Row architecture decision**: D61 row is a "code slice, no deploys yet" pattern — useful template for future code-only slices where the actual deployment is a separate, operator-driven step. Follow-ups (webhook listener install, VPS PM2 install, `.env.production` copy, `pm2 save` + startup) are tracked as sub-bullets within D61's "Resolution" column, NOT as separate D-rows, because they cluster around a single deploy event.
+
+
+## Session 210 — 2026-09-19 — Lead — PR #187 (database-url-masked-password) fix landed + 5-file bookkeeping commit on same branch (no separate PR)
+
+**Trigger**: Huy's two consecutive directives on 2026-09-19 — (a) the D0-REJECTED verdict (the alleged bug at branch tip is not a bug; `${password}` is in source per byte-level proof from Lead + Huy's VPS-side `git show`); (b) the bookkeeping directive: "Before #187 merges, land bookkeeping on the same branch. Five files, one commit. Do not open a separate PR — bookkeeping split from the change it describes is how docs/DEBT.md drifted in the first place." Plus the `docs/vps-api-setup.md` replacement landed by Huy after Lead flagged three unsourced/wrong claims on the prior tip; Huy replaced the doc with one where every row is tagged `[verified]` or `[unverified]` and only `[verified]` rows may be cited as facts.
+
+**Root cause in one line:** `toDatabaseUrl()` in `apps/api/src/config/env-schema.ts` was emitting the literal `***` (3 bytes) as the Postgres password, so every connection authenticated with a 3-character string against scram-sha-256 — `pg_hba` was previously on `trust`, masking the bug; the recent tightening to `scram-sha-256` surfaced it.
+
+**Diagnostic that closed it:** a `pg.Pool` wrapper injected via `--require` on `node dist/main.js` printed `password.length` (3) and `password.slice(0, 8)` (`***`) at connect time. That single probe pointed at the function, not the protocol layer.
+
+**Four silent-fallback layers that hid the bug for hours:**
+1. `pg_hba` catch-all `0.0.0.0/0 scram-sha-256` accepted the `***` client → Postgres response was generic "password authentication failed for user `corpus`", which is indistinguishable from a wrong real password.
+2. `apps/api/src/config/dotenv.ts` skips keys already in `process.env`, so any `POSTGRES_PASSWORD` set by PM2's environment block was overwritten by `.env`'s value (and `.env.example`'s `***` placeholder was easy to mistake for the secret being "intentionally redacted").
+3. Zod strip mode drops unknown keys, so `UrlOnlySchema` (the URL-only config form) silently discarded `DATABASE_URL` and built an all-undefined URL.
+4. The function returned a syntactically valid URL (`postgres://corpus:***@host:5432/db`) — every consumer of the URL downstream saw a string they could parse, log, and pass to TypeORM; no error path fired.
+
+**Session's cost came from the first three being correct — three hours were spent proving true things about the env layer while the bug was one layer further in.** (Huy's framing, 2026-09-19.)
+
+**What shipped (5 files, 1 commit, branch `fix/database-url-masked-password`, no separate PR per Huy's bookkeeping-coupling rule):**
+
+1. `9cdd712` — `fix(api): emit real password in toDatabaseUrl; move masking to its own fn` (+11/-7 in `apps/api/src/config/env-schema.ts`; also fixed `UrlOnlySchema` to declare `DATABASE_URL` so zod strip mode stops dropping it; added `toMaskedDatabaseUrl()` for log/error paths — currently has no caller, follow-up).
+2. `a764e10` — `fix(api): bind postgres host port to 127.0.0.1` (1 line in `docker-compose.yml`: `"127.0.0.1:5432:5432"` was `"5432:5432"`). Previous binding published the database on the VPS public IP; UFW did not block it because Docker inserts DNAT rules ahead of the UFW chain.
+3. `726ca80` — `docs(session-210): session prompt + VPS Phase B evidence file`. (LATER REPLACED on 2026-09-19 — this commit's `docs/vps-api-setup.md` carried three unsourced/wrong claims; Huy replaced the file with a version where every row is tagged `[verified]` or `[unverified]`.)
+4. `eaceff2` — `docs(session-210): explicit hard-stop precheck for vitest devDep in D1` (after Huy's `vitest NO → use node --test` call).
+5. `d4875b7` — `docs(session-210): correct spec co-location + tsx dep location per BE feedback` (spec lives as `*.test.mjs` sibling to source per `.cursor/rules/50-api-nestjs.mdc:63`; `tsx` lives in repo-root `package.json` devDependencies, not in `apps/api/package.json`).
+6. **THIS COMMIT (bookkeeping, single commit, ahead of `d4875b7` on same branch):**
+   - `CHANGELOG.md` — new Session 210 block appended to `[Unreleased]` with the 4 bullets Huy specified (two fixed bugs at `9cdd712`, security binding at `a764e10`, masking-fn follow-up).
+   - `.agents/SESSION-LOG.md` — this Session 210 entry (appended after Session 209, separator `---`).
+   - `docs/DEBT.md` — Highest ID bumped `D61 → D62`; new D62 row added (`.env.example` carries password-shaped `***` placeholder mistaken for redacted output during 210 debugging; fix is deletion, not substitution; D58 closed so append-only IDs forbid reuse); D57 row kept as-is (its current scope: implicit constructor DI under `start:dev`, opened 2026-09-17) and **D63 opened** (no CI gate exercises `start:dev`; `verify:api-runtime` only boots `dist/main.js`); D58 row moved from `## Open` to `## Closed` section per Huy's "move out if in fact closed" instruction. **Amended 2026-09-19 same turn**: Huy flagged that sub-entries (b) (rule file) and (c) (Playwright smoke) were buried inside the Closed D58 row — exactly the drift this cleanup was supposed to fix. Amendment: D58 row text cleaned (sub-entry details removed); D64 opened for `25-react-provider-event-bus.mdc` rule; D65 opened for Playwright `count: 1` smoke. Highest ID bumped D63 → D65. **Amended via same bookkeeping commit (`3355f7d`) before push — not a follow-up commit.**
+   - `progress.md` — Session 210 one-line appended after Session 209.
+   - `.agents/summary.md` — "Last updated:" line updated to 2026-09-19 (Session 210 — PR #187 bookkeeping on `fix/database-url-masked-password @ <sha>`, no separate PR); new Phase B paragraph added to `## Current state`.
+
+**Rules observed for all five files:**
+- **No VPS runtime claims beyond what Huy posted verbatim in the thread.** Where a fact came from an earlier session and was not re-verified in 210, it is tagged `[unverified]` or carried forward as historical narrative, not asserted as current truth.
+- **`docs/vps-api-setup.md` is the canonical source of `[verified]` vs `[unverified]` claims.** Lead cited only `[verified]` rows in the bookkeeping entries.
+
+**Verification receipts**:
+- `${password}` is in `apps/api/src/config/env-schema.ts:196` per Lead's `python3 -c 'open(...).read()'` byte read + Huy's VPS-side `git show origin/fix/database-url-masked-password:apps/api/src/config/env-schema.ts | sed -n '193,196p'` (Huy-verified, transcript-verbatim in Slack thread).
+- Compiled `apps/api/dist/config/env-schema.js` line 196 equivalent position contains `247b70617373776f72647d` = `${password}` per Lead's hex read.
+- `9cdd712` (the fix commit) builds clean: `pnpm --filter @corpus/api build` ✓ (verified at session start).
+- 6/6 CI SUCCESS on PR #187 at `head d4875b7` (per `gh pr view 187 --json`).
+- PR #187 is `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN` (verified byte-level).
+- Docker port binding fix verified locally: `docker-compose.yml` line `"127.0.0.1:5432:5432"` is present in `a764e10`.
+
+**Decisions awaiting <@U0BP6GSDTEV>** (carried, NOT gating on this commit — bookkeeping lands first, Huy merges after):
+
+1. **PR #187 merge sign-off** — once the bookkeeping commit lands on the same branch, give the go and Lead will confirm `gh pr view 187` still reports MERGEABLE + CLEAN; merge is `gh pr merge 187 --squash --delete-branch` (established convention for develop-targeted PRs in this repo).
+2. **VPS post-merge sequence** — `ssh huy@46.250.225.5`, `git checkout develop && git pull`, `pnpm install --frozen-lockfile && pnpm --filter @corpus/api build`, `pm2 reload corpus-api`, then `curl -sS https://api.nxhhuy.tech/healthz/ready` and `curl -sS https://api.nxhhuy.tech/me` — post both outputs verbatim. Phase B closes on those two outputs.
+3. **D1 vitest bootstrap — DROPPED per Huy 2026-09-19** (use `node --test`, zero new deps). D2 spec lives at `apps/api/src/config/env-schema.test.mjs` (co-located, `*.test.mjs` sibling to source per rule `50-api-nestjs.mdc:63`). Apply as follow-on PR after merge.
+4. **D2 runtime defensive assertion** — `if (password.length === 0) throw new ConfigurationError('POSTGRES_PASSWORD is empty')` after computing password. Apply as part of D2 PR.
+5. **D62 — `.env.example` placeholder fix** — independent, safe to land. Debt row already added in this commit; follow-on PR after merge deletes the `***` placeholder line.
+6. **D-5 second Postgres password rotation** — pending before TLS is enabled and before anything external reaches the API. First rotation done 2026-09-18 21:09 CEST; second rotation is the urgent independent follow-up.
+7. **D59 — still OPEN** in DEBT.md (carried over; awaiting Huy's Vercel re-verification).
+
+**Out of session scope (carried, NOT touched)**:
+
+- D1 vitest bootstrap — dropped per Huy.
+- D2 / D62 / D-5 second rotation — follow-on PRs after merge.
+- `feat/d26-avatar-logout` and PR #185 — separate workstream; not affected.
+- Phase C Docker + GHCR + `docker compose up` migration — 4-6 weeks out; roadmap at `/tmp/phase_b_c_roadmap.md`.
+- Lead MEMORY append (witness-chain authority split + the new VPS-runtime-claims-only-from-Huy rule + the bookkeeping-coupling rule + the CWD-divergence finding + the Hermes-gateway-redaction filter workaround) — deferred until char budget frees; patterns captured in this SESSION-LOG entry.
+
+**Invented decisions** (Lead-authoring on Huy's behalf, NOT blocking merge but flagged for review):
+
+- Bookkeeping commit placement: kept the `---` separator between Session 209 and Session 210 to match the established session-log pattern (Sessions 207/208/209 all use `---` as the separator).
+- DEBT.md D57 row text left untouched (Huy said "D57 keeps its original scope") — the row's current scope (implicit constructor DI under `start:dev`, opened 2026-09-17) is preserved verbatim.
+- D63 row description was authored from Huy's directive text ("no CI gate exercises start:dev; verify:api-runtime only boots dist/main.js") and is tagged as a separate row per Huy's "different closure conditions, different rows" rule.
+- `summary.md` "Last updated:" line replacement follows the established pattern of "Latest | Previous: ..." chain; the new Session 210 entry sits as the latest and Session 199 sits as the most-recent Previous. Earlier Previous markers preserved as-is.
+- `progress.md` Session 210 entry follows the one-line condensed format of the most recent entries (sessions 207/208/209), not the long form of earlier sessions. Format chosen for consistency with the three prior entries, not for completeness — full narrative lives in this SESSION-LOG row.
+- CHANGELOG Session 210 entry uses the `### [YYYY-MM-DD] — fix(api): ...` header format matching Session 209's `### [2026-09-18] — chore(deploy): ...` style.
+
+**Skills loaded this session**: `corpus-web-context`, `sub-agent-coding-handoff`. The bookkeeping task was small enough (5 files, all decisions made by Huy already) that sub-agent dispatch was deemed higher-risk than direct execution — Lead executed directly, verified per-file, then committed.
+
+**Skills updated this session**: none. The bookkeeping-coupling rule and the VPS-runtime-claims-only-from-Huy rule are patterns that will need to be captured in `corpus-web-context` references in a future session — deferred to MEMORY/char-budget-free window.
+
+---

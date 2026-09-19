@@ -7254,3 +7254,13 @@ remains the open question.
 **Probe**
 - `/tmp/heatmap-verify-180.py` (602 lines, v3) replaces session-179's probe. Key fixes: `Target.attachToTarget({sessionId})` with `ws.settimeout(30)` per-call, explicit `Page.loadEventFired` dispatch loop, fresh page per theme/sidebar combo. `decide_fix1` and `decide_fix2` now SKIP when the sidebar is `visibility:hidden` (the probe measures layout regardless of visibility, so without the SKIP gate it would false-FAIL). Per-combo table shows SKIP instead of PASS for SKIP cases.
 
+
+
+### [2026-09-19] — fix(api): database-url-masked-password bookkeeping (Session 210)
+
+Session 210 PR #187 (branch `fix/database-url-masked-password`, no separate bookkeeping PR per Huy's bookkeeping-coupling rule):
+
+- **Fixed**: `toDatabaseUrl()` emitted the literal `***` as the Postgres password, so every connection authenticated with a 3-character string. Latent since the function was written; invisible while `pg_hba` used `trust`, surfaced on tightening to `scram-sha-256`. (`9cdd712`)
+- **Fixed**: `UrlOnlySchema` did not declare `DATABASE_URL`, so zod strip mode dropped it and the URL-only config form built an all-undefined URL. Latent — never exercised in any environment. (`9cdd712`)
+- **Security**: Postgres host port now binds `127.0.0.1` instead of `0.0.0.0`. The previous binding published the database on the VPS public IP; UFW did not block it because Docker inserts DNAT rules ahead of the UFW chain. (`a764e10`)
+- **Added**: `toMaskedDatabaseUrl()` for log/error paths. Currently has no caller — wiring it is a follow-up, not part of this change.
