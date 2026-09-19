@@ -105,6 +105,14 @@ test('toDatabaseUrl component form returns real password (regression guard for 9
       // dead-bug class entirely (e.g. a typo'd `${pswd}` returning the
       // literal value "undefined" would also pass `!url.includes('***')`).
       assert.strictEqual(decodeURIComponent(parsed.password), 's3cret-actual-value');
+      // Belt-and-braces: catches the regression class that the
+      // placeholder string leaked through the schema at commit
+      // 9cdd712's predecessor. A literal-`***`-presence check
+      // would be tautological for the equality case above (the
+      // input is not `***`), but a `-presence` check is exactly
+      // what we want to fail with a readable message if a future
+      // refactor reintroduces the placeholder.
+      assert.ok(!url.includes('***'), 'env-schema returned the *** placeholder instead of the real password');
     },
   );
 });

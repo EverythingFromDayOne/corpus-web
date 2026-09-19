@@ -463,6 +463,7 @@ About page is an oversight to be helpfully filled.
 - **NEVER hand-edit `AGENTS.md`, `CLAUDE.md`, or `.cursor/rules/60-skills.mdc`.** Generated from `.cursor/rules/*.mdc` by
   All three are generated from `.cursor/rules/*.mdc` and `.claude/skills/*/SKILL.md` by
   `pnpm agents:build`.
+- Verify a `.cursor` rule against the actual file tree before quoting it; the tree wins. (Stale `.cursor/rules/*.mdc` rules reproduce deviation loops every session until corrected — the D57 rule-vs-tree mismatch was caught only after the first tests landed and the rule read `Co-located *.spec.ts` for a path that did not exist.)
 
 ---
 

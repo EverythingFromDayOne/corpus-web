@@ -469,15 +469,14 @@ on the VPS as the origin-side reference when debugging.
 The "hide the VPS IP" argument is weak: `api.nxhhuy.tech` has had a public
 A-record for a while and passive-DNS services retain that permanently.
 
-### D-7. Pre-OAuth checklist (not done — blocks the round-trip)
+### D-7. Pre-OAuth checklist — code-side done (`main.ts`); runtime effect unverified until TLS terminates in front
 
-- `app.set('trust proxy', 1)` in `main.ts`, so `express-session` honors
-  `X-Forwarded-Proto: https` from the edge
-- `SESSION_COOKIE_DOMAIN=.nxhhuy.tech` on the VPS
-- `GOOGLE_CALLBACK_URL=https://api.nxhhuy.tech/auth/google/callback`, exact match
-  in Google Console
-- Apex and `api.` share an eTLD+1, so `SameSite=Lax` suffices; `None` is not
-  needed
+- `app.set('trust proxy', 1)` in `apps/api/src/main.ts` before `sessionMiddleware`, so `express-session` honors `X-Forwarded-Proto: https` from the edge. `[verified]` from Lead reading the source at `apps/api/src/main.ts`; runtime presence in compiled output `[verified]` from Huy's VPS receipt (`grep -c 'trust proxy' apps/api/dist/main.js` → 3 on develop @ `8d25a0e`). Behavior under TLS `[unverified]` until the Cloudflare Tunnel is in front — express-session's `cookie.secure = true` check runs against `req.secure`, which `trust proxy = 1` flips when an upstream sets `X-Forwarded-Proto: https`; without TLS in front, the runtime is unreachable.
+- `SESSION_COOKIE_DOMAIN=.nxhhuy.tech` on the VPS `.env`. `[verified]` from Huy's VPS receipt (`grep -n 'SESSION_COOKIE_DOMAIN' .env` → line 37, 2026-09-19).
+- `GOOGLE_CALLBACK_URL=https://api.nxhhuy.tech/auth/google/callback`, exact match in Google Console. `[unverified]` — Cloudflare Tunnel not yet stood up; the callback URL will not be reachable until the tunnel terminates TLS at the edge. Huy verifies end-to-end after the tunnel is in front.
+- Apex and `api.` share an eTLD+1, so `SameSite=Lax` suffices; `None` is not needed. `[verified]` from `apps/api/src/config/session.ts:96` (`sameSite: 'lax'` literal, no env override).
+
+> `SESSION_COOKIE_SECURE` deliberately stays `false` on the VPS until the tunnel stands up — flipping it while the API is still plain HTTP would drop every cookie on the next request, costing the comparison baseline for the tunnel cold start. Goes to `true` in the same cold-start pair as the tunnel.
 
 ---
 
@@ -489,8 +488,7 @@ A-record for a while and passive-DNS services retain that permanently.
 |---|---|
 | VPS back onto `develop` + `git stash drop` | see the warning at the top |
 | `toMaskedDatabaseUrl()` has no caller | it was added but never wired in. Either route the logging/error paths through it or the masking intent is still unimplemented |
-| Tests for `toDatabaseUrl` | three cases: component form returns the real password; `DATABASE_URL` form returns it verbatim; `loadEnv()` with only `DATABASE_URL` does not strip it. `apps/api` has zero test files, so this is also the test-runner bootstrap |
-| `.env.example` still contains `# DATABASE_URL=postgres://corpus:***@localhost:5432/corpus_api` | that `***` placeholder is what made the real bug look like redacted output for hours. Delete it, or write it without a password-shaped placeholder |
+| Tests for `toDatabaseUrl` | 4 cases landed on `feat/api-first-tests-d57` and merged into develop @ `f4152af` (D57 closed 2026-09-19, see `apps/api/test/config/env-schema.test.ts`): component-form password round-trip (asserts strict equality with input), `DATABASE_URL` verbatim pass-through, `loadEnv()` with only `DATABASE_URL` (pins the `UrlOnlySchema` fix from `9cdd712`), URL-special-chars round-trip via `encodeURIComponent`. Run via `pnpm --filter @corpus/api test` (uses workspace-hoisted `tsx` from repo-root devDeps, `node --import tsx --test test/**/*.test.ts`); equivalent at the repo root: `node --import tsx --test apps/api/test/config/env-schema.test.ts`. CI picks it up via `pnpm turbo run test`. D63 (`start:dev` CI gate + supertest) still open — separate slice. |
 
 ### Blocking OAuth round-trip
 
@@ -499,9 +497,11 @@ password rotation → end-to-end Google login test.
 
 ### Carry-forward
 
-Webhook auto-deploy listener; nightly `pg_dump` → R2; PR #179 (OAuth) and
-PR #180 (TypeORM drift) awaiting a merge call; Phase C Dockerize; `docs/DEBT.md`
-rows D57/D58/D59 marked closed but still filed under Open.
+Webhook auto-deploy listener; nightly `pg_dump` → R2; Cloudflare Tunnel stand-up
+(Huy's side, in progress); D59 Vercel re-verification of `db147ac` still pending
+Huy; D63 (`start:dev` CI gate + supertest) still open; D64 / D65 (apps/web
+`SignInProvider` self-trigger / Playwright E2E) unblocked by the tunnel but
+HOLD per multi-branch-in-flight rule until OAuth round-trip is green.
 
 ---
 
