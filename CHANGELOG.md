@@ -5,6 +5,33 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-19] — fix/d7-trust-proxy-and-callback — D-7 trust-proxy + Google callback URL hardening
+
+**Added**
+- `app.getHttpAdapter().getInstance().set('trust proxy', 1)` in `apps/api/src/main.ts` before the `sessionMiddleware` registration line. Required once the API sits behind Cloudflare Tunnel: tunnel terminates TLS at the edge and forwards plain HTTP, so without `trust proxy = 1` Express sees the request as plain HTTP, refuses to set `Secure` cookies (express-session's hard-coded check), and the browser never receives the session row. Symptom is a successful Google login followed by `/me` returning 401 forever — the most misattributable failure in the whole auth flow. Includes a 22-line rationale comment block citing the tunnel topology, the silent-cookie-drop mechanism, and the explicit non-derivation of `GOOGLE_CALLBACK_URL` from request-time properties (which would also break behind the tunnel even with trust proxy enabled).
+
+**Verified unchanged** (no code change required; verified against `develop @ f4152af`):
+- `apps/api/src/config/session.ts:79-80` — `cookieSecure` reads `SESSION_COOKIE_SECURE` with default `'true'`.
+- `apps/api/src/config/session.ts:81-82` — `cookieDomainOrUndef` reads `SESSION_COOKIE_DOMAIN` and converts empty string to `undefined` so `cookie.domain` is unset (browser pins to exact host) until production sets `.nxhhuy.tech`.
+- `apps/api/src/config/session.ts:96` — `sameSite: 'lax'` (correct, NOT `'none'` — apex and `api.` share eTLD+1 so Lax is sufficient).
+- `apps/api/src/modules/auth/auth.module.ts:71-92` — `GOOGLE_CALLBACK_URL` is read at line 71 via `safeParse(process.env)` (literal env value), then passed via `useFactory` to the `GoogleStrategy` constructor at line 92. **No derivation from `req.headers.host`, `req.secure`, or `req.protocol`** — the callback URL is a literal env string end-to-end.
+- `apps/api/src/modules/auth/google.strategy.ts:36` — `callbackURL` is just spread to `PassportStrategy` as a string. No request-time computation.
+
+**Bookkeeping**
+- `docs/DEBT.md` — added **D66** (trust-proxy-silent-cookie-drop, OPEN with fix in this PR); added **D-5** to Closed (second Postgres password rotation, receipts from Huy verbatim: new 64-hex, scram verifier, cold start via `pm2 delete && start`, `/healthz/ready` green, value never left the box); highest ID bumped D65 → D66.
+- `.agents/SESSION-LOG.md` — Session 212 entry appended.
+- `progress.md` — Session 212 line appended.
+
+**Not in this PR** (separate work):
+- AGENTS.md one-liner append ("verify a `.cursor` rule against the actual file tree before quoting it; the tree wins") — goes on the rule-update PR per Huy's prior decision.
+- `.cursor/rules/50-api-nestjs.mdc:63` rule rewrite — rule-update PR.
+- `docs/vps-api-setup.md` test-count fix (drop "zero test files" line) — rule-update PR.
+- D63 supertest-based regression test for trust-proxy effect — deferred to gate-coverage work, new devDep not justified by a tautological `app.get('trust proxy') === 1` check.
+
+**No VPS claims** — D-7 is unobservable without TLS in front; Huy verifies the trust-proxy effect end-to-end after the tunnel is up.
+
+**No new devDeps** — supertest skipped; test deferred to D63.
+
 ### [2026-09-19] — test(api): first regression tests for `apps/api/src/config/env-schema.ts` (D57 closure slice)
 
 **Context.** `apps/api` had zero `.spec.ts` / `.test.ts` files — D57 records this as the reason the session-210 password-mask bug shipped to PR #187 undetected for the full PR window (CI runs only `tsc build` + `apps/web` tests, never exercises `apps/api` runtime). This PR adds the first regression suite for the env-schema module: four cases against `toDatabaseUrl` / `loadEnv` that pin the contract fixed by `9cdd712` (real password emission, no literal-`***` placeholder) and the `UrlOnlySchema` `zod strip mode` drop-out, plus a URL-special-char round-trip to catch the most-likely-next failure class (encodeURIComponent / URL-parser boundaries on `:` / `/` / `@` / `?` / `#` / `+` / `=` / `!` / `%` / `&`). Runner is Node 24's built-in `node --test` (zero new devDeps, zero new lockfile entries — Huy explicitly forbade vitest). Path is the active repo pattern (`test/` sibling directory), not the `.cursor/rules/50-api-nestjs.mdc:63` co-located rule (rule is stale: zero existing test files in the repo follow it; `apps/web/test/` and `packages/*/test/` all use the sibling pattern). Test runs through `pnpm turbo run test` (the existing CI job picks it up automatically).
