@@ -107,6 +107,8 @@ Docs:
 
 `apps/api` currently has zero `.spec.ts` / `.test.ts` files and no `vitest` / `jest` config (confirmed via `cat apps/api/package.json`). Per the user's instruction: "split into a separate PR per AGENTS.md — don't block this fix on vitest bootstrap." So **this PR is just the test runner wiring**, no tests yet.
 
+**Hard-stop precheck (per Lead's profile rules):** adding `vitest` + `@vitest/coverage-v8` to `apps/api/package.json` devDependencies is a "new npm dependency" — Lead needs explicit Huy sign-off in-thread BEFORE this PR opens. The recommended phrasing for Huy: "yes you may add `vitest` to `apps/api` devDeps, matching the version range already in `apps/web/package.json`." Without that, do NOT touch `apps/api/package.json` — this whole PR is blocked. Alternative if Huy declines: write D2's tests against `node --test` (Node 24 built-in) instead of vitest, drop D1 entirely. That changes the dependency shape — `node:test` is zero-dep but means `apps/api` test commands don't match `apps/web`'s. Surface this trade-off to Lead, don't decide unilaterally.
+
 Branch: `feat/apps-api-vitest-bootstrap` (off `develop`)
 Files:
 - `apps/api/package.json` — add `vitest`, `@vitest/coverage-v8` to `devDependencies`; add scripts `test`, `test:run` (vitest run), `test:coverage`. Match the version range used in `apps/web/package.json` (already on vitest) for consistency. If `apps/web/package.json` pins an exact version, mirror the constraint.
