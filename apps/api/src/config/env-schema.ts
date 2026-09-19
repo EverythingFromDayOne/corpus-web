@@ -130,20 +130,18 @@ const Schema = z.union([
 
 export type AppEnv = z.infer<typeof ComponentFormSchema> | z.infer<typeof UrlOnlySchema>;
 
-/** Has a `.env` already been loaded for this process? */
-let dotenvLoaded = false;
-
 /**
- * Load `.env` candidates on first call, then parse and freeze env. Throws
- * on validation failure — Nest's `ConfigModule` runs this synchronously at
+ * Parse `source` against the env schema and freeze the result. Throws on
+ * validation failure — Nest's `ConfigModule` runs this synchronously at
  * module init, and the CLI scripts run it before opening a socket, so a
  * bad env fails the process before any I/O.
+ *
+ * Pure: does NOT read `.env` from disk, does NOT mutate `process.env`.
+ * Callers that want `.env` → `process.env` → parse should use
+ * `loadAppEnv()` (the dotenv-populate-then-parse wrapper) instead. Tests
+ * pass an explicit `source` so `loadEnv` alone is enough.
  */
 export async function loadEnv(source: NodeJS.ProcessEnv = process.env): Promise<AppEnv> {
-  if (!dotenvLoaded) {
-    await loadDotEnv(defaultEnvCandidates());
-    dotenvLoaded = true;
-  }
   const result = Schema.safeParse(source);
   if (!result.success) {
     const hasComponents =
@@ -228,4 +226,42 @@ export function isAuthEnabled(env: AppEnv): boolean {
 export function getSessionCookieDomain(env: AppEnv): string | undefined {
   const d = (env as { SESSION_COOKIE_DOMAIN?: string }).SESSION_COOKIE_DOMAIN;
   return d && d.length > 0 ? d : undefined;
+}
+
+/**
+ * Has `loadDotEnv` already populated `process.env` from a `.env` file in
+ * this process? Lives at module level inside this wrapper (NOT inside
+ * `loadEnv`) so the once-per-process guard is the wrapper's job and
+ * `loadEnv` stays pure.
+ */
+let appEnvLoaded = false;
+
+/**
+ * Application bootstrap helper. Loads the `.env` candidates into
+ * `process.env` (at most once per process), then parses + freezes env
+ * via `loadEnv()`. This is the order every production call site wants:
+ *
+ *   1. Shell-injected env (Phase C: container env) wins. `loadDotEnv`
+ *      respects precedence — pre-existing `process.env` keys are NOT
+ *      overwritten.
+ *   2. `.env` fills missing keys only. So a `DATABASE_URL` the operator
+ *      deliberately set cannot be silently replaced by a `.env` line.
+ *   3. `loadEnv(process.env)` parses + freezes the resulting shape.
+ *
+ * Replaces the legacy `loadEnv()`-with-implicit-`loadDotEnv()` chain
+ * that hid step (2) inside `loadEnv`. After D67, `loadEnv` is pure; this
+ * wrapper is the only way a call site gets dotenv + parse in one shot.
+ *
+ * Idempotent: subsequent calls skip the dotenv step (which itself
+ * re-reads the file from disk, so skipping the second read keeps Phase C
+ * cheap) but always re-run the zod parse against the current
+ * `process.env`. The guard is safe even if `auth.controller.ts` calls
+ * this twice per OAuth callback (lines 86 and 148).
+ */
+export async function loadAppEnv(): Promise<AppEnv> {
+  if (!appEnvLoaded) {
+    await loadDotEnv(defaultEnvCandidates());
+    appEnvLoaded = true;
+  }
+  return loadEnv();
 }

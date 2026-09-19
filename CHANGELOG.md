@@ -5,7 +5,47 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### [2026-09-19] — fix/d7-trust-proxy-and-callback — D-7 trust-proxy + Google callback URL hardening
+### [2026-09-19] — fix/d67-loadenv-contract-split — D67 loadEnv/loadDotEnv split + loadAppEnv() wrapper
+
+**Changed**
+- `apps/api/src/config/env-schema.ts`:
+  - `loadEnv(source)` is now pure: parses `source` (defaults to `process.env`) against the env schema and freezes the result. Does NOT read `.env` from disk, does NOT mutate `process.env`. The pre-fix `if (!dotenvLoaded) { await loadDotEnv(defaultEnvCandidates()); dotenvLoaded = true; }` block is removed; the `dotenvLoaded` module-level flag is removed entirely.
+  - New `loadAppEnv()` wrapper at the bottom of the file. Does `await loadDotEnv(defaultEnvCandidates())` once per process (guarded by a new module-level `appEnvLoaded` flag — the guard lives in the wrapper, NOT in `loadEnv`), then `return loadEnv()`. Idempotent across re-entries so `auth.controller.ts`'s two `loadEnv` calls per OAuth callback become two `loadAppEnv` calls but only one file read.
+- `apps/api/src/main.ts:108` — `await loadEnv()` → `await loadAppEnv()`.
+- `apps/api/src/config/session.ts:52` — `await loadEnv()` → `await loadAppEnv()`.
+- `apps/api/src/db/data-source.ts:27` — `await loadEnv()` → `await loadAppEnv()`.
+- `apps/api/src/modules/auth/auth.controller.ts:86, 148` — both `loadEnv()` calls → `loadAppEnv()`.
+- `apps/api/src/modules/auth/auth.module.ts` — three stale comments updated to reference `loadAppEnv()` instead of `loadEnv()`. The decorator-time `process.loadEnvFile()` loop at lines 28-34 (which pre-loads `GOOGLE_CLIENT_ID` so `forRoot()` can see it at module-import time, before any `await` point is reachable) is unchanged — it serves a different problem (sync module-decorator access) than `loadAppEnv` (async boot helper).
+- `apps/api/src/config/env-config.ts:6` — docstring updated to reflect that `loadEnv` is now pure; the docstring's "Async because `loadEnv` may need to read `.env` first" line is stale.
+- `apps/api/test/config/env-schema.test.ts:17-22` — `Test isolation` block updated to describe the new pure-`loadEnv` contract.
+
+**Kept on `loadEnv` (NOT switched to `loadAppEnv`)**
+- `apps/api/src/config/env-config.ts:10` — `validateEnv(rawEnv)` is the Nest `ConfigModule` `validate` hook and passes an explicit `rawEnv as NodeJS.ProcessEnv` argument. Per Huy's condition #1 in the dispatch thread: "loadEnv stays exported and stays pure. The test calls it directly with an explicit source — that is what makes the regression guard possible, and it must not become reachable only through the wrapper." This is the canonical pure-`loadEnv` call site and must remain reachable.
+
+**Added**
+- New Case 5 in `apps/api/test/config/env-schema.test.ts`: `loadEnv is pure: component form wins and disk is never read (D67 contract guard)`. Test shape: a synthetic `.env` is written to `/tmp/d67-purity-test-<pid>-<ts>.env` carrying a `DATABASE_URL=postgres://corpus:file-only-password@db.example.com:5432/corpus_api` line that would override the component-form values if `loadEnv` read the file. `process.loadEnvFile` is monkey-patched to throw on any call (so any `loadEnv` regression that reaches disk fails loudly). Component-form `POSTGRES_*` values are set in `process.env` with NO `DATABASE_URL`. Assertions: (a) `decodeURIComponent(parsed.password) === 'process-env-password'` (component form wins); (b) `!url.includes('file-only-password')` (URL did not contain the file's value); (c) `loadEnvFileCalls === 0` (purity). The synthetic `.env` is unlinked in `finally` regardless of test outcome.
+
+**Bookkeeping**
+- `docs/DEBT.md` — added **D67** Open row (full narrative: empirical finding that `process.loadEnvFile` honors precedence but fills missing keys, the test-fixture `withEnv({...})`-strips-`DATABASE_URL`-then-`loadEnv`-calls-`loadDotEnv`-repopulates chain, option-(f) fix shape locked by Huy, Phase C blast radius, the 5-call-site migration scope, the deliberate `env-config.ts` carve-out). Highest ID bumped D66 → D67.
+- `.agents/SESSION-LOG.md` — Session 213 (this work) entry appended.
+- `progress.md` — Session 213 line appended.
+
+**Not in this PR** (deferred per dispatch brief):
+- **D68** — DI migration for `auth.controller.ts` per-request `loadEnv` calls → `ConfigService` (or `APP_CONFIG` provider) resolved once at startup. After this PR the dotenv read happens once-per-process (via `loadAppEnv`'s guard) but the file read + zod parse still runs on every OAuth callback. Structural fix is separate.
+- **D63** — `start:dev` CI gate (separate slice).
+- **D69** — `/healthz/ready` schema-presence assertion + startup `migration:run` (Huy's Phase B close-out finding).
+- **D70** — `CreateCorpusSession` migration + turn off `session.ts:104`'s `createTableIfMissing: true` flag (Huy's Phase B close-out finding).
+- **D64/D65** — coding-fe scope, unblocked now that tunnel is up but not on this PR.
+
+**Hard-rule compliance** (per `.cursor/rules/20-never-violate.mdc`):
+- No `synchronize: true` (already `false` in `data-source.ts:38`, unchanged).
+- No new npm dep. `supertest` deferred to D63 per Huy.
+- No hand-edit of `packages/api-client/` — OpenAPI regen not required, no Swagger decorators changed (`@ApiTags`, `@ApiOperation` decorators all unchanged).
+- No hard-delete of `lessons` rows (N/A, no DB-touching code).
+- No `'server'` quiz-scoring mode (N/A, no quiz code).
+- No `*.spec.ts` co-located — sibling `test/` convention preserved; new Case 5 follows it.
+- API not in article-body read path (N/A, no `content/` submodule touched).
+- Canonical NestJS Express-access API not needed for this slice (no Express-level changes).
 
 **Added**
 - `app.getHttpAdapter().getInstance().set('trust proxy', 1)` in `apps/api/src/main.ts` before the `sessionMiddleware` registration line. Required once the API sits behind Cloudflare Tunnel: tunnel terminates TLS at the edge and forwards plain HTTP, so without `trust proxy = 1` Express sees the request as plain HTTP, refuses to set `Secure` cookies (express-session's hard-coded check), and the browser never receives the session row. Symptom is a successful Google login followed by `/me` returning 401 forever — the most misattributable failure in the whole auth flow. Includes a 22-line rationale comment block citing the tunnel topology, the silent-cookie-drop mechanism, and the explicit non-derivation of `GOOGLE_CALLBACK_URL` from request-time properties (which would also break behind the tunnel even with trust proxy enabled).

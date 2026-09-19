@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import type { DataSourceOptions } from 'typeorm';
-import { loadEnv, toDatabaseUrl } from '../config/env-schema.js';
+import { loadAppEnv, toDatabaseUrl } from '../config/env-schema.js';
 import { ScaffoldHealthcheck } from './entities/scaffold-healthcheck.entity.js';
 import { User } from '../modules/auth/entities/user.entity.js';
 
@@ -24,7 +24,7 @@ import { User } from '../modules/auth/entities/user.entity.js';
  * Repository injected".
  */
 async function buildOptions(): Promise<DataSourceOptions> {
-  const env = await loadEnv();
+  const env = await loadAppEnv();
   const isDev = process.env['NODE_ENV'] !== 'production';
   const migrationsGlob = isDev ? 'src/db/migrations/*.ts' : 'dist/db/migrations/*.js';
 
