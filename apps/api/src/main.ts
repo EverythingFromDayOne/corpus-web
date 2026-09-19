@@ -108,6 +108,28 @@ async function bootstrap(): Promise<void> {
   const env = await loadEnv();
   const authEnabled = isAuthEnabled(env);
 
+  // --- Trust proxy (D-7) ---------------------------------------------------
+  // The Cloudflare Tunnel terminates TLS at the edge and forwards plain HTTP
+  // to this process. Without `trust proxy = 1` Express sees the incoming
+  // request as plain HTTP (no `X-Forwarded-Proto` is honoured), and any cookie
+  // with `secure: true` is silently dropped because express-session refuses
+  // to set `Secure` cookies on non-HTTPS requests. The symptom is a
+  // successful Google login that immediately reads as `401` from `/me` —
+  // because the session cookie never made it onto the response — and is the
+  // most misattributable failure in the whole auth flow.
+  //
+  // `trust proxy = 1` tells Express to trust the first hop in
+  // `X-Forwarded-*` headers, so `req.secure`, `req.protocol`, and the cookie
+  // `Secure` acceptance all reflect the original (HTTPS) protocol. This is
+  // mounted BEFORE `sessionMiddleware` so the cookie decision sees the
+  // trusted values.
+  //
+  // Note: `req.secure` is still `false` for the Google OAuth callback URL
+  // derivation IF a future refactor ever reads it — the callback URL is a
+  // literal env value (`GOOGLE_CALLBACK_URL`) and must NOT be derived from
+  // request-time properties. See `auth.module.ts` for the literal read.
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
+
   // --- Session middleware (Postgres-backed) ------------------------------
   // Registered via `app.use(...)` so it runs before any Nest route
   // handler. Passport depends on `req.session.passport.user` being a
