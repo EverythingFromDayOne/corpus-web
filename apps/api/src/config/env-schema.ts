@@ -113,6 +113,7 @@ const UrlOnlySchema = SessionCookieSchema.extend({
   PORT: z.coerce.number().int().positive().default(3001),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+  DATABASE_URL: z.string().url(),
 }).and(GoogleOAuthSchema.partial());
 
 /**
@@ -191,13 +192,16 @@ export function toDatabaseUrl(env: AppEnv): string {
   }
   const e = env as z.infer<typeof ComponentFormSchema>;
   const user = encodeURIComponent(e.POSTGRES_USER);
-  // Mask the password in the URL string used for logs and the TypeORM
-  // DataSource error path. We never want the cleartext password in a
-  // log line, and we never want it as a fallback if the URL field is
-  // missing — see the postgres `url` option in `data-source.ts` for
-  // the real connection string the DataSource builds.
-  const mask = encodeURIComponent('***');
-  return `postgres://${user}:${mask}@${e.POSTGRES_HOST}:${e.POSTGRES_PORT}/${e.POSTGRES_DB}`;
+  const password = encodeURIComponent(e.POSTGRES_PASSWORD);
+  return `postgres://${user}:${password}@${e.POSTGRES_HOST}:${e.POSTGRES_PORT}/${e.POSTGRES_DB}`;
+}
+
+/**
+ * The same URL with the password replaced by `***`. This is the only form
+ * that may appear in logs, thrown errors, or any response body.
+ */
+export function toMaskedDatabaseUrl(env: AppEnv): string {
+  return toDatabaseUrl(env).replace(/:\/\/([^:@/]+):[^@]*@/, '://$1:***@');
 }
 
 /**
