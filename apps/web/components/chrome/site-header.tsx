@@ -7,20 +7,33 @@ import { SearchTrigger } from './search-trigger';
 import { NavLinks } from './nav-links';
 import { NavProgressBar } from './nav-progress-bar';
 import { AuthSurface } from './auth-surface';
-import { homePath, coursePath } from '@/lib/routes';
+import { MobileNavCluster } from './mobile-nav-cluster';
+import { homePath } from '@/lib/routes';
 import type { Locale } from '@/lib/locales';
 
+/**
+ * Site header (header-redesign PR #194):
+ *  - Dropped the "START THE COURSE" pill entirely (no desktop, no
+ *    mobile). Featured-course routing now lives in the home page
+ *    hero on `/[locale]` (the existing `home.ctaCourse` button in
+ *    `app/[locale]/page.tsx`) — no D71 needed.
+ *  - The mobile hamburger + drawer pair is owned by
+ *    `MobileNavCluster`, which is the only client boundary this
+ *    header introduces. Everything else (logo, nav links, search,
+ *    theme, auth) stays server-rendered; only the cluster crosses
+ *    into client scope because it pulls `useSignIn` + dispatches the
+ *    `corpus:open-search` window event for the drawer.
+ *  - The cluster's open-state is local to it; App Router remounts
+ *    this header (and therefore the cluster) on every navigation,
+ *    so open-state is implicitly reset to `closed` per spec §4 —
+ *    no persisted storage, no URL param, no context provider.
+ */
 export function SiteHeader({
   locale,
   messages,
-  featured,
 }: {
   locale: Locale;
   messages: Messages;
-  /** First course from `view.courses`; when set, the topbar renders a
-   *  pill-shaped CTA "Start the course" linking to it. When unset,
-   *  the pill is hidden (e.g., on routes without a featured course). */
-  featured?: { slug: string; title: string };
 }) {
   return (
     <header className="topbar">
@@ -41,16 +54,8 @@ export function SiteHeader({
         <div className="topbar-tools">
           <SearchTrigger messages={messages} />
           <AuthSurface messages={messages} />
-          {featured ? (
-            <Link
-              href={coursePath(locale, featured.slug)}
-              className="topbar-pill-cta"
-              aria-label={t(messages, 'topbar.pillCtaAriaLabel', { title: featured.title })}
-            >
-              {t(messages, 'topbar.pillCta')}
-            </Link>
-          ) : null}
           <ThemeToggle label={t(messages, 'nav.themeToggle')} />
+          <MobileNavCluster locale={locale} messages={messages} />
         </div>
       </div>
     </header>

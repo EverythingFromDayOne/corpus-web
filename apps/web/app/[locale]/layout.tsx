@@ -7,7 +7,6 @@ import { SiteHeader } from '@/components/chrome/site-header';
 import { SiteFooter } from '@/components/chrome/site-footer';
 import { getMessages } from '@/lib/i18n';
 import { isLocale, LOCALES } from '@/lib/locales';
-import { getCatalogView } from '@/lib/catalog';
 
 type LayoutProps = {
   children: ReactNode;
@@ -22,8 +21,6 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
   const messages = getMessages(locale);
-  const view = await getCatalogView();
-  const featured = view.courses[0];
 
   return (
     // D26 sub-slice A.1 — SignInProvider mounted at the locale-tree root
@@ -35,11 +32,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
     // own disjoint state and don't need to coordinate.
     <SignInProvider>
       <ArticleChromeProvider>
-        <SiteHeader
-          locale={locale}
-          messages={messages}
-          featured={featured ? { slug: featured.slug, title: featured.title } : undefined}
-        />
+        <SiteHeader locale={locale} messages={messages} />
         {children}
         <SearchDialog messages={messages} />
         <SiteFooter locale={locale} />
