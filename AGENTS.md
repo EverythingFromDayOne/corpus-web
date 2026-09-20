@@ -94,6 +94,8 @@ output and in the SESSION-LOG entry under a heading `**Invented decisions:**`.
 
 A silent assumption is a failed session even when the assumption was correct.
 
+**Quote, don't reconstruct.** When restating what someone said — a count, a list, a decision — quote it or cite where it came from. A plausible reconstruction that ships into bookkeeping becomes a fact nobody can trace. (Huy 2026-09-20, session 218, verbatim directive; see `docs/DEBT.md` D72 row and `.agents/SESSION-LOG.md` Session 217 amendment for the originating incident — Lead's Slack receipt and four bookkeeping files cited "five uncosted consequences" for rejecting `MigrationOnBootstrap`; Huy's directive named four.)
+
 ---
 
 ## After EVERY session — mandatory steps
@@ -464,6 +466,12 @@ About page is an oversight to be helpfully filled.
   All three are generated from `.cursor/rules/*.mdc` and `.claude/skills/*/SKILL.md` by
   `pnpm agents:build`.
 - Verify a `.cursor` rule against the actual file tree before quoting it; the tree wins. (Stale `.cursor/rules/*.mdc` rules reproduce deviation loops every session until corrected — the D57 rule-vs-tree mismatch was caught only after the first tests landed and the rule read `Co-located *.spec.ts` for a path that did not exist.)
+
+---
+
+## Verification discipline
+
+- **When a brief says to measure, a derivation from documentation or package source is not a substitute. A gap found during verify is a blocker, not a footnote.** (Huy 2026-09-20, session 218, verbatim directive; see `docs/DEBT.md` D72 row for the originating incident — connect-pg-simple-package-inferred DDL shipped in PR #193 that did not match the live `pg_dump --schema-only --table=corpus_session`, plus the `MigrationOnBootstrap` boot-time hook that PR #193 also proposed.)
 
 ---
 

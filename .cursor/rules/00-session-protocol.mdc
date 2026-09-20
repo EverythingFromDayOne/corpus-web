@@ -84,6 +84,8 @@ output and in the SESSION-LOG entry under a heading `**Invented decisions:**`.
 
 A silent assumption is a failed session even when the assumption was correct.
 
+**Quote, don't reconstruct.** When restating what someone said — a count, a list, a decision — quote it or cite where it came from. A plausible reconstruction that ships into bookkeeping becomes a fact nobody can trace. (Huy 2026-09-20, session 218, verbatim directive; see `docs/DEBT.md` D72 row and `.agents/SESSION-LOG.md` Session 217 amendment for the originating incident — Lead's Slack receipt and four bookkeeping files cited "five uncosted consequences" for rejecting `MigrationOnBootstrap`; Huy's directive named four.)
+
 ---
 
 ## After EVERY session — mandatory steps

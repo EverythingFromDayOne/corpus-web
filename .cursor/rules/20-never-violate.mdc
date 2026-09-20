@@ -145,6 +145,12 @@ About page is an oversight to be helpfully filled.
 
 ---
 
+## Verification discipline
+
+- **When a brief says to measure, a derivation from documentation or package source is not a substitute. A gap found during verify is a blocker, not a footnote.** (Huy 2026-09-20, session 218, verbatim directive; see `docs/DEBT.md` D72 row for the originating incident — connect-pg-simple-package-inferred DDL shipped in PR #193 that did not match the live `pg_dump --schema-only --table=corpus_session`, plus the `MigrationOnBootstrap` boot-time hook that PR #193 also proposed.)
+
+---
+
 ## Stop and ask the user before
 
 - Installing any new npm package
