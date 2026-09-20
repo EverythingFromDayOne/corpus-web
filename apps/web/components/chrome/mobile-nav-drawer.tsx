@@ -66,7 +66,6 @@ type MobileNavDrawerProps = {
   readonly signedInEmail?: string | undefined;
   readonly signOutHref: string;
   readonly onOpenSearch?: () => void;
-  readonly onToggleTheme?: () => void;
   readonly themeLabel: string;
   readonly languageLabel: string;
 };
@@ -98,7 +97,6 @@ export function MobileNavDrawer({
   signedInEmail,
   signOutHref,
   onOpenSearch,
-  onToggleTheme,
   themeLabel,
   languageLabel,
 }: MobileNavDrawerProps) {
