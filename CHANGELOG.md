@@ -7509,3 +7509,43 @@ Caught the same fabrication Lead caught in his own branch (`1c20e5b`). This Sess
 **Test re-run:** pg_dump round-trip test (#1) re-run end-to-end against local `corpus-api-db` with the updated `DO` block — still PASSES byte-for-byte against Huy's measured live DDL. All 18 tests PASS. PR #195 will be `--amend`-pushed with `--force-with-lease` (the PR is not yet merged; remote not advanced since first push).
 
 **Acknowledgement of measurement-vs-derivation failure (Huy 2026-09-20):** PR #193 substituted "canonical by construction" derivation from `connect-pg-simple`'s `table.sql` for a measurement of the live VPS schema. Three deltas were missed: constraint name `session_pkey` vs `corpus_session_pkey`, index name `IDX_session_expire` vs `IDX_corpus_session_expire`, column type `character varying` vs `varchar`. "Canonical by construction" was wrong — connect-pg-simple templates only the TABLE identifier (`"session"` → `tableName`); constraint and index names are NOT substituted. The new rule lands in the corrected slice: when a brief says to measure, do the measurement. If measurement is impossible, say so explicitly and propose an alternative path; do not fall back to documentation inference and call it equivalent. The corrected migration's docstring documents this lesson as part of the source-of-truth.
+
+### [2026-09-20] — feat(web) + feat(verify) — PR #194 (feat/header-mobile-drawer) merged (Session 215)
+
+**Merged:** `3cc6c8f feat(web): header relayout — drop pill, add mobile hamburger drawer (#194)`. Squash-merged into develop via `gh pr merge 194 --squash --delete-branch`. Branch deleted.
+
+**Added**
+- `apps/web/components/chrome/mobile-nav-cluster.tsx` — `createPortal(<MobileNavDrawer>, document.body)` (escapes `.topbar`'s `backdrop-filter: blur(12px)` containing block); `useEffect`-gated `mounted` flag for SSR safety; passes `dialogId = useId()` to `<MobileNavDrawer id={dialogId}>` so `aria-controls` resolves to a real DOM id.
+- `apps/web/components/chrome/mobile-nav-drawer.tsx` — accepts new optional `id` prop, applies it to the dialog root. Focus trap (Tab/Shift+Tab inside panel), Esc + visible × + backdrop close, focus restored to trigger on close, body scroll lock while open, `prefers-reduced-motion` aware slide-in keyframe (suppressed when reduced). Sign-in/sign-out reuse the existing `<SignInButton>` + `<a href="${apiUrl}/auth/logout">` so the popup lifecycle, postMessage handling, and `/me` refresh logic stay in `sign-in-context.tsx` (one source of truth). Open-state is local to `SiteHeader` so route-change remount resets to closed.
+- `apps/web/components/chrome/mobile-nav-trigger.tsx` — hamburger trigger button (line-art: three stacked `<line>` elements, 1.5px stroke, matches the theme toggle + search trigger).
+- `apps/web/app/globals.css` — `.mobile-nav-drawer-action--placeholder` gets `pointer-events: none` (resolves the placeholder × occlusion noise case). All other drawer styles use existing design tokens — no new colors/spacing/radius.
+- `apps/web/components/chrome/site-header.tsx` — drops the "START THE COURSE" pill (desktop + mobile). Replaces with the hamburger trigger at ≤640px and clean topbar otherwise.
+- `apps/web/app/[locale]/layout.tsx` — wires `<SiteHeader>` with the new drawer state.
+- `apps/web/messages/en.json` — `mobileNavClose: "Close navigation menu"`, `mobileNavMenu: "Navigation menu"` (and a few related labels). No new locale — `en` only.
+- `scripts/ui-evidence.mjs` — CDP-based UI-evidence harness (no Playwright dep, headless Chrome on `localhost`). Six assertions: aria-controls (initial + at open), dialog computed height per viewport (catches the bug class), backdrop-close via real CDP `Input.dispatchMouseEvent` (NEVER `element.click()` — that was the assertion that had to change shape), × close (real CDP coord), Esc close, focus containment (0/12 escapes), axe-core at 375 open. Reports both strict and refined occlusion counts so the exclusion rule can be audited.
+- `scripts/lib/axe-core.min.js` — vendored axe-core 4.10.2 (553 KB, MPL 2.0).
+- `docs/verify-recipe.md` § "UI-evidence occlusion exclusion rule" — codifies the exclusion rule derived from three confirmed noise cases: (a) disabled element with parent-wrap click handler, (b) disabled placeholder with `pointer-events: none`, (c) modal backdrop button center covered by non-interactive sibling. Vendor-injected nodes (Vercel toolbar etc.) are excluded before the check runs, not reported as passes. Always report both strict and refined counts so the exclusion is auditable.
+- `package.json` — `pnpm verify:ui-evidence` script (calls `node scripts/ui-evidence.mjs`).
+
+**Fixed**
+- **Bug #1 — aria-controls invalid value** (axe critical). Trigger `aria-controls="_R_4j6btb_"` pointed at a React `useId()` suffix with no matching DOM id. Fixed by passing `dialogId` from cluster to drawer.
+- **Bug #2 — dialog sizing bug**. `.mobile-nav-drawer` was `position: fixed; inset: 0` but its computed box was 1280×56.59 px. Root cause: `.topbar { backdrop-filter: blur(12px) }` at `globals.css:133` creates a containing block for `position: fixed` descendants. Fixed by `createPortal` to `document.body`.
+- **Placeholder × occlusion noise-case fix.** Added `pointer-events: none` to `.mobile-nav-drawer-action--placeholder` (one CSS line).
+
+**Verification on merged tree (commit `3cc6c8f`)**
+- `hermes verify` — GREEN exit 0. Bootstrap 1.2s, build 17.4s, typecheck 0.65s (8 packages cached), test 0.64s (113/113 vitest PASS), lint 0.64s (8 packages cached), cache-replays all OK, dev server 200 OK at `http://127.0.0.1:3000/` in 0.368s.
+- `pnpm verify:ui-evidence` — GREEN exit 0. All 6 mobile assertions pass on `localhost:3000/en` at viewport 375x812 (mobile only; trigger hidden ≥640px).
+- Pre-fix tree run-through — harness catches all 6 failures (exit 1, 6 specific verdicts): aria-controls unresolved, dialog height 56.59 (vs viewport 812), backdrop coord-click both points failed, × close coord-click missed, strict-fail occlusion 2, axe critical 1.
+
+**Out of scope (carry)**
+- Vercel dashboard bypass-secret revocation — CLI cannot revoke. Huy committed to dashboard action. Local build primary going forward (per Huy: "the gate must not depend on a token that expires or a dashboard setting").
+- Duplicate contentinfo landmark (`#3`) and duplicate aria-label (`#4`) — pre-existing on home page, multi-file, deferred.
+- 4 moderate pre-existing axe findings (D69 in DEBT.md covers them).
+
+**Hard-rule compliance**
+- No edits under `content/` (submoduled corpora untouched).
+- No auto-merge via content promotion.
+- No hand-edit of AGENTS.md / CLAUDE.md / `.cursor/rules/60-skills.mdc`.
+- No new locale added.
+- No About/Bio/Team/Hire Me/Contact page added.
+- Verification scripts stay out of repo (live in `~/.hermes/cache/scratch/pr194-verify/`); only the codification in `scripts/ui-evidence.mjs` + `docs/verify-recipe.md` lands in repo.
