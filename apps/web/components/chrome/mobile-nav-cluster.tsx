@@ -19,7 +19,8 @@
  *     param, no context provider.
  */
 
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSignIn } from './sign-in-context';
 import { MobileNavTrigger } from './mobile-nav-trigger';
 import { MobileNavDrawer } from './mobile-nav-drawer';
@@ -37,9 +38,21 @@ export function MobileNavCluster({
   messages: Messages;
 }) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const dialogId = useId();
   const { me } = useSignIn();
+
+  // Drawer is portaled to document.body so it escapes the .topbar
+  // containing block created by `backdrop-filter: blur(12px)` on
+  // `.topbar` (globals.css line 133). Without the portal, `position:
+  // fixed; inset: 0` resolves against the topbar's box instead of
+  // the viewport — the backdrop button then inherits the topbar
+  // height (~57px) and only the header strip is clickable to close.
+  // The trigger stays in the topbar; only the drawer teleports.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const navHrefs = [
     { slug: 'home', href: homePath(locale) },
@@ -59,33 +72,39 @@ export function MobileNavCluster({
         onToggle={() => setOpen((v) => !v)}
         controlsId={dialogId}
       />
-      <MobileNavDrawer
-        messages={messages}
-        open={open}
-        onClose={() => setOpen(false)}
-        triggerRef={triggerRef}
-        navHrefs={navHrefs}
-        signedInName={me?.name ?? undefined}
-        signedInEmail={me?.email ?? undefined}
-        signOutHref={signOutHref}
-        onOpenSearch={() => {
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('corpus:open-search'));
-          }
-        }}
-        onToggleTheme={() => {
-          // ThemeToggle owns its own state — for parity with the
-          // existing desktop toggle, flip the root attribute +
-          // cookie write directly here.
-          if (typeof document === 'undefined') return;
-          const root = document.documentElement;
-          const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-          root.setAttribute('data-theme', next);
-          document.cookie = `${THEME_COOKIE}=${next};path=/;max-age=31536000;SameSite=Lax`;
-        }}
-        themeLabel={themeLabel}
-        languageLabel={t(messages, 'nav.language')}
-      />
+      {mounted
+        ? createPortal(
+            <MobileNavDrawer
+              id={dialogId}
+              messages={messages}
+              open={open}
+              onClose={() => setOpen(false)}
+              triggerRef={triggerRef}
+              navHrefs={navHrefs}
+              signedInName={me?.name ?? undefined}
+              signedInEmail={me?.email ?? undefined}
+              signOutHref={signOutHref}
+              onOpenSearch={() => {
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('corpus:open-search'));
+                }
+              }}
+              onToggleTheme={() => {
+                // ThemeToggle owns its own state — for parity with the
+                // existing desktop toggle, flip the root attribute +
+                // cookie write directly here.
+                if (typeof document === 'undefined') return;
+                const root = document.documentElement;
+                const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+                root.setAttribute('data-theme', next);
+                document.cookie = `${THEME_COOKIE}=${next};path=/;max-age=31536000;SameSite=Lax`;
+              }}
+              themeLabel={themeLabel}
+              languageLabel={t(messages, 'nav.language')}
+            />,
+            document.body
+          )
+        : null}
     </>
   );
 }

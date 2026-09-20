@@ -52,6 +52,8 @@ import { SignInButton } from './sign-in-button';
  */
 
 type MobileNavDrawerProps = {
+  /** ID applied to the dialog root so an external `aria-controls` (e.g. the hamburger trigger) can reference it. Same value as the trigger's `controlsId` prop. */
+  readonly id?: string;
   readonly messages: Messages;
   readonly open: boolean;
   readonly onClose: () => void;
@@ -85,6 +87,7 @@ function focusables(root: HTMLElement): Focusable[] {
 }
 
 export function MobileNavDrawer({
+  id,
   messages,
   open,
   onClose,
@@ -178,6 +181,7 @@ export function MobileNavDrawer({
 
   return (
     <div
+      id={id}
       className="mobile-nav-drawer"
       role="dialog"
       aria-modal="true"
