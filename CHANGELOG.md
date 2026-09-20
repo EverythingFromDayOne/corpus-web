@@ -7383,10 +7383,10 @@ Session 210 PR #187 (branch `fix/database-url-masked-password`, no separate book
 ### 2026-09-20 — docs/fix-50-api-nestjs-rule — D68/D69/D70 PR #193 BLOCKED, corrected slice dispatched, D71 + D72 filed
 
 **Removed**
-- PR #193 closed without merge — three measured-VPS deltas against the connect-pg-simple-package-inferred DDL (constraint name `session_pkey` not `corpus_session_pkey`, index name `IDX_session_expire` not `IDX_corpus_session_expire`, column types `character varying`/`json`/`timestamp(6)` not `varchar`/`jsonb`) and rejected `MigrationOnBootstrap` boot-time hook (five uncosted consequences: DDL on every PM2 restart, retry loops under `autorestart: true`, multi-instance race, weakening of D69, hidden failure mode). Branch `fix/d68-d69-d70-config-hardening` deleted.
+- PR #193 closed without merge — three measured-VPS deltas against the connect-pg-simple-package-inferred DDL (constraint name `session_pkey` not `corpus_session_pkey`, index name `IDX_session_expire` not `IDX_corpus_session_expire`, column types `character varying`/`json`/`timestamp(6)` not `varchar`/`jsonb`) and rejected `MigrationOnBootstrap` boot-time hook (four uncosted consequences: DDL on every PM2 restart, retry loops under `autorestart: true`, multi-instance race, weakening of D69 itself — verbatim close: "If you want boot-time migration, argue it as its own decision").
 
 **Added**
-- D71 Open row — `MigrationOnBootstrap` boot-time migration hook rejected with five-objection rationale.
+- D71 Open row — `MigrationOnBootstrap` boot-time migration hook rejected with four-objection rationale.
 - D72 Open row — migration test asserted emitted DDL strings against itself, not against a live schema; new rule lands in `20-never-violate.mdc` per follow-through PR.
 - D69 Open row amended — boot-time migration paragraph added; blocks list updated to remove startup-time migration recommendation.
 - D70 Open row amended — schema-source correction paragraph added; risk paragraph added (wrong migration + boot loop scenario).
