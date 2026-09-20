@@ -10190,3 +10190,31 @@ Huy's relay-suggested addition (deps-array path — same loop shape via state-in
 - Lead re-runs in-scope gates.
 - Lead routes to Huy for merge sign-off.
 
+
+
+### Session 217 (2026-09-20) — D68/D69/D70 corrected slice (`fix/d69-d70-corrected`)
+
+**Why this exists.** PR #193 (`fix/d68-d69-d70-config-hardening @ ea22bec`) was BLOCKED by Huy 2026-09-20 with three measured deltas against Slice C (`CreateCorpusSession` migration had three wrong names — `corpus_session_pkey` instead of `session_pkey`, `IDX_corpus_session_expire` instead of `IDX_session_expire`, `varchar` instead of `character varying`) and a full rejection of Slice B's `MigrationOnBootstrap` boot-time migration hook (migrations stay an explicit deploy step, four uncosted consequences). The corrected slice keeps Slice A (D68 DI provider, verified clean in PR #193) verbatim, reduces Slice B (probe stays, boot-time migration drops), and rewrites Slice C with Huy's measured VPS `pg_dump` as the migration's source-of-truth.
+
+**Measurement, not derivation.** PR #193's error: I read `connect-pg-simple`'s `table.sql` and called it "canonical by construction" — but the package templates only the TABLE identifier (`"session"` → `tableName`); constraint and index names are NOT substituted. One `docker exec ... pg_dump --schema-only --table=corpus_session` (Huy 2026-09-20, four seconds) gave the truth. The corrected migration's docstring documents the measured output verbatim. New rule, in flight as a separate PR by Lead: when a brief says to measure, a derivation from documentation or package source is not a substitute. Three instances of this shape in two days (masked password, empty DB behind green probe, this migration).
+
+**Test #1 = `pg_dump` round-trip.** Real `pg.Client` against local `corpus-api-db` Postgres container (`postgres://corpus:corpus_dev_only@127.0.0.1:5432/corpus_api`). Applies migration, runs `docker exec corpus-api-db pg_dump -U corpus -d corpus_api --schema-only --table=corpus_session`, normalizes (drops `--` comments, `SET` statements, `OWNER TO` clauses, blank lines; removes `public.` and `ONLY` qualifiers), asserts strict equality against Huy's measured live DDL string. Test #2 verifies exactly-one-PK + exactly-one-index after two invocations (idempotency). Test #3 verifies `down()` reverse order. Test #4 verifies stable name. All four tests use `t.skip` when `corpus-api-db` unreachable so CI without Postgres passes. Replaces PR #193's self-asserting DDL-string tests ("code checking the code", Huy 2026-09-20, same class as the trust-proxy assertion rejected on PR #190).
+
+**Source-of-truth attestation.** The migration's `up()` body matches Huy's measured VPS DDL byte-for-byte (after normalization): `CREATE TABLE` columns `sid character varying / sess json / expire timestamp(6)`; constraint name `session_pkey`; index name `IDX_session_expire`. The constraint is guarded by a `DO $$ ... END $$` block (`ADD CONSTRAINT` has no `IF NOT EXISTS`). The index uses `CREATE INDEX IF NOT EXISTS`.
+
+**`MigrationOnBootstrap` dropped, not moved.** Huy rejected the `OnApplicationBootstrap` hook that ran `runMigrations()` at app start. Four uncosted consequences Huy cited: (1) DDL on every PM2 restart with no human gate; (2) PM2 retry loops under `autorestart: true`; (3) multi-instance race (two containers racing `CREATE TABLE IF NOT EXISTS`); (4) weakens D69 itself (probe asserting schema exists means little when app created that schema seconds earlier). Huy's verbatim close: "If you want boot-time migration, argue it as its own decision." The `MigrationOnBootstrap` service, the `DatabaseModule` that registered it, and the `DatabaseModule` import in `app.module.ts` are all DROPPED in this corrected slice. Migrations stay an explicit deploy step: `pnpm --filter @corpus/api migration:run` from the operator's terminal post-merge. *Amendment 2026-09-20:* an earlier draft of this paragraph listed FIVE consequences by adding "hidden failure mode (boot-time migration errors look like boot failures, not migration failures)" — that bullet was a BE reconstruction, not in Huy's text. Same class of error as PR #193's "canonical by construction" claim. Removed.
+
+**Invented decisions flagged for Huy:**
+
+1. D68 APP_CONFIG shape: full env snapshot via `loadEnv()`, not a typed subset.
+2. D69 lifecycle placement: NO LIFECYCLE PLACEMENT in this PR (see D71).
+3. D69 response shape: `database: schema` field via Terminus's standard `HealthIndicatorResult`.
+4. D70 schema source: Huy's measured VPS `pg_dump` output (in the migration docstring verbatim).
+
+**Stop-and-ask triggers all clear.** No new npm pkg (`pg` was already a devDep). No OpenAPI spec change beyond `auth.controller.ts:86,148`. No destructive schema change (`IF NOT EXISTS` everywhere; `DO` block for the constraint; idempotent). No route deprecation. No irreversible VPS ops (Huy applies manually).
+
+**Hard-rule compliance:** No `synchronize: true`. No hand-edit of `packages/api-client/`. No `*.spec.ts` co-located. No hard-delete of `lessons`. No `'server'` quiz mode. No Express-cast. No `SameSite=None`. No AGENTS.md hand-edit. No precedence flip.
+
+**Bookkeeping:** `docs/DEBT.md` Highest ID D67 → D72; D68/D69/D70 Open rows added (corrected Slice B text in D69, measured-DDL rationale in D70); D71 Open row added (`MigrationOnBootstrap` rejected, four uncosted consequences preserved verbatim from Huy's review); D72 Open row added (migration test asserted emitted DDL strings against itself, replacement test added). CHANGELOG.md Session 217 entry under `[Unreleased]`. SESSION-LOG.md Session 217 entry (this entry). progress.md Session 217 one-line. summary.md lead-in rotated to Session 217 via Python script.
+
+**Out of scope (carry):** D63 start:dev CI gate; D64/D65 coding-fe scope; D59 Vercel re-verify; D72 follow-through rule addition (Lead dispatched separate PR for Huy wording sign-off).

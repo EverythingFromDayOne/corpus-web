@@ -101,7 +101,16 @@ export async function buildSessionMiddleware(): Promise<RequestHandler> {
     store: new PgStore({
       pool,
       tableName: 'corpus_session',
-      createTableIfMissing: true,
+      // Schema is owned by the migration directory (D70). The
+      // `1700000002000-CreateCorpusSession.ts` migration creates
+      // `corpus_session` with the canonical DDL matching the live
+      // VPS schema (measured via `pg_dump --schema-only
+      // --table=corpus_session`). The migration is applied
+      // manually via `pnpm --filter @corpus/api migration:run`
+      // from the operator's terminal post-deploy — see D71 for why
+      // boot-time migration (`MigrationOnBootstrap`) was rejected.
+      // The runtime no longer mutates the schema.
+      createTableIfMissing: false,
       schemaName: 'public',
     }),
   });

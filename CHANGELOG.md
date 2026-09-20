@@ -7376,3 +7376,136 @@ Session 210 PR #187 (branch `fix/database-url-masked-password`, no separate book
 - **Fixed**: `UrlOnlySchema` did not declare `DATABASE_URL`, so zod strip mode dropped it and the URL-only config form built an all-undefined URL. Latent — never exercised in any environment. (`9cdd712`)
 - **Security**: Postgres host port now binds `127.0.0.1` instead of `0.0.0.0`. The previous binding published the database on the VPS public IP; UFW did not block it because Docker inserts DNAT rules ahead of the UFW chain. (`a764e10`)
 - **Added**: `toMaskedDatabaseUrl()` for log/error paths. Currently has no caller — wiring it is a follow-up, not part of this change.
+
+
+### [2026-09-20] — fix(api): D68 DI provider + D69 readiness schema check + D70 corpus_session migration (corrected slice) (Session 217)
+
+PR TBD on branch `fix/d69-d70-corrected` off `origin/develop @ 60b1547` (post-PR-#192-merge). PR #193 (`fix/d68-d69-d70-config-hardening @ ea22bec`) was BLOCKED by Huy 2026-09-20 with three measured deltas against Slice C and a full rejection of Slice B's `MigrationOnBootstrap`. The corrected slice keeps Slice A verbatim from PR #193, drops Slice B's boot-time migration hook (keeps the schema-presence probe), and rewrites Slice C with the LIVE VPS DDL as the migration's source-of-truth.
+
+**Slice A — D68 (DI migration, UNCHANGED from PR #193)**
+
+- **NEW** `apps/api/src/config/app-config.provider.ts` (42 lines): `APP_CONFIG` symbol + `appConfigProvider` `FactoryProvider`, `useFactory: async () => await loadEnv()`. Resolves once per Nest app instance, Nest caches across all `@Inject(APP_CONFIG)` consumers. Full env snapshot, not a typed subset.
+- **MODIFIED** `apps/api/src/modules/auth/auth.module.ts`: registers `appConfigProvider` in `providers: [...]`.
+- **MODIFIED** `apps/api/src/modules/auth/auth.controller.ts`: constructor gains `@Inject(APP_CONFIG) private readonly appConfig: AppEnv`. `loadAppEnv` import removed. Both call sites (lines 86, 148) switch to `this.appConfig.WEB_ORIGIN` / `this.appConfig.SESSION_COOKIE_NAME`.
+- **NEW** `apps/api/test/config/app-config.test.ts` (105 lines, 4 cases): APP_CONFIG unique symbol, provider shape, useFactory returns Promise<AppEnv>, idempotency (100 invocations return deepEqual snapshots).
+
+**Slice B — D69 (REDUCED — probe stays, boot-time migration DROPPED per Huy 2026-09-20)**
+
+- **NEW** `apps/api/src/health/schema-health.indicator.ts` (78 lines): `SchemaHealthIndicator` extends `@nestjs/terminus` `HealthIndicator`. `check(key)` runs `SELECT to_regclass('public.migrations') IS NOT NULL` AND `SELECT count(*)::text FROM migrations` in parallel; returns 503 `schema-missing` / `schema-empty` / 200 `schema { applied: N }`. The count query has `.catch(() => [{ count: '0' }])` to absorb the half-built-schema race window.
+- **MODIFIED** `apps/api/src/health/health.controller.ts`: `ReadyController` gains `@Inject(SchemaHealthIndicator)`. `check()` runs `pingCheck` AND `schema.check` in parallel — different failure modes, different 503 reasons.
+- **NEW** `apps/api/test/health/schema-health.test.ts` (107 lines, 5 cases): 200 OK + applied count, 503 schema-missing, 503 schema-empty from count=0, 503 schema-empty from count-query race-window catch, Postgres t/f boolean shape.
+- **DROPPED** `apps/api/src/db/migration-on-bootstrap.ts` (49 lines): `MigrationOnBootstrap implements OnApplicationBootstrap` rejected by Huy — migrations stay an explicit deploy step. See D71 for the four uncosted consequences.
+- **DROPPED** `apps/api/src/db/database.module.ts` (19 lines): `@Module({ providers: [MigrationOnBootstrap] })` wrapper, no longer needed.
+- **NOT MODIFIED** `apps/api/src/app.module.ts`: no `DatabaseModule` import (was added by PR #193, no longer needed).
+
+**Slice C — D70 (REWRITTEN — measured VPS DDL is the source-of-truth)**
+
+- **NEW** `apps/api/src/db/migrations/1700000002000-CreateCorpusSession.ts` (98 lines): `CREATE TABLE IF NOT EXISTS "corpus_session" (sid character varying, sess json, expire timestamp(6))` — column types match the live VPS exactly. Constraint guarded via `DO` block (`ADD CONSTRAINT` has no `IF NOT EXISTS`): `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'session_pkey' AND conrelid = 'corpus_session'::regclass) THEN ALTER TABLE "corpus_session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid"); END IF; END $$;`. Index: `CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "corpus_session" ("expire")`. Source-of-truth docstring documents Huy's measured `docker exec corpus-api-db pg_dump --schema-only --table=corpus_session` output verbatim — three empirical deltas against `connect-pg-simple`'s `table.sql` (constraint name `session_pkey` not `corpus_session_pkey`; index name `IDX_session_expire` not `IDX_corpus_session_expire`; column type `character varying` with no length for `sid`).
+- **MODIFIED** `apps/api/src/config/session.ts`: `createTableIfMissing: true → false`. Schema is owned by the migration directory.
+- **NEW** `apps/api/test/db/create-corpus-session-migration.test.ts` (185 lines, 4 cases): (1) `pg_dump` round-trip — applies migration to clean local Postgres, dumps schema via `docker exec corpus-api-db pg_dump --schema-only --table=corpus_session`, normalizes output (strips `--` comments, `SET` statements, `OWNER TO` clauses, blank lines; removes `public.` and `ONLY` qualifiers), asserts strict equality against Huy's measured live DDL string byte-for-byte (skips with `t.skip` when `corpus-api-db` unreachable so CI without Postgres passes); (2) idempotency against a DB that already has the live schema — apply twice, verify exactly-one-PK + exactly-one-index; (3) `down()` reverse order — drops index before table; (4) stable name string for TypeORM bookkeeping. Replaces PR #193's self-asserting DDL-string tests ("code checking the code", Huy 2026-09-20). Real `pg.Client` connection to local `corpus-api-db` Postgres container.
+
+**Bookkeeping on this branch (atomic with runtime):**
+
+- `docs/DEBT.md`: Highest ID D67 → D72 (single hop on second bump). D67 row text tightened (carve-out for D68). D68 + D69 + D70 Open rows added in `## Open`. D71 added — `MigrationOnBootstrap` rejected (four uncosted consequences preserved verbatim from Huy's review). D72 added — migration test asserted emitted DDL strings against itself (rejected; replacement test added).
+- `CHANGELOG.md` (this entry), `.agents/SESSION-LOG.md` (Session 217 entry appended), `progress.md` (this line). `.agents/summary.md` lead-in rotated to Session 217 via Python script.
+
+**Test output verbatim:**
+
+```
+✔ APP_CONFIG is a unique symbol (1.1812ms)
+✔ appConfigProvider has the expected Provider shape (0.5911ms)
+✔ useFactory returns a Promise<AppEnv> when called with valid env (2.3218ms)
+✔ useFactory is idempotent: 100 invocations return deepEqual snapshots (19.9820ms)
+✔ SchemaHealthIndicator: 200 OK when to_regclass=true AND count>0 (1.5038ms)
+✔ SchemaHealthIndicator: 503 schema-missing when to_regclass=false (1.3189ms)
+✔ SchemaHealthIndicator: 503 schema-empty when to_regclass=true AND count=0 (1.4827ms)
+✔ SchemaHealthIndicator: 503 schema-empty when count query races (1.5038ms)
+✔ SchemaHealthIndicator: handles Postgres t/f boolean shape (0.7469ms)
+✔ Test #1: pg_dump round-trip — applied schema matches measured VPS DDL byte-for-byte (264.450683ms)
+✔ Test #2: idempotency against a DB that already has the live schema (37.321815ms)
+✔ Test #3: down() reverse order — drops index before table (33.275804ms)
+✔ Test #4: stable name for TypeORM bookkeeping (1.20164ms)
+ℹ tests 18  ℹ pass 18  ℹ fail 0  ℹ duration_ms 2287.4
+```
+
+Plus 5 prior D57/D67 cases (5.77ms + 1.52ms + 1.27ms + 1.13ms + 10.20ms). **Total 18/18 PASS in 2287ms.** Test #1 ran against the real local Postgres (`corpus-api-db` container, `postgres://corpus:corpus_dev_only@127.0.0.1:5432/corpus_api`) and the migration's applied schema matches the measured VPS DDL byte-for-byte after normalization. CI will skip Test #1-3 (no Postgres on the runner) but Test #4 + all 13 non-DB tests run cleanly on every PR.
+
+**Local gates:**
+
+- `pnpm --filter @corpus/api typecheck` ✓ 0 errors
+- `pnpm --filter @corpus/api lint` ✓ 0 problems
+- `pnpm --filter @corpus/api build` ✓ dist includes all new files, zero `*.test.js` leakage:
+  - `dist/health/schema-health.indicator.js` 3930 B
+  - `dist/db/migrations/1700000002000-CreateCorpusSession.js` ~3 KB
+  - `dist/config/app-config.provider.js` (compiled)
+- `pnpm agents:check` ✓
+- `pnpm verify:frontmatter` 196/196 ✓ (D37 standing submodule-tag warning unchanged)
+- `pnpm verify:catalog` 196/445/2 valid ✓
+
+**Invented decisions flagged for Huy's tomorrow review (per dispatch brief):**
+
+1. **D68 APP_CONFIG shape — `useFactory: async () => await loadEnv()` (full env snapshot).** Rejected typed subset because the AppEnv shape is small enough to inject wholesale, subset would force refactor if a third consumer reads a different value.
+2. **D69 lifecycle placement — NO LIFECYCLE PLACEMENT in this PR.** Huy rejected boot-time migration entirely (see D71). The probe (`SchemaHealthIndicator`) stays, the migration runs as an explicit deploy step from the operator's terminal.
+3. **D69 response shape — `database: schema` field via Terminus's standard `HealthIndicatorResult`.** Rejected separate top-level `migrations: <count>` field because Terminus's per-indicator aggregation is the standard wrapper.
+4. **D70 schema source — Huy's measured VPS `pg_dump` output** (verbatim in the migration's docstring). Rejected `connect-pg-simple`'s `table.sql` (constraint/index names not substituted by the package's template mechanism). Rejected fresh `pg_dump` against local dev DB (only the live VPS was wrong; dev DB would also have the wrong names because both were created by the same `createTableIfMissing: true` code path).
+
+**Stop-and-ask triggers invoked (per Lead's brief):**
+
+- New npm package: NO (`pg` already in devDeps, no new runtime deps)
+- Public OpenAPI spec change beyond auth.controller.ts:86,148: NO (no Swagger decorator touched)
+- Live corpus_session schema change: NO destructive change — `CREATE TABLE IF NOT EXISTS` + `CREATE INDEX IF NOT EXISTS` + `DO` block guard for the constraint are no-ops against the live table
+- Route deprecation: NO
+- Irreversible VPS ops: NO (Huy applies manually via `pnpm migration:run` post-merge and posts the receipt)
+
+**Hard-rule compliance (all 11):**
+
+- No `synchronize: true` (`data-source.ts:38` still `false`)
+- No new npm dep (`@nestjs/common` lifecycle hooks already installed, `pg` was already a devDep)
+- No hand-edit of `packages/api-client/` (no Swagger decorators touched; ReadyController response shape is Terminus-owned)
+- No hard-delete of `lessons` rows
+- No `'server'` quiz mode
+- No `*.spec.ts` co-located (3 new test files in `apps/api/test/` follow established sibling-test convention)
+- API not in article-body read path
+- Canonical NestJS Express-access API used everywhere (no Express casts)
+- No `SameSite=None`
+- No `AGENTS.md` hand-edit (`pnpm agents:check` passes against existing `AGENTS.md` / `CLAUDE.md` / `60-skills.mdc`)
+- No precedence flip or hand-edited config files
+
+**Out of scope (carry):** D63 start:dev CI gate (still open; supertest slice); D64/D65 coding-fe scope; D59 Vercel re-verify (Huy's side); D72 follow-through — new test-shape rule needs a `## Never-violate` rule file addition (Lead will dispatch as separate PR for Huy wording sign-off).
+
+### [2026-09-20 amendment] — Session 217 fabrication amendment (BE, `fix/d69-d70-corrected`, amended PR #195)
+
+Caught the same fabrication Lead caught in his own branch (`1c20e5b`). This Session 217 entry originally listed **five** uncosted consequences for the `MigrationOnBootstrap` rejection, where Huy cited **four**. The fabricated fifth bullet — "hidden failure mode (boot-time migration errors look like boot failures, not migration failures — on-call responder doesn't know to look at `apps/api/src/db/migrations/`)" — was added by BE during the Session 217 commit. Parallel to PR #193's "canonical by construction" claim. Same class of error (plausible reconstruction substituting for a quoted text), second instance in hours.
+
+**Two material corrections also applied in the amendment:**
+
+1. **Two separate rules, not one.** Huy 2026-09-20 verbatim sign-off:
+   > *"When a brief says to measure, a derivation from documentation or package source is not a substitute. A gap found during verify is a blocker, not a footnote."*
+   > *"Quote, don't reconstruct. When restating what someone said — a count, a list, a decision — quote it or cite where it came from. A plausible reconstruction that ships into bookkeeping becomes a fact nobody can trace."*
+
+   Both rules quoted verbatim. They fire at different moments: rule 1 governs test-source derivation; rule 2 governs quoted-text reconstruction. The PR #193 failure was a rule 1 violation; the Session 217 leak was a rule 2 violation.
+
+2. **D70 migration `DO` block now scopes the `pg_constraint` lookup with `conrelid = 'public.corpus_session'::regclass`.** Huy 2026-09-20 verbatim:
+   > *"conrelid scoped to the table matters: constraint names are unique per table, not per schema, so a bare conname check could match something else entirely."*
+
+   The lookup is the condition; the `DO` block is the only way to run conditional DDL in plain SQL. Final shape:
+   ```sql
+   DO $$
+   BEGIN
+     IF NOT EXISTS (
+       SELECT 1 FROM pg_constraint
+       WHERE conname = 'session_pkey'
+         AND conrelid = 'public.corpus_session'::regclass
+     ) THEN
+       ALTER TABLE public.corpus_session ADD CONSTRAINT session_pkey PRIMARY KEY (sid);
+     END IF;
+   END $$;
+   ```
+
+**Three Huy sign-offs taken via Slack in this thread:** (a) D72 standalone (different surface from D63 — D63 is runtime coverage of `start:dev`, D72 is what a migration test must assert); (b) two rules verbatim (above); (c) `pg_constraint`-in-`DO`-block shape (above).
+
+**Affected files:** `apps/api/src/db/migrations/1700000002000-CreateCorpusSession.ts` (DO block now scopes `conrelid`); `docs/DEBT.md` (D69 + D71 rows: "five" → "four", with Huy verbatim quote replacing the fabricated fifth bullet); `CHANGELOG.md` (this entry); `.agents/SESSION-LOG.md` (Session 217 entry: same correction + explicit amendment note); `.agents/summary.md` (Session 217 lead-in: same correction + explicit amendment note prepended); `progress.md` (Session 217 amendment line appended).
+
+**Test re-run:** pg_dump round-trip test (#1) re-run end-to-end against local `corpus-api-db` with the updated `DO` block — still PASSES byte-for-byte against Huy's measured live DDL. All 18 tests PASS. PR #195 will be `--amend`-pushed with `--force-with-lease` (the PR is not yet merged; remote not advanced since first push).
+
+**Acknowledgement of measurement-vs-derivation failure (Huy 2026-09-20):** PR #193 substituted "canonical by construction" derivation from `connect-pg-simple`'s `table.sql` for a measurement of the live VPS schema. Three deltas were missed: constraint name `session_pkey` vs `corpus_session_pkey`, index name `IDX_session_expire` vs `IDX_corpus_session_expire`, column type `character varying` vs `varchar`. "Canonical by construction" was wrong — connect-pg-simple templates only the TABLE identifier (`"session"` → `tableName`); constraint and index names are NOT substituted. The new rule lands in the corrected slice: when a brief says to measure, do the measurement. If measurement is impossible, say so explicitly and propose an alternative path; do not fall back to documentation inference and call it equivalent. The corrected migration's docstring documents this lesson as part of the source-of-truth.
