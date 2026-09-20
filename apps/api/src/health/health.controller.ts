@@ -6,6 +6,7 @@ import {
   TerminusModule,
   TypeOrmHealthIndicator,
 } from '@nestjs/terminus';
+import { SchemaHealthIndicator } from './schema-health.indicator.js';
 
 /**
  * Liveness vs readiness — the explicit split the PR body refers to.
@@ -65,6 +66,7 @@ class ReadyController {
   constructor(
     @Inject(HealthCheckService) private readonly health: HealthCheckService,
     @Inject(TypeOrmHealthIndicator) private readonly db: TypeOrmHealthIndicator,
+    @Inject(SchemaHealthIndicator) private readonly schema: SchemaHealthIndicator,
   ) {}
 
   @Get()
@@ -72,9 +74,15 @@ class ReadyController {
   // pingCheck runs a real `SELECT 1` — proves we are past connection
   // bootstrap. A successful `forRootAsync` does not prove we can talk
   // to Postgres; only a query does.
+  //
+  // schema.check (D69) runs the migrations-table-presence assertion
+  // — proves the schema is applied, not just reachable. Wired
+  // alongside pingCheck, not in place of it: they cover different
+  // failure modes (DB down vs DB up but uninitialized).
   check() {
     return this.health.check([
       () => this.db.pingCheck('database', { timeout: 1500 }),
+      () => this.schema.check('database'),
     ]);
   }
 }
@@ -84,7 +92,7 @@ class ReadyController {
   // providers globally within this module.
   imports: [TerminusModule],
   controllers: [LiveController, ReadyController],
-  providers: [LiveService, TypeOrmHealthIndicator],
+  providers: [LiveService, TypeOrmHealthIndicator, SchemaHealthIndicator],
 })
 export class HealthModule {}
 
@@ -92,4 +100,4 @@ export class HealthModule {}
 // only has to import the module.
 export { HealthModule as default };
 export const HealthModuleControllers = [LiveController, ReadyController];
-export const HealthModuleProviders = [LiveService, TypeOrmHealthIndicator];
+export const HealthModuleProviders = [LiveService, TypeOrmHealthIndicator, SchemaHealthIndicator];

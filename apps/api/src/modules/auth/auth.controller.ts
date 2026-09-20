@@ -1,8 +1,9 @@
-import { Controller, Get, Logger, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Inject, Logger, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
-import { loadAppEnv } from '../../config/env-schema.js';
+import { APP_CONFIG } from '../../config/app-config.provider.js';
+import type { AppEnv } from '../../config/env-schema.js';
 
 /**
  * Auth routes — three endpoints:
@@ -37,6 +38,21 @@ import { loadAppEnv } from '../../config/env-schema.js';
 @Controller('auth')
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
+
+  /**
+   * Boot-time frozen env snapshot (D68). `loadEnv()` ran once in the
+   * `APP_CONFIG` provider's `useFactory`; NestJS caches the resolved
+   * value, so every controller instance gets the same snapshot. No
+   * file read, no zod parse per request — that's the whole point.
+   *
+   * `@Inject(...)` is EXPLICIT on purpose (see the class-level note in
+   * `health.controller.ts`): `tsx`/esbuild (`pnpm start:dev`) does not
+   * implement `emitDecoratorMetadata`, so `design:paramtypes` is
+   * missing under the dev runtime. Without `@Inject(APP_CONFIG)` the
+   * symbol resolves to `undefined` and `req.logout()` / `req.login()`
+   * never get the config — a 500 on every OAuth callback.
+   */
+  constructor(@Inject(APP_CONFIG) private readonly appConfig: AppEnv) {}
 
   /**
    * Begin the OAuth dance. `AuthGuard('google')` returns the
@@ -83,8 +99,7 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   @ApiOperation({ summary: 'Google OAuth 2.0 callback' })
   async googleCallback(@Req() req: Request, @Res() res: Response): Promise<void> {
-    const env = await loadAppEnv();
-    const webOrigin = env.WEB_ORIGIN.split(',')[0]?.trim() ?? '';
+    const webOrigin = this.appConfig.WEB_ORIGIN.split(',')[0]?.trim() ?? '';
 
     // Passport's `failureRedirect` is the canonical way to do this;
     // we use `AuthGuard('google', { failureRedirect })` in a guard
@@ -145,12 +160,11 @@ export class AuthController {
   @Get('logout')
   @ApiOperation({ summary: 'Destroy the current session' })
   async logout(@Req() req: Request, @Res() res: Response): Promise<void> {
-    const env = await loadAppEnv();
-    const webOrigin = env.WEB_ORIGIN.split(',')[0]?.trim() ?? '';
+    const webOrigin = this.appConfig.WEB_ORIGIN.split(',')[0]?.trim() ?? '';
 
     await new Promise<void>((resolve) => req.logout?.(() => resolve()));
     await new Promise<void>((resolve) => req.session.destroy(() => resolve()));
-    res.clearCookie(env.SESSION_COOKIE_NAME, { path: '/' });
+    res.clearCookie(this.appConfig.SESSION_COOKIE_NAME, { path: '/' });
     // 303 keeps the redirect GET-after-POST semantics clean even when
     // the form was a GET — the browser follows with GET, no body.
     res.redirect(303, `${webOrigin}/`);
