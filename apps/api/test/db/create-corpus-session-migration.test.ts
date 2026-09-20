@@ -100,7 +100,7 @@ describe('CreateCorpusSession1700000002000 (D70 corrected)', () => {
     assert.equal(migration.name, 'CreateCorpusSession1700000002000');
   });
 
-  it('Test #1: pg_dump round-trip — applied schema matches measured VPS DDL byte-for-byte', async (t) => {
+  it('Test #1: pg_dump round-trip — applied schema matches the literal live DDL string', async (t) => {
     if (!dbAvailable) {
       t.skip('corpus-api-db unreachable');
       return;
@@ -109,7 +109,9 @@ describe('CreateCorpusSession1700000002000 (D70 corrected)', () => {
     await dropCorpusSession(client);
     await migration.up(asQueryRunner(client));
 
-    // Run pg_dump via the host's docker exec against the live container.
+    // Run pg_dump against the local corpus-api-db container via docker exec.
+    // The local schema currently matches the VPS, so a local round-trip is
+    // a useful regression check — but it is not a measurement of production.
     const { stdout } = await execFileP('docker', [
       'exec',
       'corpus-api-db',
@@ -146,7 +148,7 @@ describe('CreateCorpusSession1700000002000 (D70 corrected)', () => {
     assert.equal(
       actual,
       expected,
-      `pg_dump output diverges from measured VPS DDL:\n--- actual ---\n${actual}\n--- expected ---\n${expected}`,
+      `pg_dump output diverges from the literal live DDL string:\n--- actual ---\n${actual}\n--- expected ---\n${expected}`,
     );
   });
 
