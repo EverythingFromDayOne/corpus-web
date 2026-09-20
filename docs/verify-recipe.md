@@ -57,6 +57,100 @@ If a future commit lifts the `.hermes/` gitignore and adds a CI-runnable
 recipe for `apps/api`, the script and this file stay as the source of truth —
 the script already implements the lifecycle the recipe would describe.
 
+## UI-evidence occlusion exclusion rule
+
+`scripts/ui-evidence.mjs` (built from PR #194 verification, `feat/header-mobile-drawer`
+session 215) is the first gate to assert visual-surface-area correctness — that
+a click at coordinate `(x, y)` reaches the element the user *sees* at `(x, y)`,
+not just the element a DOM query resolves to. The strict check is
+`document.elementFromPoint(x, y) === element`; the refined check applies the
+exclusion below. **The harness reports both counts always.** Strict is the raw
+measurement; refined applies the exclusion. Keeping both visible means the
+exclusion can be audited rather than silently swallowing a real bug someday.
+
+### Rule (drafted from PR #194, 3 noise cases; codify before CI)
+
+> An element that fails the strict `elementFromPoint` check is **NOT** a
+> failure when the returned node is an **ancestor** of the element AND the
+> element is **non-interactive by design** — disabled, `aria-disabled`, or
+> `pointer-events: none`. In that case the ancestor legitimately owns the
+> pointer target.
+>
+> Vendor-injected nodes (Vercel toolbar, Next.js dev overlay, React DevTools,
+> and similar) are excluded **before** the check runs, not reported as passes.
+
+### The three noise cases the rule was drafted from
+
+| # | Pattern | Element | Returned by `elementFromPoint` | Why it's not a real failure |
+| --- | --- | --- | --- | --- |
+| 1 | **Ancestor-handles-click** | `<button class="topbar-signin" style="pointer-events: none">` inside `<a class="topbar-signin-wrap">` | The `<a>` wrapper | The `<button>` is `pointer-events: none` by design — it cannot receive a real mouse event. The `<a>` is the legitimate gesture owner (sign-in pops a 520×600 window). |
+| 2 | **Disabled-and-no-click** | `<button class="mobile-nav-drawer-action--placeholder" disabled aria-disabled="true">Language</button>` (`pointer-events: none` added in PR #194 `e36d859`) | The panel foot `<div>` it visually sits inside | The button cannot receive a click by any means — there is no real user action the strict-rule "covered by foot" would have caught. |
+| 3 | **Modal-backdrop** | `<button class="mobile-nav-drawer-backdrop" style="position:fixed; inset:0">` | The panel foot `<div>` (when foot is at the backdrop's strict-center) | A modal backdrop's purpose is to receive clicks *anywhere* in its visible area; non-interactive sibling coverage at strict-center is irrelevant. Verified by real-coordinate CDP clicks at two off-panel points — both close the drawer. |
+
+### The fourth assertion shape that caught something real
+
+The strict-rule check alone would have rejected case 3. The harness needs a
+**two-pass coordinate assertion** — strict is the report, refined is the
+verdict — plus a real-CDP click at off-center points to confirm the backdrop
+*behaves* correctly even when its strict-center is occluded. The exclusion
+rule above codifies the second pass; **D70 codifies the assertion shape**
+(coord-click via `Input.dispatchMouseEvent { mouseMoved, mousePressed,
+mouseReleased }`, never `element.click()`).
+
+### Why a real CDP mouse, not `element.click()`
+
+The first PR #194 verification run reported "Bg ✓" from a programmatic
+`element.click()` on the backdrop element. A real mouse at that coordinate
+missed the backdrop entirely because the backdrop's strict-center is covered
+by a non-interactive sibling — `element.click()` synthesizes the DOM event
+sequence (mousedown → mouseup → click) without the `pointermove` /
+coordinate-resolution path the browser uses for an actual pointer, so an
+element that is *visually occluded but still in the DOM* still receives the
+click. A real human would have seen a blank canvas.
+
+The fix shape that actually proves correctness is: open the page in a
+headless Chrome, dispatch real CDP mouse events at the off-panel coordinates
+the user would actually click, then assert the drawer closed. Anything else
+passes tests that real users fail.
+
+### Vendor-injection exclusion (run before the check)
+
+```js
+const VENDOR_SELECTORS = [
+  'nextjs-portal',                // Next.js dev overlay
+  '[data-nextjs-toast]',
+  '[data-next-mark]',             // Next.js error overlay
+  '__next-build-watcher',         // Next.js dev tools
+  'vercel-live-feedback',         // Vercel toolbar
+  'vercel-toolbar',
+];
+
+function isVendorInjection(el) {
+  if (!el) return false;
+  if (el.id && VENDOR_SELECTORS.some(s => el.id === s || el.id.startsWith(s))) return true;
+  if (el.closest(VENDOR_SELECTORS.map(s => `#${s}`).join(','))) return true;
+  return false;
+}
+```
+
+Anything matching is filtered out of the strict count **before** the
+ancestor/non-interactive check runs.
+
+### Reporting shape (always both counts)
+
+```json
+{
+  "viewport": 375,
+  "strict":   { "failures": 2, "elements": ["backdrop", "language"] },
+  "refined":  { "failures": 0, "elements": [], "excluded": 2, "patterns": ["modal-backdrop", "disabled-and-no-click"] }
+}
+```
+
+The strict count is what raw `elementFromPoint` reports. The refined count
+is what the user actually experiences. **Both numbers must be printed;**
+silently swallowing the strict count means the exclusion can never be
+audited.
+
 ## CI integration
 
 Neither `hermes verify` nor `pnpm verify:api-runtime` is wired into
