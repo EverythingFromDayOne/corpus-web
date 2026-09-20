@@ -171,7 +171,7 @@
   border-radius: var(--radius-md);
   padding: 0.4rem 0.6rem;
   color: var(--color-muted);
-  width: 16rem;
+  width: clamp(11rem, 18vw, 14rem);
   /* `min-width: 0` lets the flex child shrink past its content size
      so the input can engage `text-overflow: ellipsis` when the
      topbar overflows at mobile widths. Without this, the input
@@ -191,6 +191,29 @@
   white-space: nowrap;
   font-size: var(--text-sm);
   line-height: 1.2;
+}
+
+/* Hairline divider between the brand wordmark and the primary nav in the
+ * topbar (session 216, 2026-09-20 — desktop header polish). Without this,
+ * "corpus.web Home Courses Articles" reads as one run of text because
+ * there's nothing visually terminating the brand. The rule is 1px wide,
+ * 16px tall (one rem), and uses the same graphite hairline as the topbar's
+ * own bottom border, so it reads as part of the existing chrome rather
+ * than a new element. Hidden at ≤640px where the nav collapses into the
+ * drawer and the brand sits alone — there's nothing to separate from. */
+.topbar-divider {
+  display: inline-block;
+  width: 1px;
+  height: 1rem;
+  background: var(--color-graphite);
+  align-self: center;
+  flex: none;
+}
+
+@media (max-width: 640px) {
+  .topbar-divider {
+    display: none;
+  }
 }
 
 /* Top-of-viewport navigation progress bar.
@@ -1146,6 +1169,16 @@ body:has(.av-view) .av-header-tog {
      plus 0.6rem gap still fits on iPhone SE / 12 mini widths with
      the logo — the search trigger is already collapsed below 640px
      in the existing ruleset, so the row stays at ~150px of tools. */
+  /* Session 216 (2026-09-20): dispatch moved the theme toggle from
+     the mobile topbar into the drawer only. Same with the sign-in
+     button — both live behind the hamburger now. Net mobile topbar:
+     logo + hamburger + search icon. */
+  .topbar-signin,
+  .user-menu,
+  .mobile-nav-theme-host,
+  .topbar-theme-host {
+    display: none;
+  }
 }
 
 /* Drawer: full-viewport overlay with a backdrop + a panel sliding in
@@ -1313,6 +1346,26 @@ body:has(.av-view) .av-header-tog {
   opacity: 0.65;
   cursor: not-allowed;
   pointer-events: none;
+}
+/* Modifier for the theme-toggle row in the drawer. The row is a <div>,
+   not a button — it hosts the segmented <ThemeToggle> (which IS a button).
+   Strip the row's own hover/focus affordance so it doesn't double up on
+   the toggle's own hover/focus, and switch from icon+text-flow to
+   label-left + control-right via `justify-content: space-between`.
+   Without this, the label would be left-justified and the toggle would
+   crash against the row border at full width. */
+.mobile-nav-drawer-action--theme {
+  cursor: default;
+  justify-content: space-between;
+}
+.mobile-nav-drawer-action--theme:hover,
+.mobile-nav-drawer-action--theme:focus-visible {
+  background: transparent;
+  border-color: transparent;
+  outline: none;
+}
+.mobile-nav-drawer-action-label {
+  color: var(--color-muted);
 }
 .mobile-nav-drawer-action--signin {
   margin-top: 0.5rem;

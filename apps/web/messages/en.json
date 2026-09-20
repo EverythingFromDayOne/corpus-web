@@ -35,10 +35,10 @@
   },
   "placeholders": {
     "comingSoon": "Coming soon",
-    "search": "Search 196 articles…",
-    "searchInput": "Search 196 articles…",
+    "search": "Search",
+    "searchInput": "Search",
     "searchDialogLabel": "Search articles",
-    "searchTriggerLabel": "Open search (⌘K)",
+    "searchTriggerLabel": "Open search",
     "searchLoading": "Searching…",
     "searchLoadingIndex": "Loading search index…",
     "searchEmpty": "No matches.",

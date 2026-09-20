@@ -37,9 +37,11 @@ export function SearchTrigger({ messages }: { messages: Messages }) {
       <span aria-hidden="true" className="srch-trigger-input">
         {t(messages, 'placeholders.searchInput')}
       </span>
-      <span aria-hidden="true" className="srch-kbd">
-        {t(messages, 'nav.searchKbd')}
-      </span>
+      {/* On-input ⌘K badge removed (2026-09-20 — header desktop polish,
+          session 216): the badge added ~50px of horizontal weight and
+          competed with the brand for visual attention. The ⌘K shortcut
+          still works; the chip is shown inside the open search dialog
+          header (search-dialog.tsx) so power users still see it. */}
     </button>
   );
 }

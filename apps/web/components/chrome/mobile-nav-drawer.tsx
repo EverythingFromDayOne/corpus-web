@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef } from 'react';
 import { t, type Messages } from '@/lib/i18n';
 import { SignInButton } from './sign-in-button';
+import { ThemeToggle } from './theme-toggle';
 
 /**
  * Mobile-only navigation drawer.
@@ -141,8 +142,29 @@ export function MobileNavDrawer({
         }
       }
     };
-
     document.addEventListener('keydown', onKey);
+
+    // focusin-based trap (session 216): the keydown handler runs on
+    // press, but the default Tab-focus shift happens AFTER. If the
+    // active element is already inside the panel at keydown time
+    // AND not at the boundary, the keydown handler does nothing —
+    // and the browser is free to advance focus past the panel if
+    // there's anything focusable outside. We re-anchor inside the
+    // panel on focusin (which fires after the browser default ran).
+    const onFocusIn = (e: FocusEvent) => {
+      const panel = panelRef.current;
+      if (!panel || !open) return;
+      const target = e.target as HTMLElement | null;
+      if (target && !panel.contains(target)) {
+        const items = focusables(panel);
+        if (items.length === 0) return;
+        // Boundary direction (Tab vs Shift+Tab) is handled by the
+        // keydown handler above. This catcher only deals with the
+        // race where focus shifted past the panel on default Tab.
+        items[0]!.focus();
+      }
+    };
+    document.addEventListener('focusin', onFocusIn);
 
     // Move focus into the panel after mount so screen readers
     // announce the dialog title first.
@@ -162,6 +184,7 @@ export function MobileNavDrawer({
       return () => {
         cancelAnimationFrame(id);
         document.removeEventListener('keydown', onKey);
+        document.removeEventListener('focusin', onFocusIn);
         document.body.style.overflow = prevOverflow;
         // Restore focus to the trigger so keyboard users land where
         // they left off.
@@ -170,6 +193,7 @@ export function MobileNavDrawer({
     }
     return () => {
       document.removeEventListener('keydown', onKey);
+      document.removeEventListener('focusin', onFocusIn);
       document.body.style.overflow = prevOverflow;
       triggerEl?.focus();
     };
@@ -261,35 +285,17 @@ export function MobileNavDrawer({
             <span>{t(messages, 'placeholders.searchTriggerLabel')}</span>
           </button>
 
-          <button
-            type="button"
-            className="mobile-nav-drawer-action"
-            onClick={onToggleTheme}
-          >
-            <svg
-              aria-hidden="true"
-              focusable="false"
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="4" />
-              <line x1="12" y1="2" x2="12" y2="5" />
-              <line x1="12" y1="19" x2="12" y2="22" />
-              <line x1="2" y1="12" x2="5" y2="12" />
-              <line x1="19" y1="12" x2="22" y2="12" />
-              <line x1="4.93" y1="4.93" x2="7.05" y2="7.05" />
-              <line x1="16.95" y1="16.95" x2="19.07" y2="19.07" />
-              <line x1="4.93" y1="19.07" x2="7.05" y2="16.95" />
-              <line x1="16.95" y1="7.05" x2="19.07" y2="4.93" />
-            </svg>
-            <span>{themeLabel}</span>
-          </button>
+          {/* Theme toggle lives in the drawer only on mobile (dispatch
+              session 216). Reuses the same segmented <ThemeToggle> as the
+              desktop topbar so the affordance, focus order, and a11y
+              contract don't drift between viewports. No `onToggleTheme`
+              prop needed — ThemeToggle owns its own state and writes the
+              same `data-theme` attribute + cookie the desktop toggle
+              does, so both surfaces stay in sync. */}
+          <div className="mobile-nav-drawer-action mobile-nav-drawer-action--theme">
+            <span className="mobile-nav-drawer-action-label">{themeLabel}</span>
+            <ThemeToggle label={themeLabel} />
+          </div>
 
           <button
             type="button"
