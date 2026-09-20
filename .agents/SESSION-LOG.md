@@ -10263,3 +10263,36 @@ Huy's relay-suggested addition (deps-array path — same loop shape via state-in
 - Post-merge: Huy applies the corrected migration on VPS manually (`pnpm --filter @corpus/api migration:run`), restarts PM2, smoke tests `/healthz/ready` and OAuth round-trip, posts receipt in the Slack thread.
 
 ---
+
+## Session 219 — PR #195 MERGED + VPS applied + D73/D74 opened — 2026-09-20
+
+**Branch:** `docs/fix-50-api-nestjs-rule` (Lead canonical bookkeeping, unchanged working branch). PR #195 merged from `fix/d69-d70-corrected` onto `origin/develop`.
+
+**Merge:** `d34f8cf` on `origin/develop` (previously `60b1547`). PR #195 commit series intact: `36259c2` (corrected slice) → `03cd073` (conrelid scoping + bookkeeping fabrication removed) → `c66b938` (session.ts comment fix, but with a new overreach — see D73 below).
+
+**Files changed (this session's bookkeeping):**
+- `docs/DEBT.md` — Highest ID bumped D72 → D74. New rows: D73 (test docstring + D72 row wording still overreaches "measured VPS DDL"; `session.ts` comment introduces the same overreach at a new site), D74 (`reason: schema` field naming on a `status: up` success payload — log only per Huy's explicit direction).
+- `CHANGELOG.md` — two entries added at top of `[Unreleased]`: (1) PR #195 merge entry documenting all Added/Changed/Removed + VPS verification receipts + carried-forward D73/D74; (2) a retroactive Session 218 entry, disclosed inline as a bookkeeping gap caught this session (`bec5665` committed Session 218 bookkeeping to 4 files but did not touch CHANGELOG.md despite the commit message claiming "Session 218 bookkeeping").
+- `progress.md` — Session 219 one-liner appended with Huy's verbatim VPS receipts and both new debt rows.
+- `.agents/SESSION-LOG.md` — this entry.
+- `.agents/summary.md` — lead-in rotated to Session 219.
+
+**Why:** Huy posted VPS apply receipts in the Slack thread confirming PR #195's migration ran cleanly against the live schema with zero drift (2 indexes, 3 migrations, `/healthz/ready` reporting `reason: schema`, `/me` returning 401 unauthenticated as expected). This closes D69's original gap (a green health check sitting on an empty database). Huy also flagged the `reason: schema` field naming as a minor cosmetic issue, explicitly instructing "log it but do not open a PR for it alone."
+
+Separately, Lead's own verify pass (dispatched in the prior turn, before Huy's merge message arrived) had found that BE's `c66b938` follow-up commit — landed specifically to fix a stale `MigrationOnBootstrap` reference in `session.ts`'s comment — introduced a *new* instance of the "measured VPS" overreach class Huy had already rejected once in the test docstring: the rewritten comment now claims the migration creates a schema "matching the live VPS schema (measured via `pg_dump --schema-only --table=corpus_session`)," which asserts a runtime property the runtime code doesn't measure (the migration applies a hardcoded DDL constant; the *test* separately validates that constant against a `pg_dump` round-trip, but the migration itself does not re-measure at runtime). Huy merged PR #195 without waiting for that fix or for the previously-requested test/D72-row wording corrections — those four sites are still unpatched at the merge commit. Rather than block or re-argue the merge (already applied to VPS, all functional receipts green), Lead opened D73 to carry the wording debt forward as a documented follow-up rather than let it drop silently.
+
+**Invented decisions:**
+- None. D73 and D74 are direct transcriptions of gaps found by direct `git show` reads (D73) and Huy's verbatim Slack message (D74) — no reconstruction, no paraphrase of counts or lists per the "Quote, don't reconstruct" rule landed in Session 218.
+
+**Known issues / next steps:**
+- **D73** — follow-up commit needed on a fresh branch off `origin/develop @ d34f8cf` (the old `fix/d69-d70-corrected` branch is merged and should not be reused): (1) `apps/api/src/config/session.ts:102-110` — drop the "matching the live VPS schema (measured via `pg_dump`...)" sentence, keep D70/D71 references; (2) `apps/api/test/db/create-corpus-session-migration.test.ts:103` `it()` title, `:112` internal comment, `:149` failure message — replace "measured VPS DDL" framing with "literal live DDL string" framing per Huy's verbatim correction; (3) `docs/DEBT.md` D72 row "Replacement test" paragraph — same wording fix. Brief for the superseded version of this work is on disk at `~/.hermes/handoffs/20260920_pr195_followup2_overreach_plus_naming.md` (stale — written against the old branch, needs re-targeting to a fresh branch off `develop`).
+- **D74** — do not open a PR alone. Rename `reason` field on `SchemaHealthIndicator`'s success payload when something else next touches `apps/api/src/health/schema-health.indicator.ts`.
+- D63 `start:dev` CI gate still open.
+- D64/D65 still open (coding-fe scope per delegation rule).
+- D59 Huy Vercel re-verify still open.
+- D8/D11/nightly backup still open.
+- D-5 second Postgres rotation, D-7 unobservable until TLS in front — carried, unchanged.
+- **Header work is now unblocked** per Huy's 4-step sequence (step 5): PR #195 is merged, so Huy may brief the header work next. Lead does not start it unprompted.
+- Lead's separate PR for the two verbatim `20-never-violate.mdc`/`00-session-protocol.mdc` rules was already landed in Session 218 (`bec5665`, pushed to `origin/docs/fix-50-api-nestjs-rule`) — not yet merged to `develop`. Still open as a follow-up merge decision for Huy.
+
+---

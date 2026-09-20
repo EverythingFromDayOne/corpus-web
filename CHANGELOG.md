@@ -5,6 +5,46 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-20] — fix(api): PR #195 merged — D68 DI for auth, D69 schema-presence probe, D70 CreateCorpusSession migration (with measured VPS DDL)
+
+**Added**
+- New `apps/api/src/db/migrations/1700000002000-CreateCorpusSession.ts` (105 lines, build .js 4192 B): creates `corpus_session` with the live VPS-measured DDL exactly — constraint `session_pkey` via `pg_constraint` lookup wrapped in `DO` block with `conrelid = 'public.corpus_session'::regclass` scoping (constraint names are unique per table, not per schema), index `IDX_session_expire` via `CREATE INDEX IF NOT EXISTS`, columns `sid varchar NOT NULL`, `sess json NOT NULL`, `expire timestamp(6) NOT NULL`. Idempotent against the live VPS schema (constraint + index already exist; `DO` block no-ops). Huy applies via `pnpm --filter @corpus/api migration:run` post-merge.
+- New `apps/api/src/health/schema-health.indicator.ts` (build .js 3930 B): Terminus `HealthIndicator` extension that asserts the `migrations` table exists AND has rows. Distinguishes "connected" from "has a schema" — closes the gap where a green `/healthz/ready` could sit on an empty database.
+- New `apps/api/src/health/health.controller.ts` (ReadyController): `@Inject(SchemaHealthIndicator)` + `@HealthCheck()` decorator wiring `/healthz/ready` to the new probe alongside the existing connection probe.
+- New `apps/api/src/config/app-config.provider.ts` (build .js 1893 B): APP_CONFIG token via `useFactory: async () => await loadAppEnv()` — full env snapshot per request.
+- New `apps/api/test/db/create-corpus-session-migration.test.ts` (4 cases): (1) `pg_dump` round-trip applies migration to a clean local test DB and diffs output against the literal live DDL string constant; (2) idempotency against a DB that already has the live schema; (3) `down()` drops index before table; (4) stable name for TypeORM bookkeeping.
+
+**Changed**
+- `apps/api/src/modules/auth/auth.controller.ts` — `@Body` → `@Inject(APP_CONFIG)` direct env resolution (replaces per-request `loadEnv()` call). `AppEnv` imported as type-only.
+- `apps/api/src/modules/auth/auth.module.ts` — `appConfigProvider` registered; `APP_CONFIG` exported.
+- `apps/api/src/config/session.ts` — session options provider now reads from `loadAppEnv()` wrapper (D67 contract split from Session 213); stale comment block at lines 102-110 corrected to point at D70 + D71 instead of the rejected `MigrationOnBootstrap` hook.
+- `apps/api/src/app.module.ts` — `DatabaseModule` import removed (the boot-time `OnApplicationBootstrap` hook it registered is gone, per D71 rejection).
+
+**Removed**
+- `apps/api/src/db/migration-on-bootstrap.ts` (deleted) — `MigrationOnBootstrap` service that ran `runMigrations()` at app start. Rejected per D71 (four uncosted consequences: DDL on every PM2 restart, PM2 retry loops under `autorestart: true`, multi-instance race, weakens D69).
+- `apps/api/src/db/database.module.ts` (deleted) — provider for the rejected `MigrationOnBootstrap` service.
+
+**Verified on VPS (Huy, 2026-09-20)** — `pnpm --filter api migration:run` applied `CreateCorpusSession1700000002000`; `pg_indexes WHERE tablename='corpus_session'` returns the expected 2 rows (`session_pkey` + `IDX_session_expire`); `select name from migrations` returns the expected 3 rows in order; `curl localhost:3001/healthz/ready` returns `{"status":"ok","info":{"database":{"status":"up","reason":"schema","applied":3}},…}`; `curl -si localhost:3001/me` returns `HTTP/1.1 401 Unauthorized`. D69's connected-vs-has-schema gap is closed.
+
+**Merge commit:** `d34f8cf` on `origin/develop`. PR #195 commits in series: `36259c2` (corrected slice) → `03cd073` (conrelid scoping + bookkeeping fabrication removed) → `c66b938` (stale `MigrationOnBootstrap` comment fix). All 6/6 CI green on the merge commit.
+
+**Carried forward** (Huy's verbatim, do not open a PR alone for any of these): D73 (test docstring + D72 row wording correction — Huy's verbatim ask landed before the merge but the prose fix did not), D74 (`reason: schema` field naming in `schema-health.indicator.ts` success payload — log only, rename when something else touches that indicator).
+
+### [2026-09-20] — chore(rules,docs): two new `## Never-violate` rules ratified verbatim + Session 218 bookkeeping
+
+**Added** (Session 218, on `docs/fix-50-api-nestjs-rule @ bec5665`)
+- `.cursor/rules/20-never-violate.mdc` — new `## Verification discipline` section with Huy's verbatim directive: *"When a brief says to measure, a derivation from documentation or package source is not a substitute. A gap found during verify is a blocker, not a footnote."* Attribution to D72 + originating incident (PR #193 + `MigrationOnBootstrap`).
+- `.cursor/rules/00-session-protocol.mdc` — new entry under `## Invented decisions — mandatory disclosure`: *"Quote, don't reconstruct. When restating what someone said — a count, a list, a decision — quote it or cite where it came from. A plausible reconstruction that ships into bookkeeping becomes a fact nobody can trace."* Attribution to D72 + Session 217 fabrication incident.
+
+**Changed** (Session 218)
+- `AGENTS.md` — regenerated by `pnpm agents:build` (8 lines added; both new rules correctly inlined).
+- `docs/DEBT.md` — D70 Open row amended with Huy's `pg_constraint` + `DO`-block constraint guard + the `conrelid` table-scoping rationale + the "prove idempotency against a real database" operational rule; D72 Open row amended with (1) D72 standalone ratification (not folded into D63), (2) verbatim text of both new rules + the operational idempotency rule, (3) constraint guard decision.
+- `.agents/SESSION-LOG.md` — Session 218 entry appended.
+- `.agents/summary.md` — lead-in rotated to Session 218.
+- `progress.md` — Session 218 one-liner appended.
+
+**Note on `CHANGELOG.md` for Session 218**: this entry was added retroactively in Session 219 as part of the bookkeeping pass that also opened D73 + D74 — original Session 218 commit `bec5665` did NOT include a CHANGELOG entry despite the commit message claiming "Session 218 bookkeeping." Caught during Session 219 merge-receipt review (Huy's verbatim receipts from VPS apply prompted a full-session re-audit). Disclosed per `00-session-protocol.mdc` §Invented decisions — the bookkeeping gap is real; Session 218 was correctly captured in SESSION-LOG and progress.md but missed CHANGELOG.
+
 ### [2026-09-19] — fix/d67-loadenv-contract-split — D67 loadEnv/loadDotEnv split + loadAppEnv() wrapper
 
 **Changed**
