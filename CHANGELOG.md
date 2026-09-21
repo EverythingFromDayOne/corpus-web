@@ -5,6 +5,25 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-21] — fix/api-auth-redirect-and-logout — BE-1 auth redirect and logout hardening
+
+**Changed**
+- `apps/api/src/modules/auth/auth.controller.ts`:
+  - `googleCallback` no longer reads `${WEB_ORIGIN.split(',')[0]}` for the post-login redirect target. New `resolveReturnOrigin(sessionReturnTo ?? referer, WEB_ORIGIN)` call picks a same-origin URL from the allowlist. With no `?returnTo=` and no Referer (current develop behavior pre-FE-1), the first allowlist entry is returned — backward compatible.
+  - `logout` reads `?returnTo=` from the query string, falls back to the Referer header's origin, then to the first allowlist entry. Same `resolveReturnOrigin` call.
+  - Both endpoints now share one `cookieOptions = buildSessionCookieOptions(appConfig)` for `clearCookie`, so the cookie NAME + DOMAIN + PATH + SECURE cannot drift between set and clear paths.
+  - `req.logout?.(...)` replaced with `passportReq.logout(...)` and a `typeof passportReq.logout !== 'function'` guard that throws synchronously. If Passport is not initialized, the request fails with `req.logout is not a function — Passport is not initialized on this request` instead of hanging the await indefinitely.
+  - Callback error path (`!req.user`) now redirects to `${origin}/?auth=error&reason=missing-user` via the same origin picker.
+- `apps/api/src/config/session.ts`:
+  - New exported function `buildSessionCookieOptions(env: AppEnv): CookieOptions` reads `SESSION_COOKIE_NAME`, `SESSION_COOKIE_DOMAIN` (empty → undefined), `SESSION_COOKIE_SECURE` (default `'true'`, `'false'` → `false`), `SESSION_COOKIE_SAMESITE` (default `'lax'`), and `SESSION_COOKIE_MAX_AGE_MS` (default 30 days). Single source of truth for cookie attributes used by both `session()` registration and `clearCookie()`.
+- `apps/api/src/modules/auth/auth.module.ts`:
+  - `AuthModule` now implements `NestModule` and applies `CaptureReturnToMiddleware` to `auth/google` so `?returnTo=` is captured into `req.session.returnTo` before `AuthGuard('google')` short-circuits. Stays in the session row across the OAuth round-trip.
+
+**Added**
+- `apps/api/src/modules/auth/resolve-return-origin.ts` (new) — pure function `resolveReturnOrigin(candidate: string | null | undefined, allowlist: string | readonly string[]): string`. Validates `new URL(candidate).origin` against the trimmed allowlist using exact equality (NEVER `startsWith`, which would pass `https://nxhhuy.tech.evil.com` and make the API an open redirect). Returns the first allowlist entry on any invalid/missing input; throws on an empty allowlist. Plus `normaliseAllowlist(allowlist)` helper for both comma-separated strings and arrays.
+- `apps/api/src/modules/auth/capture-return-to.middleware.ts` (new) — NestJS `MiddlewareConsumer`-applied middleware that captures `?returnTo=` from `GET /auth/google`, validates it through `resolveReturnOrigin`, and writes it to `req.session.returnTo` before the Google redirect.
+- `apps/api/test/auth/redirect-and-logout.test.ts` (new) — three test groups: `resolveReturnOrigin` (10 cases including the look-alike `https://nxhhuy.tech.evil.com` → default rejection), `buildSessionCookieOptions` shape (2 cases including the no-domain local-dev shape), and `logout` bounded-time fail-loud (2 cases asserting `req.logout` missing throws synchronously rather than hanging).
+
 ### [2026-09-19] — fix/d67-loadenv-contract-split — D67 loadEnv/loadDotEnv split + loadAppEnv() wrapper
 
 **Changed**
