@@ -10243,3 +10243,75 @@ Huy's relay-suggested addition (deps-array path — same loop shape via state-in
 **Out of scope (carry):** Vercel dashboard bypass-secret revocation is on Huy (CLI cannot revoke). Local build primary going forward.
 
 **Merge:** `3cc6c8f` — squash-merged into develop via `gh pr merge 194 --squash --delete-branch`. Branch `feat/header-mobile-drawer` deleted. `hermes verify` GREEN on the merged tree: bootstrap 1.2s, build 17.4s, typecheck 0.65s (8 packages cached), test 0.64s (113/113 vitest pass), lint 0.64s (8 packages cached), cache-replays all OK, dev server 200 OK in 0.368s. `pnpm verify:ui-evidence` GREEN on the merged tree.
+
+
+### Session 219 — 2026-09-21 — FE-2 (sign-in popup cancel path investigation) on `investigation/signin-popup-cancel`
+
+**Why this exists.** FE-2 dispatch from Huy: "Open Sign in, close the Google popup without choosing an account. Report, with timings: what the UI shows, how long until it returns to Sign in, and whether anything reads popup.closed to detect this. Under COOP that signal is unreliable. ... If it returns promptly: no fix, report and close. If it hangs in a processing state: propose a mechanism (timeout, or focus returning to the opener) and wait for Huy's go. ... Branch name: `investigation/signin-popup-cancel`. Report back: investigation report only, with timings. NO FIX in this PR — wait for Huy's go on the mechanism if you find a hang."
+
+**What landed** (2 commits on `investigation/signin-popup-cancel` off `origin/develop @ 1d424b4`, pushed, no PR opened — investigation only per dispatch):
+
+1. `f5c334e` — `investigation(FE-2): script for sign-in popup cancel path`. `scripts/investigate-signin-popup-cancel.mjs` (401 lines). CDP-based, no Playwright dep. Reuses the same Chrome-spawn recipe as `scripts/ui-evidence.mjs` (port 9222, headless=new, no-sandbox, `--disable-popup-blocking`). Walks: navigate → click `.topbar-signin` → detect popup via `Page.windowOpen` (the reliable signal in headless mode; `Target.targetCreated` does NOT always include a targetId for `window.open` popups — cross-reference via `GET /json/list`) → close via `Target.closeTarget` → poll opener state machine every 200 ms for 12 s → probe `popup.closed` reliability. Output: `/tmp/fe2-cancel-report.json` + console event log.
+
+2. `a430c12` — `docs(FE-2): investigation report for sign-in popup cancel path`. `docs/fe2-popup-cancel-investigation.md` (126 lines). Investigation report with timings, raw run log excerpts, snapshot table, recommendation. **NO fix proposed; NO mechanism decided.**
+
+**Findings (verbatim from `/tmp/fe2-cancel-report.json`):**
+
+| Question | Answer |
+|---|---|
+| `popupSpawned` | **true** — `Page.windowOpen` event fires 2 ms after the click resolves. URL `http://localhost:3001/auth/google`, windowName `google-oauth`, features `width=520,height=600,left=402,top=122,resizable` (matches `POPUP_WIDTH`/`POPUP_HEIGHT` at `sign-in-button.tsx:130-131`). |
+| Popup redirect | Popup target resolves to `https://accounts.google.com/v3/signin/identifier?...&redirect_uri=http%3A%2F%2Flocalhost%3A3001%2Fauth%2Fgoogle%2Fcallback&response_type=code&scope=openid+email+profile&...`. `redirect_uri` correctly points at the local API callback. **No `?returnTo=`** on this branch — predates FE-1's `dec041f`. See note ①. |
+| Opener UI during popup | Button enters Processing state — className `topbar-signin topbar-signin--processing`, label flips via i18n (`apps/web/messages/en.json` `topbar.signInProcessing`), `aria-disabled="true"`. |
+| UI return latency | **`uiReturnedToSignIn: true` after 5,535 ms** (5,513 ms first run, 5,535 ms second run). Matches `POST_CLOSE_DEBOUNCE_MS = 5_000` (`sign-in-button.tsx:128`) + ~500 ms settle. The intentional 5 s debounce guards against the postMessage-vs-cookie race where the popup already wrote the session cookie but the `oauth-success` postMessage hasn't reached the opener yet (per the docstring at `sign-in-button.tsx:290-318`). |
+| `popup.closed` reads in code | `apps/web/components/chrome/sign-in-button.tsx:193` (`popupRef.current.close()`), `:265-272` (`closeWatcherRef.current = setInterval(() => { if (popup.closed) ... }, 250ms)`), `:366` (cleanup path). The 250 ms poll is the structural antipattern the dispatch is concerned about. |
+| `popup.closed` in this env | **Reliable.** Probe: `closedImmediately=false` (popup alive), `closedAfter=true` (after `p.close()`). CDP `Target.targetDestroyed` fires 6 ms after the close ack. |
+| `popup.closed` under production COOP | **NOT MEASURED.** Local dev does not set COOP headers on `/en`. Production behaviour on `https://nxhhuy.tech` may differ — Huy verifies. |
+| Hang | **`hangDetected: false`.** UI returns cleanly. |
+| Net verdict | Cancel works. 5.5 s is the documented debounce, not a hang. **No fix proposed.** If Huy sees a hang on production, escalate with the repro before any mechanism decision (timeout / focus returning to opener). |
+
+**Snapshot table** (button className during the 12 s observation, every 200 ms):
+
+```
+t=200ms    className: "topbar-signin topbar-signin--processing"   ← processing
+t=1400ms   className: "topbar-signin topbar-signin--processing"
+t=2600ms   className: "topbar-signin topbar-signin--processing"
+t=4800ms   className: "topbar-signin topbar-signin--processing"
+t=5513ms   className: "topbar-signin"                              ← back to Sign in
+t=5713ms   className: "topbar-signin"
+… (steady "Sign in" through t=11923ms)
+```
+
+**Why no fix is committed:**
+1. Cancel works in this env (5.5 s is the documented debounce, not a hang).
+2. The popup.closed antipattern is structural — only one remaining background timer after D58 Slice B removed the per-button 7 s safety-net poll. `sign-in-context.tsx` provider-owned `/me` model is the authoritative fix surface.
+3. Production COOP reliability cannot be measured from this env (no VPS access).
+4. A real fix (postMessage handshake replacing the poll, or focus-returning-to-opener) is invasive — multi-file (`sign-in-button.tsx` + `auth/google/callback/page.tsx`) with cross-window-event timing. Out of scope for an investigation.
+
+**Branch hygiene incident (mid-session).** Roughly halfway through the investigation script work, the agent returned from a tool call to find itself on `fix/api-readiness-schema-pending` instead of `investigation/signin-popup-cancel`, with that branch's uncommitted `apps/api/` modifications (`apps/api/package.json`, `apps/api/src/health/schema-health.indicator.ts`, `apps/api/test/health/schema-health.test.ts`, plus untracked `apps/api/test/health/{debug-migs,schema-pending-migrations}.test.ts`) appearing in the working tree. Likely cause: a prior tool invocation `git stash push`/`git checkout` from another in-flight session. Recovered without data loss: (a) backed up the investigation script to `/tmp/investigate-signin-popup-cancel.mjs.bak`; (b) `git stash push -u -m "FE2-script-tmp" -- scripts/investigate-signin-popup-cancel.mjs` to preserve the investigation work; (c) `git checkout investigation/signin-popup-cancel`; (d) `git checkout -- apps/api/` to drop the carried-in modifications (untracked files left on disk); (e) `git stash pop` to restore the script. **No BE/api work was committed on `investigation/signin-popup-cancel`.** No `9bfef1b` (BE-1 on `fix/api-auth-redirect-and-logout`) was touched. The four untracked `apps/api/test/health/*.test.ts` files are now on disk on this branch but untracked — they will not appear in any commit on `investigation/signin-popup-cancel`. **Surfaced to Lead for follow-up: investigate which session/process issued the cross-branch switch.** Plausible mechanisms: tmux/pty confusion if a prior `terminal()` backgrounded shell held a `cd`; concurrent Hermes session sharing the working tree; `git stash` auto-stash when switching branches with dirty files. None of these is acceptable for multi-agent parallel work — needs a process gate.
+
+**Notes:**
+
+① The popup URL has no `?returnTo=` because `investigation/signin-popup-cancel` predates the FE-1 `dec041f` commit on PR #199. After PR #199 merges to develop, re-running this script on the resulting tree should show `?returnTo=${encodeURIComponent(window.location.origin)}` appended. The investigation's cancel-path findings are independent of that — popup URL does not affect cancel latency.
+
+② COOP-reliability testing requires either a production-cookies context (Huy-only) or a local server emitting `Cross-Origin-Opener-Policy: same-origin`. Neither is available in this env. The 250 ms `closeWatcherRef` poll (`sign-in-button.tsx:265`) is the same architectural concern as the `mountedRef`/`return null` regressions documented in `.cursor/rules/25-react-provider-event-bus.mdc` (D58, 2026-09-18). Slice-B migration removed the second antipattern (per-button 7 s safety-net poll); popup-close watcher is the third remaining background-timer instance in this chrome.
+
+**Bookkeeping (mandatory 4-doc, on same branch per branch-coupled-bookkeeping rule):**
+- `.agents/SESSION-LOG.md` — Session 219 entry (this entry).
+- `CHANGELOG.md` — Session 219 entry under `[Unreleased]` (`### [2026-09-21] — investigation/signin-popup-cancel — FE-2 popup cancel path investigation (no fix)`).
+- `progress.md` — Session 219 one-liner appended.
+- `.agents/summary.md` — `Last updated:` line rotated.
+- `docs/DEBT.md` — Highest ID stays D72; no new debt row; investigation closed cleanly with no fix.
+
+**Invented decisions flagged for Huy:**
+1. Used `Page.windowOpen` as the popup-spawn signal (not `Target.targetCreated` alone), because in headless mode `Target.targetCreated` does NOT always include a `targetId` for `window.open` popups. Cross-reference via `GET /json/list` is the workaround. **If the script is reused on production (or in a CI context) this assumption should be re-verified** — Vercel preview environment uses real Chrome, where `Target.targetCreated` is reliable.
+2. Used `Target.closeTarget` to close the popup rather than `p.close()` from the popup side. The dispatch says "close the Google popup without choosing an account" — both paths trigger the same opener-side close watcher, but CDP `Target.closeTarget` is scriptable and observable (we get a `Target.targetDestroyed` ack within 6 ms). Using `p.close()` from the popup side would require attaching to the popup's debugger.
+3. Did NOT open a PR for `investigation/signin-popup-cancel`. Investigation-only per dispatch; no code review needed. The branch + commits are visible in the agent's push log for Huy's reference.
+4. Did NOT touch the untracked `apps/api/test/health/*.test.ts` files (belong to another session's `fix/api-readiness-schema-pending` branch). Verified via `git ls-files --others --exclude-standard` — they are untracked on disk but not part of this branch's commit graph.
+
+**Out of scope (carry):**
+- PR #199 (FE-1) merge (Huy).
+- PR #198 follow-on (`req.session.returnTo` callback-handler integration test) per Hermes-Lead.
+- Cross-thread `cut` skill (gated on post-FE-2 confirmation).
+- Production COOP verification (Huy).
+- Branch-hygiene gate investigation (the mid-session cross-branch switch) — surfaced to Lead.
+- Mechanism decision if Huy observes a production hang (Huy).
