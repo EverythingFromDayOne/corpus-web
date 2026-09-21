@@ -151,6 +151,15 @@ export function SignInButton({ messages }: Props) {
   const authPath = `${apiUrl}/auth/google`;
   const envDisabled = authPath === '/auth/google';
 
+  // Helper: append `?returnTo=${window.location.origin}` so after the
+  // OAuth round-trip the API redirects the popup back to the correct
+  // callback host (FE-1 step 4). Mirrors the same plumbing on the
+  // two sign-out sites (UserMenu and MobileNavCluster). Only callable
+  // on the client — the popup only opens in response to a click.
+  function buildAuthUrl(base: string): string {
+    return `${base}?returnTo=${encodeURIComponent(window.location.origin)}`;
+  }
+
   // Popup-specific state stays LOCAL (spec §1: only the boolean-ish
   // display flag is hoisted). These refs describe a single open popup;
   // they must not outlive the click that opened it, or the message-driven
@@ -246,7 +255,7 @@ export function SignInButton({ messages }: Props) {
       `left=${left},top=${top},` +
       `popup=yes,noopener=no,noreferrer=no`;
 
-    const popup = window.open(authPath, 'google-oauth', features);
+    const popup = window.open(buildAuthUrl(authPath), 'google-oauth', features);
     if (!popup) {
       // Popup blocked: nothing to revert, nothing to poll. The user must
       // unblock popups and click again. Spec says no error surfaced.
