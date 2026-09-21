@@ -1181,6 +1181,13 @@ body:has(.av-view) .av-header-tog {
   }
 }
 
+/* Theme-toggle segmented buttons — cursor and focus affordance. The
+   wrapper .topbar-theme-host is non-interactive and intentionally
+   cursor-neutral; only the actual buttons should advertise interactivity. */
+.theme-toggle-seg-btn {
+  cursor: pointer;
+}
+
 /* Drawer: full-viewport overlay with a backdrop + a panel sliding in
    from the right. The wrapper is positioned to cover the entire
    viewport including the topbar; z-index sits above the topbar (z:60)
