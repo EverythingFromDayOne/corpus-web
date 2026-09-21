@@ -5,6 +5,34 @@ import { THEME_COOKIE } from '@/lib/site';
 
 type Theme = 'light' | 'dark';
 
+/**
+ * Segmented theme toggle (header-redesign session 216, 2026-09-20).
+ *
+ * Replaces the prior "sun/moon pill" switch whose active dot was a filled
+ * orange disc — the loudest single colour on the topbar, drawing attention
+ * away from the brand for a control people touch once every few months.
+ *
+ * New shape: two `<button>` segments side-by-side, monochrome throughout.
+ * The ACTIVE segment gets `var(--color-raised)` (a single-step surface lift,
+ * still in the cold blue-grey family) — no signal/orange fill. The inactive
+ * segment is plain currentColor. Click the inactive one to switch. Both
+ * icons are always visible so the user can predict the action.
+ *
+ * Visual weight: roughly the same as the old pill (~72px wide, 36px tall)
+ * so the right-cluster geometry doesn't shift on screens where the theme
+ * toggle was already aligned against the sign-in button.
+ *
+ * A11y:
+ *   - `role="group"` with `aria-label` from i18n (`nav.themeToggle`)
+ *   - Each segment: `<button aria-pressed>` communicates active state
+ *     (not `aria-checked` — that requires a checkbox/radio role or
+ *     `role="switch"; aria-pressed fits a toggle-in-group much better).
+ *   - Clicking the pressed segment is a no-op (already there).
+ *   - Tab moves between segments; both focusable.
+ *   - Focus visible via outline-only, no background change.
+ *
+ * Mobile drawer reuses this component — no second implementation.
+ */
 export function ThemeToggle({ label }: { label: string }) {
   const [theme, setTheme] = useState<Theme>('dark');
 
@@ -13,47 +41,48 @@ export function ThemeToggle({ label }: { label: string }) {
     if (current === 'light' || current === 'dark') setTheme(current);
   }, []);
 
-  function toggle() {
+  function set(next: Theme) {
+    if (next === theme) return;
     const root = document.documentElement;
-    const next: Theme = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
     root.setAttribute('data-theme', next);
     document.cookie = `${THEME_COOKIE}=${next};path=/;max-age=31536000;SameSite=Lax`;
     setTheme(next);
   }
 
-  const isLight = theme === 'light';
+  const isDark = theme === 'dark';
 
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={isLight}
+    <div
+      role="group"
       aria-label={label}
-      onClick={toggle}
-      className="border-graphite bg-surface relative inline-flex h-9 w-[72px] shrink-0 cursor-pointer items-center gap-0 rounded-full border p-1 transition-colors duration-200 ease-in-out hover:border-[color:var(--color-muted)] focus-visible:border-[color:var(--color-signal)] focus-visible:outline-2 focus-visible:outline-[color:var(--color-signal)] focus-visible:outline-offset-2 motion-reduce:transition-none"
+      className="theme-toggle-seg inline-flex h-9 shrink-0 items-center rounded-full border border-graphite bg-surface p-1"
     >
-      <span
-        aria-hidden="true"
-        className={`bg-signal absolute top-1 left-1 size-7 rounded-full transition-transform duration-300 ease-in-out motion-reduce:transition-none ${
-          isLight ? 'translate-x-0' : 'translate-x-8'
-        }`}
-      />
-      <span
-        aria-hidden="true"
-        className={`relative z-10 flex size-7 shrink-0 items-center justify-center text-[0.95rem] leading-none transition-colors duration-300 ease-in-out motion-reduce:transition-none ${
-          isLight ? 'text-ink' : 'text-muted'
-        }`}
-      >
-        ☀
-      </span>
-      <span
-        aria-hidden="true"
-        className={`relative z-10 flex size-7 shrink-0 items-center justify-center text-[0.95rem] leading-none transition-colors duration-300 ease-in-out motion-reduce:transition-none ${
-          isLight ? 'text-muted' : 'text-ink'
+      <button
+        type="button"
+        aria-pressed={!isDark}
+        aria-label="Light theme"
+        onClick={() => set('light')}
+        className={`theme-toggle-seg-btn flex size-7 shrink-0 items-center justify-center rounded-full text-[0.95rem] leading-none transition-colors motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-[color:var(--color-signal)] focus-visible:outline-offset-2 ${
+          isDark
+            ? 'text-muted hover:text-display'
+            : 'bg-raised text-display'
         }`}
       >
-        ☾
-      </span>
-    </button>
+        <span aria-hidden="true">☀</span>
+      </button>
+      <button
+        type="button"
+        aria-pressed={isDark}
+        aria-label="Dark theme"
+        onClick={() => set('dark')}
+        className={`theme-toggle-seg-btn flex size-7 shrink-0 items-center justify-center rounded-full text-[0.95rem] leading-none transition-colors motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-[color:var(--color-signal)] focus-visible:outline-offset-2 ${
+          isDark
+            ? 'bg-raised text-display'
+            : 'text-muted hover:text-display'
+        }`}
+      >
+        <span aria-hidden="true">☾</span>
+      </button>
+    </div>
   );
 }

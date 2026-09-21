@@ -50,11 +50,21 @@ export function SiteHeader({
           <span className="text-display">{t(messages, 'site.nameLead')}</span>
           <span className="text-signal">{t(messages, 'site.nameTail')}</span>
         </Link>
+        {/* Hairline divider between the brand wordmark and the primary
+            nav. The dispatch read the previous layout as "one run of text"
+            because there was zero separation: corpus.web → Home Courses
+            Articles flowed at the same baseline with no break. A 1px tall
+            rule at the centerline lets the brand terminate clearly without
+            adding visible chrome. Hidden on mobile (≤640) where the nav is
+            behind the drawer and the brand sits alone. */}
+        <span aria-hidden="true" className="topbar-divider" />
         <NavLinks locale={locale} messages={messages} />
         <div className="topbar-tools">
           <SearchTrigger messages={messages} />
           <AuthSurface messages={messages} />
-          <ThemeToggle label={t(messages, 'nav.themeToggle')} />
+          <span className="topbar-theme-host">
+            <ThemeToggle label={t(messages, 'nav.themeToggle')} />
+          </span>
           <MobileNavCluster locale={locale} messages={messages} />
         </div>
       </div>

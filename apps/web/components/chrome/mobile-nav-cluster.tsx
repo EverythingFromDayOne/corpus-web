@@ -26,7 +26,6 @@ import { MobileNavTrigger } from './mobile-nav-trigger';
 import { MobileNavDrawer } from './mobile-nav-drawer';
 import { t, type Messages } from '@/lib/i18n';
 import { apiUrl } from '@/lib/config';
-import { THEME_COOKIE } from '@/lib/site';
 import { homePath, coursesPath, blogPath } from '@/lib/routes';
 import type { Locale } from '@/lib/locales';
 
@@ -88,16 +87,6 @@ export function MobileNavCluster({
                 if (typeof window !== 'undefined') {
                   window.dispatchEvent(new CustomEvent('corpus:open-search'));
                 }
-              }}
-              onToggleTheme={() => {
-                // ThemeToggle owns its own state — for parity with the
-                // existing desktop toggle, flip the root attribute +
-                // cookie write directly here.
-                if (typeof document === 'undefined') return;
-                const root = document.documentElement;
-                const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-                root.setAttribute('data-theme', next);
-                document.cookie = `${THEME_COOKIE}=${next};path=/;max-age=31536000;SameSite=Lax`;
               }}
               themeLabel={themeLabel}
               languageLabel={t(messages, 'nav.language')}

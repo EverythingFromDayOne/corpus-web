@@ -502,6 +502,14 @@ Load the rule whose globs match the files you are editing. The full body lives i
 
 ---
 
+### `30-ui-changes.mdc` — UI-touching PRs must ship with ui-evidence output and screenshots. UI surface and chrome are a hard review category, not just code.
+
+**Applies to:** `apps/web/**`, `components/**`, `scripts/ui-evidence.mjs`
+
+**Full rule:** `.cursor/rules/30-ui-changes.mdc` (read on demand).
+
+---
+
 ### `40-web-nextjs.mdc` — Next.js 16.3 conventions — caching, RSC boundaries, styling, i18n, MDX.
 
 **Applies to:** `apps/web/**`, `packages/ui/**`, `packages/mdx-components/**`
