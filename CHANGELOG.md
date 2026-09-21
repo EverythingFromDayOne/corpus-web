@@ -23,6 +23,25 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `apps/api/src/modules/auth/resolve-return-origin.ts` (new) — pure function `resolveReturnOrigin(candidate: string | null | undefined, allowlist: string | readonly string[]): string`. Validates `new URL(candidate).origin` against the trimmed allowlist using exact equality (NEVER `startsWith`, which would pass `https://nxhhuy.tech.evil.com` and make the API an open redirect). Returns the first allowlist entry on any invalid/missing input; throws on an empty allowlist. Plus `normaliseAllowlist(allowlist)` helper for both comma-separated strings and arrays.
 - `apps/api/src/modules/auth/capture-return-to.middleware.ts` (new) — NestJS `MiddlewareConsumer`-applied middleware that captures `?returnTo=` from `GET /auth/google`, validates it through `resolveReturnOrigin`, and writes it to `req.session.returnTo` before the Google redirect.
 - `apps/api/test/auth/redirect-and-logout.test.ts` (new) — three test groups: `resolveReturnOrigin` (10 cases including the look-alike `https://nxhhuy.tech.evil.com` → default rejection), `buildSessionCookieOptions` shape (2 cases including the no-domain local-dev shape), and `logout` bounded-time fail-loud (2 cases asserting `req.logout` missing throws synchronously rather than hanging).
+### [2026-09-22] — fix/api-auth-redirect-and-logout — PR #198 passport sequencing regression test
+
+**Added (test-only)**
+- `apps/api/test/auth/oauth-callback.test.ts` (new, 148 lines, 2 cases) drives the `googleCallback` handler end-to-end via direct `new AuthController(appConfig)` construction with a `req.session.returnTo` capture and a `req.login()` mock that mirrors `passport/lib/sessionmanager.js:28-37` (deletes `sessionRef.returnTo` then `cb(null)` — simulates `req.session.regenerate()` destroying the property before the callback fires). Case 1 (`reads req.session.returnTo and resolves origin BEFORE req.login() fires`) seeds `req.session.returnTo = 'https://develop.nxhhuy.tech'`, runs the handler, and asserts `captured.target === 'https://develop.nxhhuy.tech/auth/google/callback'`. Case 2 (`falls back to the first allowlist entry when session.returnTo is missing and Referer is missing`) seeds both inputs undefined and asserts the redirect lands on `https://nxhhuy.tech/auth/google/callback` — proves the test setup is honest about which path each case exercises.
+
+**RED-then-GREEN proven on the current controller.** Temporarily mutated `apps/api/src/modules/auth/auth.controller.ts:124` to call `req.login()` BEFORE the `sessionReturnTo` read (then reverted via `cp /tmp/auth.controller.ts.orig`): Case 1 fails with `AssertionError [ERR_ASSERTION]: expected redirect to develop origin (from session.returnTo), got: https://nxhhuy.tech/auth/google/callback` (assert.match at 11ms); Case 2 still PASSES (proves RED is from the regression, not a setup glitch); after revert both GREEN. Confirms a future edit moving `req.login()` to the top of the handler silently regresses develop login to production — the regression this test guards.
+
+**Hard-rule compliance** (per `.cursor/rules/20-never-violate.mdc`):
+- No `synchronize: true` (N/A, no DB-touching code).
+- No new npm dep (`tsx` already in `devDependencies` for `apps/api` per `package.json`).
+- No hand-edit of `packages/api-client/` — no Swagger `@ApiTags`/`@ApiOperation` changed in this PR.
+- No hard-delete of `lessons` rows (N/A).
+- No `'server'` quiz-scoring mode (N/A).
+- No `*.spec.ts` co-located — new test follows `apps/api/test/auth/` pattern per Session 211 tsconfig split.
+- API not in article-body read path (N/A).
+- Canonical NestJS Express-access API not needed for this slice.
+
+**Out of scope** (carried): BE-2 readiness/migration work on `fix/api-readiness-schema-pending` (Lead's `consolidated-brief-before-v0.2.0.md` defines the slice); docs/release.md for `cut` skill (gated on post-#198-merge).
+
 
 ### [2026-09-19] — fix/d67-loadenv-contract-split — D67 loadEnv/loadDotEnv split + loadAppEnv() wrapper
 
