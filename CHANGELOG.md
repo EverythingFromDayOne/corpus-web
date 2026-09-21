@@ -5,6 +5,45 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+
+
+### [2026-09-21] — feat/header-drawer-shared-account-control — FE-1 account controls reachability + `?returnTo=` plumbing
+
+**Added**
+- `scripts/ui-evidence.mjs` reachability assertion: at every CSS-breakpoint-derived viewport × {signedOut, meBlocked}, walks the topbar + drawer surfaces, asserts at least one control matches `/sign[ 	]*in|sign[ 	]*out|account|account menu/i`. Viewports read from `apps/web/app/globals.css` via `readBreakpointsFromCss()`; result for current CSS is 480 / 640 / 900, paired with +1 widths plus canonical 375 / 768 / 1280 = 9 viewports. The `meBlocked` mode installs CDP `Fetch.enable` + `Fetch.failRequest` on `/me` to exercise the auth-failure collapse path independently. 18/18 (viewport, mode) pairs PASS on the merged tree; the same harness run on the pre-fix tree fails 5 viewports × 2 modes with `account missing`.
+
+**Changed**
+- `apps/web/app/globals.css` — `.topbar-signin { display: none }` re-scoped from a plain class selector to `.topbar .topbar-signin` (descendant). The unscoped selector matched the **drawer's** SignInButton too (the rule's intent was topbar-only); at 375 / 404 / 480 / 481 / 640 the drawer's button was hidden and the topbar's was also hidden → no account control reachable. After the re-scope the drawer's wrapper (`.mobile-nav-drawer-signin-wrap`, outside `<header class="topbar">`) is untouched, so the drawer button renders at every mobile width. The ≤480 and ≤640 `.topbar-nav { display: nothing }` rules together govern the chrome switch — they already enforce a single shared 640px threshold; no JS-driven breakpoint or CSS variable needed.
+- `apps/web/components/chrome/user-menu.tsx` — sign-out URL now carries `?returnTo=${encodeURIComponent(window.location.origin)}` for the post-logout landing page. SSR-safe via `useState` + `useEffect` (SSR renders the unparameterized URL, hydration matches).
+- `apps/web/components/chrome/mobile-nav-cluster.tsx` — drawer's sign-out URL gets the same `?returnTo=` treatment.
+- `apps/web/components/chrome/sign-in-button.tsx` — new `buildAuthUrl(authPath)` helper appends `?returnTo=window.location.origin` to the popup URL. Called at click time so `window.open(authPath, …)` gets a parameterized URL.
+
+**Verified unchanged**
+- `apps/web/components/chrome/auth-surface.tsx` — 3-state model (`'loading' | 'signed-in' | 'signed-out'`) is correct as-is. `/me` failure → `me === null` → state `'signed-out'` → `<SignInButton>` renders. No fourth `'failed'` branch needed; the harness's `meBlocked` mode asserts this path independently.
+- `apps/web/components/chrome/theme-toggle.tsx` — both segment buttons (`Light theme` / `Dark theme`) and the toggle group already carry `aria-label`. No edit.
+
+**Added (test-only)**
+- `scripts/capture-ui-screenshots.mjs` — standalone Chrome-spawn + CDP capture script for the brief's screenshot deliverable. Walks the same breakpoint-derived viewport set; captures `Page.captureScreenshot` in 4 modes per viewport (signedOut drawer-closed topbar, signedOut drawer-open drawer, meBlocked drawer-closed topbar, meBlocked drawer-open drawer). Output: `/tmp/ui-evidence-screenshots/<width>x<height>/*.png`. 28 PNGs total.
+
+**Bookkeeping**
+- `.agents/SESSION-LOG.md` — Session 218 entry appended.
+- `progress.md` — Session 218 one-liner appended.
+- `.agents/summary.md` — `Last updated:` line rotated.
+
+**Out of scope (carry):**
+- FE-2 dispatch (sign-in popup cancel path investigation, branch `investigation/signin-popup-cancel`).
+- Hermes-Lead's PR #198 follow-on (`req.session.returnTo` callback-handler integration test).
+- Cross-thread `cut` skill build (docs/release.md + Hermes skill `cut`).
+- `/tmp/ui-evidence-screenshots/` is outside the repo by design (test artifact).
+
+**Hard-rule compliance (per `.cursor/rules/20-never-violate.mdc`):**
+- No new npm dependency.
+- No hand-edit of `packages/api-client/` (no API surface changed).
+- No `*.spec.ts` co-located (sibling `test/` convention preserved).
+- No AGENTS.md hand-edit (no rule changed).
+- No `SameSite=None`, no Express-cast, no precedence flip.
+- No content submodule edit (article bodies untouched).
+
 ### [2026-09-19] — fix/d67-loadenv-contract-split — D67 loadEnv/loadDotEnv split + loadAppEnv() wrapper
 
 **Changed**

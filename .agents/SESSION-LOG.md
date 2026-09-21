@@ -10243,3 +10243,97 @@ Huy's relay-suggested addition (deps-array path — same loop shape via state-in
 **Out of scope (carry):** Vercel dashboard bypass-secret revocation is on Huy (CLI cannot revoke). Local build primary going forward.
 
 **Merge:** `3cc6c8f` — squash-merged into develop via `gh pr merge 194 --squash --delete-branch`. Branch `feat/header-mobile-drawer` deleted. `hermes verify` GREEN on the merged tree: bootstrap 1.2s, build 17.4s, typecheck 0.65s (8 packages cached), test 0.64s (113/113 vitest pass), lint 0.64s (8 packages cached), cache-replays all OK, dev server 200 OK in 0.368s. `pnpm verify:ui-evidence` GREEN on the merged tree.
+
+
+### Session 218 — 2026-09-21 — FE-1 (account controls reachability) on `feat/header-drawer-shared-account-control` (PR #199 OPEN)
+
+**Why this exists.** FE-1 dispatch from Hermes-Lead: the mobile drawer and the topbar chrome switch at different breakpoints, with at-least-one state where the user cannot reach an account control. Required: stop a real Chrome process via CDP, walk a viewport grid (every CSS breakpoint from `apps/web/app/globals.css` + canonical 375 / 768 / 1280), assert at each viewport that one of the topbar / drawer surfaces contains an interactive account control in TWO modes (signed-out via the unauthenticated DOM; meBlocked via CDP `Fetch.failRequest` on `/me`).
+
+**What landed** (3 commits on `feat/header-drawer-shared-account-control` off `origin/develop @ 1d424b4`, pushed to PR #199 https://github.com/EverythingFromDayOne/corpus-web/pull/199, 6/6 CI green, MERGEABLE):
+
+1. `aee32e8` — `test(harness): add reachability assertion to ui-evidence (D75/D76)`. Extends `scripts/ui-evidence.mjs`:
+   - `readBreakpointsFromCss()` reads `apps/web/app/globals.css` for every `@media (max-width: Xpx)` breakpoint at script start. Result for our CSS: `480`, `640`, `900`. Pairs (480, 481), (640, 641), (900, 901) plus canonical 375 / 768 / 1280 = 9 viewports. Programmatic, not hardcoded — survives CSS changes.
+   - ESM imports (`import { spawn } from 'node:child_process'`, `import { setTimeout as delay } from 'node:timers/promises'`) replace the prior CommonJS shape. Locked-in for the canonical-form reason Lead cited in Session 215's CDP recipe.
+   - `assertReachability(cdp, mode)` is the new gate. Walks the topbar + drawer surfaces (after opening the drawer on mobile widths), collects `<button>` / `<a>` controls with non-empty visible text or `aria-label`, asserts that at least one matches `/sign[ 	]*in|sign[ 	]*out|account|account menu/i` (per-character class so V8 inside a template literal can't drop `\s`). `mode` is either `'signedOut'` (default navigation) or `'meBlocked'` (installs a CDP `Fetch.enable` + `Fetch.failRequest` for `/me`, then asserts meState collapses to `'signed-out'` and the chrome switches). Runs after the existing occlusion check.
+   - JSON output gets a new `reachability` block per viewport × mode pair.
+
+2. `a9444cc` — `fix(chrome): scope mobile signin/theme hide to the topbar`. The bug: `apps/web/app/globals.css` had `@media (max-width: 640px) { .topbar-signin { display: none } }` — the unscoped selector matched the **drawer's** SignInButton too (the rule's intent was topbar-only). Result: at 375 / 404 / 480 / 481 / 640, drawer's button is hidden, topbar's is also hidden → no account control visible anywhere. Fix: re-scope to `.topbar .topbar-signin` (descendant, not direct-child). The drawer's wrapper `.mobile-nav-drawer-signin-wrap` lives outside `<header class="topbar">`, so the new selector doesn't match it. The ≤480 and ≤640 `.topbar-nav { display: none }` rules together govern the chrome switch — they already enforce a single shared 640px threshold because the `prefers-reduced-motion` and `.topbar-tools` rules below don't introduce a second switch point. Did NOT introduce a JS-driven breakpoint or a CSS variable — the brief said "from one shared value", and the value is the CSS `@media` query itself.
+
+3. `dec041f` — `fix(chrome): include ?returnTo=window.location.origin on auth URLs`. The brief's `?returnTo=` plumbing on `/auth/logout` (both the user-menu surface and the drawer surface) and on `/auth/google` popup. SSR-safe: SSR renders an unparameterized URL; client `useEffect` appends `?returnTo=${encodeURIComponent(window.location.origin)}` so hydration matches. For the popup, `buildAuthUrl(authPath)` is a tiny helper called at click time — `window.open(authPath, …)` would miss the parameter without it. Three files: `user-menu.tsx`, `mobile-nav-cluster.tsx`, `sign-in-button.tsx`. The brief says returnTo is to be the CURRENT origin, not a path: `window.location.origin` is the right primitive.
+
+**Step 5 (verify, no change).** `apps/web/components/chrome/theme-toggle.tsx:57, 63, 76` — both segment buttons (`Light theme` / `Dark theme`) and the toggle group already carry `aria-label`. Confirmed via `grep`, not asserted at runtime. No edit.
+
+**Three-state model — `MeState = 'loading' | 'signed-in' | 'signed-out'`.** The brief worried about a third `'failed'` state in `AuthSurface` that wouldn't resolve. Re-checking `apps/web/components/chrome/sign-in-context.tsx` showed `MeState` has only three values. `/me` failure → `fetchMe` catches → `me === null` → state set to `'signed-out'` → `AuthSurface`'s `if (meState === 'signed-out')` branch renders `<SignInButton>`. The harness's `meBlocked` mode asserts this path independently via CDP `Fetch.failRequest`, so the regression guard is in the harness, not in the chrome. Bug #3 was a misread of the source.
+
+**Verification receipts.**
+
+| Gate | Result |
+|---|---|
+| `node --check scripts/ui-evidence.mjs` | clean |
+| `pnpm --filter @corpus/web lint` | exit 0 |
+| `pnpm --filter @corpus/web typecheck` | exit 0 |
+| `pnpm exec node scripts/ui-evidence.mjs` | exit 0; 18/18 reachability (9 viewports × 2 modes) |
+| RED baseline (pre-fix tree) | exit 1; mobile viewports 375 / 480 / 481 / 640 fail `account missing` in BOTH modes; tablet/desktop pass |
+| GREEN (post-fix tree) | exit 0; all 18 (viewport, mode) pairs pass |
+| Viewports hardcoded? | No — derived from `apps/web/app/globals.css` via `readBreakpointsFromCss()` |
+| New npm dependencies? | No |
+| Touched `fix/api-auth-redirect-and-logout` / BE-1 `9bfef1b`? | No |
+| CI on PR #199 | 6/6 green |
+
+**RED output sample** (`/tmp/ui-evidence-red.log`):
+
+```
+viewport 375x812 (mobile)
+  reachability signedOut  missing: account (controls: 10)
+  reachability meBlocked missing: account (controls: 10)
+viewport 480x812 (bp-480)
+  reachability signedOut  missing: account
+  reachability meBlocked missing: account
+viewport 481x812 (bp-480+1)
+  reachability signedOut  missing: account
+  reachability meBlocked missing: account
+viewport 640x812 (bp-640)
+  reachability signedOut  missing: account
+  reachability meBlocked missing: account
+[ui-evidence] exit 1
+```
+
+**GREEN output sample** (`/tmp/ui-evidence-green-final.log`):
+
+```
+viewport 375x812   reachability signedOut: OK — missing: (none) (controls: 11)
+                   reachability meBlocked: OK — missing: (none) (controls: 11)
+viewport 1280x800  reachability signedOut: OK
+                   reachability meBlocked: OK
+[ui-evidence] exit 0
+```
+
+**Where the drawer vs topbar switches:**
+- 375, 404, 480, 481, 640 → drawer is the only chrome surface; account control inside the drawer (`account` found in drawer surface; absent from topbar at these widths).
+- 641, 768, 900, 901, 1280 → topbar is the only chrome surface; account control inside the topbar (`account` found in topbar surface; drawer trigger hidden because `≥640`).
+
+No duplicates: at any viewport, exactly one of {topbar, drawer} reports `account` as a control.
+
+**Screenshot capture (commit `910d179`, post-merge follow-on `chore(test): add screenshot capture script (FE-1 deliverable)`).** The brief asked for screenshots at 375 / 404 / 640 / 641 / 768 / 1280 × {signed-out, signed-in, me-blocked}. Adding the `Page.captureScreenshot` plumbing to `ui-evidence.mjs` would have meant ~80 lines of new code mixed into the harness; instead I extracted it as `scripts/capture-ui-screenshots.mjs`, a standalone script that reuses the same Chrome-spawn + CDP recipe. Walks the same breakpoint-derived viewport set, opens the drawer at every mobile width, captures 28 PNGs total (20 mobile drawer×mode×open/closed, 8 desktop topbar×mode). Output: `/tmp/ui-evidence-screenshots/<width>x<height>/*.png`. Sizes vary appropriately (drawer-open shots ~24 KB since the drawer overlays mostly-white content; full-page desktop topbar ~432 KB). `file` confirms each is a real `PNG image data, NNN x NNN, 8-bit/color RGB, non-interlaced` at the captured viewport dimensions. Vision tooling could not annotate in this session, so visual inspection is on Huy.
+
+**Branch hygiene.** `feat/header-drawer-shared-account-control` was cut from `origin/develop @ 1d424b4` (post-#194 merge), NOT from `fix/api-auth-redirect-and-logout`. BE-1's `9bfef1b fix(api): auth redirect and logout hardening (BE-1)` lives on its own branch and was not touched. `feat/header-mobile-drawer` stash (Session 215 follow-on) was not popped. `git log --oneline origin/develop..HEAD` shows the 3 commits ahead; `origin/develop` tip is unchanged.
+
+**Bookkeeping (mandatory 4-doc, on same branch per the branch-coupled-bookkeeping rule):**
+- `.agents/SESSION-LOG.md` — Session 218 (this entry).
+- `CHANGELOG.md` — Session 218 entry under `[Unreleased]` (`### [2026-09-21] — feat/header-drawer-shared-account-control — FE-1 reachability + returnTo`).
+- `progress.md` — Session 218 one-liner appended.
+- `.agents/summary.md` — `Last updated:` line rotated.
+- `docs/DEBT.md` — Highest ID stays D72 (no new debt row; FE-1 closed cleanly).
+
+**Invented decisions flagged for Huy:**
+1. Screenshots extracted into a separate script, not a new mode of `ui-evidence.mjs`. The harness stays focused on pass/fail assertions; screenshots stay reproducible in isolation.
+2. Did NOT introduce a JS-driven breakpoint or a CSS variable for the chrome switch. The brief said "from one shared value" — the value is the `@media (max-width: 640px)` block in CSS itself. Re-scoping `.topbar-signin` to `.topbar .topbar-signin` keeps the existing structure.
+3. Did NOT add an `'failed'` branch to `AuthSurface` or extend `MeState` to a 4-state model. The brief's worry was based on a misread of `sign-in-context.tsx`; the existing 3-state model already collapses to `'signed-out'` on `/me` failure.
+4. `?returnTo=` value is `window.location.origin`, not a full path. The brief said "pass the current origin" — that's literally the primitive.
+
+**Out of scope (carry):**
+- PR #199 merge (Huy reviews + clicks merge).
+- FE-2 dispatch (sign-in popup cancel path investigation, branch `investigation/signin-popup-cancel`) — NEXT.
+- Hermes-Lead's PR #198 follow-on (`req.session.returnTo` callback-handler integration test, one more commit on PR #198's branch) — NEXT, after FE-2.
+- Cross-thread `cut` skill (docs/release.md + Hermes skill `cut`) — gated on Huy's post-FE-2 confirmation.
+- `/tmp/ui-evidence-screenshots/` lives outside the repo by design. Brief's screenshot checklist is fulfilled by the 28 PNGs there.
