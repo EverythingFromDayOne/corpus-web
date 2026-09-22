@@ -5,6 +5,23 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+
+### [2026-09-22] — fix/api-readiness-schema-pending — readiness reports schema-pending when migrations are unapplied (BE-2)
+
+**Added**
+- `dataSource.showMigrations()` check in `SchemaHealthIndicator`: when one or more migrations are registered but unapplied, `/healthz/ready` returns 503 with `reason: 'schema-pending'` and the missing migration names in `pending: string[]` so operators can grep the missing step.
+- New real-DB test `apps/api/test/health/schema-pending-migrations.test.ts`: 2 cases against `corpus-api-db` (skip-when-no-DB per D72) — apply-all-but-last → 503 with the missing name; re-apply → 200 with `check: 'schema'` and `applied: N`.
+
+**Changed**
+- `apps/api/src/health/schema-health.indicator.ts`:
+  - success payload renamed `reason: 'schema'` → `check: 'schema'` (a `status: up` payload no longer carries a `reason` field, which read as a failure marker; per Huy's PR #193 review).
+  - new failure mode `503 schema-pending` with `pending: string[]` containing the unapplied migration names (operator signal so log scrapers can see which step is missing).
+- `apps/api/package.json`: `dev` script now `pnpm run migration:run && pnpm run start:dev` — explicit dev convenience, NOT a deploy-time auto-migration (matches the PR #193 rejection's intent: migrations stay an explicit deploy step).
+- `apps/api/test/health/schema-health.test.ts`: +1 case, 7 total now (was 6).
+
+**Fixed**
+- D69 gap: `/healthz/ready` returned 200 `database: schema` even when one of the registered migrations was unapplied. After this PR, the same condition returns 503 `database: schema-pending` with the missing name.
+
 ### [2026-09-19] — fix/d67-loadenv-contract-split — D67 loadEnv/loadDotEnv split + loadAppEnv() wrapper
 
 **Changed**
