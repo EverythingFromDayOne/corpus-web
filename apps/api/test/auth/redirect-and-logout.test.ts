@@ -1,6 +1,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import type { Request } from 'express';
 import { resolveReturnOrigin, normaliseAllowlist } from '../../src/modules/auth/resolve-return-origin.js';
+import { executeLogout } from '../../src/modules/auth/auth.controller.js';
 import { buildSessionCookieOptions } from '../../src/config/session.js';
 import { loadEnv } from '../../src/config/env-schema.js';
 
@@ -160,21 +162,16 @@ describe('cookie options are a single source of truth (BE-1 #2)', () => {
   });
 });
 
-describe('logout rejects within bounded time when req.logout is missing (BE-1 #3)', () => {
+describe('executeLogout rejects within bounded time when req.logout is missing (BE-1 #3)', () => {
   it('a missing req.logout throws synchronously rather than hanging the await', async () => {
-    // Simulate the auth controller's logout shape: a `req` object that
-    // does NOT have `req.logout` (Passport not initialized). The new
-    // code path checks `typeof passportReq.logout !== 'function'` and
-    // throws synchronously.
-    //
-    // The whole point of this test: a regression that re-introduces
-    // `req.logout?.(cb)` would silently skip the call, leaving the
-    // promise pending forever. Without the timeout race, "the test
-    // hangs" looks like a hang in CI, not a failure. With it, this
-    // test fails after the bound with a meaningful error.
-    const passportReq = {} as unknown as {
-      logout?: (cb: (err: Error | null) => void) => void;
-    };
+    // Drive the EXACT code path the @Get('logout') handler uses, not
+    // a re-implementation. A regression that re-introduces
+    // `req.logout?.(cb)` would silently skip the call in the
+    // controller too — re-implementing the guard here would let it
+    // pass. With this test driving the real export, a hang in the
+    // controller also hangs the test, which the BOUND_MS race converts
+    // into a meaningful failure.
+    const passportReq = {} as unknown as Request;
     const BOUND_MS = 1000;
     const timeout = new Promise<never>((_, reject) =>
       setTimeout(
@@ -182,33 +179,51 @@ describe('logout rejects within bounded time when req.logout is missing (BE-1 #3
         BOUND_MS,
       ),
     );
-    const run = async (): Promise<void> => {
-      if (typeof passportReq.logout !== 'function') {
-        throw new Error(
-          'req.logout is not a function — Passport is not initialized on this request',
-        );
-      }
-      await new Promise<void>((resolve) => passportReq.logout!(() => resolve()));
-    };
-    await assert.rejects(Promise.race([run(), timeout]), /Passport is not initialized/);
+    await assert.rejects(
+      Promise.race([executeLogout(passportReq), timeout]),
+      /Passport is not initialized/,
+    );
   });
 
   it('propagates the error argument that logout passes to its callback', async () => {
     // When Passport IS initialized but logout fails (the destroy()
-    // callback reports an error), the promise must reject with that
-    // error. A regression that ignores the error and resolves
-    // unconditionally would silently log out the session without
-    // surfacing the failure.
+    // callback reports an error), executeLogout must reject with that
+    // error. Driving the real export — with a mock req whose logout
+    // callback fires the error and whose session.destroy succeeds —
+    // exercises the EXACT reject-paths the controller relies on, so
+    // regressions in either layer surface here.
     const logoutErr = new Error('session row not destroyed');
-    const passportReq = {
+    const req = {
       logout: (cb: (err: Error | null) => void): void => {
         cb(logoutErr);
       },
-    } as unknown as { logout: (cb: (err: Error | null) => void) => void };
-    const run = (): Promise<void> =>
-      new Promise<void>((resolve, reject) => {
-        passportReq.logout((err) => (err ? reject(err) : resolve()));
-      });
-    await assert.rejects(run, /session row not destroyed/);
+      session: {
+        destroy: (cb: (err: Error | null) => void): void => {
+          cb(null);
+        },
+      },
+    } as unknown as Request;
+    await assert.rejects(executeLogout(req), /session row not destroyed/);
+  });
+
+  it('also propagates session.destroy errors when logout succeeds', async () => {
+    // Mirror case: passport logout succeeds, but session.destroy
+    // reports an error. The export must still reject with that error
+    // (and not hang on the destroy callback). The destroy path is
+    // awaited before resolve, so a missing await is a hang that the
+    // previous regression test would also have caught — this one
+    // also pins down the destroy-promise shape.
+    const destroyErr = new Error('connect-pg-simple write failed');
+    const req = {
+      logout: (cb: (err: Error | null) => void): void => {
+        cb(null);
+      },
+      session: {
+        destroy: (cb: (err: Error | null) => void): void => {
+          cb(destroyErr);
+        },
+      },
+    } as unknown as Request;
+    await assert.rejects(executeLogout(req), /connect-pg-simple write failed/);
   });
 });
