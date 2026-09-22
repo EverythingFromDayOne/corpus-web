@@ -280,7 +280,7 @@
 }
 
 .av-inner {
-  max-width: 60rem;
+  /* max-width: 60rem; */
   margin-inline: auto;
   /* Single source of truth for the article H1's line-wrap measure, shared
      by both `.av-inner h1` (plain lesson/course H1) and blog-content.css's
@@ -296,7 +296,7 @@
      titles, at the sidebar breakpoint (999px/1001px) and mobile widths —
      both themes (layout-only property, theme-independent by construction,
      confirmed identical rectWidth/lines in light mode). */
-  --article-h1-measure: 34ch;
+  --article-h1-measure: 40ch;
 }
 
 .av-inner h1 {
@@ -308,7 +308,7 @@
 .av-dek {
   font-size: 1.1rem;
   color: var(--color-muted);
-  max-width: 60rem;
+  /* max-width: 60rem; */
   margin-bottom: 1rem;
 }
 
