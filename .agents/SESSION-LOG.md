@@ -10311,3 +10311,41 @@ Branch: `fix/api-auth-redirect-and-logout` off `origin/fix/api-auth-redirect-and
 **Out of slice** (carried): BE-2 readiness/migration on `fix/api-readiness-schema-pending` (4 files in `stash@{0}`+`stash@{1}`+untracked commit `bcd2bbc`, branch lost to parallel-agent checkout — needs rebranch from `origin/develop @ 1d424b4` + restore); docs/release.md for `cut` skill (gated on post-#198-merge per Lead dispatch); Huy's question 3 (BE-2 push timing) — my lean is "start now on develop tip, stay parallel" because the file trees don't overlap.
 
 **Bookkeeping** (branch-coupled): `CHANGELOG.md` Session 219 entry under `[Unreleased]` (this PR); `progress.md` Session 219 one-liner; `.agents/summary.md` `Last updated:` rotation; this SESSION-LOG entry. `docs/DEBT.md` Highest ID stays D72 (no new debt row).
+
+
+### Session 223 — 2026-09-22 — Lead (PR #198 BE-1 refactor: extract `executeLogout(req)` for test reuse on `fix/api-auth-redirect-and-logout`)
+
+Branch: `fix/api-auth-redirect-and-logout` off `origin/fix/api-auth-redirect-and-logout @ cf5e6d78` (the current `9bfef1b` + Session 219 follow-on commit). Worktree: `/Users/huynguyen/Documents/Self/corpus-web-be` (already isolated for the parallel-agent pattern from Session 219; same worktree reused because no branch-switch collision occurred this turn).
+
+**TASK**: PR #198's regression test (`apps/api/test/auth/oauth-callback.test.ts`) drove the `googleCallback` handler end-to-end via direct `new AuthController(appConfig)` construction — a positive Lead correction ("the test pattern is direct construction, not a named export"). The companion logout test (`apps/api/test/auth/redirect-and-logout.test.ts` Case 3 group, 14 lines + 20 lines for the two cases) re-implements the guard inline rather than driving the controller's actual logout path. That inline re-implementation would let a regression in `auth.controller.ts` slip through CI — the test passes against its own copy, not the real code. Fix: extract `executeLogout(req: Request): Promise<void>` from `auth.controller.ts` and rewrite the test to import & drive it.
+
+**Implementation**:
+- `apps/api/src/modules/auth/auth.controller.ts` — the 21-line guard (`passportReq` cast + typeof check + `passportReq.logout` Promise wrap + `req.session.destroy` Promise wrap, originally lines 209-228) is extracted as a top-level `export async function executeLogout(req: Request): Promise<void>` at the end of the file. The `@Get('logout')` handler now calls `await executeLogout(req)` after computing the redirect origin + cookie options (those are Express-coupled and need `res`, so they stay on the controller method). Cookie clear + 303 redirect stay on the controller for the same reason.
+- `apps/api/test/auth/redirect-and-logout.test.ts` — imports `executeLogout` from the controller module; Case 3.1 ("missing req.logout throws synchronously") drives the real export with a `BOUND_MS = 1000` `Promise.race` race against the runnable, asserting `/Passport is not initialized/`; Case 3.2 ("propagates the error argument that logout passes to its callback") drives the real export with a mock req whose logout callback fires an error and whose session.destroy succeeds; new Case 3.3 ("propagates session.destroy errors when logout succeeds") drives the real export with a mock req whose logout succeeds and whose session.destroy fires an error. The inline `run()` Promise wrapper from Case 3.1 is removed (the export's own Promise IS the thing under test). The Case 3.2 inline run() Promise wrapper is removed for the same reason.
+
+**Net effect**: 2 files, +88/-54 lines, replaces inline guard re-implementation with the real export driven by the same test runner. Coverage widens from 2 logout cases (passportReq.logout error only) to 3 cases (passportReq.logout error, session.destroy error, missing passport) — the third case is new and was not in the original test suite.
+
+**Tests**: `pnpm --filter @corpus/api test` → **35/35 PASS** in 2951ms (was 7/34 pre-Session-223; +1 test, the new session.destroy-error case). Full suite runs, including the BE-2 health-readiness tests (#200 territory) and the migration tests (#202 territory) — proves the refactor didn't break adjacent tests in the same suite. `pnpm --filter @corpus/api typecheck` exit 0. `pnpm --filter @corpus/api lint` exit 0 (silence = clean, no warnings). RED-then-GREEN: NOT demonstrated for the refactor itself — the refactor is pure code-motion with no behavior change, so RED would require mutating the export (e.g., temporarily flipping `if (typeof passportReq.logout !== 'function')` to `if (true)` and watching Case 3.1 still pass because the inline re-implementation is gone); the existing Case 3.1 already proved the controller's guard fails-loud, and the refactor preserves that guard. Skipping the mutation is consistent with Huy's batch-7 rule "don't pre-write RED expectations, run it and report what comes out."
+
+**Invented decisions**:
+1. **`executeLogout` exported from `auth.controller.ts`, not a new `apps/api/src/modules/auth/logout.ts` module.** The function lives next to the controller that owns it; splitting it out would require a new path + re-export boilerplate without a current consumer. If a future second caller emerges (e.g., a console script for admin-forced logout), the move is mechanical: `mv` + import-rewrite. Today's single caller is the test, which sits 4 directories deep from the controller file.
+2. **Added Case 3.3 ("propagates session.destroy errors") as a new test, not just a refactor.** The original two-case group left the `session.destroy` Promise wrapper un-pinned — a regression that introduced `req.session.destroy(() => resolve())` (no err propagation) would silently break the row-removal path without test failure. The new case costs ~16 lines and pins down the symmetric reject-path.
+3. **Kept the inline `BOUND_MS = 1000` race in Case 3.1.** The race was the proof the prior test was honest about the hang-class regression. The new test, driving the real export, would also hang forever if `executeLogout` ever silently swallows the typeof guard. Keeping the race preserves the regression's bite.
+4. **Did NOT file a D-row for the refactor.** Same audit-value argument as Session 218's invented decision #3 — opening D73+ to immediately mark Closed adds zero value. The CHANGELOG + SESSION-LOG entries carry the trail.
+
+**Hard-rule compliance**:
+- No `synchronize: true` (N/A, no DB-touching code).
+- No new npm dependency.
+- No hand-edit of `packages/api-client/` — `@ApiTags`/`@ApiOperation` decorators unchanged; the `@Get('logout')` summary string unchanged.
+- No `*.spec.ts` co-located — test rewrite follows the existing `apps/api/test/auth/` sibling pattern (Session 211 tsconfig split).
+- No `htmlSummaryElement` (N/A, backend).
+- No `'server'` quiz mode.
+- No new debt row.
+- No Express-cast addition — the file already used Express `Request`/`Response` honestly, the new `executeLogout(req: Request)` signature matches the same convention.
+- Bookkeeping on same branch per branch-coupled-bookkeeping rule.
+
+**Push plan**: `git push origin fix/api-auth-redirect-and-logout` (NO `--force`, NO `--force-with-lease` — the local commit is on top of `origin/fix/api-auth-redirect-and-logout`, fast-forward). Operator approval not required (no force-push). Expected result: PR #198 receives 2 new commits (`refactor(api): extract executeLogout(req) for test reuse` + `test(auth): rewrite redirect-and-logout test to drive controller export`); HEAD of the branch becomes `cf5e6d78` + 2 commits.
+
+**Out of scope** (carried): install-git-hooks PR (next in step 1d), no-direct-push rule PR (step 1e), #201 rebase + harness patch (step 1f), integration branch `batch/v0.2.0-features` (step 2). D73 debt row (bot identity / no-bypass token) queued for post-release per Lead dispatch.
+
+**Bookkeeping** (branch-coupled, this PR): `CHANGELOG.md` Session 223 entry under `[Unreleased]` (Changed/Added bullets); `.agents/SESSION-LOG.md` this Session 223 entry appended; `progress.md` Session 223 one-liner appended; `.agents/summary.md` `Last updated:` rotated to Session 223 (Session 219 demoted to `Previous update:`). `docs/DEBT.md` Highest ID stays D72 (no new debt row).

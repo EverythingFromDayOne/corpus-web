@@ -206,32 +206,51 @@ export class AuthController {
     const origin = resolveReturnOrigin(candidate, allowlist);
     const cookieOptions = buildSessionCookieOptions(this.appConfig);
 
-    // `req.logout` is added to `IncomingMessage` by Passport's
-    // `authenticate` middleware. If it is missing (e.g., the
-    // `AuthModule` was conditionally disabled because the Google
-    // env vars are unset) the optional chain used to silently
-    // skip, leaving the promise hanging. Now we fail loudly.
-    const passportReq = req as unknown as {
-      logout?: (cb: (err: Error | null) => void) => void;
-    };
-    if (typeof passportReq.logout !== 'function') {
-      throw new Error(
-        'req.logout is not a function — Passport is not initialized on this request',
-      );
-    }
-    await new Promise<void>((resolve, reject) => {
-      passportReq.logout!((err: Error | null) => (err ? reject(err) : resolve()));
-    });
-
-    await new Promise<void>((resolve, reject) => {
-      req.session.destroy((err) => (err ? reject(err) : resolve()));
-    });
+    await executeLogout(req);
 
     res.clearCookie(this.appConfig.SESSION_COOKIE_NAME, cookieOptions);
     // 303 keeps the redirect GET-after-POST semantics clean even when
     // the form was a GET — the browser follows with GET, no body.
     res.redirect(303, `${origin}/`);
   }
+}
+
+/**
+ * Destroy the passport slot + the session row, rejecting (not hanging)
+ * if Passport is not initialized on the request. Extracted from the
+ * `@Get('logout')` handler so the regression test in
+ * `apps/api/test/auth/redirect-and-logout.test.ts` can drive the same
+ * code path the controller uses, instead of re-implementing the guard
+ * inline (which would let a regression in `auth.controller.ts` slip
+ * through CI).
+ *
+ * `req.logout` is added to `IncomingMessage` by Passport's
+ * `authenticate` middleware. If it is missing (e.g., the `AuthModule`
+ * was conditionally disabled because the Google env vars are unset) the
+ * optional chain used to silently skip, leaving the promise hanging.
+ * Now we fail loudly with a synchronous throw — the same shape the
+ * `@Get('logout')` handler relies on.
+ *
+ * The cookie clear + 303 redirect are Express-coupled and stay on the
+ * controller method — they need `res` (not present here) and the
+ * controller's `appConfig`.
+ */
+export async function executeLogout(req: Request): Promise<void> {
+  const passportReq = req as unknown as {
+    logout?: (cb: (err: Error | null) => void) => void;
+  };
+  if (typeof passportReq.logout !== 'function') {
+    throw new Error(
+      'req.logout is not a function — Passport is not initialized on this request',
+    );
+  }
+  await new Promise<void>((resolve, reject) => {
+    passportReq.logout!((err: Error | null) => (err ? reject(err) : resolve()));
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    req.session.destroy((err) => (err ? reject(err) : resolve()));
+  });
 }
 
 /**

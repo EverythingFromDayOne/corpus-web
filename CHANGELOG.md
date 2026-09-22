@@ -43,6 +43,36 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 **Out of scope** (carried): BE-2 readiness/migration work on `fix/api-readiness-schema-pending` (Lead's `consolidated-brief-before-v0.2.0.md` defines the slice); docs/release.md for `cut` skill (gated on post-#198-merge).
 
 
+
+### [2026-09-22] — fix/api-auth-redirect-and-logout — PR #198 BE-1 refactor: extract `executeLogout(req)` for test reuse
+
+**Changed**
+- `apps/api/src/modules/auth/auth.controller.ts`:
+  - Top-level `export async function executeLogout(req: Request): Promise<void>` added at the end of the file. Owns the passport-slot + session-row destruction (the `typeof passportReq.logout !== 'function'` synchronous-throw guard, the `passportReq.logout(cb)` Promise wrap, and the `req.session.destroy(cb)` Promise wrap — 21 lines, originally at lines 209-228 inside the `@Get('logout')` handler).
+  - `@Get('logout')` handler now calls `await executeLogout(req)` after computing the redirect origin + cookie options (those stay on the controller because they're Express-coupled — they need `res` + `appConfig`). Cookie clear (`res.clearCookie`) + 303 redirect also stay on the controller. The 21-line inline guard inside the handler is replaced by a single `await executeLogout(req)` line. Net diff on this file: `+59/-22` (function extraction + the new export's docstring).
+
+**Changed (test)**
+- `apps/api/test/auth/redirect-and-logout.test.ts`:
+  - Imports `executeLogout` from the controller module: `import { executeLogout } from '../../src/modules/auth/auth.controller.js';`.
+  - Case 3 describe block renamed from `logout rejects within bounded time when req.logout is missing (BE-1 #3)` to `executeLogout rejects within bounded time when req.logout is missing (BE-1 #3)` (the test now drives the export, not an inline re-implementation).
+  - Case 3.1 (`a missing req.logout throws synchronously rather than hanging the await`) — drives the real export with `Promise.race([executeLogout(passportReq), timeout])` against the `BOUND_MS = 1000` timer. The inline `run()` wrapper is removed (the export's own Promise IS the thing under test now).
+  - Case 3.2 (`propagates the error argument that logout passes to its callback`) — drives the real export with a mock req whose logout callback fires the error and whose session.destroy succeeds. Inline `run()` wrapper removed.
+  - **NEW Case 3.3** (`also propagates session.destroy errors when logout succeeds`) — drives the real export with a mock req whose logout succeeds and whose session.destroy fires an error. Pins down the symmetric reject-path on the destroy callback (the previous 2-case group left this path un-pinned).
+
+**Hard-rule compliance** (per `.cursor/rules/20-never-violate.mdc`):
+- No `synchronize: true` (N/A, no DB-touching code).
+- No new npm dependency.
+- No hand-edit of `packages/api-client/` — `@ApiTags`/`@ApiOperation` decorators unchanged; the `@Get('logout')` summary string unchanged.
+- No `*.spec.ts` co-located — test rewrite follows the existing `apps/api/test/auth/` sibling pattern (Session 211 tsconfig split).
+- No `htmlSummaryElement` (N/A, backend).
+- No `'server'` quiz-scoring mode.
+- No new debt row.
+- No Express-cast addition — the file already used Express `Request`/`Response` honestly; the new `executeLogout(req: Request)` signature matches the same convention.
+
+**Tests**: `pnpm --filter @corpus/api test` → **35/35 PASS** in 2951ms (was 7/34 pre-Session-223; +1 test, the new session.destroy-error case). Full suite green including the BE-2 health-readiness tests (#200 territory) and the migration tests (#202 territory). `pnpm --filter @corpus/api typecheck` exit 0. `pnpm --filter @corpus/api lint` exit 0 (silence = clean). RED-then-GREEN NOT demonstrated for the refactor itself — the refactor is pure code-motion with no behavior change; the existing Case 3.1 already proved the controller's guard fails-loud, and the refactor preserves that guard. Skipping the mutation-run is consistent with Huy's batch-7 rule "don't pre-write RED expectations, run it and report what comes out."
+
+**Out of scope** (carried): install-git-hooks PR (next in step 1d of batch 7), no-direct-push rule PR (step 1e), #201 rebase + harness patch (step 1f), integration branch `batch/v0.2.0-features` (step 2). D73 debt row (bot identity / no-bypass token) queued for post-release per Lead dispatch.
+
 ### [2026-09-19] — fix/d67-loadenv-contract-split — D67 loadEnv/loadDotEnv split + loadAppEnv() wrapper
 
 **Changed**
