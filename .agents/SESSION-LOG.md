@@ -10313,3 +10313,53 @@ Huy's relay-suggested addition (deps-array path — same loop shape via state-in
 - This session's "Why" paragraph (above) is intentionally self-contained so a reviewer can decide whether to retry-with-different-recovery-path or to accept the current state and reopen the PR in the web UI.
 
 ---
+
+
+## Session 224 — 2026-09-22 — Lead — PR #204 install-git-hooks worktree-aware fix
+
+**Branch:** `fix/install-git-hooks-worktree-aware @ e31ad58` (off `origin/develop @ 94e76a2`)
+
+**What landed:**
+- `scripts/install-git-hooks.mjs` — resolves `.git` (file containing `gitdir: ...` in a worktree) to the shared `.git/` directory before `mkdirSync`-ing `.git/hooks/`. Pre-fix script crashed with `ENOTDIR: not a directory, mkdir '.git/hooks'` whenever `pnpm install`'s postinstall ran inside a worktree — silently no-oping the pre-commit hook install and breaking `hermes verify`'s bootstrap phase in worktrees.
+
+**Why now:**
+- Huy's batch 7 step 1d. The `f46b740` stash contained the fix; promoting it to a real PR + branch so the integration step can run `hermes verify` cleanly without the local-only scaffolding dance (install-git-hooks worktree fix + manifest copy).
+
+**Files changed:**
+- `scripts/install-git-hooks.mjs` — +35/-8 (1 file, 2 hunks)
+- `CHANGELOG.md` — +11/-0 (Session 224 entry under `[Unreleased]`, spliced between Session 222 and Session 219)
+- `.agents/SESSION-LOG.md` — Session 224 appended (this entry)
+- `.agents/summary.md` — Session 224 "Last updated:" rotation (Session 222 demoted to "Previous update:")
+- `progress.md` — Session 224 one-liner appended
+- 5 files, +46/-8 total (PR #204 scope)
+
+**Verification:**
+- Worktree `corpus-web-installhooks`, fresh branch from `origin/develop @ 94e76a2`.
+- `node scripts/install-git-hooks.mjs` exits 0 in worktree; installs `.git/hooks/pre-commit` (267 bytes, runs `scripts/verify-submodules.mjs`).
+- `pnpm install --frozen-lockfile` exits 0; postinstall runs the script successfully.
+- `pnpm --filter @corpus/api typecheck` exit 0; `lint` exit 0; `pnpm agents:check` ✓.
+- Pre-commit hook fired on both commits (`0bcb320` + `e31ad58`); submodule pinning check passed (D78 standing warning on `content/nestjs` tags remains, unrelated).
+- **CI on `e31ad58`**: workflow `35746082288`, all 4 `pull_request` checks SUCCESS (Repo guards / Content gates / Lint, typecheck, build / Accessibility and performance). The `Lint, typecheck, build` job runs `pnpm install` with the postinstall, proving the fix works on Vercel's build machines.
+- **Vercel bot** SUCCESS on both heads (deployment status, not CI signal).
+- PR #204 MERGEABLE, base `develop`, head `fix/install-git-hooks-worktree-aware @ e31ad58`.
+
+**Hard-rule compliance:**
+- No `synchronize: true`.
+- No new npm dep.
+- No hand-edit of `packages/api-client/`.
+- No `*.spec.ts` co-located.
+- No `htmlSummaryElement`, no `'server'` quiz mode.
+- No `--force-with-lease` push — fresh branch, fresh push (the only `--force-with-lease` in this batch remains #201's rebase in step 1f, flagged separately).
+- No scratch files inside repo `.hermes/`; all progress notes in `progress.md` (in-repo, via PR) and `~/.hermes/handoffs/v0.2.0/` (outside repo, never `/tmp`).
+- `apps/web/next-env.d.ts` reverted before both commits (Huy's standing rule).
+
+**Out of scope (carried forward):**
+- #201 rebase + harness patch (step 1f) — the only `--force-with-lease` in the batch; flagging before running.
+- No-direct-push rule PR (step 1e) — last PR to create in the batch.
+- Integration branch `batch/v0.2.0-features` (step 2).
+- D73 (NEVER list is prompt-only, no CI gate) — queued for post-release per Lead dispatch.
+- D78 (`content/nestjs` tags not fetched in worktrees) — gitlink pinned, tags just need `git fetch --tags`; not blocking; remains standing warning.
+
+**Known good:** PR #204 MERGEABLE; integration receipts at `~/.hermes/handoffs/v0.2.0/integration-receipts.md` (5 checks, 2739 bytes) — still applies: the new head must be `git merge-base --is-ancestor 910d179` exit 1, `git ls-tree -r | grep capture-ui-screenshots` empty. Both trivially true for #204's head (no `910d179` ancestor, no capture-ui-screenshots.mjs).
+
+**Carry for #204 itself:** none — clean, MERGEABLE, ready for Huy's review when the batch is ready to merge as a unit.
