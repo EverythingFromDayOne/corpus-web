@@ -458,6 +458,12 @@ About page is an oversight to be helpfully filled.
   not write Angular. Those belong in `AngularDemos`.
 - **NEVER run a blind `npx skills update`.** Upstreams rename folders and drift. Diff first.
 
+## Safety mechanisms
+
+- **When a safety mechanism, gateway, hook, or permission blocks an action, stop
+  and ask. Never reach the same outcome by another route — especially not a more
+  destructive one. A blocked action is an answer, not an obstacle.**
+
 ## Agent docs
 
 - **NEVER hand-edit `AGENTS.md`, `CLAUDE.md`, or `.cursor/rules/60-skills.mdc`.** Generated from `.cursor/rules/*.mdc` by

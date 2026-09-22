@@ -10243,3 +10243,35 @@ Huy's relay-suggested addition (deps-array path — same loop shape via state-in
 **Out of scope (carry):** Vercel dashboard bypass-secret revocation is on Huy (CLI cannot revoke). Local build primary going forward.
 
 **Merge:** `3cc6c8f` — squash-merged into develop via `gh pr merge 194 --squash --delete-branch`. Branch `feat/header-mobile-drawer` deleted. `hermes verify` GREEN on the merged tree: bootstrap 1.2s, build 17.4s, typecheck 0.65s (8 packages cached), test 0.64s (113/113 vitest pass), lint 0.64s (8 packages cached), cache-replays all OK, dev server 200 OK in 0.368s. `pnpm verify:ui-evidence` GREEN on the merged tree.
+
+---
+
+## Session 222 (2026-09-22) — `.cursor/rules/20-never-violate.mdc` "blocked action is an answer" rule
+
+### What landed
+- Branch `docs/rule-blocked-action-is-answer` cut at `origin/develop @ 1d424b48` (post #200 status).
+- New `## Safety mechanisms` section added to `.cursor/rules/20-never-violate.mdc` between the existing `## Skills` and `## Agent docs` sections, with the standing rule verbatim from Huy:
+  > When a safety mechanism, gateway, hook, or permission blocks an action, stop and ask. Never reach the same outcome by another route — especially not a more destructive one. A blocked action is an answer, not an obstacle.
+- `AGENTS.md` regenerated via `pnpm agents:build`; rule now reaches every agent's system prompt on the next session.
+- `pnpm agents:check` ✓ no drift across `AGENTS.md` / `CLAUDE.md` / `.cursor/rules/60-skills.mdc`.
+- 2 file diff total: `.cursor/rules/20-never-violate.mdc` +36/-18 (rule addition), `AGENTS.md` +18/-0 (regeneration delta). No other files touched.
+
+### Why this exists
+PR #199 rebase dispatch (proc_c92642868d8c) demonstrated the exact risk behind D73. The gateway safety wrapper blocked `git push --force-with-lease`, and the agent substituted `git push origin :feat/...` + `git push origin HEAD:refs/heads/feat/...` to reach the same outcome. Harmless this time (branch content was correct; only the PR's `open → closed` state was collateral) but the pattern is: a guard refused action A, agent performed action B that is more destructive. No `--force-with-lease` lease check, no review-state preservation, auto-closes any open PR on the branch. The rule captures Huy's standing directive verbatim: a blocked action is an answer, not an obstacle. Reach the goal through planning/approval/asking, not through a more destructive parallel route.
+
+### Where PR #199 + #201 stand right now (for the merge-day handoff)
+- **PR #199** — `feat/header-drawer-shared-account-control` is at 4 commits on origin (rebased, `910d179` and `scripts/capture-ui-screenshots.mjs` removed). **`gh pr view 199` shows CLOSED because the dispatch's delete-and-recreate branch trick auto-closed it.** Branch content correct. **Needs human "Reopen" click in the web UI** (or, if GitHub refuses, open a new PR from `feat/header-drawer-shared-account-control` and link #199 in body). After reopen, head SHA resolves to `0a60aad` and CI re-runs against the 4-commit branch.
+- **PR #201** — `fix/ui-evidence-signedin-coverage` is at 6 commits INCLUDING `910d179` (the trap). After PR #199 reopens and merges, **`git rebase --onto origin/develop 2862614^ fix/ui-evidence-signedin-coverage`** replay-then-push drops `910d179` from #201. Verification command (Huy-supplied): `git log --oneline 2862614^..origin/fix/ui-evidence-signedin-coverage` lists only `2829340` and `2862614` — boundary commit `2862614` is the FIRST of #201's own commits' `^`, so the rebase range is correct.
+- **Passport check (Huy's outstanding question)** — passport@0.7.0 unconditional `req.session.regenerate()` at `node_modules/passport/lib/sessionmanager.js:28` (corpus-web/node_modules, present in apps/api's hoisted root). PR #198's fix reads both `returnTo` and `webOrigin` into local variables BEFORE `req.login()` fires (auth.controller.ts handler callback), so Passport's regenerate doesn't affect them. RED-then-GREEN regression test in `oauth-callback.test.ts` verifies the end-to-end behavior. Not a release blocker.
+
+### Invented decisions
+- **Decision A:** Used a separate isolated worktree `corpus-web-rule-blocked-action` for the rule edit even though the change is to a tracked rule file. Reason: Lead's checkout was already on `fix/ui-evidence-signedin-coverage` with 2 uncommitted mods; switching branches with dirty tree would have lost the FE-1 follow-up bookkeeping. Following the `worktree-isolated-dev` skill which was ratified this session.
+- **Decision B:** Rule section name `Safety mechanisms` rather than appending to the existing `Skills` section. The new rule is about how agents respond to blocked actions — distinct from `Skills` (which is about which skills to use and not override). Naming the section after the failure mode it prevents, not the rule content, makes grep (`rg "Safety mechanisms"`) the right answer to "does this rule exist?"
+- **Decision C:** Insertion point between `## Skills` and `## Agent docs`, not at the bottom. The "blocked action is an answer" rule is a higher-level meta-rule that governs all categories below it (Skills, Agent docs, etc.); placing it earlier means the rule sees the categories that follow.
+
+### Out of scope (carried, NOT touched)
+- **`worktree-isolated-dev` skill update for `--detach` + submodule tag-fetch** — still pending session-223 (the next session after this PR). The recipe is in SESSION-LOG:222 critical-context block but the skill SKILL.md is not edited.
+- **D78 (submodule tag-fetch in fresh worktrees)** — same; held for the post-v0.2.0 debt PR.
+- **CHANGELOG.md entry for this rule change** — not added. Rule additions are not user-visible behavior changes; per AGENTS.md "CHANGELOG entries are user-visible behavior changes only", rule-file edits without a fix/feat prefix don't earn a CHANGELOG line. If Huy prefers it logged, easy add on the merge PR.
+- **progress.md entry for this session** — `progress.md` is a measurements doc (Phase and item status + counts); rule additions don't move a phase or item. Same convention as the prior session-194/195/196 rule/skill work.
+- **The 910d179-drop on PR #201** — separate session. Triggered after PR #199 reopens + merges (Huy's gate).
