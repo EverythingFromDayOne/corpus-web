@@ -112,6 +112,35 @@ import { apiUrl } from '@/lib/config';
  *      flipping `processing`, so the button's own timers/popup ref get
  *      cleared too.
  *
+ *   8. Cancel-path stuck after Round 1 handoff (D75.c Round 2 fix —
+ *      Huy caught via independent CDP verification). The Round 1
+ *      fix (Bug "drawer popup self-destruct") intentionally made the
+ *      popup survive the button's unmount via `onPopupOpened` +
+ *      `handingOffRef` — that's the only way the OAuth round-trip
+ *      can complete with a drawer still around the live popup. But
+ *      the old close-watcher (`closeWatcherRef` + `popupClosed` state
+ *      + the two local effects driving refresh + 5 s debounce revert)
+ *      lived inside the `<SignInButton>` component instance. After
+ *      handoff, the button unmounts in the same React commit; the
+ *      interval was cleared, the state setters became no-ops, and
+ *      the `registerRevert(null)` cleanup meant the provider's
+ *      success path also couldn't reach back into a now-dead
+ *      closure. The result: the popup was live long enough for a
+ *      real user cancel (manual close before completing OAuth) to
+ *      matter, but the cancel path had no recovery — the button
+ *      stayed stuck on "Signing in…" indefinitely. The fix is a
+ *      OWNER move, not a behaviour change: popup close-detection
+ *      now lives in `SignInContext.watchPopup(popup)` — the same
+ *      250 ms poll + 5 s debounce revert the button used to own,
+ *      but with the provider (always mounted at the locale tree)
+ *      as the single owner. `<SignInButton>` calls
+ *      `watchPopup(popup)` immediately after `setProcessing(true)`;
+ *      the local `closeWatcherRef`, `popupClosed` state,
+ *      `closeTimerRef`, the two post-close effects, and the
+ *      `clearCloseTimer` / `clearCloseWatcher` helpers are removed
+ *      entirely. Desktop topbar sign-in (no handoff) is unaffected
+ *      — the provider's watcher fires identically for it.
+ *
  * Out of scope (per `prompts/session-d26-signin-popup-ux-a1.md`):
  * avatar/sign-out/profile (slice B), POST /progress/migrate (slice C),
  * refresh tokens, RBAC, /auth/logout CSRF, /me rename, NEXT_PUBLIC_API_URL
@@ -155,24 +184,36 @@ type Props = {
   onPopupOpened?: () => void;
 };
 
-const POST_CLOSE_DEBOUNCE_MS = 5_000;
-const CLOSE_WATCH_INTERVAL_MS = 250;
 const POPUP_WIDTH = 520;
 const POPUP_HEIGHT = 600;
 
 // D26 slice B — the 7_000 ms safety-net /me `setInterval` previously
 // living in `openAuthPopup` was removed. The SignInProvider now owns
 // the authoritative `/me` fetch (one per locale-tree mount, plus on
-// `corpus:auth-changed` events), so the button no longer needs its own
-// background poll. The two remaining success paths are the
-// `oauth-success` postMessage (handled in `sign-in-context.tsx`, which
-// calls our registered `revert`) and the post-close effect's
-// `provider.refresh()` (which delegates the actual `/me` fetch to the
-// same provider).
+// internal call sites like the postMessage success handler and the
+// new Round 2 close-watcher), so the button no longer needs its own
+// background poll. The success path is the `oauth-success` postMessage
+// (handled in `sign-in-context.tsx`, which calls our registered
+// `revert`); the cancel-path debounce revert runs from the provider's
+// own effects — see `watchPopup` below.
+
+// D75.c Round 2 — popup close-detection is OWNED by `SignInContext`
+// (`watchPopup(popup)`) rather than this button. The 250 ms poll and
+// the 5 s post-close debounce revert moved to the provider so they
+// survive the drawer's `onPopupOpened` handoff (which unmounts this
+// button instance in the same React commit as `window.open()`).
+// `POST_CLOSE_DEBOUNCE_MS` and `CLOSE_WATCH_INTERVAL_MS` are now
+// defined in `sign-in-context.tsx`; this button just calls
+// `watchPopup(popup)` after `setProcessing(true)`.
 
 export function SignInButton({ messages, onPopupOpened }: Props) {
-  const { processing, setProcessing, registerRevert, meState, refresh } =
-    useSignIn();
+  // D75.c Round 2 — `watchPopup` is now the close-detection entry
+  // point. The 250 ms poll and 5 s debounce live in `SignInContext`;
+  // this button just hands the freshly-opened popup to the provider.
+  // `meState` is no longer read here either — the provider watches
+  // it on this button's behalf to decide whether the post-close
+  // debounce fires or is short-circuited (success race).
+  const { processing, setProcessing, registerRevert, watchPopup } = useSignIn();
   // D55 canonical surface: apiUrl falls back to '' when
   // NEXT_PUBLIC_API_URL is unset, which makes authPath literally
   // '/auth/google' — the envDisabled guard below relies on that exact
@@ -194,9 +235,14 @@ export function SignInButton({ messages, onPopupOpened }: Props) {
   // display flag is hoisted). These refs describe a single open popup;
   // they must not outlive the click that opened it, or the message-driven
   // revert path (Bug 2) would have no popup handle to close.
+  //
+  // D75.c Round 2 — `closeWatcherRef`, `closeTimerRef`, and the
+  // `popupClosed` state were removed; the provider's `watchPopup`
+  // owns the 250 ms poll + 5 s debounce revert instead. This button
+  // only needs `popupRef` so its unmount-cleanup effect (or its
+  // registered `revert` callback invoked by the provider's
+  // postMessage handler) can still close a live popup if needed.
   const popupRef = useRef<Window | null>(null);
-  const closeTimerRef = useRef<number | null>(null);
-  const closeWatcherRef = useRef<number | null>(null);
   /**
    * v0.2.0 hotfix — drawer sign-in popup self-destruct (PR #206).
    *
@@ -214,13 +260,6 @@ export function SignInButton({ messages, onPopupOpened }: Props) {
   const handingOffRef = useRef(false);
 
   /**
-   * `popupClosed` is a React state flag (not a ref) so the post-close
-   * debounce effect below can react to the transition. It flips true
-   * exactly once per click — at the moment the watcher detects
-   * `popup.closed === true`. Bug 2.2 fix: it does NOT flip on a 401 tick.
-   */
-  const [popupClosed, setPopupClosed] = useState(false);
-  /**
    * v0.2.0 hotfix (PR #206) — stuck "Signing in…" must have an exit.
    *
    * `popupBlocked` flips true when `window.open()` returns null (the
@@ -236,41 +275,33 @@ export function SignInButton({ messages, onPopupOpened }: Props) {
    */
   const [popupBlocked, setPopupBlocked] = useState(false);
 
-  function clearCloseTimer() {
-    if (closeTimerRef.current !== null) {
-      window.clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
-  }
-  function clearCloseWatcher() {
-    if (closeWatcherRef.current !== null) {
-      window.clearInterval(closeWatcherRef.current);
-      closeWatcherRef.current = null;
-    }
-  }
-
   /**
    * Reset all local state to "idle" and tell the context the button is
    * no longer in flight. Called from the message-driven revert path
-   * (Bug 2 — primary) and the post-close-debounce revert path (Bug 2.2
-   * fallback when `/me` confirmed the popup closed before login
-   * completed).
+   * (Bug 2 — primary, handled in `sign-in-context.tsx`'s
+   * postMessage listener which calls our registered `revert`).
+   *
+   * D75.c Round 2 — this body no longer touches `closeWatcherRef` /
+   * `closeTimerRef` / `popupClosed`; those responsibilities moved to
+   * `SignInContext.watchPopup`. The only state this callback still
+   * owns locally is `popupRef` (for closing a stale popup if the
+   * success path fires before the popup closes itself) and
+   * `popupBlocked` (clear it so a stale inline message doesn't
+   * linger after a successful sign-in).
    */
   const revert = useCallback(() => {
-    clearCloseTimer();
-    clearCloseWatcher();
     if (popupRef.current && !popupRef.current.closed) {
       popupRef.current.close();
     }
     popupRef.current = null;
-    setPopupClosed(false);
+    setPopupBlocked(false);
     setProcessing(false);
     // Stable across renders: closes only over refs (stable identity by
     // definition) and the `setProcessing` setter from `useSignIn()`,
     // which — like any `useState` setter — has a stable identity for the
-    // lifetime of the component. `useCallback` here lets the post-close
-    // debounce effect below list `revert` as a dependency and satisfy
-    // `react-hooks/exhaustive-deps` without an eslint-disable.
+    // lifetime of the component. `useCallback` here lets the
+    // `registerRevert` effect below list `revert` as a dependency and
+    // satisfy `react-hooks/exhaustive-deps` without an eslint-disable.
   }, [setProcessing]);
 
   // A.3 fix (Echo caught this): register this button's `revert` with the
@@ -288,20 +319,28 @@ export function SignInButton({ messages, onPopupOpened }: Props) {
   /**
    * Wire up the popup lifecycle:
    *  - open the popup (or fall back to a tab if popups are blocked)
-   *  - mount a 250 ms watcher that detects the popup's open→closed
-   *    transition and stamps `popupClosed` (Bug 2.2 fix). The post-close
-   *    effect below reacts to that flag.
-   *  - if no `oauth-success` postMessage and no `/me` confirmation of
-   *    a fresh session lands within the 5 s post-close debounce, revert
-   *    (close was the user's choice, treat as cancel)
+   *  - hand the popup reference to `SignInContext.watchPopup(popup)`
+   *    so close-detection survives this button's unmount (Round 1
+   *    draws the popup handoff for `onPopupOpened`; Round 2 hoists
+   *    close-detection to the provider for the same remount-survival
+   *    reason)
+   *  - if a wrapper is mounted (`onPopupOpened` prop), set the
+   *    handoff flag and synchronously invoke the wrapper's close —
+   *    the wrapper's state update batches with this function's
+   *    return, so this button unmounts immediately after `window.open`
+   *    returned. The provider's interval survives that unmount and
+   *    keeps polling `popup.closed` until the OAuth round-trip
+   *    resolves one way or the other.
    *
    * Bug 4 — no 60 s blanket force-revert. The popup is allowed to stay
    * open indefinitely as long as the user hasn't closed it.
    *
-   * Slice B — the 7 s `/me` safety-net poll that used to live here is
-   * gone. The SignInProvider owns `/me`, and triggers `refresh()` on
-   * `corpus:auth-changed` events. The only async work this function
-   * does is open the window.
+   * D75.c Round 2 — the 7 s `/me` safety-net poll that used to live
+   * here is gone; the SignInProvider owns `/me` and exposes
+   * `refresh()` for re-fetch (called once per locale-tree mount, and
+   * on the close-watcher → debounce revert path described in
+   * `sign-in-context.tsx`). This function's only async work is
+   * `window.open()`.
    */
   function openAuthPopup() {
     const left = Math.round(
@@ -332,32 +371,19 @@ export function SignInButton({ messages, onPopupOpened }: Props) {
     // popup is in fact open in front of them.
     setPopupBlocked(false);
     popupRef.current = popup;
-    setPopupClosed(false);
     setProcessing(true);
 
-    // Bug 2.2 — stamp the anchor ONLY on the close transition.
-    // We poll the popup's `.closed` flag at 250 ms (faster than the
-    // /me re-check on close so the user-visible revert feels
-    // immediate). Until the transition happens we leave the state
-    // alone, so 401s on subsequent /me ticks cannot reset the
-    // debounce clock.
-    closeWatcherRef.current = window.setInterval(() => {
-      if (popup.closed) {
-        const watcher = closeWatcherRef.current;
-        if (watcher !== null) window.clearInterval(watcher);
-        closeWatcherRef.current = null;
-        setPopupClosed(true);
-      }
-    }, CLOSE_WATCH_INTERVAL_MS);
-
-    // Slice B — the 7 s safety-net `/me` poll previously living here
-    // was removed: the `SignInProvider` (see `sign-in-context.tsx`)
-    // now owns the authoritative `/me` fetch and broadcasts
-    // `corpus:auth-changed` for siblings to react to, so the button
-    // no longer needs its own background interval. The two remaining
-    // success paths are the `oauth-success` postMessage (handled in
-    // `sign-in-context.tsx`, which calls our registered `revert`)
-    // and the post-close effect's one-shot `/me` re-check below.
+    // D75.c Round 2 — hand the freshly-opened popup off to the
+    // provider, which owns the 250 ms `popup.closed` poll and the
+    // 5 s post-close debounce revert. `watchPopup` survives this
+    // button's unmount (the drawer's `onPopupOpened` callback below
+    // triggers it), so the cancel-by-manual-close path can still
+    // recover the button label after the user dismisses the popup
+    // without completing OAuth. The button's own local close-watcher
+    // (`closeWatcherRef` + `popupClosed` state) was removed because
+    // it died with the button instance during handoff — see the
+    // file-level docstring Bug 8 for the full reasoning.
+    watchPopup(popup);
 
     // v0.2.0 hotfix (PR #206) — drawer sign-in popup self-destruct.
     // If a wrapping owner (the drawer's `onClose`) needs to react to
@@ -390,72 +416,21 @@ export function SignInButton({ messages, onPopupOpened }: Props) {
     openAuthPopup();
   }
 
-  /**
-   * Post-close-debounce revert watcher (Bug 2.2 fallback, refined for
-   * Echo's 2026-09-16 review of A.1, and again for D26 slice B).
-   *
-   * Original bug: this effect scheduled a single `setTimeout` that
-   * called `revert()` unconditionally after `POST_CLOSE_DEBOUNCE_MS`,
-   * regardless of whether the sign-in had actually succeeded. That's
-   * a real race: `auth.controller.ts`'s `req.login()` writes the
-   * session cookie server-side and THEN 302s the popup to
-   * `/auth/google/callback`, whose own `useEffect` (the thing that
-   * posts `oauth-success` to this window) only runs after that page
-   * has loaded and hydrated — a ~100–400 ms window. If the user
-   * closes the popup inside that window, no `oauth-success` message
-   * ever arrives, yet the login already succeeded. The old code would
-   * then just revert() after 5s and report "Sign in" even though
-   * `corpus_session` has a live row — and the 5s debounce was SHORTER
-   * than the 7s safety-net poll interval, so the poll structurally
-   * never got a chance to catch it either.
-   *
-   * Slice B fix: the button no longer owns its own `/me` poll. The
-   * provider does. When the popup is observed closed, we call the
-   * provider's `refresh()` (which fetches `/me` and broadcasts an
-   * `auth-changed` event). When the response lands, `meState` flips
-   * one of two ways:
-   *  - `signed-in` — the `<AuthSurface>` re-renders, this button
-   *    unmounts, the unregister-on-unmount effect below runs and the
-   *    pending `refresh()` is harmless.
-   *  - `signed-out` — the popup was closed before login completed
-   *    (truly a cancel). Fall through to the 5 s debounce revert.
-   * No second fetch happens — the work was already done by `refresh`.
-   */
-  useEffect(() => {
-    if (!popupClosed) return;
-    if (!processing) return;
-
-    refresh();
-  }, [popupClosed, processing, refresh]);
-
-  /**
-   * Once `refresh()` resolves (meState has flipped in response to the
-   * post-close event), either branch from the effect above has
-   * happened. This follow-up effect watches `meState`:
-   *  - `signed-in` → the `<AuthSurface>` swap to `<UserMenu>` has
-   *    unmounted us (or is about to); nothing to do here. The
-   *    unregister-on-unmount path also clears the revert callback so
-   *    the provider can't call into a stale closure.
-   *  - `signed-out` → real cancel, schedule the 5 s debounce revert.
-   *  - `loading` → the refresh is still in flight; wait for the next
-   *    render.
-   * Splitting across two effects is necessary because the async
-   * resolution of `refresh()` and the synchronous state flip are two
-   * different React reconciliation events.
-   */
-  useEffect(() => {
-    if (!popupClosed) return;
-    if (!processing) return;
-    if (meState === 'signed-in') return;
-
-    closeTimerRef.current = window.setTimeout(() => {
-      revert();
-    }, POST_CLOSE_DEBOUNCE_MS);
-
-    return () => {
-      clearCloseTimer();
-    };
-  }, [popupClosed, processing, meState, revert]);
+  // D75.c Round 2 — the two effects below (post-close `refresh()` +
+  // 5 s debounce revert) previously drove popup-close recovery from
+  // inside this button. They were removed because the drawer's
+  // `onPopupOpened` handoff unmounts this button instance in the
+  // same React commit as `window.open()`, so any locally-owned
+  // interval, ref, or state setter becomes a no-op the moment the
+  // user closes the popup. Both effects' responsibilities now live
+  // in `SignInContext` (`sign-in-context.tsx`, the
+  // `popupObservedClosed` state + the two mirror effects) — the
+  // provider is always mounted at the locale tree, so close
+  // detection survives every button instance. The desktop topbar's
+  // existing non-handoff path is unaffected: the button there
+  // unmounts only on route change (after the A.2 `next/link`
+  // migration), and `popups.close` is handled either by the
+  // postMessage success path or by the new provider-owned watcher.
 
   /**
    * Auto-clear `popupBlocked` after 6 s so the message doesn't linger
@@ -474,10 +449,17 @@ export function SignInButton({ messages, onPopupOpened }: Props) {
   }, [popupBlocked]);
 
   /**
-   * Cleanup on unmount: close popup if open, clear timers.
-   * (Bug 4 — no 60 s timeout to clear; the only `setTimeout` we own is
-   * the post-close debounce timer in the effect above. Slice B — no
-   * poll interval either; the SignInProvider owns `/me` now.)
+   * Cleanup on unmount: close popup if open.
+   *
+   * D75.c Round 2 — the previous `clearCloseTimer()` /
+   * `clearCloseWatcher()` calls were removed: those refs are gone.
+   * The provider's `watchPopup` interval persists past this button's
+   * unmount, by design — that's what makes the cancel path recover
+   * after a drawer handoff. If this button unmounts for a reason
+   * OTHER than the popup handoff (e.g. the user clicks sign-out from
+   * another menu, or `AuthSurface` swaps to `<UserMenu>` because the
+   * postMessage success landed first), closing the popup here is the
+   * right behaviour: the popup is now stale.
    *
    * v0.2.0 hotfix (PR #206) — drawer sign-in popup self-destruct.
    * Skip the popup-close when `handingOffRef.current` is set: that's
@@ -494,8 +476,6 @@ export function SignInButton({ messages, onPopupOpened }: Props) {
    */
   useEffect(() => {
     return () => {
-      clearCloseTimer();
-      clearCloseWatcher();
       if (
         !handingOffRef.current &&
         popupRef.current &&

@@ -29,7 +29,28 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - No new npm dep, no `tokens.css` / `globals.css` tokens rewrite (only a new class added after the existing `.topbar-signin*` block), no `content/*` touch, no `sign-in-context.tsx` edit.
 
 **Out of scope (carry)**
-- Stuck-cancel-revert limitation: if the user manually closes the popup without completing auth, the new `onPopupOpened` path unmounts the button before the close-watcher can fire `popupClosed`, so the `POST_CLOSE_DEBOUNCE_MS` revert can't run. Pre-existing in the topbar (topbar-only unmount happens on navigation, not on popup-cancel); in the drawer it's now more easily reachable since the drawer actively closes on popup-open. Per brief's "what must NOT regress" list, modifying the revert-on-cancel path is excluded from this PR. Flagged for follow-up.
+~~- Stuck-cancel-revert limitation: if the user manually closes the popup without completing auth, the new `onPopupOpened` path unmounts the button before the close-watcher can fire `popupClosed`, so the `POST_CLOSE_DEBOUNCE_MS` revert can't run. Pre-existing in the topbar (topbar-only unmount happens on navigation, not on popup-cancel); in the drawer it's now more easily reachable since the drawer actively closes on popup-open. Per brief's "what must NOT regress" list, modifying the revert-on-cancel path is excluded from this PR. Flagged for follow-up.~~ Resolved in the same branch's next commit — see entry "Round 2: cancel-path follows popup past button unmount" below.
+
+### [2026-09-24] — fix/drawer-signin-popup — Round 2: cancel-path follows popup past button unmount
+
+**Fixed**
+- `apps/web/components/chrome/sign-in-context.tsx` — new `watchPopup(popup: Window) => void` method on `SignInContextValue`. Provider now owns the 250 ms `setInterval` polling `popup.closed`, the post-close `refresh()`, the 5 s `POST_CLOSE_DEBOUNCE_MS` revert window, and the popup reference itself. New `popupObservedClosed` local state + two effects: one fires `refresh()` on the `!popupObservedClosed && popup.closed` edge; the second schedules the revert on `popupObservedClosed && meState === 'signed-out' && processing`, skipping the debounce on `meState === 'signed-in'`. New `processingRef` mirrors `processing` so the `setInterval` callback reads the current value at each tick instead of the closure-captured stale value (race-safety fix for postMessage-success vs. close-detection). New provider unmount cleanup tears down the interval.
+- `apps/web/components/chrome/sign-in-button.tsx` — `openAuthPopup` calls `watchPopup(popup)` instead of mounting a local interval. Local `closeWatcherRef` / `closeTimerRef` / `popupClosed` state / `clearCloseTimer` / `clearCloseWatcher` / `POST_CLOSE_DEBOUNCE_MS` / `CLOSE_WATCH_INTERVAL_MS` removed. `revert()` callback now just closes the popup, clears `popupBlocked`, and resets `processing` (no local cleanup). The unmount-cleanup effect's `handingOffRef` guard on `popupRef.current.close()` stays — Fix 1/1b's handoff mechanism is not being reverted.
+
+**Why**
+- The Round 1 fix made the popup survive the drawer's `onClose` handoff. That surfaced a latent bug that was previously masked: the popup close-detection interval (`setInterval` + `popupClosed` state + the two `useEffect`s driving `refresh` and the debounce revert) lived inside the `<SignInButton>` instance, so it died the moment that instance unmounted. New instances of the button never re-registered the watcher. Closing the popup (cancel path) before OAuth resolved left `processing` stuck at `true` forever. Provider ownership of close-detection survives the button's death — see "Stuck-cancel-revert limitation" footnote above.
+
+**Verified**
+- `pnpm --filter @corpus/web typecheck` exit 0.
+- `pnpm --filter @corpus/web lint` exit 0.
+- `pnpm --filter @corpus/web build` exit 0.
+- `cd apps/web && TZ=Asia/Ho_Chi_Minh node --import tsx --test test/*.test.ts` exit 0, 113/113 pass.
+- Handoff survival (`~/.hermes/cache/scratch/target-lifecycle-probe.mjs`): `Target.targetDestroyed` between `Target.targetCreated` and 8 s poll — STILL FALSE; popup survives fix 1/1b mechanism intact.
+- Cancel-path recovery (`~/.hermes/cache/scratch/verify-cancel-path.mjs`): button label flips from `{"text":"Signing in…","disabled":true}` to `{"text":"Sign in","disabled":false}` between t+10.0 s and t+11.3 s (popup closed at t≈5.3 s → 5 s debounce + ~1 s polling overhead → recovery at t≈10.3–11.3 s). Verified run twice — same outcome both times.
+- `pnpm verify:ui-evidence` exit 1: identical `signedInRender: FAIL` pattern to the unmodified branch (substrate debt, pre-existing on this branch — same 488/640 viewport failures before and after the round 2 patch). See DEBT D75.b.
+
+**Out of scope (carry)**
+- Substrate-debt `signedInRender: FAIL` in `ui-evidence.mjs` at 488 px and 640 px viewports — pre-existing, not introduced by this round.
 
 ### [2026-09-22] — feat/header-drawer-shared-account-control — Drop 910d179 (screenshot capture plumbing) per Huy directive
 
