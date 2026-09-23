@@ -10907,3 +10907,88 @@ Lead's prior dispatch establishing the pattern in
 - Ready for Huy to merge before v0.2.0 tag.
 - D75.d logs the genuinely-remaining gap (React event-wiring,
   real-timer end-to-end, Round 1 stopPropagation ordering).
+
+---
+
+## Session 226d — 2026-09-24 — Lead — CI test-discovery gap: measure, fix, verify (PR #207)
+
+**Trigger**: Huy reviewed Round 3's Slack report and named the exact risk
+before signing off: "merging now means merging two tests that never run,
+which makes round 3 pointless... A test that exists but never executes is
+worse than no test." Directed Lead to fix it in the same PR, but to measure
+before touching the glob (widening it could pull in unexpected files or
+break a currently-passing-by-omission test), and to check `apps/api`'s
+script for the same shape as a **report-only** item.
+
+**Measured first** (per instruction):
+- `find apps/web/test -name '*.test.ts'` → 11 files: 9 directly in `test/`,
+  2 in `test/chrome/` (the D58 pin + Round 3's new file). No deeper nesting
+  (`find test -type d` → only `test/chrome`).
+- Baseline `pnpm test` → 113/113 pass (matches every prior round's reported
+  number — confirms the 113 was always only the 9 top-level files, the 2
+  `test/chrome/*` files never ran under CI, not since D58's test was
+  written).
+
+**First fix attempt was wrong — caught before landing.** Changed the script
+to `test/**/*.test.ts`, expecting this to widen the match to include
+`test/chrome/*`. Ran `pnpm test` to verify: only **6 tests ran**, not
+113+6=119. Root cause: `pnpm` scripts run under `/bin/sh` (POSIX, confirmed
+via `ps -p $$`), which has no `globstar` — `**` is treated as a literal `*`,
+so `test/**/*.test.ts` expands to exactly one directory level
+(`test/*/*.test.ts`), matching `test/chrome/*.test.ts` but **excluding**
+all 9 top-level files. This is the inverse of the original bug — would have
+silently broken the 9 previously-passing files while "fixing" the 2 that
+were missing. Confirmed via `sh -c 'echo test/**/*.test.ts'` — expands to
+only the two `test/chrome/*` paths.
+
+**Working fix**: dropped the path argument entirely —
+`node --import tsx --test` (script is now
+`TZ=Asia/Ho_Chi_Minh node --import tsx --test`, no glob at all). Node 25's
+`--test` flag has its own built-in recursive default-pattern discovery
+(confirmed via `node --help`) that finds every `*.test.{js,cjs,mjs,ts}`
+under the CWD, independent of shell globbing. Verified this doesn't leak in
+files from outside `test/`: `find . -maxdepth 3 -name "*.test.ts" -not
+-path "./node_modules/*" -not -path "./.next/*"` returns exactly the same
+11 files. `pnpm test` (the real gate, not a bypassed direct invocation) now
+reports **119/119 pass**, run 3 times consecutively for stability — no
+flakiness observed. All 3 apps/web gates re-verified green after the change:
+typecheck 0, lint 0, build 0 (222 pages, unchanged).
+
+**`apps/api` check (report-only, not fixed, per instruction)**: its script
+is `node --import tsx --test test/**/*.test.ts` — the SAME broken pattern.
+But all 7 of its test files happen to sit exactly one level deep
+(`test/auth/`, `test/config/`, `test/db/`, `test/health/` — confirmed via
+`find test -name '*.spec.ts' -o -name '*.test.ts'`), so `test/**/*.test.ts`
+under `/bin/sh` (which behaves as `test/*/*.test.ts`) currently matches all
+7 by coincidence. Ran `pnpm test` directly to confirm: 38 tests execute
+across all 7 files (36 pass, 2 skip — `corpus-api-db` unreachable locally,
+expected per D72's skip-when-no-DB pattern). Reported to Huy as fragile
+(same landmine shape, just not triggered by the current file layout) rather
+than fixed — touching `apps/api`'s CI gate wasn't asked for and crosses the
+same `Stop and ask` boundary as `apps/web`'s fix did.
+
+**Documentation**:
+- `apps/web/package.json` — the one-line fix.
+- `CHANGELOG.md` — new "Round 3" entry added (the sub-agent's Round 3 work
+  had landed without one — added it plus the glob-fix entry together,
+  since Round 3's test additions and the glob fix are the same logical
+  change: tests that exist AND run).
+- `docs/DEBT.md` — D75.d (opened by the Round 3 sub-agent) stands as-is;
+  the glob fix is a CI-execution fix, not a coverage-scope change, so no
+  edit needed there.
+- This entry.
+
+**Verification receipts** (per verification-receipt-discipline — pasting
+real output, not summarizing):
+```
+$ pnpm test   (apps/web, after fix, 3 consecutive runs)
+ℹ tests 119 / ℹ pass 119 / ℹ fail 0   (x3, no flakiness)
+
+$ pnpm test   (apps/api, unmodified — report only)
+ℹ tests 38 / ℹ pass 36 / ℹ skip 2 / ℹ fail 0
+```
+
+**Carry-forward**: PR #207 body needs the explicit before/after test count
+(113 → 119) that Huy asked for as "the receipt that the gate actually
+widened" — pending in this same turn. Once posted, PR is ready for Huy's
+merge → VPS receipts → phase 1 tag cut.

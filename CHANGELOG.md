@@ -52,6 +52,28 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 **Out of scope (carry)**
 - Substrate-debt `signedInRender: FAIL` in `ui-evidence.mjs` at 488 px and 640 px viewports — pre-existing, not introduced by this round.
 
+### [2026-09-24] — fix/drawer-signin-popup — Round 3: extracted-function regression tests + CI test-discovery fix
+
+**Added**
+- `apps/web/components/chrome/sign-in-button.tsx` — `resolvePopupOpenOutcome(openResult: Window | null)` extracted as a standalone, hook-free, exported function covering the `window.open`-null (popup-blocked) branch decision. `handleClick`/`openAuthPopup` now call it instead of inlining the `if` — zero behavior change, same call site, same inputs, same state-setter calls.
+- `apps/web/components/chrome/sign-in-context.tsx` — `resolvePostCloseRevert(currentlyProcessing: boolean)` extracted the same way, covering the post-close-debounce revert decision (the path CDP-measured at close+5525ms in Round 2). Guards the D58 double-revert race: `processing=false` (success already won) is a no-op.
+- `apps/web/test/chrome/sign-in-popup-recovery.test.ts` — 4 new tests driving both extracted functions directly (the `fetchMe` pattern from `sign-in-once-per-mount.test.ts`, since `apps/web` has no jsdom/react-test-renderer and installing one is gated by Stop-and-ask).
+
+**Fixed — CI test-discovery gap (found during Round 3 review, fixed same PR per Huy's explicit direction)**
+- `apps/web/package.json` — `test` script changed from `TZ=Asia/Ho_Chi_Minh node --import tsx --test test/*.test.ts` to `TZ=Asia/Ho_Chi_Minh node --import tsx --test`. The old script relied on shell glob expansion (`/bin/sh`, no `globstar`), which matched only files directly inside `test/` — **`test/chrome/*.test.ts` was silently excluded from every `pnpm test` run since `sign-in-once-per-mount.test.ts` (the D58 regression pin) was written.** That means D58's pin, and both of this round's new tests, would have run locally on explicit invocation but never under CI. First attempted fix (`test/**/*.test.ts`) was ALSO broken — under `/bin/sh` without `globstar`, `**` behaves as a literal single-level `*`, so that pattern would have flipped the bug (excluding the 9 top-level files instead of the 2 nested ones) rather than fixing it; caught by re-measuring before trusting it, per Huy's explicit instruction. The working fix drops the path argument entirely and lets Node's built-in `--test` recursive default-pattern discovery find every `*.test.ts` under `test/` — confirmed to be scoped correctly (no stray `*.test.ts` files exist elsewhere in `apps/web` outside `test/`).
+- Also checked (report-only, not fixed, out of scope): `apps/api/package.json`'s `test` script uses the same `test/**/*.test.ts` pattern, which is the same latent bug shape — but all 7 of `apps/api`'s test files happen to sit exactly one level deep (`test/auth/`, `test/config/`, `test/db/`, `test/health/`), so the pattern currently matches all of them by structural coincidence, not by design. Confirmed via direct run: `pnpm test` in `apps/api` executes 38 tests across all 7 files (36 pass, 2 skip — `corpus-api-db` unreachable locally, expected). Flagged to Huy as fragile (same landmine, not yet triggered) rather than fixed, since fixing it wasn't asked for and touches the same CI-gate-config Stop-and-ask boundary.
+
+**Verified**
+- `pnpm --filter @corpus/web typecheck` exit 0.
+- `pnpm --filter @corpus/web lint` exit 0.
+- `pnpm --filter @corpus/web build` exit 0 (222 pages, unchanged).
+- `pnpm test` (apps/web) — before: 113/113 pass (`test/chrome/*` excluded, unmeasured). After: **119/119 pass**, run 3 times for stability. The +6 is exactly `sign-in-once-per-mount.test.ts` (2) + `sign-in-popup-recovery.test.ts` (4) joining the gate for the first time.
+- Handoff survival + cancel-path CDP probes re-run after the extraction refactor — both unchanged from Round 2 (popup survives handoff; cancel-path reverts at close+5500ms, matching the 5525ms baseline).
+- PR #207 CI: 6/6 checks pass, `mergeStateStatus: CLEAN`.
+
+**Documentation**
+- `docs/DEBT.md` — D75.d opened (Round 3 sub-agent), documenting what's still uncovered beyond the two extracted-function tests (React event-wiring, real-timer end-to-end, Round 1's stopPropagation ordering).
+
 ### [2026-09-22] — feat/header-drawer-shared-account-control — Drop 910d179 (screenshot capture plumbing) per Huy directive
 
 **Removed**
