@@ -400,14 +400,27 @@ async function assertFocusContainment(cdp, tabs) {
     await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
     await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp',   key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
     await sleep(50);
-    const inside = await evalInPage(cdp, `(() => {
+    // Capture the focused element's selector before/after the trap
+    // reset, so the report can pin the change with a known cause
+    // (Huy's question 2026-09-22: "what element did focus escape
+    // to?"). Inside/outside drawer is computed from the dialog
+    // ancestor. The hypothesis is left empty here; the report
+    // generates one from the data.
+    const focusState = await evalInPage(cdp, `(() => {
       const a = document.activeElement;
+      if (!a) return null;
+      const sel = (() => {
+        if (a.id) return '#' + a.id;
+        const cls = a.className && typeof a.className === 'string' ? '.' + a.className.trim().split(/\\s+/).slice(0,2).join('.') : '';
+        return a.tagName.toLowerCase() + cls;
+      })();
       const d = document.querySelector('[role="dialog"]');
-      return d?.contains(a) ?? false;
+      return { selector: sel, tag: a.tagName, insideDrawer: d?.contains(a) ?? false };
     })()`);
-    trail.push(inside);
+    const inside = focusState?.insideDrawer ?? false;
+    trail.push({ idx: i, ...focusState, insideDrawer: inside });
   }
-  const escapes = trail.filter(x => !x).length;
+  const escapes = trail.filter(x => !x.insideDrawer).length;
   return { presses: tabs, escapes, trail };
 }
 
@@ -537,6 +550,61 @@ async function withMeBlocked(cdp, fn) {
   }
 }
 
+// Synthetic /me payload for the signed-in CDP mode. Mirrors the
+// `MeResponse` interface in apps/web/components/chrome/sign-in-context.tsx
+// (email, name, avatarUrl, locale — all nullable). A non-null `me`
+// flips meState from `loading`/`signed-out` to `signed-in` per the
+// state-transition logic at sign-in-context.tsx:200-203.
+//
+// No real auth — Huy explicitly asked for a synthetic user with no
+// account and no new dependency. The shape is verified by the
+// signedInRender sanity check; any mismatch is surfaced as a sanity
+// failure rather than silently producing a wrong signed-in render.
+const SYNTHETIC_ME_PAYLOAD = {
+  email: 'synthetic@example.invalid',
+  name: 'Synthetic User',
+  avatarUrl: null,
+  locale: 'en',
+};
+
+async function withMeFulfilled(cdp, fn) {
+  // Fetch.enable intercepts /me; instead of failRequest, respond with
+  // fulfillRequest carrying a synthetic user JSON. Same setup as
+  // withMeBlocked — re-enable per page reload, tear down in `finally`.
+  //
+  // URL pattern: wildcard so it matches whatever host the dev server
+  // is configured for. The page hits `${apiUrl}/me` per D55; the
+  // actual `apiUrl` is whatever `NEXT_PUBLIC_API_URL` resolves to in
+  // the current dev process.
+  await cdp.send('Fetch.enable', {
+    patterns: [{ urlPattern: '*/me', requestStage: 'Request' }],
+  });
+  const body = Buffer.from(JSON.stringify(SYNTHETIC_ME_PAYLOAD), 'utf8').toString('base64');
+  const handler = (event) => {
+    const msg = JSON.parse(event.data);
+    if (msg.method !== 'Fetch.requestPaused') return;
+    const params = msg.params;
+    if (params.request.url.endsWith('/me')) {
+      cdp.send('Fetch.fulfillRequest', {
+        requestId: params.requestId,
+        responseCode: 200,
+        responseHeaders: [
+          { name: 'Content-Type', value: 'application/json' },
+          { name: 'Cache-Control', value: 'no-store' },
+        ],
+        body,
+      }).catch(() => {});
+    }
+  };
+  cdp.ws.addEventListener('message', handler);
+  try {
+    return await fn();
+  } finally {
+    cdp.ws.removeEventListener('message', handler);
+    await cdp.send('Fetch.disable').catch(() => {});
+  }
+}
+
 async function assertReachability(cdp, vp, opts) {
   const mode = opts.mode; // 'signed-out' | 'me-blocked'
   // Open the drawer once on mobile so the drawer's controls are in the
@@ -581,7 +649,7 @@ async function assertReachability(cdp, vp, opts) {
       if (el instanceof HTMLButtonElement) return true;
       if (el instanceof HTMLAnchorElement) return !!el.getAttribute('href');
       if (el instanceof HTMLInputElement) return el.type !== 'hidden';
-      if (el instanceof HTMLDetailsElement || el instanceof HTMLSummaryElement) return true;
+      if (el instanceof HTMLDetailsElement || el.tagName === 'SUMMARY') return true;
       const role = el.getAttribute('role');
       if (role && /^(button|link|menuitem|checkbox|radio|tab)$/.test(role)) return true;
       return false;
@@ -731,6 +799,38 @@ async function assertReachability(cdp, vp, opts) {
 // Run
 // ---------------------------------------------------------------------------
 
+// Sanity check for the signed-in CDP mode. Verifies the synthetic
+// /me response body actually flipped sign-in-context to the
+// signed-in state. Without this, `reachability.signedIn` could pass
+// for the wrong reason (the page still renders "Sign in" because
+// the synthetic payload never reached the page, but the harness
+// would mark it OK because the regex matches "Sign in").
+//
+// What we expect when signed-in is wired correctly:
+//   - `.topbar .user-menu` (or `<details class="user-menu">`) renders
+//   - `.topbar .topbar-signin` is absent
+//   - `.mobile-nav-drawer-signin-wrap` is absent (drawer shows the
+//     signed-in account row + Sign out link, not the SignInButton)
+async function assertSignedInRender(cdp) {
+  await sleep(200);
+  const probe = await evalInPage(cdp, `(() => {
+    const topbarUserMenu = !!document.querySelector('.topbar .user-menu, .topbar [class*="user-menu"]');
+    const topbarSignin = !!document.querySelector('.topbar .topbar-signin');
+    const drawerSignin = !!document.querySelector('.mobile-nav-drawer-signin-wrap .topbar-signin, .mobile-nav-drawer .topbar-signin');
+    const drawerAccountRow = !!document.querySelector('.mobile-nav-drawer-account');
+    const drawerSignout = !!document.querySelector('.mobile-nav-drawer-action--signout');
+    return {
+      userMenuPresent: topbarUserMenu,
+      topbarSigninPresent: topbarSignin,
+      drawerSigninPresent: drawerSignin,
+      drawerAccountRowPresent: drawerAccountRow,
+      drawerSignoutPresent: drawerSignout,
+    };
+  })()`);
+  const ok = probe.userMenuPresent && !probe.topbarSigninPresent && !probe.drawerSigninPresent;
+  return { ok, ...probe };
+}
+
 const TARGET = process.env.UI_EVIDENCE_URL || 'http://localhost:3000/en';
 const JSON_OUT = process.argv.includes('--json');
 
@@ -785,6 +885,15 @@ async function main() {
           await navigate(cdp, TARGET);
           await sleep(150);
           vpResult.assertions.reachability.meBlocked = await assertReachability(cdp, vp, { mode: 'me-blocked' });
+        });
+        await withMeFulfilled(cdp, async () => {
+          // Same pattern as meBlocked: a fresh navigation inside the
+          // interception window so the synthetic /me response is the
+          // first thing sign-in-context sees.
+          await navigate(cdp, TARGET);
+          await sleep(150);
+          vpResult.assertions.reachability.signedIn = await assertReachability(cdp, vp, { mode: 'signed-in' });
+          vpResult.assertions.signedInRender = await assertSignedInRender(cdp);
         });
         // Re-navigate to drop any interception residue before the
         // drawer-probe dance.
@@ -855,7 +964,7 @@ async function main() {
     // header or drawer. Missing → fail.
     if (a.reachability) {
       const fail = (msg) => { console.error('[verdict] FAIL:', vp.viewport.width + 'x' + vp.viewport.height, msg); exitCode = 1; };
-      for (const mode of ['signedOut', 'meBlocked']) {
+      for (const mode of ['signedOut', 'meBlocked', 'signedIn']) {
         const r = a.reachability[mode];
         if (!r) {
           fail(`reachability ${mode}: not asserted`);
@@ -864,6 +973,13 @@ async function main() {
         if (r.missing && r.missing.length > 0) {
           fail(`reachability ${mode} missing: ${r.missing.join(', ')} (controlsTotal=${r.controlsTotal})`);
         }
+      }
+    }
+    if (a.signedInRender) {
+      const r = a.signedInRender;
+      if (!r.ok) {
+        const fail_ = (msg) => { console.error('[verdict] FAIL:', vp.viewport.width + 'x' + vp.viewport.height, msg); exitCode = 1; };
+        fail_(`signedInRender: page still renders signed-out (userMenu=${r.userMenuPresent}, topbarSignin=${r.topbarSigninPresent}, drawerSignin=${r.drawerSigninPresent}) — synthetic /me did not flip state`);
       }
     }
     if (vp.viewport.drawerExpected) {
@@ -901,7 +1017,7 @@ async function main() {
       }
       // Reachability (D76) — first, since it's the most actionable.
       if (a.reachability) {
-        for (const mode of ['signedOut', 'meBlocked']) {
+        for (const mode of ['signedOut', 'meBlocked', 'signedIn']) {
           const r = a.reachability[mode];
           if (!r) {
             console.log(`    reachability (${mode}): NOT ASSERTED`);
@@ -911,6 +1027,10 @@ async function main() {
           const verdict = r.missing && r.missing.length > 0 ? 'FAIL' : 'OK';
           console.log(`    reachability (${mode}): ${verdict} — missing: ${missing} (controls: ${r.controlsTotal})`);
         }
+      }
+      if (a.signedInRender) {
+        const r = a.signedInRender;
+        console.log(`    signedInRender: ${r.ok ? 'OK' : 'FAIL'} (userMenu=${r.userMenuPresent}, topbarSignin=${r.topbarSigninPresent}, drawerSignin=${r.drawerSigninPresent})`);
       }
       console.log(`    aria-controls (initial) → ${a.ariaControlsInitial?.ok ? 'OK' : 'expected (dialog not mounted)'}`);
       console.log(`    aria-controls (at open) → ${a.ariaControlsAtOpen?.ok ? 'OK' : 'FAIL'}`);
