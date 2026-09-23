@@ -206,6 +206,39 @@ const POPUP_HEIGHT = 600;
 // defined in `sign-in-context.tsx`; this button just calls
 // `watchPopup(popup)` after `setProcessing(true)`.
 
+/**
+ * D75 Round 3 (regression-test extraction) — pure decision for what
+ * `handleClick` / `openAuthPopup` should do given a `window.open()`
+ * result. Pulled out as a hook-free, exported function so the
+ * popup-blocked branch has unit-test coverage that does not require
+ * a DOM renderer (see `apps/web/test/chrome/sign-in-popup-recovery.test.ts`).
+ *
+ * Contract (must match the original inlined branching in `openAuthPopup`):
+ *   - `window.open` returned `null` (browser blocked the popup, e.g.
+ *     Chrome's built-in blocker or a user-installed popup blocker
+ *     extension): `processing` MUST stay `false` (so the user can
+ *     retry), and `popupBlocked` MUST flip `true` (so the inline
+ *     "Sign in blocked" message renders under the button).
+ *   - `window.open` returned a `Window` (success): `processing` MUST
+ *     flip `true` (the button label switches to "Signing in…"), and
+ *     `popupBlocked` MUST reset to `false` (so any stale message from
+ *     a previous blocked click does not linger while a real popup is
+ *     open in front of the user).
+ *
+ * This is the ONLY place this decision is made; `openAuthPopup`
+ * consults it instead of inlining the `if/else`. Per the dispatch's
+ * "drive the real exported handler, not a re-implementation" bar.
+ */
+export function resolvePopupOpenOutcome(openResult: Window | null): {
+  processing: boolean;
+  popupBlocked: boolean;
+} {
+  if (openResult === null) {
+    return { processing: false, popupBlocked: true };
+  }
+  return { processing: true, popupBlocked: false };
+}
+
 export function SignInButton({ messages, onPopupOpened }: Props) {
   // D75.c Round 2 — `watchPopup` is now the close-detection entry
   // point. The 250 ms poll and 5 s debounce live in `SignInContext`;
@@ -355,6 +388,15 @@ export function SignInButton({ messages, onPopupOpened }: Props) {
       `popup=yes,noopener=no,noreferrer=no`;
 
     const popup = window.open(buildAuthUrl(authPath), 'google-oauth', features);
+    // D75 Round 3 — consult the extracted decision function for the
+    // boolean state to apply after `window.open()`. The function is
+    // the ONLY place this branching lives; `openAuthPopup` itself only
+    // forwards the result to its setters and to `watchPopup`. Same
+    // observable behaviour as the prior inlined `if/else`, just
+    // unit-testable. See `resolvePopupOpenOutcome` docstring above.
+    const outcome = resolvePopupOpenOutcome(popup);
+    setProcessing(outcome.processing);
+    setPopupBlocked(outcome.popupBlocked);
     if (!popup) {
       // Popup blocked (browser built-in or user-installed popup blocker).
       // `processing` was never set in this branch (the brief's Fix 2
@@ -363,15 +405,9 @@ export function SignInButton({ messages, onPopupOpened }: Props) {
       // with `popupBlocked`, which renders an inline message under the
       // button (visually connected, not a toast) and auto-clears
       // after 6 s. v0.2.0 hotfix (PR #206).
-      setPopupBlocked(true);
       return;
     }
-    // Successful open: clear any stale "popup blocked" message from a
-    // previous click so the user is not told to allow popups while a
-    // popup is in fact open in front of them.
-    setPopupBlocked(false);
     popupRef.current = popup;
-    setProcessing(true);
 
     // D75.c Round 2 — hand the freshly-opened popup off to the
     // provider, which owns the 250 ms `popup.closed` poll and the

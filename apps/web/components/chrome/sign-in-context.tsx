@@ -510,8 +510,16 @@ export function SignInProvider({ children }: { children: ReactNode }) {
       return;
     }
     const handle = window.setTimeout(() => {
-      setPopupObservedClosed(false);
-      setProcessing(false);
+      // D75 Round 3 — consult the extracted decision function for
+      // what to do when the 5 s post-close debounce fires. The
+      // function is the ONLY place this branching lives; this
+      // `setTimeout` callback only forwards the result to its
+      // setters. Same observable behaviour as the prior inlined
+      // unconditional revert, just unit-testable. See
+      // `resolvePostCloseRevert` docstring below.
+      const next = resolvePostCloseRevert(processingRef.current);
+      setPopupObservedClosed(next.popupObservedClosed);
+      setProcessing(next.processing);
     }, POST_CLOSE_DEBOUNCE_MS);
     return () => {
       window.clearTimeout(handle);
@@ -564,3 +572,50 @@ export function useSignIn() {
 // StrictMode probes are exercised by manual Vercel click-through
 // (D58 row (b) on PR #185 follow-up 4), not by this harness.
 export { fetchMe };
+
+/**
+ * D75 Round 3 (regression-test extraction) — pure decision for what
+ * the post-close-debounce timer body should do when it fires. Pulled
+ * out as a hook-free, exported function so the 5 s cancel-path revert
+ * (CDP-measured at close+5525 ms in Round 2) has unit-test coverage
+ * that does not require a DOM renderer or real timers (see
+ * `apps/web/test/chrome/sign-in-popup-recovery.test.ts`).
+ *
+ * Contract (must match the original inlined body in the debounce
+ * effect's `setTimeout` callback):
+ *   - When the timer fires AND `processing` is still `true` (the
+ *     success race did NOT win during the debounce window — true
+ *     cancel-by-user), revert: `processing → false` and
+ *     `popupObservedClosed → false`. The button label returns to
+ *     "Sign in" and the close-watcher state resets so the next
+ *     click starts fresh.
+ *   - When the timer fires AND `processing` is already `false`
+ *     (success path landed between scheduling and firing — defence
+ *     in depth, the effect's `if (!processing) return` guard at the
+ *     top normally prevents scheduling in this state but this
+ *     branch documents the safe no-op for the test): no state
+ *     change. The success path already reverted everything; doing
+ *     it again would double-write (cosmetic, but a regression class
+ *     worth pinning).
+ *
+ * `currentlyProcessing` is the value of `processingRef.current` (or
+ * `processing`) at the moment the timer fires — the caller passes
+ * the live state, this function makes the decision.
+ *
+ * This is the ONLY place this decision is made; the effect's
+ * `setTimeout` callback consults it instead of inlining the
+ * `setPopupObservedClosed(false); setProcessing(false);` pair. Per
+ * the dispatch's "drive the real exported handler, not a
+ * re-implementation" bar.
+ */
+export function resolvePostCloseRevert(currentlyProcessing: boolean): {
+  processing: boolean;
+  popupObservedClosed: boolean;
+} {
+  if (!currentlyProcessing) {
+    // Success path already won the race — no-op. Matches the
+    // `if (!processingRef.current) return` guard's safe outcome.
+    return { processing: currentlyProcessing, popupObservedClosed: false };
+  }
+  return { processing: false, popupObservedClosed: false };
+}

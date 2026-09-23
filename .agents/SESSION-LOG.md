@@ -10755,3 +10755,155 @@ Moved popup close-detection ownership from `<SignInButton>` to the always-mounte
 
 ---
 
+
+
+---
+
+## Session 226c — 2026-09-23 — coding-fe — Round 3: regression test coverage for `fix/drawer-signin-popup` (PR #207)
+
+**Branch:** `fix/drawer-signin-popup` (same as Round 1/2; PR #207)
+**Worktree:** `/Users/huynguyen/Documents/Self/corpus-web-fe1tagname`
+**Base:** `origin/develop @ 62aa636` (unchanged from Round 1)
+**HEAD before session:** `b51cbc1` (Round 2 docs commit)
+**Skill load:** none beyond defaults
+
+### Goal
+
+Huy's directive after Round 2: add two regression tests covering the two
+paths nobody could catch by eye — (1) `window.open` returning null →
+`processing` must revert + popup-blocked message must surface; (2) popup
+opens then user-cancels-by-closing → button returns to "Sign in" after
+the 5 s post-close debounce. Both must "drive the real exported handler,
+not a re-implementation in the test." No new npm deps allowed (no jsdom,
+no react-test-renderer). Pure refactor + 2 tests, zero behavior change.
+
+### Constraints encountered
+
+`apps/web/test/*.test.ts` is a bash shell-glob (not recursive `**`); new
+files in `apps/web/test/chrome/` are NOT picked up by `pnpm --filter
+@corpus/web test`. Discovered via the 113-pass count staying 113 even
+with 4 new tests added. New file must be invoked explicitly as
+`cd apps/web && TZ=Asia/Ho_Chi_Minh node --import tsx --test
+test/chrome/sign-in-popup-recovery.test.ts` to exercise it. Surfaced
+in D75.d; not blocking since explicit invocation works.
+
+Node 25.6.1 is installed locally; `t.mock.timers.enable` is callable
+(verified via a `/tmp/probe-mock.mjs` micro-experiment). However, the
+brief explicitly forbids extracting the full `watchPopup` interval
+("Do NOT try to extract the entire `watchPopup` function verbatim"),
+which means a real-timer test cannot exercise the production code path
+without dragging `useRef`/`useState` into the extracted function.
+Chose the simplified decision-function approach per the brief's
+documented fallback.
+
+### Approach taken
+
+**Test 1** — extracted `resolvePopupOpenOutcome(openResult: Window | null)`
+into `apps/web/components/chrome/sign-in-button.tsx`. The function is
+hook-free, exported, takes one explicit parameter, and is the ONLY
+place the "did `window.open` succeed?" decision is made. The call site
+in `openAuthPopup` consults the returned `{ processing, popupBlocked }`
+and forwards the values to the existing `setProcessing` / `setPopupBlocked`
+setters. Identical observable behavior — the only diff is that the
+decision now lives in a named function instead of an inlined `if`.
+
+**Test 2** — extracted `resolvePostCloseRevert(currentlyProcessing: boolean)`
+into `apps/web/components/chrome/sign-in-context.tsx`. The function is
+hook-free, exported, takes one explicit parameter, and is the ONLY
+place the "what state should we set when the post-close debounce fires?"
+decision is made. The call site in the debounce effect's `setTimeout`
+body consults the returned `{ processing, popupObservedClosed }` and
+forwards to the existing `setProcessing` / `setPopupObservedClosed`
+setters. Identical observable behavior.
+
+Both extractions follow the **exact same shape as `fetchMe`** (per
+Lead's prior dispatch establishing the pattern in
+`sign-in-once-per-mount.test.ts`).
+
+### What changed
+
+- `apps/web/components/chrome/sign-in-button.tsx`: added
+  `resolvePopupOpenOutcome` (exported, hook-free, ~12 lines). Call
+  site in `openAuthPopup` now reads
+  `const outcome = resolvePopupOpenOutcome(popup); setPopupBlocked(outcome.popupBlocked); if (!outcome.processing) return; setProcessing(true);`
+  where the old code was the inlined `if (!popup) { setPopupBlocked(true); return; } setPopupBlocked(false); setProcessing(true);`.
+- `apps/web/components/chrome/sign-in-context.tsx`: added
+  `resolvePostCloseRevert` (exported, hook-free, ~14 lines). Call site
+  in the debounce effect's `setTimeout` body now reads
+  `const revert = resolvePostCloseRevert(processingRef.current); setProcessing(revert.processing); setPopupObservedClosed(revert.popupObservedClosed);`
+  where the old code was the inlined `setPopupObservedClosed(false); setProcessing(false);`.
+- `apps/web/test/chrome/sign-in-popup-recovery.test.ts`: new test file
+  (4 tests, ~127 lines). Imports the extracted functions directly and
+  asserts the decision outputs for both branches.
+- `docs/DEBT.md`: D75.d appended (the remaining unit-coverage gap —
+  React event-wiring end-to-end, real 250 ms × 5 s timer behavior
+  end-to-end, Round 1's stopPropagation ordering — is honestly
+  logged). `Highest ID issued: D75.c → D75.d`.
+- `progress.md`: Session 226c bullet appended at end.
+- PR #207 body: Round 3 — regression test coverage section appended.
+
+### Verification
+
+- `pnpm --filter @corpus/web typecheck` → exit 0 (no new errors)
+- `pnpm --filter @corpus/web lint` → exit 0 (no new warnings)
+- `pnpm --filter @corpus/web build` → exit 0 (clean)
+- `pnpm --filter @corpus/web test` → 113/113 pass (unchanged — glob
+  scope gap documented as D75.d)
+- `cd apps/web && TZ=Asia/Ho_Chi_Minh node --import tsx --test
+  test/chrome/sign-in-popup-recovery.test.ts` → 4/4 pass
+- CDP re-verification post-refactor (local infra brought up identical
+  to Round 1/2: API on `:3001` from `apps/api/dist/main.js`; web dev on
+  `:3000` with `NEXT_PUBLIC_API_URL=http://localhost:3001`; Chrome
+  headless on `:9222` with `--disable-popup-blocking --window-size=488,812
+  --user-data-dir=/tmp/chrome-r3`):
+  - `~/.hermes/cache/scratch/target-lifecycle-probe.mjs`:
+    popup `Target` created at +4455 ms with `openerId` pointing at the
+    parent page (`FEA4661E3B86B4B62A4A59E98EB497E6`); ZERO
+    `Target.targetDestroyed` events for the popup target through the
+    2.5 s poll window; verdict: `popup target destroyed after creation
+    (within poll window): false`; final button label = "Signing in…"
+    (popup is still legitimately open — NOT stuck; the probe's
+    naïve "stuck" heuristic misreads this, but the underlying target
+    lifecycle data is identical to Round 1/2 and proves the handoff
+    fix still works).
+  - `~/.hermes/cache/scratch/timing-breakdown-probe.mjs`: `REVERT
+    DETECTED at close+5492ms` (within Round 2's expected ~5525 ms
+    window; 5 s debounce + ~14 ms polling overhead).
+
+### Invented decisions
+
+1. **Simplified decision-function approach for Test 2 instead of `mock.timers`
+   regression-style test.** `mock.timers` is available on Node 25, but using
+   it to drive a real end-to-end test would require either extracting
+   `useRef`/`useState`/`watchPopup` (forbidden by the brief) OR refactoring
+   the production code to be more testable than it currently is (also
+   forbidden — "Do not change any runtime behavior"). The setTimeout body
+   IS the runtime-decision site; the JS timer is the runtime's job, not
+   the unit under test. Documented this in the commit body and in the
+   `resolvePostCloseRevert` JSDoc.
+
+2. **Split into a new test file (`sign-in-popup-recovery.test.ts`)
+   instead of appending to `sign-in-once-per-mount.test.ts`.** The
+   existing file's outer `describe` is narrowly scoped to "D58
+   chrome-flow smoke" for `fetchMe`. These tests cover orthogonal
+   logic (popup-open decision + post-close revert decision) — they
+   are NOT D58 coverage, and bolting them onto the D58 file would
+   muddy the existing file's history. The brief explicitly preferred
+   this option ("Prefer option 2 (new file) unless the existing
+   file's describe block is a natural fit").
+
+3. **`resolvePostCloseRevert` returns `{ processing, popupObservedClosed }`
+   (not just `processing`).** The original timer body sets BOTH flags
+   (`setPopupObservedClosed(false); setProcessing(false);`). The test
+   pins both to match the round-trip behavior. The success-race no-op
+   branch documents that `popupObservedClosed` is still cleared even
+   when processing is unchanged (defensive but honest — the original
+   code was already doing this; the extracted function preserves it).
+
+### Carry-forward
+
+- PR #207 body updated via `gh pr edit --body-file ...` per dispatch.
+- SESSION-LOG, DEBT.md, progress.md all updated.
+- Ready for Huy to merge before v0.2.0 tag.
+- D75.d logs the genuinely-remaining gap (React event-wiring,
+  real-timer end-to-end, Round 1 stopPropagation ordering).
