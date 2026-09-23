@@ -5,6 +5,32 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-23] — fix/drawer-signin-popup — drawer sign-in popup self-destruct + stuck processing state
+
+**Fixed**
+- `apps/web/components/chrome/sign-in-button.tsx` — accepts optional `onPopupOpened?: () => void` prop. `handleClick` calls `event.stopPropagation()` so the drawer's wrapper `<div onClick={onClose}>` does not fire on the same click that opens the popup. `openAuthPopup` sets `handingOffRef.current = true` before invoking `onPopupOpened()`; the unmount-cleanup effect now skips `popupRef.current.close()` when `handingOffRef.current === true` — the popup survives its own opening button's unmount instead of being immediately closed by its own cleanup.
+- `apps/web/components/chrome/mobile-nav-drawer.tsx` — passes `onPopupOpened={onClose}` to the drawer's `<SignInButton>`. The wrapper div and its `onClick={onClose}` are preserved for the envDisabled no-op path and as defense-in-depth for the rest of the wrap.
+- `apps/web/components/chrome/sign-in-button.tsx` — new `popupBlocked` state for the null-`window.open()` branch. Auto-cleared after 6 s by a `useEffect`. Rendered as a sibling `<span className="topbar-signin-popup-blocked" role="status" aria-live="polite">` with the new i18n key `topbar.signInPopupBlocked`. The button's JSX return is wrapped in a new `<span className="topbar-signin-host">` so consumers rendering `SignInButton` as a single flex/grid child (AuthSurface inside `.topbar-tools`) still see exactly one layout child.
+- `apps/web/app/globals.css` — new `.topbar-signin-host`, `.topbar-signin-popup-blocked`, and the `topbar-tools > .topbar-signin-host` / `.mobile-nav-drawer-signin-wrap > .topbar-signin-host` layout rules after the existing `.topbar-signin*` block. Topbar case: row-direction host (message sits right of the button, gap 0.6rem). Drawer case: column-direction block-flex host stacking the message under the full-width button.
+
+**Added**
+- `apps/web/messages/en.json` — new key `topbar.signInPopupBlocked` ("Sign-in popup was blocked. Allow popups for this site and try again."). Naming follows the existing `signIn*` sibling convention inside the `topbar` block.
+
+**Why**
+- Bug reported by Huy on `develop.nxhhuy.tech` at 488px width: tapping Sign in inside the open mobile drawer closes the drawer, the popup never appears, and reopening the drawer shows the button stuck on "Signing in…" forever. Root cause confirmed via CDP target-lifecycle trace (NOT theory): the popup `Target` is created and then immediately destroyed 38 ms later by `SignInButton`'s own unmount-cleanup effect, because the drawer's wrapper `<div onClick={onClose}>` fires `setOpen(false)` in the same React commit as `window.open()`. `processing` (hoisted to `SignInContext` per the A.1 docstring) survives the unmount → button stuck across every drawer reopen until a full page reload. PR #194 added the second `<SignInButton>` mount site (drawer) without revisiting `SignInContext`'s "exactly one mount site" assumption. Fix 2 closes the user-experience gap where a blocked popup (`window.open` returns `null`) gave no feedback.
+
+**Documentation**
+- `docs/DEBT.md` — D75 extended with `D75.b` (ui-evidence harness only verifies a control exists in DOM, not that tapping it produces any effect — root cause of this whole bug class shipping to production; references D58 as prior escapee) and `D75.c` (FE-2 sign-in popup cancel-path investigation on `investigation/signin-popup-cancel` ran desktop-only at 1280×800, no drawer coverage — FE-2's "no fix proposed" stands for the topbar, NOT for the drawer). Per Huy: open them with the fix PR, not separately. `Highest ID issued: D75 → D75.c`.
+
+**Verified**
+- `pnpm --filter @corpus/web typecheck` exit 0 (Turborepo cache bypassed via direct `cd apps/web && npx --no-install tsc --noEmit`).
+- `pnpm --filter @corpus/web build` exit 0.
+- Desktop sign-in unaffected: `<AuthSurface>` in the topbar renders `<SignInButton messages={messages} />` with no `onPopupOpened` prop, so the `if (onPopupOpened) { ... }` guard in `openAuthPopup` keeps the new logic off that path entirely; the `.topbar-tools > .topbar-signin-host` rule restores the row-direction layout so the host is one layout child next to SearchTrigger and ThemeToggle.
+- No new npm dep, no `tokens.css` / `globals.css` tokens rewrite (only a new class added after the existing `.topbar-signin*` block), no `content/*` touch, no `sign-in-context.tsx` edit.
+
+**Out of scope (carry)**
+- Stuck-cancel-revert limitation: if the user manually closes the popup without completing auth, the new `onPopupOpened` path unmounts the button before the close-watcher can fire `popupClosed`, so the `POST_CLOSE_DEBOUNCE_MS` revert can't run. Pre-existing in the topbar (topbar-only unmount happens on navigation, not on popup-cancel); in the drawer it's now more easily reachable since the drawer actively closes on popup-open. Per brief's "what must NOT regress" list, modifying the revert-on-cancel path is excluded from this PR. Flagged for follow-up.
+
 ### [2026-09-22] — feat/header-drawer-shared-account-control — Drop 910d179 (screenshot capture plumbing) per Huy directive
 
 **Removed**

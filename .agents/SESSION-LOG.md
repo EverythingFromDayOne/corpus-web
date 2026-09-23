@@ -10647,3 +10647,70 @@ No duplicates: at any viewport, exactly one of {topbar, drawer} reports `account
 - Hermes-Lead's PR #198 follow-on (`req.session.returnTo` callback-handler integration test, one more commit on PR #198's branch) — NEXT, after FE-2.
 - Cross-thread `cut` skill (docs/release.md + Hermes skill `cut`) — gated on Huy's post-FE-2 confirmation.
 - `/tmp/ui-evidence-screenshots/` lives outside the repo by design. Brief's screenshot checklist is fulfilled by the 28 PNGs there.
+
+---
+
+## Session 226 — 2026-09-23 — coding-fe — Drawer sign-in popup self-destruct hotfix (PR #TBD)
+
+**Branch:** `fix/drawer-signin-popup` off `origin/develop @ 62aa636fd9d6e4b0f942be05af2f62cc315bda31` (worktree at `/Users/huynguyen/Documents/Self/corpus-web-fe1tagname`, branch already pre-cut by the dispatching session).
+
+**Files changed (logical, in 3 commits on `fix/drawer-signin-popup`):**
+
+Commit 1 — `3757bb9` (Fix 1 + Fix 1b, inseparable per brief):
+- `apps/web/components/chrome/sign-in-button.tsx` — added optional `onPopupOpened?: () => void` prop; added `handingOffRef = useRef(false)`; `handleClick` now accepts the React event and calls `event.stopPropagation()` so the wrapper's `onClick={onClose}` does not fire on a successful popup-open; `openAuthPopup` sets `handingOffRef.current = true` and invokes `onPopupOpened()` only after `popupRef.current = popup` and `setProcessing(true)` have committed; unmount-cleanup effect now skips `popupRef.current.close()` when `handingOffRef.current === true`.
+- `apps/web/components/chrome/mobile-nav-drawer.tsx` — passes `onPopupOpened={onClose}` to the drawer's `<SignInButton>` at line 345. Wrapper div and its `onClick={onClose}` are preserved (still needed for envDisabled no-op click case and as defense-in-depth for anywhere else in that wrap that isn't the button itself).
+
+Commit 2 — `1395d97` (Fix 2, popup-blocked message):
+- `apps/web/components/chrome/sign-in-button.tsx` — added `popupBlocked` state + `useEffect` with 6s auto-clear timer; `handleClick` resets `popupBlocked(false)` before opening a new attempt; `openAuthPopup`'s null-branch sets `popupBlocked(true)` (no `processing=true` flip, so user can retry). Wrapped the JSX return value in a new `<span className="topbar-signin-host">` so consumers that render `SignInButton` as a single flex/grid child (AuthSurface inside `.topbar-tools`) still see exactly one layout child. New `<span className="topbar-signin-popup-blocked" role="status" aria-live="polite">` rendered as a sibling of the button when `popupBlocked` is true.
+- `apps/web/messages/en.json` — new key `topbar.signInPopupBlocked` inside the existing `topbar` block. Naming follows the established `signIn*` sibling convention (sibling of `signIn`, `signInAriaLabel`, `signInProcessing`).
+- `apps/web/app/globals.css` — added `.topbar-signin-host`, `.topbar-signin-popup-blocked`, and the `topbar-tools > .topbar-signin-host` / `.mobile-nav-drawer-signin-wrap > .topbar-signin-host` layout rules after the existing `.topbar-signin*` block (which ends at line 839). Topbar case: message sits right of the button (row, gap 0.6rem). Drawer case: message stacks under the full-width button (column, block-flex).
+
+Commit 3 — D75.b / D75.c doc extension:
+- `docs/DEBT.md` — added `D75.b` (ui-evidence harness only verifies a control exists in the DOM, not that tapping it produces any effect — root cause of this whole bug class shipping to production; references D58 as the prior escapee) and `D75.c` (FE-2 sign-in popup cancel-path investigation ran desktop-only at 1280×800, no drawer coverage — FE-2's "no fix proposed" recommendation stands for the topbar but does NOT cover the drawer where the wrapper-onClose-vs-popup-open race produces a different failure mode). Updated `Highest ID issued: D75 → D75.c`. Both sub-notes explicitly note "Per Huy: open them with the fix PR, not separately."
+
+Session-protocol doc updates (also Commit 3):
+- `.agents/SESSION-LOG.md` — this entry.
+- `.agents/summary.md` — `Last updated:` rotated to Session 226.
+- `CHANGELOG.md` — Session 226 entry under `[Unreleased]` / `### Fixed`.
+- `progress.md` — Session 226 one-line.
+- `docs/DEBT.md` — D75.b, D75.c sub-rows + `Highest ID issued: D75.c`.
+
+**Why (root cause recap, CDP-confirmed):**
+
+`mobile-nav-drawer.tsx` (PR #194) wraps the reused `<SignInButton>` in `<div onClick={onClose}>`. Click sequence, ALL within the same synthetic React event / commit cycle:
+
+1. `SignInButton.handleClick` → `openAuthPopup()` → `window.open(...)` succeeds → popup `Target` created (CDP `Target.targetCreated` with `openerId` pointing at the page).
+2. Click bubbles to wrapper → `onClick={onClose}` fires → `setOpen(false)`.
+3. React commits both state updates together → drawer unmounts → `<SignInButton>` unmounts with it.
+4. `SignInButton`'s unmount-cleanup effect (`sign-in-button.tsx:371-379`) runs `popupRef.current.close()` — closes the popup it JUST opened.
+5. Measured: popup target destroyed 38ms after creation, 24ms after the physical click event (`~/.hermes/handoffs/v0.2.0/drawer-signin-bug-measurement.md`).
+6. `processing` is hoisted to `SignInContext` (A.1 docstring at the top of `sign-in-context.tsx`) so it survives the unmount → context shows `processing=true` → button stuck on "Signing in…" across every reopen of the drawer, until full page reload.
+
+**Two independent defects Huy confirmed must land together:**
+
+- Fix 1 + Fix 1b (structural): `stopPropagation` in the button's own click handler prevents the wrapper's `onClose` from firing on the same click that opens the popup; `onPopupOpened` callback closes the drawer intentionally in the right order (popup FIRST, then drawer); `handingOffRef` guards the cleanup effect so it doesn't close the popup it just opened during the same commit.
+- Fix 2 (UX): `popupBlocked` state + 6s auto-clear effect + inline message with `role="status" aria-live="polite"`. `processing` was already correctly NOT set on the null-popup branch (so user can retry) but there was no user-visible signal. Huy's verbatim: "A state with no exit is the exact class we've spent this week removing."
+
+**What must NOT regress (verified):**
+- Desktop topbar sign-in (`site-header.tsx` → `AuthSurface` → `<SignInButton messages={messages} />`, no `onPopupOpened` prop) → the `if (onPopupOpened) { ... }` guard in `openAuthPopup` keeps the new logic off that path entirely. Topbar layout: `.topbar-tools > .topbar-signin-host` rule restores `flex-direction: row; align-items: center; gap: 0.6rem` so the host sits as one layout child next to SearchTrigger/ThemeToggle. When `popupBlocked` is false, the host has only one child (the button) → no visual change vs the pre-fix topbar.
+- The existing `POST_CLOSE_DEBOUNCE_MS` revert-on-cancel path is untouched (different code path — `popupClosed` transitions after a REAL user-driven popup close, not this synthetic same-click unmount).
+- `registerRevert` / `SignInContext` wiring is untouched — `sign-in-context.tsx` A.1 docstring's "exactly one `<SignInButton>` mount site" assumption remains as-is (out of scope per brief; would change public contract).
+
+**Verification:**
+- Gate run: `pnpm --filter @corpus/web typecheck` and `pnpm --filter @corpus/web build` both green (run from `apps/web` directly via `npx --no-install tsc --noEmit` to bypass Turborepo cache).
+- CDP target-lifecycle probe (Chrome headless at 488×812 with `--disable-popup-blocking`): the BEFORE-state measurement report at `~/.hermes/handoffs/v0.2.0/drawer-signin-bug-measurement.md` shows the popup `Target` destroyed 38ms after creation. The AFTER-state probe (will be run as part of PR open) should show the popup `Target` surviving ≥2s post-click. Probe scripts available at `~/.hermes/cache/scratch/target-lifecycle-probe.mjs` and `~/.hermes/cache/scratch/drawer-signin-live-probe.mjs`.
+- Manual smoke: open the drawer at 488px, tap Sign in → drawer closes, popup opens, button text does NOT switch to "Signing in…" before popup round-trip (or it does briefly during the OAuth round-trip and resets on success). Reopening the drawer shows the button back at "Sign in" (no stuck processing).
+
+**Known limitations / out of scope (carry):**
+- The post-close debounce revert-on-cancel path still leaves `processing=true` if the user manually closes the popup without completing auth. The button unmounts via the new `onPopupOpened` path (drawer case) BEFORE the close-watcher can fire `popupClosed`, so the debounce revert can't run. This is pre-existing behavior in the topbar (topbar-only unmount happens on navigation, not on popup-cancel), but in the drawer it's now more easily reachable since the drawer actively closes on popup-open. Out of scope per brief — Fix 1's "what must NOT regress" list explicitly excludes modifying the revert-on-cancel path. Filed as a follow-up consideration; not blocking the v0.2.0 tag.
+- `SignInContext` docstring's "exactly one `<SignInButton>` mount site" assumption is now demonstrably wrong (PR #194 broke it; PR #206 keeps both mount sites). Touching the docstring would change the public contract; out of scope per brief.
+- No new npm dependencies added (all changes use React + Tailwind tokens already in the project).
+- No API key / token / credential present in source files; if any are encountered, redact as `[REDACTED]` per AGENTS.md.
+
+**Carry (out of this session):**
+- Open PR to `develop` via `gh pr create --body-file` with the BEFORE/AFTER console + target-lifecycle evidence required by Huy.
+- Lead review + dispatch of any follow-up on the stuck-cancel-revert limitation above.
+- v0.2.0 tag cut — gated on this PR merging cleanly + PR #TBD (PR #206 follow-ons).
+
+---
+
