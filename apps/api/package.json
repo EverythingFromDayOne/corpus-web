@@ -7,7 +7,7 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
     "start:dev": "node --watch --import tsx/esm src/main.ts",
-    "dev": "node --watch --import tsx/esm src/main.ts",
+    "dev": "pnpm run migration:run && pnpm run start:dev",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p tsconfig.test.json",
     "test": "node --import tsx --test test/**/*.test.ts",

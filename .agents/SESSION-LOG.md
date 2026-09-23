@@ -10420,3 +10420,30 @@ None — PR #205 is a 1-commit rule addition. The work is self-contained.
 **Known good:** PR #204 MERGEABLE; integration receipts at `~/.hermes/handoffs/v0.2.0/integration-receipts.md` (5 checks, 2739 bytes) — still applies: the new head must be `git merge-base --is-ancestor 910d179` exit 1, `git ls-tree -r | grep capture-ui-screenshots` empty. Both trivially true for #204's head (no `910d179` ancestor, no capture-ui-screenshots.mjs).
 
 **Carry for #204 itself:** none — clean, MERGEABLE, ready for Huy's review when the batch is ready to merge as a unit.
+## Session 220 — 2026-09-22 — fix/api-readiness-schema-pending — BE-2 readiness detects pending migrations (worktree-isolated)
+
+**Branch:** `fix/api-readiness-schema-pending` off `origin/develop @ 1d424b4` (worktree at `/Users/huynguyen/Documents/Self/corpus-web-be`).
+
+**Files changed:**
+- `apps/api/src/health/schema-health.indicator.ts` — added `showMigrations()` check on top of D69's table-presence probe; added `pending: string[]` to the `schema-pending` 503 payload (names of unapplied migrations); renamed success-field `reason: 'schema'` → `check: 'schema'` so a `status: up` payload no longer reads as a failure (the 'ok' string on an up-payload smell Huy noted in PR #193's slice-B review).
+- `apps/api/test/health/schema-health.test.ts` — added 6th case `returns 503 schema-pending with the pending migration names when showMigrations is true`.
+- `apps/api/test/health/schema-pending-migrations.test.ts` — NEW (210 lines, 2 cases). Real-DB test against `corpus-api-db`: drops and re-applies all 3 migrations, then `undoLastMigration()` → asserts 503 schema-pending with the missing migration name in `pending[]`; re-applies → asserts 200 with `check: schema` and `applied: N`.
+- `apps/api/package.json` — `dev` script now `pnpm run migration:run && pnpm run start:dev` so local dev fails loud if a new migration is unapplied, instead of booting with a half-built schema (matches the rejected-PR #193 `MigrationOnBootstrap` shape, but explicit and gated on the developer's intent to run dev).
+- `CHANGELOG.md` — Session 220 entry under `[Unreleased]`.
+- `progress.md` — Session 220 one-line.
+- `.agents/summary.md` — `Last updated:` rotated to Session 220.
+
+**Why:** BE-2 closes the "applied: 2 looks healthy while one migration is unapplied" gap. D69's `SchemaHealthIndicator` checks `public.migrations` exists AND has rows, but a deploy that ships a new migration row to `migrations` glob but forgets to run `pnpm migration:run` leaves the API serving queries against a half-built schema while reporting `/healthz/ready` 200. TypeORM exposes `dataSource.showMigrations()` which diffs the in-memory `dataSource.migrations` glob-resolved list against `public.migrations` rows — wiring that into the indicator adds the missing check. Success-path rename `reason → check` removes the misleading "looks like failure on a success payload" smell that Huy called out in the rejected Slice B (Huy's verbatim rule from PR #193 review: a success payload must not carry a `reason` field).
+
+**Invented decisions:**
+1. **dev:api script chains `pnpm run migration:run && pnpm run start:dev`** — matches the rejected-PR #193 `MigrationOnBootstrap` shape (auto-run migrations at boot) but is gated on `pnpm dev` rather than boot. Per Huy's PR #193 rejection (verbatim): "DDL on every PM2 restart, PM2 retry loops under autorestart, multi-instance race, weakens D69 itself" — `migration:run` at boot is the same class of problem. The chain in `dev` is for the developer's local convenience, NOT a deploy-time behavior. PM2/Fly deploys still rely on the explicit `pnpm migration:run` step in the deploy hook. Documented in the new test file's docstring.
+2. **Skip-when-no-DB pattern (D72)**: real-DB test sets `dbAvailable = false` in `before()` if `corpus-api-db` is unreachable, each `it()` calls `t.skip()` (skip-when-no-DB from D72), NOT `jest.mock` on `showMigrations`. Per Huy's dispatch: "Tests must hit a real DataSource (skip-when-no-DB pattern from D72, NOT a jest.mock on showMigrations)." The `before()` hook cannot call `t.skip()` itself — `before()` receives `SuiteContext` not `TestContext`, so the skip is deferred to each `it()` block.
+3. **`buildDataSource()` signature is zero-arg** — the original draft test had `buildDataSource({ logging: false })` which silently returned `undefined` (TypeScript can't catch this; the call succeeded). Fixed by reading `apps/api/src/db/data-source.ts` directly: `export async function buildDataSource(): Promise<DataSource> { return new DataSource(await buildOptions()); }` — zero args, no options override. The test now uses `await buildDataSource()`.
+
+**Known issues / next steps:**
+- `docs/release.md` is NOT yet written (Phase 1 release-cutting PR). PR #TBD will reference it as the source of truth for the v0.2.0 changelog.
+- No new npm dependencies added (D67 `loadEnv` purity already in place; new tests reuse `pg`, `tsx`, `@nestjs/terminus`, `typeorm` — all installed).
+- 21/21 apps/api tests PASS in 3109ms (was 19/19 pre-BE-2); 6 unit + 2 real-DB on the new SchemaHealthIndicator suite, all green against `corpus-api-db @ 127.0.0.1:5432`.
+- All 5 gate checks green: `agents:check`, `verify:submodules`, `verify:frontmatter`, `verify:links`, `verify:catalog`. Typecheck/lint/build clean.
+
+---
