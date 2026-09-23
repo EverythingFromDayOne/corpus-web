@@ -10714,3 +10714,44 @@ Session-protocol doc updates (also Commit 3):
 
 ---
 
+## Session 226b — 2026-09-23 — Lead + coding-fe — Round 2: cancel-path recovery on top of Round 1
+
+**Branch:** `fix/drawer-signin-popup` (same branch as Session 226, PR #207) off `origin/develop @ 62aa636fd9d6e4b0f942be05af2f62cc315bda31`.
+
+**New commit:** `faf4827 fix(sign-in): move popup close-detection to provider so it survives drawer handoff`.
+
+**Why (root cause, found by Lead via independent CDP verification past what Round 1 tested):**
+Round 1 fixed the drawer's popup self-destruct — the popup now survives the drawer's `onClose` handoff (CDP-confirmed). But that fix unmasked a pre-existing latent bug: the 250ms `popup.closed` watcher and the `registerRevert(null)` unregistration both lived inside `<SignInButton>`'s component-scoped effects. When Round 1's fix makes the button unmount right after the popup opens, both effects die with it — meaning if the user manually closes the popup without completing OAuth, the `processing` flag is stuck at `true` forever (no recovery path except the success-only `oauth-success` postMessage). Lead CDP-reproduced this by closing the popup via `Target.closeTarget` post-handoff and polling the reopened drawer's button for 8s — `"Signing in…"` never reverts.
+
+**Architecture (this commit):**
+Moved popup close-detection ownership from `<SignInButton>` to the always-mounted `<SignInProvider>`. Provider now exposes `watchPopup(popup: Window) => void` on `SignInContextValue`. Button calls it after `setProcessing(true)` instead of owning the interval locally. `processingRef` mirrors `processing` on every render so the interval callback reads the current value at each tick (avoids the closure-staleness race the postMessage success path would otherwise trip). Single owner (provider) instead of two parallel watchers — KISS/DRY, eliminates the double-revert race that D58 was about.
+
+**Files changed (Round 2 commit `faf4827` only, this session's delta):**
+- `apps/web/components/chrome/sign-in-context.tsx` — gained `watchPopup` method, `popupObservedClosed` state, two effects (post-close refresh, debounce revert), `processingRef` race-safety mirror, close-interval ref + provider unmount cleanup, and the constants `POST_CLOSE_DEBOUNCE_MS = 5_000`, `CLOSE_WATCH_INTERVAL_MS = 250`.
+- `apps/web/components/chrome/sign-in-button.tsx` — removed local `closeWatcherRef`, `closeTimerRef`, `popupClosed` state, the two post-close effects, the `clearCloseTimer` / `clearCloseWatcher` helpers, and the local constants (now in context). `openAuthPopup` calls `watchPopup(popup)`. `revert()` now just closes the popup, clears `popupBlocked`, and resets `processing`. Unmount cleanup's `handingOffRef` guard (Round 1's mechanism) stays.
+- `CHANGELOG.md` — Round 2 entry; Round 1's "Stuck-cancel-revert limitation" footnote marked resolved in the same branch.
+
+**Invented decisions flagged for Huy:**
+1. Single owner of close-detection (provider) instead of two parallel watchers (button + provider). Justification: KISS/DRY; two race-prone watchers with overlapping responsibilities would let double-revert races slip in — exactly D58's bug shape. Documented in the commit's docstring.
+2. `processingRef` mirror of `processing` to avoid closure-staleness in the interval callback. Justification: the success path's postMessage handler can flip `processing=false` mid-poll; without the ref mirror the interval would race against stale state and either double-revert or fail to no-op correctly.
+
+**What did NOT change (per Huy's Round 1 "what must NOT regress" list, re-verified):**
+- Round 1's handoff-survival (popup survives drawer's `onClose`) — re-verified via target-lifecycle probe post-Round-2: `Target.targetCreated` with `openerId` pointing at the page, NO matching `Target.targetDestroyed` through 2.7s poll window. Fix 1/1b not regressed.
+- Desktop topbar sign-in behaviour — unchanged. `<SignInButton>` only calls `watchPopup(popup)` after `setProcessing(true)`, which only happens when the button's local `handleClick` reaches `openAuthPopup`. Topbar's `<SignInButton>` (no `onPopupOpened` prop) follows the same code path it always did. `processingRef` mirror is a no-op for the topbar since the button never unmounts in the topbar path (only on route change, by which point nothing is awaiting the interval anyway).
+- `oauth-success` postMessage success path — unchanged (it's already provider-level, doesn't depend on the local `closeWatcherRef` Round 2 removed).
+- Fix 2 (popup-blocked inline message) — unchanged, separate code path.
+
+**Verification (Lead re-ran both CDP probes independently against the live infra):**
+- Cancel-path recovery (`~/.hermes/cache/scratch/verify-cancel-path.mjs`): `clicked sign-in at 324.5 447.640625` → `found popup target: 64138D1BEC7BE1F2AC174D83CDD12895 http://localhost:3001/auth/google?returnTo=...` → `close popup result: Target is closing at t=5216` → poll 0/1/2/3 show `{"text":"Signing in…","disabled":true}` → poll 4 at `t+11235ms` shows `{"text":"Sign in","disabled":false}` (RECOVERED) → poll 5 stable. Button reverts ~6s after popup close (5s debounce + ~1s polling overhead).
+- Handoff-survival (`~/.hermes/cache/scratch/target-lifecycle-probe.mjs`): `Target.targetCreated` at `t+4391ms` → click at `t+4402ms` → `Target.targetInfoChanged` at `t+4444ms` with `url=http://localhost:3001/auth/google?...` → NO `Target.targetDestroyed` for that target through `t+7130ms` poll window. Popup genuinely survives.
+- Screenshots saved (PR-ready): `/tmp/drawer-recovered-sign-in.png` (53,605 bytes, drawer at 488px with button reverted to "Sign in"); `/tmp/drawer-signin-popup-open.png` (136,500 bytes, drawer at 488px mid-transition with popup alive).
+- Gates: `pnpm --filter @corpus/web typecheck` exit 0; `pnpm --filter @corpus/web lint` exit 0; `pnpm --filter @corpus/web build` exit 0; `cd apps/web && TZ=Asia/Ho_Chi_Minh node --import tsx --test test/*.test.ts` exit 0 (113/113 pass).
+- PR #207 CI: Content gates PASS, Lint/typecheck/build PASS, Repo guards PASS, Accessibility and performance PASS, Vercel PASS, Vercel Preview Comments PASS (6/6). `mergeStateStatus: CLEAN`. PR #207 open, ready for Huy to merge before v0.2.0 tag.
+
+**Carry (out of this session):**
+- Huy to merge PR #207 before v0.2.0 tag cut.
+- v0.2.0 tag cut (`cut` skill invocation) gated on PR #207 merge + PR #206 audit (which already passed: all 7 PRs merged, `git merge-base --is-ancestor 910d179 origin/develop` exits 1).
+- D76 (port 5500 vs 5432 default-env fix) still deferred until after `v0.2.0` is tagged per Huy.
+
+---
+
