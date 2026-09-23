@@ -1,10 +1,46 @@
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
 import pkg from 'pg';
-import type { RequestHandler } from 'express';
-import { loadAppEnv } from './env-schema.js';
+import type { CookieOptions, RequestHandler } from 'express';
+import { loadAppEnv, type AppEnv } from './env-schema.js';
 
 const { Pool } = pkg;
+
+/**
+ * Build the cookie options for `express-session` SET and for
+ * `Response.clearCookie`. ONE source of truth — both call sites pass
+ * this object back in, so the cookie NAME + DOMAIN + PATH + SECURE
+ * attributes can never drift between setting and clearing.
+ *
+ * Why a function: the options depend on `AppEnv` (typed), and the
+ * caller passes its frozen snapshot. Pure: same input → same output.
+ * No I/O.
+ *
+ * Why `httpOnly: true`, `sameSite: 'lax'`, etc.: see the class-level
+ * docstring below; the canonical list lives there. This function only
+ * decides WHICH path / domain / ttl / secure flag to bake in based on
+ * the env.
+ */
+export function buildSessionCookieOptions(env: AppEnv): CookieOptions {
+  const cookieDomain = env.SESSION_COOKIE_DOMAIN;
+  const cookieDomainOrUndef =
+    cookieDomain && cookieDomain.length > 0 ? cookieDomain : undefined;
+  // We build a base object that satisfies BOTH the express-session
+  // cookie shape (used by the middleware to Set-Cookie on login) and
+  // the express-serve-static-core shape (used by Response.clearCookie
+  // on logout). The two libraries have slightly different
+  // declarations: express-session allows `expires: Date | null`,
+  // express does not. We never set `expires` (the browser tracks it
+  // via `maxAge`), so omitting it keeps both signatures satisfied.
+  return {
+    httpOnly: true,
+    secure: env.SESSION_COOKIE_SECURE,
+    sameSite: 'lax',
+    domain: cookieDomainOrUndef,
+    maxAge: env.SESSION_TTL_SECONDS * 1000,
+    path: '/',
+  };
+}
 
 /**
  * Build the `express-session` middleware configured for our Postgres
@@ -49,7 +85,7 @@ export async function buildSessionMiddleware(): Promise<RequestHandler> {
   // the time this is called; the worst case is the URL-only branch
   // doesn't have POSTGRES_HOST — we read each one via nullish
   // coalescing to the URL form if needed.
-  await loadAppEnv();
+  const env = await loadAppEnv();
   const dbUrl = process.env['DATABASE_URL'];
 
   let pgConfig: { host: string; port: number; user: string; password: string; database: string };
@@ -75,12 +111,8 @@ export async function buildSessionMiddleware(): Promise<RequestHandler> {
   const PgStore = connectPgSimple(session);
   const pool = new Pool(pgConfig);
 
-  const cookieName = process.env['SESSION_COOKIE_NAME'] ?? 'corpus.sid';
-  const cookieSecure = (process.env['SESSION_COOKIE_SECURE'] ?? 'true') === 'true' ||
-                       process.env['SESSION_COOKIE_SECURE'] === '1';
-  const cookieDomain = process.env['SESSION_COOKIE_DOMAIN'];
-  const cookieDomainOrUndef = cookieDomain && cookieDomain.length > 0 ? cookieDomain : undefined;
-  const ttlSeconds = Number(process.env['SESSION_TTL_SECONDS'] ?? 60 * 60 * 24 * 30);
+  const cookieName = env.SESSION_COOKIE_NAME;
+  const cookieOptions = buildSessionCookieOptions(env);
 
   return session({
     name: cookieName,
@@ -90,14 +122,7 @@ export async function buildSessionMiddleware(): Promise<RequestHandler> {
     secret: process.env['SESSION_SECRET'] ?? `dev-secret-${pgConfig.database}-${cookieName}`,
     resave: false,
     saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      secure: cookieSecure,
-      sameSite: 'lax',
-      domain: cookieDomainOrUndef,
-      maxAge: ttlSeconds * 1000,
-      path: '/',
-    },
+    cookie: cookieOptions,
     store: new PgStore({
       pool,
       tableName: 'corpus_session',

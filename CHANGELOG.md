@@ -40,6 +40,73 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 **Fixed**
 - D69 gap: `/healthz/ready` returned 200 `database: schema` even when one of the registered migrations was unapplied. After this PR, the same condition returns 503 `database: schema-pending` with the missing name.
+### [2026-09-21] — fix/api-auth-redirect-and-logout — BE-1 auth redirect and logout hardening
+
+**Changed**
+- `apps/api/src/modules/auth/auth.controller.ts`:
+  - `googleCallback` no longer reads `${WEB_ORIGIN.split(',')[0]}` for the post-login redirect target. New `resolveReturnOrigin(sessionReturnTo ?? referer, WEB_ORIGIN)` call picks a same-origin URL from the allowlist. With no `?returnTo=` and no Referer (current develop behavior pre-FE-1), the first allowlist entry is returned — backward compatible.
+  - `logout` reads `?returnTo=` from the query string, falls back to the Referer header's origin, then to the first allowlist entry. Same `resolveReturnOrigin` call.
+  - Both endpoints now share one `cookieOptions = buildSessionCookieOptions(appConfig)` for `clearCookie`, so the cookie NAME + DOMAIN + PATH + SECURE cannot drift between set and clear paths.
+  - `req.logout?.(...)` replaced with `passportReq.logout(...)` and a `typeof passportReq.logout !== 'function'` guard that throws synchronously. If Passport is not initialized, the request fails with `req.logout is not a function — Passport is not initialized on this request` instead of hanging the await indefinitely.
+  - Callback error path (`!req.user`) now redirects to `${origin}/?auth=error&reason=missing-user` via the same origin picker.
+- `apps/api/src/config/session.ts`:
+  - New exported function `buildSessionCookieOptions(env: AppEnv): CookieOptions` reads `SESSION_COOKIE_NAME`, `SESSION_COOKIE_DOMAIN` (empty → undefined), `SESSION_COOKIE_SECURE` (default `'true'`, `'false'` → `false`), `SESSION_COOKIE_SAMESITE` (default `'lax'`), and `SESSION_COOKIE_MAX_AGE_MS` (default 30 days). Single source of truth for cookie attributes used by both `session()` registration and `clearCookie()`.
+- `apps/api/src/modules/auth/auth.module.ts`:
+  - `AuthModule` now implements `NestModule` and applies `CaptureReturnToMiddleware` to `auth/google` so `?returnTo=` is captured into `req.session.returnTo` before `AuthGuard('google')` short-circuits. Stays in the session row across the OAuth round-trip.
+
+**Added**
+- `apps/api/src/modules/auth/resolve-return-origin.ts` (new) — pure function `resolveReturnOrigin(candidate: string | null | undefined, allowlist: string | readonly string[]): string`. Validates `new URL(candidate).origin` against the trimmed allowlist using exact equality (NEVER `startsWith`, which would pass `https://nxhhuy.tech.evil.com` and make the API an open redirect). Returns the first allowlist entry on any invalid/missing input; throws on an empty allowlist. Plus `normaliseAllowlist(allowlist)` helper for both comma-separated strings and arrays.
+- `apps/api/src/modules/auth/capture-return-to.middleware.ts` (new) — NestJS `MiddlewareConsumer`-applied middleware that captures `?returnTo=` from `GET /auth/google`, validates it through `resolveReturnOrigin`, and writes it to `req.session.returnTo` before the Google redirect.
+- `apps/api/test/auth/redirect-and-logout.test.ts` (new) — three test groups: `resolveReturnOrigin` (10 cases including the look-alike `https://nxhhuy.tech.evil.com` → default rejection), `buildSessionCookieOptions` shape (2 cases including the no-domain local-dev shape), and `logout` bounded-time fail-loud (2 cases asserting `req.logout` missing throws synchronously rather than hanging).
+### [2026-09-22] — fix/api-auth-redirect-and-logout — PR #198 passport sequencing regression test
+
+**Added (test-only)**
+- `apps/api/test/auth/oauth-callback.test.ts` (new, 148 lines, 2 cases) drives the `googleCallback` handler end-to-end via direct `new AuthController(appConfig)` construction with a `req.session.returnTo` capture and a `req.login()` mock that mirrors `passport/lib/sessionmanager.js:28-37` (deletes `sessionRef.returnTo` then `cb(null)` — simulates `req.session.regenerate()` destroying the property before the callback fires). Case 1 (`reads req.session.returnTo and resolves origin BEFORE req.login() fires`) seeds `req.session.returnTo = 'https://develop.nxhhuy.tech'`, runs the handler, and asserts `captured.target === 'https://develop.nxhhuy.tech/auth/google/callback'`. Case 2 (`falls back to the first allowlist entry when session.returnTo is missing and Referer is missing`) seeds both inputs undefined and asserts the redirect lands on `https://nxhhuy.tech/auth/google/callback` — proves the test setup is honest about which path each case exercises.
+
+**RED-then-GREEN proven on the current controller.** Temporarily mutated `apps/api/src/modules/auth/auth.controller.ts:124` to call `req.login()` BEFORE the `sessionReturnTo` read (then reverted via `cp /tmp/auth.controller.ts.orig`): Case 1 fails with `AssertionError [ERR_ASSERTION]: expected redirect to develop origin (from session.returnTo), got: https://nxhhuy.tech/auth/google/callback` (assert.match at 11ms); Case 2 still PASSES (proves RED is from the regression, not a setup glitch); after revert both GREEN. Confirms a future edit moving `req.login()` to the top of the handler silently regresses develop login to production — the regression this test guards.
+
+**Hard-rule compliance** (per `.cursor/rules/20-never-violate.mdc`):
+- No `synchronize: true` (N/A, no DB-touching code).
+- No new npm dep (`tsx` already in `devDependencies` for `apps/api` per `package.json`).
+- No hand-edit of `packages/api-client/` — no Swagger `@ApiTags`/`@ApiOperation` changed in this PR.
+- No hard-delete of `lessons` rows (N/A).
+- No `'server'` quiz-scoring mode (N/A).
+- No `*.spec.ts` co-located — new test follows `apps/api/test/auth/` pattern per Session 211 tsconfig split.
+- API not in article-body read path (N/A).
+- Canonical NestJS Express-access API not needed for this slice.
+
+**Out of scope** (carried): BE-2 readiness/migration work on `fix/api-readiness-schema-pending` (Lead's `consolidated-brief-before-v0.2.0.md` defines the slice); docs/release.md for `cut` skill (gated on post-#198-merge).
+
+
+
+### [2026-09-22] — fix/api-auth-redirect-and-logout — PR #198 BE-1 refactor: extract `executeLogout(req)` for test reuse
+
+**Changed**
+- `apps/api/src/modules/auth/auth.controller.ts`:
+  - Top-level `export async function executeLogout(req: Request): Promise<void>` added at the end of the file. Owns the passport-slot + session-row destruction (the `typeof passportReq.logout !== 'function'` synchronous-throw guard, the `passportReq.logout(cb)` Promise wrap, and the `req.session.destroy(cb)` Promise wrap — 21 lines, originally at lines 209-228 inside the `@Get('logout')` handler).
+  - `@Get('logout')` handler now calls `await executeLogout(req)` after computing the redirect origin + cookie options (those stay on the controller because they're Express-coupled — they need `res` + `appConfig`). Cookie clear (`res.clearCookie`) + 303 redirect also stay on the controller. The 21-line inline guard inside the handler is replaced by a single `await executeLogout(req)` line. Net diff on this file: `+59/-22` (function extraction + the new export's docstring).
+
+**Changed (test)**
+- `apps/api/test/auth/redirect-and-logout.test.ts`:
+  - Imports `executeLogout` from the controller module: `import { executeLogout } from '../../src/modules/auth/auth.controller.js';`.
+  - Case 3 describe block renamed from `logout rejects within bounded time when req.logout is missing (BE-1 #3)` to `executeLogout rejects within bounded time when req.logout is missing (BE-1 #3)` (the test now drives the export, not an inline re-implementation).
+  - Case 3.1 (`a missing req.logout throws synchronously rather than hanging the await`) — drives the real export with `Promise.race([executeLogout(passportReq), timeout])` against the `BOUND_MS = 1000` timer. The inline `run()` wrapper is removed (the export's own Promise IS the thing under test now).
+  - Case 3.2 (`propagates the error argument that logout passes to its callback`) — drives the real export with a mock req whose logout callback fires the error and whose session.destroy succeeds. Inline `run()` wrapper removed.
+  - **NEW Case 3.3** (`also propagates session.destroy errors when logout succeeds`) — drives the real export with a mock req whose logout succeeds and whose session.destroy fires an error. Pins down the symmetric reject-path on the destroy callback (the previous 2-case group left this path un-pinned).
+
+**Hard-rule compliance** (per `.cursor/rules/20-never-violate.mdc`):
+- No `synchronize: true` (N/A, no DB-touching code).
+- No new npm dependency.
+- No hand-edit of `packages/api-client/` — `@ApiTags`/`@ApiOperation` decorators unchanged; the `@Get('logout')` summary string unchanged.
+- No `*.spec.ts` co-located — test rewrite follows the existing `apps/api/test/auth/` sibling pattern (Session 211 tsconfig split).
+- No `htmlSummaryElement` (N/A, backend).
+- No `'server'` quiz-scoring mode.
+- No new debt row.
+- No Express-cast addition — the file already used Express `Request`/`Response` honestly; the new `executeLogout(req: Request)` signature matches the same convention.
+
+**Tests**: `pnpm --filter @corpus/api test` → **35/35 PASS** in 2951ms (was 7/34 pre-Session-223; +1 test, the new session.destroy-error case). Full suite green including the BE-2 health-readiness tests (#200 territory) and the migration tests (#202 territory). `pnpm --filter @corpus/api typecheck` exit 0. `pnpm --filter @corpus/api lint` exit 0 (silence = clean). RED-then-GREEN NOT demonstrated for the refactor itself — the refactor is pure code-motion with no behavior change; the existing Case 3.1 already proved the controller's guard fails-loud, and the refactor preserves that guard. Skipping the mutation-run is consistent with Huy's batch-7 rule "don't pre-write RED expectations, run it and report what comes out."
+
+**Out of scope** (carried): install-git-hooks PR (next in step 1d of batch 7), no-direct-push rule PR (step 1e), #201 rebase + harness patch (step 1f), integration branch `batch/v0.2.0-features` (step 2). D73 debt row (bot identity / no-bypass token) queued for post-release per Lead dispatch.
 
 ### [2026-09-19] — fix/d67-loadenv-contract-split — D67 loadEnv/loadDotEnv split + loadAppEnv() wrapper
 

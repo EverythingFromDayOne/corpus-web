@@ -1,4 +1,9 @@
-import { Module, type DynamicModule } from '@nestjs/common';
+import {
+  Module,
+  type MiddlewareConsumer,
+  type NestModule,
+  type DynamicModule,
+} from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { existsSync } from 'node:fs';
@@ -6,6 +11,7 @@ import { z } from 'zod';
 import { APP_CONFIG, appConfigProvider } from '../../config/app-config.provider.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
+import { CaptureReturnToMiddleware } from './capture-return-to.middleware.js';
 import { User } from './entities/user.entity.js';
 import { GoogleStrategy } from './google.strategy.js';
 import { MeController } from './me.controller.js';
@@ -63,7 +69,7 @@ const GoogleEnvInline = z.object({
  * creds honest — the routes simply don't exist rather than 500ing.
  */
 @Module({})
-export class AuthModule {
+export class AuthModule implements NestModule {
   /**
    * Synchronous check at module-import time. Reads from `process.env`
    * directly because Nest's `imports` array cannot await.
@@ -84,6 +90,7 @@ export class AuthModule {
       controllers: [AuthController, MeController],
       providers: [
         AuthService,
+        CaptureReturnToMiddleware,
         SessionSerializer,
         SessionAuthGuard,
         appConfigProvider,
@@ -101,5 +108,20 @@ export class AuthModule {
       ],
       exports: [AuthService, APP_CONFIG],
     };
+  }
+
+  /**
+   * Mount the `?returnTo=` capture middleware on `/auth/google`
+   * only. The middleware runs before `AuthGuard('google')` so it
+   * has a chance to write to `req.session` before Passport's
+   * redirect fires. The callback does NOT need this middleware —
+   * it reads the value back from `req.session.returnTo`.
+   *
+   * Why not apply the middleware globally: the only entry point
+   * that needs to capture is `/auth/google`. Adding it elsewhere
+   * risks session writes on routes that never redirect through us.
+   */
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(CaptureReturnToMiddleware).forRoutes('auth/google');
   }
 }
