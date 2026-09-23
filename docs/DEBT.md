@@ -3,7 +3,7 @@
 Known gaps. IDs are **append-only and never reused** — a closed item keeps its
 number and its row, marked closed.
 
-**Highest ID issued: D72**
+**Highest ID issued: D75**
 
 ## Open
 
