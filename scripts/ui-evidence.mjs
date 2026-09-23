@@ -649,7 +649,7 @@ async function assertReachability(cdp, vp, opts) {
       if (el instanceof HTMLButtonElement) return true;
       if (el instanceof HTMLAnchorElement) return !!el.getAttribute('href');
       if (el instanceof HTMLInputElement) return el.type !== 'hidden';
-      if (el instanceof HTMLDetailsElement || el instanceof HTMLSummaryElement) return true;
+      if (el instanceof HTMLDetailsElement || el.tagName === 'SUMMARY') return true;
       const role = el.getAttribute('role');
       if (role && /^(button|link|menuitem|checkbox|radio|tab)$/.test(role)) return true;
       return false;
