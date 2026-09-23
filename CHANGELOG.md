@@ -5,6 +5,75 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-23] — fix/drawer-signin-popup — drawer sign-in popup self-destruct + stuck processing state
+
+**Fixed**
+- `apps/web/components/chrome/sign-in-button.tsx` — accepts optional `onPopupOpened?: () => void` prop. `handleClick` calls `event.stopPropagation()` so the drawer's wrapper `<div onClick={onClose}>` does not fire on the same click that opens the popup. `openAuthPopup` sets `handingOffRef.current = true` before invoking `onPopupOpened()`; the unmount-cleanup effect now skips `popupRef.current.close()` when `handingOffRef.current === true` — the popup survives its own opening button's unmount instead of being immediately closed by its own cleanup.
+- `apps/web/components/chrome/mobile-nav-drawer.tsx` — passes `onPopupOpened={onClose}` to the drawer's `<SignInButton>`. The wrapper div and its `onClick={onClose}` are preserved for the envDisabled no-op path and as defense-in-depth for the rest of the wrap.
+- `apps/web/components/chrome/sign-in-button.tsx` — new `popupBlocked` state for the null-`window.open()` branch. Auto-cleared after 6 s by a `useEffect`. Rendered as a sibling `<span className="topbar-signin-popup-blocked" role="status" aria-live="polite">` with the new i18n key `topbar.signInPopupBlocked`. The button's JSX return is wrapped in a new `<span className="topbar-signin-host">` so consumers rendering `SignInButton` as a single flex/grid child (AuthSurface inside `.topbar-tools`) still see exactly one layout child.
+- `apps/web/app/globals.css` — new `.topbar-signin-host`, `.topbar-signin-popup-blocked`, and the `topbar-tools > .topbar-signin-host` / `.mobile-nav-drawer-signin-wrap > .topbar-signin-host` layout rules after the existing `.topbar-signin*` block. Topbar case: row-direction host (message sits right of the button, gap 0.6rem). Drawer case: column-direction block-flex host stacking the message under the full-width button.
+
+**Added**
+- `apps/web/messages/en.json` — new key `topbar.signInPopupBlocked` ("Sign-in popup was blocked. Allow popups for this site and try again."). Naming follows the existing `signIn*` sibling convention inside the `topbar` block.
+
+**Why**
+- Bug reported by Huy on `develop.nxhhuy.tech` at 488px width: tapping Sign in inside the open mobile drawer closes the drawer, the popup never appears, and reopening the drawer shows the button stuck on "Signing in…" forever. Root cause confirmed via CDP target-lifecycle trace (NOT theory): the popup `Target` is created and then immediately destroyed 38 ms later by `SignInButton`'s own unmount-cleanup effect, because the drawer's wrapper `<div onClick={onClose}>` fires `setOpen(false)` in the same React commit as `window.open()`. `processing` (hoisted to `SignInContext` per the A.1 docstring) survives the unmount → button stuck across every drawer reopen until a full page reload. PR #194 added the second `<SignInButton>` mount site (drawer) without revisiting `SignInContext`'s "exactly one mount site" assumption. Fix 2 closes the user-experience gap where a blocked popup (`window.open` returns `null`) gave no feedback.
+
+**Documentation**
+- `docs/DEBT.md` — D75 extended with `D75.b` (ui-evidence harness only verifies a control exists in DOM, not that tapping it produces any effect — root cause of this whole bug class shipping to production; references D58 as prior escapee) and `D75.c` (FE-2 sign-in popup cancel-path investigation on `investigation/signin-popup-cancel` ran desktop-only at 1280×800, no drawer coverage — FE-2's "no fix proposed" stands for the topbar, NOT for the drawer). Per Huy: open them with the fix PR, not separately. `Highest ID issued: D75 → D75.c`.
+
+**Verified**
+- `pnpm --filter @corpus/web typecheck` exit 0 (Turborepo cache bypassed via direct `cd apps/web && npx --no-install tsc --noEmit`).
+- `pnpm --filter @corpus/web build` exit 0.
+- Desktop sign-in unaffected: `<AuthSurface>` in the topbar renders `<SignInButton messages={messages} />` with no `onPopupOpened` prop, so the `if (onPopupOpened) { ... }` guard in `openAuthPopup` keeps the new logic off that path entirely; the `.topbar-tools > .topbar-signin-host` rule restores the row-direction layout so the host is one layout child next to SearchTrigger and ThemeToggle.
+- No new npm dep, no `tokens.css` / `globals.css` tokens rewrite (only a new class added after the existing `.topbar-signin*` block), no `content/*` touch, no `sign-in-context.tsx` edit.
+
+**Out of scope (carry)**
+~~- Stuck-cancel-revert limitation: if the user manually closes the popup without completing auth, the new `onPopupOpened` path unmounts the button before the close-watcher can fire `popupClosed`, so the `POST_CLOSE_DEBOUNCE_MS` revert can't run. Pre-existing in the topbar (topbar-only unmount happens on navigation, not on popup-cancel); in the drawer it's now more easily reachable since the drawer actively closes on popup-open. Per brief's "what must NOT regress" list, modifying the revert-on-cancel path is excluded from this PR. Flagged for follow-up.~~ Resolved in the same branch's next commit — see entry "Round 2: cancel-path follows popup past button unmount" below.
+
+### [2026-09-24] — fix/drawer-signin-popup — Round 2: cancel-path follows popup past button unmount
+
+**Fixed**
+- `apps/web/components/chrome/sign-in-context.tsx` — new `watchPopup(popup: Window) => void` method on `SignInContextValue`. Provider now owns the 250 ms `setInterval` polling `popup.closed`, the post-close `refresh()`, the 5 s `POST_CLOSE_DEBOUNCE_MS` revert window, and the popup reference itself. New `popupObservedClosed` local state + two effects: one fires `refresh()` on the `!popupObservedClosed && popup.closed` edge; the second schedules the revert on `popupObservedClosed && meState === 'signed-out' && processing`, skipping the debounce on `meState === 'signed-in'`. New `processingRef` mirrors `processing` so the `setInterval` callback reads the current value at each tick instead of the closure-captured stale value (race-safety fix for postMessage-success vs. close-detection). New provider unmount cleanup tears down the interval.
+- `apps/web/components/chrome/sign-in-button.tsx` — `openAuthPopup` calls `watchPopup(popup)` instead of mounting a local interval. Local `closeWatcherRef` / `closeTimerRef` / `popupClosed` state / `clearCloseTimer` / `clearCloseWatcher` / `POST_CLOSE_DEBOUNCE_MS` / `CLOSE_WATCH_INTERVAL_MS` removed. `revert()` callback now just closes the popup, clears `popupBlocked`, and resets `processing` (no local cleanup). The unmount-cleanup effect's `handingOffRef` guard on `popupRef.current.close()` stays — Fix 1/1b's handoff mechanism is not being reverted.
+
+**Why**
+- The Round 1 fix made the popup survive the drawer's `onClose` handoff. That surfaced a latent bug that was previously masked: the popup close-detection interval (`setInterval` + `popupClosed` state + the two `useEffect`s driving `refresh` and the debounce revert) lived inside the `<SignInButton>` instance, so it died the moment that instance unmounted. New instances of the button never re-registered the watcher. Closing the popup (cancel path) before OAuth resolved left `processing` stuck at `true` forever. Provider ownership of close-detection survives the button's death — see "Stuck-cancel-revert limitation" footnote above.
+
+**Verified**
+- `pnpm --filter @corpus/web typecheck` exit 0.
+- `pnpm --filter @corpus/web lint` exit 0.
+- `pnpm --filter @corpus/web build` exit 0.
+- `cd apps/web && TZ=Asia/Ho_Chi_Minh node --import tsx --test test/*.test.ts` exit 0, 113/113 pass.
+- Handoff survival (`~/.hermes/cache/scratch/target-lifecycle-probe.mjs`): `Target.targetDestroyed` between `Target.targetCreated` and 8 s poll — STILL FALSE; popup survives fix 1/1b mechanism intact.
+- Cancel-path recovery (`~/.hermes/cache/scratch/verify-cancel-path.mjs`): button label flips from `{"text":"Signing in…","disabled":true}` to `{"text":"Sign in","disabled":false}` between t+10.0 s and t+11.3 s (popup closed at t≈5.3 s → 5 s debounce + ~1 s polling overhead → recovery at t≈10.3–11.3 s). Verified run twice — same outcome both times.
+- `pnpm verify:ui-evidence` exit 1: identical `signedInRender: FAIL` pattern to the unmodified branch (substrate debt, pre-existing on this branch — same 488/640 viewport failures before and after the round 2 patch). See DEBT D75.b.
+
+**Out of scope (carry)**
+- Substrate-debt `signedInRender: FAIL` in `ui-evidence.mjs` at 488 px and 640 px viewports — pre-existing, not introduced by this round.
+
+### [2026-09-24] — fix/drawer-signin-popup — Round 3: extracted-function regression tests + CI test-discovery fix
+
+**Added**
+- `apps/web/components/chrome/sign-in-button.tsx` — `resolvePopupOpenOutcome(openResult: Window | null)` extracted as a standalone, hook-free, exported function covering the `window.open`-null (popup-blocked) branch decision. `handleClick`/`openAuthPopup` now call it instead of inlining the `if` — zero behavior change, same call site, same inputs, same state-setter calls.
+- `apps/web/components/chrome/sign-in-context.tsx` — `resolvePostCloseRevert(currentlyProcessing: boolean)` extracted the same way, covering the post-close-debounce revert decision (the path CDP-measured at close+5525ms in Round 2). Guards the D58 double-revert race: `processing=false` (success already won) is a no-op.
+- `apps/web/test/chrome/sign-in-popup-recovery.test.ts` — 4 new tests driving both extracted functions directly (the `fetchMe` pattern from `sign-in-once-per-mount.test.ts`, since `apps/web` has no jsdom/react-test-renderer and installing one is gated by Stop-and-ask).
+
+**Fixed — CI test-discovery gap (found during Round 3 review, fixed same PR per Huy's explicit direction)**
+- `apps/web/package.json` — `test` script changed from `TZ=Asia/Ho_Chi_Minh node --import tsx --test test/*.test.ts` to `TZ=Asia/Ho_Chi_Minh node --import tsx --test`. The old script relied on shell glob expansion (`/bin/sh`, no `globstar`), which matched only files directly inside `test/` — **`test/chrome/*.test.ts` was silently excluded from every `pnpm test` run since `sign-in-once-per-mount.test.ts` (the D58 regression pin) was written.** That means D58's pin, and both of this round's new tests, would have run locally on explicit invocation but never under CI. First attempted fix (`test/**/*.test.ts`) was ALSO broken — under `/bin/sh` without `globstar`, `**` behaves as a literal single-level `*`, so that pattern would have flipped the bug (excluding the 9 top-level files instead of the 2 nested ones) rather than fixing it; caught by re-measuring before trusting it, per Huy's explicit instruction. The working fix drops the path argument entirely and lets Node's built-in `--test` recursive default-pattern discovery find every `*.test.ts` under `test/` — confirmed to be scoped correctly (no stray `*.test.ts` files exist elsewhere in `apps/web` outside `test/`).
+- Also checked (report-only, not fixed, out of scope): `apps/api/package.json`'s `test` script uses the same `test/**/*.test.ts` pattern, which is the same latent bug shape — but all 7 of `apps/api`'s test files happen to sit exactly one level deep (`test/auth/`, `test/config/`, `test/db/`, `test/health/`), so the pattern currently matches all of them by structural coincidence, not by design. Confirmed via direct run: `pnpm test` in `apps/api` executes 38 tests across all 7 files (36 pass, 2 skip — `corpus-api-db` unreachable locally, expected). Flagged to Huy as fragile (same landmine, not yet triggered) rather than fixed, since fixing it wasn't asked for and touches the same CI-gate-config Stop-and-ask boundary.
+
+**Verified**
+- `pnpm --filter @corpus/web typecheck` exit 0.
+- `pnpm --filter @corpus/web lint` exit 0.
+- `pnpm --filter @corpus/web build` exit 0 (222 pages, unchanged).
+- `pnpm test` (apps/web) — before: 113/113 pass (`test/chrome/*` excluded, unmeasured). After: **119/119 pass**, run 3 times for stability. The +6 is exactly `sign-in-once-per-mount.test.ts` (2) + `sign-in-popup-recovery.test.ts` (4) joining the gate for the first time.
+- Handoff survival + cancel-path CDP probes re-run after the extraction refactor — both unchanged from Round 2 (popup survives handoff; cancel-path reverts at close+5500ms, matching the 5525ms baseline).
+- PR #207 CI: 6/6 checks pass, `mergeStateStatus: CLEAN`.
+
+**Documentation**
+- `docs/DEBT.md` — D75.d opened (Round 3 sub-agent), documenting what's still uncovered beyond the two extracted-function tests (React event-wiring, real-timer end-to-end, Round 1's stopPropagation ordering).
+
 ### [2026-09-22] — feat/header-drawer-shared-account-control — Drop 910d179 (screenshot capture plumbing) per Huy directive
 
 **Removed**

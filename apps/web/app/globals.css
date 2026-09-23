@@ -838,6 +838,67 @@ body:has(.av-view) .av-header-tog {
   background: transparent;
 }
 
+/* v0.2.0 hotfix (PR #206) — popup-blocked inline message.
+   Layout: the host <span> stacks the button + message in a column on
+   the drawer's wrap (where vertical real-estate is constrained and
+   the button should be full-width) and keeps them inline on the
+   topbar (where the message is the only new child and the topbar-
+   tools row stays horizontal). The message itself is small, muted,
+   and `display: block` so it wraps naturally on narrow viewports
+   instead of overflowing the button row. When no message is
+   rendered (the common case) the host has exactly one child and
+   the layout collapses to "just the button", same as before this
+   PR — no visual regression. */
+.topbar-signin-host {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+/* Drawer placement: full-width like the existing button. The wrap
+   is `.mobile-nav-drawer-signin-wrap` (mobile-nav-drawer.tsx:344),
+   which is a no-style block — switching the host from inline-flex
+   to block-flex + width:100% lets the button keep its existing
+   "fill the drawer column" behaviour without having to repeat that
+   100% width on the host via the host's children. */
+.mobile-nav-drawer-signin-wrap > .topbar-signin-host {
+  display: flex;
+  width: 100%;
+}
+
+.topbar-signin-popup-blocked {
+  display: block;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-muted);
+  padding: 0;
+  /* Avoid the default browser focus ring on a non-interactive span. */
+  outline: none;
+  /* Don't let the message inherit button-like spacing from the
+     surrounding `.topbar-signin-wrap` flex column. */
+  flex: 0 0 auto;
+}
+
+/* In the topbar (.topbar-tools is a horizontal row), keep the host
+   inline so the message sits to the RIGHT of the button on wide
+   screens and only drops below when the row wraps. The drawer rule
+   above wins on specificity for `.mobile-nav-drawer-signin-wrap`
+   descendants — it does NOT touch the topbar placement. */
+.topbar-tools > .topbar-signin-host {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.topbar-tools > .topbar-signin-host > .topbar-signin-popup-blocked {
+  /* Right of the button, max width so it never pushes the rest of
+     the topbar off-screen. */
+  max-width: 18rem;
+  white-space: normal;
+}
+
 
 /* D26 sub-slice B — signed-in user surface.
 
