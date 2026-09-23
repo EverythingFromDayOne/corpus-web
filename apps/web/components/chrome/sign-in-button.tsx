@@ -123,6 +123,36 @@ import { apiUrl } from '@/lib/config';
 
 type Props = {
   messages: Messages;
+  /**
+   * v0.2.0 hotfix — drawer sign-in popup self-destruct (PR #206).
+   *
+   * Optional callback invoked ONLY after `window.open()` returned a
+   * non-null popup window and the popup has been handed off to the
+   * supplied refs. Intended surface for a wrapper whose own `onClick`
+   * would otherwise close the drawer in the SAME synthetic event that
+   * just opened the popup (mobile-nav-drawer.tsx:344 wraps the reused
+   * `<SignInButton>` exactly that way). The flow is:
+   *
+   *   1. `handleClick` calls `event.stopPropagation()` so the wrapper
+   *      never sees a successful popup-open click (envDisabled no-op
+   *      clicks still bubble, which is what we want).
+   *   2. `openAuthPopup` opens the window, sets `popupRef` /
+   *      `setProcessing(true)`, then sets `handingOffRef.current = true`
+   *      and synchronously calls `onPopupOpened?.()`. The wrapper's
+   *      state flip (`setOpen(false)`) is batched into the same React
+   *      commit, so `<SignInButton>` unmounts immediately.
+   *   3. The unmount-cleanup effect (Bug 4-era "close any stale popup
+   *      on unmount" code) reads `handingOffRef.current` and SKIPS
+   *      `popupRef.current.close()` when it's true — otherwise it
+   *      would close the popup it itself just opened. See the docstring
+   *      in `mobile-nav-drawer.tsx` and the FE-2 follow-up notes in
+   *      `~/.hermes/handoffs/v0.2.0/drawer-signin-bug-measurement.md`.
+   *
+   * Desktop topbar usage (`site-header.tsx` → `AuthSurface` →
+   * `<SignInButton>`, no wrapper) leaves this prop `undefined`, so
+   * none of the new logic activates.
+   */
+  onPopupOpened?: () => void;
 };
 
 const POST_CLOSE_DEBOUNCE_MS = 5_000;
@@ -140,7 +170,7 @@ const POPUP_HEIGHT = 600;
 // `provider.refresh()` (which delegates the actual `/me` fetch to the
 // same provider).
 
-export function SignInButton({ messages }: Props) {
+export function SignInButton({ messages, onPopupOpened }: Props) {
   const { processing, setProcessing, registerRevert, meState, refresh } =
     useSignIn();
   // D55 canonical surface: apiUrl falls back to '' when
@@ -167,6 +197,21 @@ export function SignInButton({ messages }: Props) {
   const popupRef = useRef<Window | null>(null);
   const closeTimerRef = useRef<number | null>(null);
   const closeWatcherRef = useRef<number | null>(null);
+  /**
+   * v0.2.0 hotfix — drawer sign-in popup self-destruct (PR #206).
+   *
+   * Set to `true` SYNCHRONOUSLY before `onPopupOpened?.()` is invoked,
+   * telling the unmount-cleanup effect that the popup is being handed
+   * off to a wrapping owner (the drawer's `onClose`) which is about to
+   * unmount THIS button instance. Without this flag the cleanup effect
+   * would treat the just-opened popup as a stale one and immediately
+   * close it — destroying the OAuth round-trip 38 ms after creation
+   * (measured via CDP `Target.targetDestroyed` on the dispatching
+   * session's reproduce). See the `onPopupOpened` prop docstring for
+   * the full flow. Never reset; the ref is component-instance-scoped
+   * and the unmount-cleanup effect fires at most once per instance.
+   */
+  const handingOffRef = useRef(false);
 
   /**
    * `popupClosed` is a React state flag (not a ref) so the post-close
@@ -288,10 +333,35 @@ export function SignInButton({ messages }: Props) {
     // success paths are the `oauth-success` postMessage (handled in
     // `sign-in-context.tsx`, which calls our registered `revert`)
     // and the post-close effect's one-shot `/me` re-check below.
+
+    // v0.2.0 hotfix (PR #206) — drawer sign-in popup self-destruct.
+    // If a wrapping owner (the drawer's `onClose`) needs to react to
+    // "popup successfully opened", set the handoff flag FIRST and only
+    // then invoke the callback. The flag must be set synchronously
+    // BEFORE the callback fires because the callback's state update
+    // (`setOpen(false)`) is batched into the same React commit, which
+    // triggers this button instance's unmount-cleanup effect to run
+    // immediately after this function returns. Without the flag, that
+    // cleanup would close `popupRef.current` — the popup we just
+    // opened — destroying the OAuth round-trip 38 ms after creation.
+    if (onPopupOpened) {
+      handingOffRef.current = true;
+      onPopupOpened();
+    }
   }
 
-  function handleClick() {
+  function handleClick(event: React.MouseEvent) {
+    // v0.2.0 hotfix (PR #206) — drawer sign-in popup self-destruct.
+    // Two envDisabled / already-processing clicks: leave the event alone
+    // so the wrapper's `onClick={onClose}` fires (drawer closes, no
+    // popup ever opened — that path is correct as-is). One real
+    // popup-open click: stopPropagation so the wrapper does NOT also
+    // close the drawer in the same commit. The drawer is then closed
+    // explicitly via the `onPopupOpened` handoff inside `openAuthPopup`,
+    // which also sets `handingOffRef` so the unmount-cleanup effect
+    // preserves the just-opened popup.
     if (envDisabled || processing) return;
+    event.stopPropagation();
     openAuthPopup();
   }
 
@@ -367,12 +437,29 @@ export function SignInButton({ messages }: Props) {
    * (Bug 4 — no 60 s timeout to clear; the only `setTimeout` we own is
    * the post-close debounce timer in the effect above. Slice B — no
    * poll interval either; the SignInProvider owns `/me` now.)
+   *
+   * v0.2.0 hotfix (PR #206) — drawer sign-in popup self-destruct.
+   * Skip the popup-close when `handingOffRef.current` is set: that's
+   * the signal that the popup was JUST opened by this instance and is
+   * intentionally being handed off to a wrapping owner (drawer's
+   * `onClose`) which is about to unmount this button. Closing it here
+   * would defeat the entire handoff. See the `onPopupOpened` prop
+   * docstring for the full flow. Desktop topbar usage leaves
+   * `handingOffRef.current === false` for the entire button lifetime,
+   * so this guard is a no-op there — the unmount-cleanup still closes
+   * the popup on a route change, which is the original and still-
+   * correct behaviour (the user navigated away mid-sign-in, the popup
+   * is now stale).
    */
   useEffect(() => {
     return () => {
       clearCloseTimer();
       clearCloseWatcher();
-      if (popupRef.current && !popupRef.current.closed) {
+      if (
+        !handingOffRef.current &&
+        popupRef.current &&
+        !popupRef.current.closed
+      ) {
         popupRef.current.close();
       }
     };

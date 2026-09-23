@@ -341,8 +341,24 @@ export function MobileNavDrawer({
               </a>
             </>
           ) : (
+            // v0.2.0 hotfix (PR #206) — drawer sign-in popup self-destruct.
+            // The wrapper's `onClick={onClose}` is still required so an
+            // envDisabled no-op click (or a click on the padding around
+            // the button inside the wrap) closes the drawer — that path
+            // is correct as-is. But for a successful popup-open the
+            // button calls `event.stopPropagation()` (so this wrapper's
+            // `onClose` does NOT fire in the same commit), then invokes
+            // `onPopupOpened={onClose}` AFTER the popup reference is
+            // recorded in `popupRef` and `handingOffRef` is set. The
+            // drawer's `onClose` therefore closes the drawer explicitly
+            // in the right order: popup opens FIRST, drawer closes
+            // SECOND. The SignInButton's unmount-cleanup effect honors
+            // `handingOffRef` and leaves the popup alone. Without
+            // `onPopupOpened` the click would have been swallowed by
+            // `stopPropagation` and the drawer would have stayed open
+            // with no way to close it from the button row.
             <div onClick={onClose} className="mobile-nav-drawer-signin-wrap">
-              <SignInButton messages={messages} />
+              <SignInButton messages={messages} onPopupOpened={onClose} />
             </div>
           )}
         </div>
