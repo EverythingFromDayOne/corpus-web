@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { t, type Messages } from '@/lib/i18n';
 import { apiUrl } from '@/lib/config';
 import { useSignIn, type MeResponse } from './sign-in-context';
@@ -147,7 +147,7 @@ export function UserMenu({ messages }: Props) {
     };
   }, []);
 
-  // Sign-out link. The endpoint is the live `GET /auth/logout` route
+  // Sign-out href. The endpoint is the live `GET /auth/logout` route
   // in `apps/api/src/modules/auth/auth.controller.ts:145` — a 303
   // redirect that destroys the session, clears the session cookie,
   // and lands on `${WEB_ORIGIN}/`. The plain `<a href>` here triggers
@@ -161,7 +161,21 @@ export function UserMenu({ messages }: Props) {
   // module-scoped (inlined at build time per Next's `NEXT_PUBLIC_*`
   // convention) so re-evaluating `${apiUrl}/auth/logout` every render
   // is the same string each time — no memoisation needed.
-  const signOutHref = `${apiUrl}/auth/logout`;
+  //
+  // `?returnTo=` plumbing (FE-1 step 4): the current origin is computed
+  // post-mount because `window` is not available at SSR time. The
+  // initial render omits the parameter; an effect attaches it on the
+  // client. BE-1 (PR #198) falls back to the Referer header when
+  // `returnTo` is absent, so a click before hydration still lands on
+  // the correct origin — the explicit param only pins it
+  // deterministically for the common path.
+  const [signOutHref, setSignOutHref] = useState(`${apiUrl}/auth/logout`);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setSignOutHref(
+      `${apiUrl}/auth/logout?returnTo=${encodeURIComponent(window.location.origin)}`,
+    );
+  }, []);
 
   const name = me?.name ?? me?.email ?? '';
   const ariaLabel = name

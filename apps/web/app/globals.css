@@ -1159,9 +1159,22 @@ body:has(.av-view) .av-header-tog {
   .mobile-nav-trigger {
     display: inline-flex;
   }
-  /* At <=640px we also hide the desktop-only nav links so the row
-     fits comfortably: hamburger replaces them. The drawer's nav list
-     surfaces the same routes. */
+  /* At <=640px the drawer becomes available. Switch the desktop topbar
+     nav links to the hamburger and hide them so the row fits comfortably:
+     the drawer's nav list surfaces the same routes.
+
+     IMPORTANT: the threshold below MUST match the threshold at which
+     .mobile-nav-trigger becomes visible (defined further down). They are
+     the same chrome-switch event expressed at two surfaces — keeping them
+     in lockstep is the rule. If you change one, change the other.
+
+     Also: this rule and the <=480px `.topbar-nav { display: none }`
+     earlier in this file together govern when desktop nav links collapse
+     to the hamburger. The drawer's account control lives in a SEPARATE
+     wrapper class (`.mobile-nav-drawer-signin-wrap`); never match it with
+     the topbar-scoped selectors below, or the drawer's Sign in row will
+     silently disappear on mobile (regression noted 2026-09-21, captured
+     by ui-evidence reachability assertion). */
   .topbar-nav {
     display: none;
   }
@@ -1172,11 +1185,23 @@ body:has(.av-view) .av-header-tog {
   /* Session 216 (2026-09-20): dispatch moved the theme toggle from
      the mobile topbar into the drawer only. Same with the sign-in
      button — both live behind the hamburger now. Net mobile topbar:
-     logo + hamburger + search icon. */
-  .topbar-signin,
-  .user-menu,
-  .mobile-nav-theme-host,
-  .topbar-theme-host {
+     logo + hamburger + search icon.
+
+     Scope note (2026-09-21): the previous selector `.topbar-signin`
+     also matched the drawer's SignInButton because both surfaces use
+     the same primitive class. That made the drawer's account row
+     disappear on mobile. Restrict the rule to the topbar ancestor
+     so the drawer's `.mobile-nav-drawer-signin-wrap .topbar-signin`
+     remains visible. If a new topbar-only `.topbar-signin` consumer
+     appears, it must stay inside `<header class="topbar">` for this
+     to keep working — anything outside it should not be hidden here. */
+  /* Scope the hide to the topbar subtree so the drawer's
+     `.mobile-nav-drawer-signin-wrap .topbar-signin` (which lives
+     outside `<header class="topbar">`) is unaffected. */
+  .topbar .topbar-signin,
+  .topbar .user-menu,
+  .topbar .mobile-nav-theme-host,
+  .topbar .topbar-theme-host {
     display: none;
   }
 }
