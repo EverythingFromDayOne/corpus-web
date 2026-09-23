@@ -59,7 +59,19 @@ export function MobileNavCluster({
     { slug: 'articles', href: blogPath(locale) },
   ];
 
-  const signOutHref = `${apiUrl}/auth/logout`;
+  // Sign-out href for the drawer. Pattern mirrors UserMenu (FE-1 step 4
+  // — `?returnTo=${window.location.origin}` so post-logout lands on
+  // the same origin instead of the first WEB_ORIGIN entry). Computed
+  // post-mount because `window` is not available at SSR time; BE-1's
+  // Referer fallback covers the gap if the user clicks before
+  // hydration.
+  const [signOutHref, setSignOutHref] = useState(`${apiUrl}/auth/logout`);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setSignOutHref(
+      `${apiUrl}/auth/logout?returnTo=${encodeURIComponent(window.location.origin)}`,
+    );
+  }, []);
   const themeLabel = t(messages, 'nav.themeToggle');
 
   return (
