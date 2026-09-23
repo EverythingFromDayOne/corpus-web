@@ -12,6 +12,7 @@
     "signIn": "Sign in",
     "signInAriaLabel": "Sign in with Google",
     "signInProcessing": "Signing in…",
+    "signInPopupBlocked": "Sign-in popup was blocked. Allow popups for this site and try again.",
     "signedInAriaLabel": "{name}'s account menu",
     "signedInAriaLabelFallback": "Account menu",
     "avatarFallbackAlt": "{name}'s avatar",

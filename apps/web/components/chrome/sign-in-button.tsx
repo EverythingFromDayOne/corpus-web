@@ -220,6 +220,21 @@ export function SignInButton({ messages, onPopupOpened }: Props) {
    * `popup.closed === true`. Bug 2.2 fix: it does NOT flip on a 401 tick.
    */
   const [popupClosed, setPopupClosed] = useState(false);
+  /**
+   * v0.2.0 hotfix (PR #206) — stuck "Signing in…" must have an exit.
+   *
+   * `popupBlocked` flips true when `window.open()` returns null (the
+   * browser blocked the popup, e.g. Chrome's built-in blocker when
+   * not invoked from a trusted user gesture, or the user's popup
+   * blocker extension). Without this signal the click is silently
+   * swallowed — `processing` was never set in the null branch, so the
+   * button stays interactive, but the user has no idea WHY their
+   * click did nothing. Auto-cleared after 6 s by the effect below so
+   * a stale message doesn't linger. Independent of Fix 1/1b: even with
+   * the wrapper fix, a popup-blocked click is still a click with no
+   * outcome, and the user needs feedback.
+   */
+  const [popupBlocked, setPopupBlocked] = useState(false);
 
   function clearCloseTimer() {
     if (closeTimerRef.current !== null) {
@@ -302,10 +317,20 @@ export function SignInButton({ messages, onPopupOpened }: Props) {
 
     const popup = window.open(buildAuthUrl(authPath), 'google-oauth', features);
     if (!popup) {
-      // Popup blocked: nothing to revert, nothing to poll. The user must
-      // unblock popups and click again. Spec says no error surfaced.
+      // Popup blocked (browser built-in or user-installed popup blocker).
+      // `processing` was never set in this branch (the brief's Fix 2
+      // confirmation), so there is no stuck-state to revert — but the
+      // click was a no-op from the user's perspective. Surface that
+      // with `popupBlocked`, which renders an inline message under the
+      // button (visually connected, not a toast) and auto-clears
+      // after 6 s. v0.2.0 hotfix (PR #206).
+      setPopupBlocked(true);
       return;
     }
+    // Successful open: clear any stale "popup blocked" message from a
+    // previous click so the user is not told to allow popups while a
+    // popup is in fact open in front of them.
+    setPopupBlocked(false);
     popupRef.current = popup;
     setPopupClosed(false);
     setProcessing(true);
@@ -433,6 +458,22 @@ export function SignInButton({ messages, onPopupOpened }: Props) {
   }, [popupClosed, processing, meState, revert]);
 
   /**
+   * Auto-clear `popupBlocked` after 6 s so the message doesn't linger
+   * as a stale banner once the user has either re-clicked successfully
+   * or navigated away. The 6 s window matches the user's plausible
+   * "I should allow popups for this site and click again" attention
+   * span — long enough to read and act, short enough to not feel like
+   * a permanent sticky error. v0.2.0 hotfix (PR #206).
+   */
+  useEffect(() => {
+    if (!popupBlocked) return;
+    const timer = window.setTimeout(() => setPopupBlocked(false), 6_000);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [popupBlocked]);
+
+  /**
    * Cleanup on unmount: close popup if open, clear timers.
    * (Bug 4 — no 60 s timeout to clear; the only `setTimeout` we own is
    * the post-close debounce timer in the effect above. Slice B — no
@@ -473,15 +514,44 @@ export function SignInButton({ messages, onPopupOpened }: Props) {
     `${envDisabled ? ' topbar-signin--disabled' : ''}`;
 
   return (
-    <button
-      type="button"
-      className={className}
-      aria-label={t(messages, 'topbar.signInAriaLabel')}
-      aria-disabled={envDisabled || processing}
-      disabled={envDisabled || processing}
-      onClick={handleClick}
-    >
-      <span aria-live="polite">{label}</span>
-    </button>
+    // Wrap the button + optional popup-blocked message in a single
+    // <span> so consumers that render <SignInButton> as a direct
+    // child of a flex/grid parent (e.g. <AuthSurface> inside
+    // `.topbar-tools` in site-header.tsx) still see exactly ONE
+    // layout child per SignInButton instance. The wrapper is
+    // display: inline (default for <span>) so it takes no width
+    // beyond its children; the popup-blocked message sits inline-
+    // block below it via the flex/column layout on the wrapper.
+    <span className="topbar-signin-host">
+      <button
+        type="button"
+        className={className}
+        aria-label={t(messages, 'topbar.signInAriaLabel')}
+        aria-disabled={envDisabled || processing}
+        disabled={envDisabled || processing}
+        onClick={handleClick}
+      >
+        <span aria-live="polite">{label}</span>
+      </button>
+      {/*
+        Popup-blocked inline message. Rendered as a sibling of the
+        button (NOT inside it) so screen readers can announce the
+        status independently and so the user can select the text.
+        `aria-live="polite"` lets the SR interrupt its current read
+        only when the message appears, never on the (more frequent)
+        clear. `role="status"` reinforces the implicit status role so
+        the announcement is consistent across SR vendors. v0.2.0
+        hotfix (PR #206).
+      */}
+      {popupBlocked ? (
+        <span
+          className="topbar-signin-popup-blocked"
+          role="status"
+          aria-live="polite"
+        >
+          {t(messages, 'topbar.signInPopupBlocked')}
+        </span>
+      ) : null}
+    </span>
   );
 }
