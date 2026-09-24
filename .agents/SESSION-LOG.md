@@ -10992,3 +10992,49 @@ $ pnpm test   (apps/api, unmodified — report only)
 (113 → 119) that Huy asked for as "the receipt that the gate actually
 widened" — pending in this same turn. Once posted, PR is ready for Huy's
 merge → VPS receipts → phase 1 tag cut.
+
+## Session 227 — 2026-09-24 — Lead — v0.2.0 release cut (minimum scope, PR #TBD)
+
+**Scope**: Cut `v0.2.0` from `develop` with the minimum change Huy specified —
+no ancestry split, no `[v0.1.0]` backfill, no `docs/release.md`, no cut skill,
+no `verify:changelog` gate, no `corpus-commit` fix. Those five items are
+deliberately deferred to separate post-tag PRs (Huy's explicit ordering:
+"CUT v0.2.0 NOW with the minimum ... AFTER THE TAG, as separate PRs").
+
+**Changed**
+- `CHANGELOG.md` — inserted `## [v0.2.0] - 2026-09-24` heading directly below
+  `## [Unreleased]`, and left `[Unreleased]` empty above it. No other lines
+  touched; the 7777-line body below is untouched (no ancestry split).
+
+**Preflight (run on `origin/develop` tip `d17b78a`, primary checkout)**
+- `git tag -l 'v0.*'` → `v0.1.0` only.
+- `origin/main` HEAD → `eac4c3fce75fc16da3e3db3ee7b01a2ce52f8c9d`.
+- `git log --oneline --no-merges origin/develop..origin/main` → empty (main
+  has no commit develop lacks).
+- `pnpm verify:submodules` → 4/4 submodules pinned and clean (content/nestjs's
+  tag lookup needed `git -C content/nestjs fetch origin --tags` first — tags
+  weren't fetched in the primary checkout's submodule clone).
+- `git log --oneline --no-merges v0.1.0..origin/main` → 8 commits, all dated
+  2026-09-05 through 2026-09-08, merged via PR #174 (`eac4c3f`,
+  2026-09-08T15:45:02Z) — shipped to production without ever being tagged.
+  Disclosed plainly in the release PR body per Huy's instruction.
+
+**Why**
+- Huy's explicit ordering: ship the tag now (code has been sitting verified
+  on `develop` for days), automate the release process afterward from what
+  the manual cut actually required rather than guessing upfront.
+
+**Carry-forward (separate PRs, in Huy's stated order)**
+1. `corpus-commit` skill fix — CHANGELOG entries go directly below
+   `## [Unreleased]`, newest first, never appended at EOF.
+2. `verify:changelog` gate — exactly one `[Unreleased]`, must be the first
+   `##` section, entry dates non-increasing within every section. Must go RED
+   on today's file before landing, to prove the gate works.
+3. Ancestry split of the historical CHANGELOG into `[v0.1.0]` / `[v0.2.0]`
+   blocks, keyed by `git merge-base --is-ancestor <sha> v0.1.0` per entry
+   (tag by name, not SHA; entries with no cited SHA reported separately, not
+   guessed).
+4. `docs/release.md` (standing process, not one-shot) + the `cut` skill in
+   Lead's own Hermes profile (phases 0–3, preflight invariant, Huy's merge
+   stop-points, re-reads `docs/release.md` each run — no `cut.sh`, no
+   version bumps, no pushing to `main`).
