@@ -11038,3 +11038,53 @@ deliberately deferred to separate post-tag PRs (Huy's explicit ordering:
    Lead's own Hermes profile (phases 0–3, preflight invariant, Huy's merge
    stop-points, re-reads `docs/release.md` each run — no `cut.sh`, no
    version bumps, no pushing to `main`).
+
+## Session 228 — 2026-09-24 — Lead — post-tag follow-up PR 1: corpus-commit skill CHANGELOG-order fix
+
+**Scope**: First of four post-v0.2.0-tag follow-up PRs, in Huy's stated order.
+`v0.2.0` closed (tag `d3b50aa` on `main`, back-merged to `develop` via #210,
+production sign-in verified by Huy). This PR fixes the `corpus-commit` skill's
+CHANGELOG guidance, which was ambiguous enough to permit exactly the kind of
+drift this session's own release-cut CHANGELOG edit had to work around
+manually (heading inserted directly below `## [Unreleased]`, not appended).
+
+**Root cause**: `.claude/skills/corpus-commit/SKILL.md` step 2 of the
+preflight said only "has an entry under `## [Unreleased]` for this session" —
+no insertion-point or ordering rule. That wording is satisfied whether the
+entry lands directly below the header (correct) or appended at literal EOF
+(wrong) or anywhere in between. `.agents/SESSION-LOG.md` and `progress.md`
+use the **opposite** convention (chronological append, oldest first) — the
+skill did not call out the divergence, inviting cross-contamination between
+the two append disciplines.
+
+**Fix**: `.claude/skills/corpus-commit/SKILL.md` — step 2 rewritten to state
+explicitly: CHANGELOG entries go directly below `## [Unreleased]`, newest
+first, above every existing entry, never appended at EOF; contrasted
+explicitly against SESSION-LOG.md/progress.md's chronological-append
+convention so the two are not conflated.
+
+**Verification**: gate suite run in a dedicated worktree
+(`corpus-web-corpuscommit`, branch `fix/corpus-commit-skill-changelog-order`
+off `origin/develop` tip `39f2375`) — `pnpm agents:check`,
+`pnpm verify:submodules`, `pnpm verify:frontmatter`, `pnpm verify:links`,
+`pnpm verify:catalog`, `pnpm lint`, `pnpm typecheck`, `pnpm build` all pass.
+Doc-only change (`.md` files), no lint applicable to the skill file itself.
+
+**Files changed**:
+- `.claude/skills/corpus-commit/SKILL.md` — step 2 of the preflight checklist
+  reworded per above.
+- `CHANGELOG.md` — this entry, inserted directly below `## [Unreleased]`
+  (dogfooding the fixed rule on its own PR).
+- `.agents/SESSION-LOG.md` — this entry.
+
+**Hard-rule compliance**:
+- No edits under `content/`.
+- No auto-merge (Huy merges).
+- No hand-edit of `AGENTS.md` / `CLAUDE.md` / `.cursor/rules/60-skills.mdc`
+  (none touched — this is a `.claude/skills/` file, not a `.cursor/rules/`
+  source; `pnpm agents:build` is not implicated).
+- No new locale, no personal-content surface.
+
+**Next**: follow-up PR 2 — `pnpm verify:changelog` script + CI gate, with RED
+output against a synthetic bad-order commit as proof the gate actually
+catches the failure mode this PR just fixed by hand.

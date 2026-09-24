@@ -7,7 +7,11 @@ description: "Commit and push procedure for corpus-web. Use before any git commi
 
 1. `.agents/SESSION-LOG.md` has an entry for this session, in the exact format from
    `.cursor/rules/00-session-protocol.mdc`, listing **every** changed file individually.
-2. `CHANGELOG.md` has an entry under `## [Unreleased]` for this session.
+2. `CHANGELOG.md` has an entry for this session, inserted **directly below the
+   `## [Unreleased]` header** — newest entry first, above every existing entry.
+   **Never append at EOF.** This is the opposite convention from
+   `.agents/SESSION-LOG.md` and `progress.md`, which append chronologically
+   (oldest first, newest entry added at the end) — do not mix the two up.
 3. `.agents/summary.md` has been updated **if and only if** something in it became false.
    Targeted edits only.
 4. `progress.md` reflects the new status of any item touched. If a debt row
