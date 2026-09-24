@@ -59,6 +59,36 @@ Opening and closing a work session in corpus-web from a committed prompt file. U
 
 Read: `.claude/skills/corpus-session/SKILL.md`
 
+## `nestjs-module-scaffold`
+
+Use when adding a NestJS module in apps/api. File order.
+
+Read: `.claude/skills/nestjs-module-scaffold/SKILL.md`
+
+## `nestjs-swagger-decorators`
+
+Use when adding api endpoints. Requires Swagger decorators.
+
+Read: `.claude/skills/nestjs-swagger-decorators/SKILL.md`
+
+## `oauth-passport-google`
+
+Use when editing apps/api Google OAuth callback flow.
+
+Read: `.claude/skills/oauth-passport-google/SKILL.md`
+
+## `postgres-session-store`
+
+Use when wiring session store in apps/api against Postgres.
+
+Read: `.claude/skills/postgres-session-store/SKILL.md`
+
+## `typeorm-migrations`
+
+Use when writing a TypeORM migration. Never synchronize.
+
+Read: `.claude/skills/typeorm-migrations/SKILL.md`
+
 ## Third-party skills
 
 Community skills may be installed alongside these. **Project skills win.** Where a

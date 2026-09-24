@@ -1,10 +1,39 @@
 ---
-description: NestJS 11 conventions — modules, DTOs, TypeORM, auth, OpenAPI.
+description: NestJS 11.1.x conventions — modules, DTOs, TypeORM 0.3, Postgres 16, session auth, OpenAPI.
 globs: ["apps/api/**"]
 alwaysApply: false
 ---
 
-# apps/api — NestJS 11
+# apps/api — NestJS 11.1.x
+
+## Pinned versions (verify against `apps/api/package.json` before citing any other number)
+
+| Package | Version |
+|---|---|
+| `@nestjs/common` / `@nestjs/core` / `@nestjs/platform-express` | 11.1.29 |
+| `@nestjs/config` | 4.0.0 |
+| `@nestjs/passport` | 11.0.5 |
+| `@nestjs/swagger` | 11.2.3 |
+| `@nestjs/terminus` | 11.0.0 |
+| `@nestjs/typeorm` | 11.0.0 |
+| `typeorm` | 0.3.20 |
+| `pg` | 8.13.1 |
+| `express` (transitive, via `@nestjs/platform-express`) | 5.2.1 |
+| `express-session` | 1.18.2 |
+| `connect-pg-simple` | 10.0.0 |
+| `passport` | 0.7.0 |
+| `passport-google-oauth20` | 2.0.0 |
+| `class-validator` | 0.14.2 |
+| `class-transformer` | 0.5.1 |
+| `zod` | 3.23.8 |
+| `typescript` | 5.9.3 |
+| Node | 24 LTS (`@types/node ^24.0.0`) — `10-stack-and-topology.mdc` row confirms api diverges from web's Node 22 |
+| Postgres | `postgres:16.4-alpine` (`docker-compose.yml`, root) |
+
+`10-stack-and-topology.mdc` rows for TypeORM (`1.1.x`) and PostgreSQL (`16`, note says
+`16.6`) are **stale against this table** — held-back drift disclosed in PR #179 (see
+`docs/DEBT.md`). This file's table above is the corrected version; `10-stack-and-topology.mdc`
+needs its own patch pass with a debt row, out of scope for this session.
 
 ## What this service is for
 
@@ -31,7 +60,8 @@ is in the wrong service.
 
 - One module per domain, `src/modules/<domain>/`.
 - Controller -> Service -> Repository. Controllers contain no business logic.
-- Named exports. Co-located `*.spec.ts`.
+- Named exports.
+- Tests live in `apps/*/test/**/*.test.ts` (sibling `test/` dir, not co-located `src/`), run via `node --import tsx --test test/**/*.test.ts`; each `apps/*/tsconfig.test.json` includes both `src/**/*.ts` and `test/**/*.ts` with `noEmit: true` while `tsconfig.build.json` includes `src/**/*.ts` only, so `dist/` never ships test files.
 
 ## Validation
 
@@ -51,12 +81,24 @@ is in the wrong service.
 ## Auth
 
 - Nest is the identity provider. Session cookie: `httpOnly`, `Secure`, `SameSite=Lax`,
-  `Domain=.nxhhuy.tech`.
-- Short-lived access token + rotating refresh token. Refresh reuse detection revokes the
-  whole family.
-- The client uses single-flight refresh, implemented per the `react-concepts`
-  `refresh-storm` recipe.
-- `@nestjs/throttler` + Redis on login, register, and refresh.
+  `Domain=.nxhhuy.tech` in production (empty domain in local dev — pins to `localhost`).
+- Session store is Postgres via `express-session` + `connect-pg-simple`, table
+  `corpus_session`, on its **own `pg.Pool`** — deliberately separate from TypeORM's
+  DataSource pool so a session write burst cannot starve an entity query.
+- Google OAuth 2.0 (`passport-google-oauth20`) is the only provider currently wired.
+  `scope: ['openid', 'email', 'profile']` — never request broader scopes without an
+  explicit decision. `AuthModule.forRoot()` registers conditionally: if the three
+  `GOOGLE_*` env vars are missing, the module is omitted and the API boots in
+  "auth-disabled" mode (`/healthz/*` still works, `/auth/*` 404s, `/me` 401s). This keeps
+  a CI machine without secrets green — do not "fix" this by hand-injecting fake secrets
+  in CI, that decision belongs to the operator of the build.
+- `SessionAuthGuard` re-queries the `users` row from Postgres on every protected request
+  instead of trusting Passport's serialized/cached payload — a soft-deleted or
+  since-removed user gets a 401 immediately, not on next cache expiry.
+- No refresh-token rotation yet — that is a separate, not-yet-scoped story. Do not add
+  `accessType: 'offline'` or a refresh flow without a task prompt asking for it.
+- `@nestjs/throttler` + Redis on login/register/refresh is the roadmap target; not
+  present in the current Google-only slice — do not assume it exists without checking.
 
 ## Quiz scoring is local-only
 

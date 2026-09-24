@@ -11,6 +11,8 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "dev": "turbo run dev --filter=@corpus/web",
+    "dev:api": "turbo run dev --filter=@corpus/api",
+    "dev:all": "turbo run dev",
     "agents:build": "node scripts/build-agent-docs.mjs",
     "agents:check": "node scripts/build-agent-docs.mjs --check",
     "sync:content": "node scripts/sync-content.mjs",
@@ -23,7 +25,9 @@
     "verify:catalog": "tsx scripts/verify-catalog.mjs",
     "verify:prerender": "node scripts/verify-prerender.mjs",
     "verify:a11y": "node scripts/verify-a11y.mjs",
-    "verify:lighthouse": "node scripts/verify-lighthouse.mjs"
+    "verify:lighthouse": "node scripts/verify-lighthouse.mjs",
+    "verify:api-runtime": "node scripts/verify-api-runtime.mjs",
+    "verify:ui-evidence": "node scripts/ui-evidence.mjs"
   },
   "dependencies": {
     "gray-matter": "4.0.3",

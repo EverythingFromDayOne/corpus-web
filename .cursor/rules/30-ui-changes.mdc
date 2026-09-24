@@ -1,0 +1,82 @@
+---
+description: UI-touching PRs must ship with ui-evidence output and screenshots. UI surface and chrome are a hard review category, not just code.
+globs: ["apps/web/**", "components/**", "scripts/ui-evidence.mjs"]
+alwaysApply: false
+---
+
+# UI changes
+
+A PR that changes anything a user sees on screen — chrome, layout, copy,
+colour tokens that surface in CSS, focus order, header / footer / drawer
+behaviour — is a **UI PR** even if its `git diff` looks small. A
+one-line token rename that re-weights a dozen surfaces is a UI PR. A
+hover-state tweak is a UI PR. The shape of the diff does not determine
+the category; the visible change does.
+
+## What a UI PR must include
+
+### 1. `pnpm verify:ui-evidence` output (or its updated counterpart)
+
+For PRs that touch the mobile nav drawer or any chrome component
+covered by `scripts/ui-evidence.mjs`, the existing harness must run
+clean against the diff's tip — paste the harness's console output or
+`results.json` summary in the PR body. A regression caught pre-merge is
+cheap; the same regression caught in production requires a hotfix PR,
+a re-bookkeeping cycle, and a fresh UI-evidence baseline run.
+
+For PRs that introduce new chrome without an existing harness coverage,
+the PR author must either (a) extend `ui-evidence.mjs` in the same PR
+to cover the new surface, or (b) explain in the PR body what visual
+checks they did perform. **Green CI does not substitute** — the UI
+sharness is its own gate for chrome-touching changes.
+
+### 2. Screenshots in the PR body
+
+At least three:
+
+- Desktop ≥1280 wide
+- A mobile viewport that exercises the change (375 by default; 768 if
+  the diff targets tablet specifically)
+- The "before" state — either as a separate screenshot or as an inline
+  contrast in the write-up
+
+A screenshot is the only way a reviewer who did not run the diff can
+verify that the change does what the description claims. Annotations
+(diffs, arrows, callouts) help but are not required. **Screenshots from
+PR preview** are fine; screenshots from a fork or local screenshot farm
+are not — they lie about the actual deployed branch's chrome.
+
+### 3. Self-check before opening the PR
+
+- `pnpm typecheck`
+- `pnpm lint` (if the diff touches TSX / CSS)
+- `pnpm verify:ui-evidence`
+- Functional probe of any interactive surface the PR adds or modifies
+  (drawer open / close, theme toggle round-trip, focus trap). The CDP
+  recipe and chrome probes are in `scripts/ui-evidence.mjs` and the
+  `corpus-web-context` skill's `references/dialog-gotchas.md`.
+
+### 4. PR body "What does this PR claim, and what checks that claim against reality?"
+
+This is the **PR template's first question** (see
+`.github/pull_request_template.md`). It is non-negotiable for UI PRs.
+
+- One sentence per claim.
+- For each claim, one concrete check that verifies it (screenshot,
+  harness line, manual probe). The check must be reproducible by
+  someone who has not seen the diff.
+- "Eyeballed it" or "looks good in Vercel preview" is not a check. It
+  is a feeling; the gate exists to convert feelings into receipts.
+
+## Why this exists
+
+The chrome polish work in Session 215 surfaced real bugs (drawer
+backdrop creating a containing block for `position: fixed`,
+`aria-controls` propagation missing on the trigger, focus-trap race
+that escaped to skip-to-content on Tab past the second-to-last
+focusable). All three were caught before merge by the
+ui-evidence harness that the chrome polish also introduced.
+
+Without the rule, the harness stays a habit; a habit lasts as long as
+the agent that built it. With the rule + the PR template question,
+the harness is the **definition of done** for chrome work.

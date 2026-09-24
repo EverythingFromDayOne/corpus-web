@@ -36,9 +36,10 @@ them.
 
 - Migrations only. `synchronize: true` is forbidden in every environment including test
 - Controllers return DTOs, never entities
-- **Never hard-delete a `lessons` row.** Articles get renamed and moved; `lesson_progress`
-  points at them. Archive, and add a `lesson_aliases` row on rename — that table also feeds
-  the Next `redirects()` config so old URLs keep working
+- **Archive-not-delete applies to `lessons` rows.** See `.cursor/rules/50-api-nestjs.mdc`
+  Persistence section for the rule boundary; the canonical addendum here is that a
+  rename also needs a `lesson_aliases` row so the Next `redirects()` config keeps old
+  URLs working — a pure rename without an alias silently breaks links.
 - A changed `content_hash` flags progress rows for *optional* invalidation, never automatic.
   A typo fix must not wipe a reader's streak
 
@@ -52,7 +53,8 @@ the API to work around a missing decorator — add the decorator.
 
 - Never `synchronize: true`
 - Never return an entity from a controller
-- Never hard-delete a `lessons`, `quiz_attempts`, or `card_reviews` row
+- Never hard-delete a `lessons`, `quiz_attempts`, or `card_reviews` row — see
+  `.cursor/rules/50-api-nestjs.mdc` Persistence section for the rule boundary
 - Never put business logic in `apps/web/app/api/`
 - Never skip Swagger decorators
 - Never assume standalone `class-validator` defaults

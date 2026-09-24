@@ -42,6 +42,10 @@ alwaysApply: true
 - **NEVER use scroll listeners for the TOC rail.** `IntersectionObserver`.
 - **NEVER hardcode a user-visible string.** All routes live under `/[locale]/`; strings go
   through the message catalogue even while `en` is the only shipped locale.
+- **NEVER pass a class instance across the client boundary.** On a prerendered route this
+  is a hard build failure, not silent degradation.
+- **NEVER ship Sandpack in a default page load.** Sandpack must be lazy-loaded behind an
+  explicit "Open interactive editor" click.
 
 ## Frontend invariants (React)
 
@@ -65,6 +69,8 @@ alwaysApply: true
 
 ## API
 
+- **NEVER let the API sit in the read path for an article body.** Postgres holds state,
+  not content. If the API were down, would reading break? If yes, it is in the wrong service.
 - **NEVER set `synchronize: true` on TypeORM.** Migrations only.
 - **NEVER return an entity from a controller.** DTOs only.
 - **NEVER hard-delete a `lessons` row.** Archive it. `lesson_progress` points at it and
@@ -130,11 +136,26 @@ About page is an oversight to be helpfully filled.
   not write Angular. Those belong in `AngularDemos`.
 - **NEVER run a blind `npx skills update`.** Upstreams rename folders and drift. Diff first.
 
+## Safety mechanisms
+
+- **When a safety mechanism, gateway, hook, or permission blocks an action, stop
+  and ask. Never reach the same outcome by another route — especially not a more
+  destructive one. A blocked action is an answer, not an obstacle.**
+
+## Protected branches — no direct push from agent context
+
+- **NEVER push to `develop` or `main` from an agent context.** Bypass credentials
+  inherit the ruleset exception; a direct push is neither blocked nor CI-tested. All
+  bookkeeping, rescue, and one-line fixes go through a PR — batch into the next one
+  if overhead is the concern. This is a permanent rule — agent identity does not
+  change the rule.
+
 ## Agent docs
 
 - **NEVER hand-edit `AGENTS.md`, `CLAUDE.md`, or `.cursor/rules/60-skills.mdc`.** Generated from `.cursor/rules/*.mdc` by
   All three are generated from `.cursor/rules/*.mdc` and `.claude/skills/*/SKILL.md` by
   `pnpm agents:build`.
+- Verify a `.cursor` rule against the actual file tree before quoting it; the tree wins. (Stale `.cursor/rules/*.mdc` rules reproduce deviation loops every session until corrected — the D57 rule-vs-tree mismatch was caught only after the first tests landed and the rule read `Co-located *.spec.ts` for a path that did not exist.)
 
 ---
 
@@ -148,3 +169,4 @@ About page is an oversight to be helpfully filled.
 - Changing hosting, DNS, or the cookie domain
 - Changing the Turborepo task graph or CI gate configuration
 - Doing more than the current session prompt specifies
+- Adding a new locale (`vi` or otherwise) — message files or translated content

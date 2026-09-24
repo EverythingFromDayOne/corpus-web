@@ -24,7 +24,7 @@
  */
 
 [data-blog] .lesson-surface .av-prose {
-  max-width: 48rem;        /* 768px — spec §15 High reading column */
+  /* max-width: 48rem;        768px — spec §15 High reading column */
   font-size: 1rem;         /* 16px — one notch smaller than spec's 17px */
   line-height: 1.7;        /* spec: 1.8; reduced for English prose */
 }
