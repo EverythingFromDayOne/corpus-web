@@ -1262,7 +1262,8 @@ body:has(.av-view) .av-header-tog {
   .topbar .topbar-signin,
   .topbar .user-menu,
   .topbar .mobile-nav-theme-host,
-  .topbar .topbar-theme-host {
+  .topbar .topbar-theme-host,
+  .topbar .topbar-signin-host {
     display: none;
   }
 }
