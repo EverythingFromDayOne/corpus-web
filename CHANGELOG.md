@@ -5,6 +5,23 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### [2026-09-24] — fix/corpus-commit-skill-changelog-order — corpus-commit skill: CHANGELOG insertion point + ordering
+
+**Fixed**
+- `.claude/skills/corpus-commit/SKILL.md` — preflight step 2 was ambiguous
+  about where a new CHANGELOG entry goes ("has an entry under
+  `## [Unreleased]`" was satisfied by an EOF append just as much as a
+  directly-below-header insert). Reworded to state explicitly: newest entry
+  first, directly below `## [Unreleased]`, never appended at EOF — and
+  contrasted against `.agents/SESSION-LOG.md` / `progress.md`'s opposite
+  (chronological-append) convention so the two are not conflated.
+
+**Context**
+- First of four post-`v0.2.0`-tag follow-up PRs (Huy's stated order:
+  corpus-commit fix → `verify:changelog` gate → CHANGELOG ancestry split →
+  `docs/release.md` + cut skill). This PR is doc-only, dogfoods its own new
+  rule on this very entry.
+
 ## [v0.2.0] - 2026-09-24
 
 ### [2026-09-23] — fix/drawer-signin-popup — drawer sign-in popup self-destruct + stuck processing state
